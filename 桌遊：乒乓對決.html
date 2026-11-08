@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>桌遊：乒乓對決</title>
+<style>
+    :root {
+        --bg-color: #f4ebd8;
+        --text-color: #3e2723;
+        --accent-color: #b71c1c;
+        --card-bg: #fff8e1;
+        --btn-bg: #5d4037;
+        --btn-text: #fff;
+        --table-green: #2e7d32;
+        --table-border: #1b5e20;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Georgia', 'Times New Roman', serif; user-select: none; }
+    
+    body {
+        background-color: var(--bg-color);
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><rect width="100" height="100" fill="none"/><path d="M0 0 L100 100 M100 0 L0 100" stroke="%233e2723" stroke-width="1"/></svg>');
+        color: var(--text-color);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* 暗角效果 */
+    body::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        pointer-events: none;
+        box-shadow: inset 0 0 150px rgba(0,0,0,0.3);
+        z-index: 999;
+    }
+
+    /* 頂部狀態欄 */
+    #top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background: rgba(62, 39, 35, 0.9);
+        color: #fff;
+        font-size: 14px;
+        z-index: 10;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    #top-bar .score { font-size: 18px; font-weight: bold; }
+    #turn-indicator { font-size: 16px; font-weight: bold; color: #ffca28; text-align: center;}
+
+    /* 中央戰況提示 */
+    #status-banner {
+        position: absolute;
+        top: 50px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.7);
+        color: #fff;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 12px;
+        z-index: 50;
+        pointer-events: none;
+        text-align: center;
+        display: none;
+    }
+
+    /* 球桌區域 */
+    #table-container {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+        z-index: 5;
+        overflow: hidden;
+    }
+
+    #table {
+        width: 100%;
+        max-width: 320px;
+        aspect-ratio: 1 / 1.8;
+        background-color: var(--table-green);
+        border: 8px solid var(--table-border);
+        border-radius: 8px;
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: repeat(6, 1fr);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    }
+
+    .zone {
+        border: 1px dashed rgba(255,255,255,0.2);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-size: 10px;
+        color: rgba(255,255,255,0.6);
+        transition: all 0.2s;
+    }
+    .zone.highlight { background: rgba(255,255,255,0.2); color: #fff; }
+    
+    /* 可點擊目標的高亮樣式 */
+    .zone.targetable {
+        cursor: pointer;
+        border: 2px solid #ffca28;
+        box-shadow: inset 0 0 10px rgba(255, 202, 40, 0.5);
+        color: #fff;
+    }
+    .zone.targetable:hover {
+        background: rgba(255, 202, 40, 0.3);
+    }
+    /* 不可點擊（如發球時的遠台） */
+    .zone.zone-disabled {
+        opacity: 0.3;
+        pointer-events: none;
+    }
+
+    /* 球網 */
+    #net {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 100%;
+        height: 6px;
+        background: #fff;
+        transform: translateY(-50%);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        z-index: 2;
+    }
+    #net::before, #net::after {
+        content: '';
+        position: absolute;
+        width: 4px;
+        height: 10px;
+        background: #ccc;
+        top: -2px;
+    }
+    #net::before { left: 0; }
+    #net::after { right: 0; }
+
+    /* 乒乓球 */
+    #ball {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        transform: translate(-50%, -50%);
+        transition: top 0.3s, left 0.3s;
+        z-index: 10;
+        pointer-events: none;
+        display: none;
+    }
+
+    /* 玩家手牌區 */
+    #player-hand-container {
+        height: 140px;
+        background: rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        z-index: 10;
+        position: relative;
+        border-top: 2px solid #d7ccc8;
+    }
+
+    #player-hand {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 10px 0;
+        height: 100%;
+        align-items: center;
+        scrollbar-width: none; /* Firefox */
+    }
+    #player-hand::-webkit-scrollbar { display: none; }
+
+    /* 卡牌通用樣式 */
+    .card {
+        flex: 0 0 90px;
+        height: 125px;
+        background-color: var(--card-bg);
+        border: 2px solid #a1887f;
+        border-radius: 6px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 5px;
+        box-shadow: 2px 4px 8px rgba(0,0,0,0.3);
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+        overflow: hidden;
+    }
+    .card:hover { transform: translateY(-5px); box-shadow: 4px 8px 15px rgba(0,0,0,0.4); }
+    .card.disabled { opacity: 0.5; filter: grayscale(100%); cursor: not-allowed; transform: none; }
+    
+    /* 選中狀態：亮起金框並突起 */
+    .card.selected { 
+        border: 3px solid #ffca28; 
+        transform: translateY(-10px); 
+        box-shadow: 0 0 15px #ffca28;
+        z-index: 5;
+    }
+    
+    .card-header { font-size: 14px; font-weight: bold; text-align: center; color: var(--accent-color); border-bottom: 1px solid #d7ccc8; padding-bottom: 2px; }
+    .card-body { font-size: 10px; text-align: center; line-height: 1.3; color: #5d4037; }
+    .preview-power { font-size: 14px; font-weight: bold; color: #d32f2f; margin-bottom: 2px;}
+    .card-footer { 
+        background: rgba(0,0,0,0.7); 
+        color: #fff; 
+        font-size: 9px; 
+        text-align: center; 
+        padding: 3px; 
+        border-radius: 0 0 4px 4px; 
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+    }
+
+    /* 按鈕 */
+    .btn {
+        background-color: var(--btn-bg);
+        color: var(--btn-text);
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s;
+        font-weight: bold;
+    }
+    .btn:hover { background-color: #4e342e; }
+    .btn:active { transform: scale(0.95); }
+    .btn:disabled { background-color: #9e9e9e; cursor: not-allowed; }
+
+    /* 底部導航 */
+    #bottom-nav {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        background: rgba(62, 39, 35, 0.95);
+        padding: 10px 0;
+        z-index: 20;
+        min-height: 50px;
+    }
+    #bottom-nav .btn { background: none; font-size: 12px; padding: 5px; color: #d7ccc8;}
+    #bottom-nav .btn:hover { color: #fff; }
+
+    /* 彈窗 */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.8);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+        background: var(--bg-color);
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 500px;
+        width: 100%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        border: 4px solid var(--btn-bg);
+    }
+    .modal-content h2 { margin-bottom: 15px; text-align: center; color: var(--accent-color); border-bottom: 2px dashed #a1887f; padding-bottom: 10px;}
+    .modal-content p { margin-bottom: 10px; line-height: 1.6; font-size: 14px; }
+    .modal-content ul { margin-left: 20px; margin-bottom: 15px; font-size: 14px; line-height: 1.5;}
+    .modal-content li { margin-bottom: 5px; }
+
+    /* 提示訊息 */
+    #toast {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(183, 28, 28, 0.9);
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 2000;
+        pointer-events: none;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    #toast.show { opacity: 1; }
+
+    /* 歷史紀錄 */
+    #history-list { font-size: 13px; line-height: 1.6; max-height: 50vh; overflow-y: auto; padding-right: 5px;}
+    #history-list div { border-bottom: 1px solid #d7ccc8; padding: 5px 0; }
+
+    /* 響應式 */
+    @media (max-width: 600px) {
+        .card { flex: 0 0 85px; height: 115px; }
+        .card-header { font-size: 12px; }
+        .card-body { font-size: 9px; }
+        .preview-power { font-size: 12px; }
+    }
+</style>
+</head>
+<body>
+
+<div id="top-bar">
+    <div class="score" id="player-score">玩家: 0</div>
+    <div id="turn-indicator">準備開始</div>
+    <div class="score" id="ai-score">AI: 0</div>
+</div>
+
+<div id="status-banner"></div>
+
+<div id="table-container">
+    <div id="table">
+        <!-- 對手半場 (上方) -->
+        <div class="zone" data-owner="ai" data-zone="far" data-hand="backhand" onclick="handleTableClick(this)">遠台<br>反手</div>
+        <div class="zone" data-owner="ai" data-zone="far" data-hand="forehand" onclick="handleTableClick(this)">遠台<br>正手</div>
+        <div class="zone" data-owner="ai" data-zone="mid" data-hand="backhand" onclick="handleTableClick(this)">中台<br>反手</div>
+        <div class="zone" data-owner="ai" data-zone="mid" data-hand="forehand" onclick="handleTableClick(this)">中台<br>正手</div>
+        <div class="zone" data-owner="ai" data-zone="near" data-hand="backhand" onclick="handleTableClick(this)">近台<br>反手</div>
+        <div class="zone" data-owner="ai" data-zone="near" data-hand="forehand" onclick="handleTableClick(this)">近台<br>正手</div>
+        
+        <!-- 球網 -->
+        <div id="net"></div>
+
+        <!-- 己方半場 (下方) - 點擊取消出牌 -->
+        <div class="zone" data-owner="player" data-zone="near" data-hand="backhand" onclick="cancelTargetSelection()">近台<br>反手</div>
+        <div class="zone" data-owner="player" data-zone="near" data-hand="forehand" onclick="cancelTargetSelection()">近台<br>正手</div>
+        <div class="zone" data-owner="player" data-zone="mid" data-hand="backhand" onclick="cancelTargetSelection()">中台<br>反手</div>
+        <div class="zone" data-owner="player" data-zone="mid" data-hand="forehand" onclick="cancelTargetSelection()">中台<br>正手</div>
+        <div class="zone" data-owner="player" data-zone="far" data-hand="backhand" onclick="cancelTargetSelection()">遠台<br>反手</div>
+        <div class="zone" data-owner="player" data-zone="far" data-hand="forehand" onclick="cancelTargetSelection()">遠台<br>正手</div>
+    </div>
+</div>
+
+<div id="ball"></div>
+
+<div id="player-hand-container">
+    <div id="player-hand"></div>
+</div>
+
+<div id="bottom-nav">
+    <button class="btn" onclick="toggleModal('rules-modal')">📖 規則</button>
+    <button class="btn" onclick="toggleModal('log-modal')">📜 歷史</button>
+    <!-- 動態按鈕：放棄 / 取消 -->
+    <button class="btn" id="action-btn" onclick="handleActionBtn()" style="display:none;">放棄</button>
+    <button class="btn" onclick="saveGame()">💾 存檔</button>
+    <button class="btn" onclick="loadGame()">📂 讀檔</button>
+    <button class="btn" id="mute-btn" onclick="toggleMute()">🔊 音效</button>
+</div>
+
+<!-- 彈窗 -->
+<div id="rules-modal" class="modal" onclick="closeModal(event)">
+    <div class="modal-content">
+        <h2>《乒乓對決》規則說明</h2>
+        <p><b>🎯 勝利條件：</b>率先拿到 11 分的玩家獲勝。</p>
+        <p><b>🏓 核心玩法：</b>落點攻防 + 角色特性 + 手牌規劃。</p>
+        <ul>
+            <li><b>發球：</b>只能選對方近台/中台，打出擊球卡後計算戰力。</li>
+            <li><b>接球：</b>若回擊戰力小於對方，無法出牌。可點擊「放棄」丟1分。</li>
+            <li><b>相持：</b>成功回擊後攻防互換，直到一方放棄或失敗。</li>
+        </ul>
+        <p><b>🧮 戰力計算：</b></p>
+        <p>手牌顯示的「預計戰力」已包含角色加成與接球錯位懲罰。最終戰力還會受到您選擇的「回球落點」影響。</p>
+        <p><b>⚠️ 錯位懲罰：</b></p>
+        <ul>
+            <li>接球時，卡牌適用的台距/手位與來球不符，扣1~2戰力。</li>
+            <li>回球時，選擇的落點與卡牌標準落點不符，扣1~2戰力。</li>
+        </ul>
+        <p><b>🚫 特殊限制：</b>扣殺僅在來球落在己方遠台時可用。</p>
+        <button class="btn" onclick="closeModalDirect()" style="width:100%; margin-top:10px;">關閉</button>
+    </div>
+</div>
+
+<div id="log-modal" class="modal" onclick="closeModal(event)">
+    <div class="modal-content">
+        <h2>戰鬥歷史紀錄</h2>
+        <div id="history-list">
+            暫無紀錄
+        </div>
+        <button class="btn" onclick="closeModalDirect()" style="width:100%; margin-top:10px;">關閉</button>
+    </div>
+</div>
+
+<div id="character-modal" class="modal">
+    <div class="modal-content">
+        <h2>選擇你的角色</h2>
+        <p style="text-align:center; margin-bottom:15px;">不同角色有不同的擊球加成，請慎重選擇。</p>
+        <div id="char-list" style="display:flex; flex-direction:column; gap:10px;">
+            <!-- JS 動態生成 -->
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ================= 遊戲資料定義 =================
+const CHARACTERS = [
+    { id: 'ling', name: '凌沖', type: '快攻型', desc: '近台擊球戰力+2，遠台擊球戰力-1', bonus: (zone) => zone === 'near' ? 2 : (zone === 'far' ? -1 : 0) },
+    { id: 'luo', name: '羅旋', type: '弧圈型', desc: '中台擊球戰力+2，近台擊球戰力-1', bonus: (zone) => zone === 'mid' ? 2 : (zone === 'near' ? -1 : 0) },
+    { id: 'shi', name: '石磊', type: '力量型', desc: '正手擊球戰力+2，反手擊球戰力-1', bonus: (hand) => hand === 'forehand' ? 2 : (hand === 'backhand' ? -1 : 0) },
+    { id: 'shen', name: '沈綽', type: '削球型', desc: '遠台擊球戰力+2，近台擊球戰力-1', bonus: (zone) => zone === 'far' ? 2 : (zone === 'near' ? -1 : 0) },
+    { id: 'zheng', name: '鄭屹', type: '站樁型', desc: '反手擊球戰力+2，正手擊球戰力-1', bonus: (hand) => hand === 'backhand' ? 2 : (hand === 'forehand' ? -1 : 0) }
+];
+
+const HIT_CARDS = {
+    'gong': { name: '攻球', power: 2, zone: 'near', hand: 'forehand', targetZone: 'near', targetHand: 'backhand', serve: true, count: 6 },
+    'tiao': { name: '挑打', power: 2, zone: 'near', hand: 'forehand', targetZone: 'near', targetHand: 'forehand', serve: true, count: 5 },
+    'tui': { name: '推擋', power: 2, zone: 'near', hand: 'backhand', targetZone: 'near', targetHand: 'forehand', serve: true, count: 6 },
+    'ning': { name: '擰拉', power: 3, zone: 'near', hand: 'backhand', targetZone: 'near', targetHand: 'backhand', serve: false, count: 5 },
+    'hu': { name: '弧圈', power: 3, zone: 'mid', hand: 'any', targetZone: 'mid', targetHand: 'opposite', serve: true, count: 8 },
+    'chang': { name: '長抽', power: 4, zone: 'mid', hand: 'forehand', targetZone: 'mid', targetHand: 'backhand', serve: false, count: 6 },
+    'xue': { name: '削球', power: 3, zone: 'far', hand: 'any', targetZone: 'near', targetHand: 'opposite', serve: true, count: 8, special: 'xue' },
+    'kou': { name: '扣殺', power: 5, zone: 'any', hand: 'forehand', targetZone: 'any', targetHand: 'any', serve: false, count: 4, special: 'kou' }
+};
+
+// ================= 遊戲狀態 =================
+let gameState = {
+    phase: 'INIT', 
+    playerScore: 0,
+    aiScore: 0,
+    playerChar: null,
+    aiChar: null,
+    playerHand: [],
+    aiHand: [],
+    deck: [],
+    discard: [],
+    ballPos: { zone: null, hand: null, owner: null }, 
+    lastAttackPower: 0,
+    currentAttacker: null, 
+    turnLog: [],
+    isMuted: false,
+    isSelectingTarget: false,
+    tempSelectedCardIndex: -1,
+    tempSelectedCard: null
+};
+
+// ================= 音效系統 =================
+let audioCtx;
+function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playSound(type) {
+    if (gameState.isMuted) return;
+    initAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    if (type === 'click') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'hit') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    } else if (type === 'score') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+    }
+}
+function toggleMute() {
+    gameState.isMuted = !gameState.isMuted;
+    document.getElementById('mute-btn').innerText = gameState.isMuted ? '🔇 靜音' : '🔊 音效';
+}
+
+// ================= UI 輔助 =================
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.innerText = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+function toggleModal(id) {
+    const targetModal = document.getElementById(id);
+    const isActive = targetModal.classList.contains('active');
+    document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+    if (!isActive) targetModal.classList.add('active');
+    playSound('click');
+}
+
+function closeModal(event) {
+    if (event && event.target.classList.contains('modal')) {
+        event.target.classList.remove('active');
+    }
+}
+function closeModalDirect() {
+    document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+    playSound('click');
+}
+
+function updateUI() {
+    document.getElementById('player-score').innerText = `玩家: ${gameState.playerScore}`;
+    document.getElementById('ai-score').innerText = `AI: ${gameState.aiScore}`;
+    
+    const indicator = document.getElementById('turn-indicator');
+    const actionBtn = document.getElementById('action-btn');
+    
+    if (gameState.isSelectingTarget) {
+        indicator.innerText = '請點擊對手半場落點';
+        actionBtn.innerText = '❌ 取消出牌';
+        actionBtn.style.display = 'inline-block';
+        actionBtn.style.color = '#ffca28';
+    } else {
+        if (gameState.phase === 'PLAYER_SERVE') {
+            indicator.innerText = '你的發球回合';
+            actionBtn.style.display = 'none';
+        } else if (gameState.phase === 'AI_SERVE') {
+            indicator.innerText = 'AI 發球回合';
+            actionBtn.style.display = 'none';
+        } else if (gameState.phase === 'PLAYER_RECEIVE') {
+            indicator.innerText = '你的接球回合';
+            actionBtn.innerText = '🏳️ 放棄此分';
+            actionBtn.style.display = 'inline-block';
+            actionBtn.style.color = '#ff5252';
+        } else if (gameState.phase === 'AI_RECEIVE') {
+            indicator.innerText = 'AI 接球回合';
+            actionBtn.style.display = 'none';
+        } else if (gameState.phase === 'GAMEOVER') {
+            indicator.innerText = '遊戲結束';
+            actionBtn.style.display = 'none';
+        } else {
+            indicator.innerText = '準備中';
+            actionBtn.style.display = 'none';
+        }
+    }
+
+    renderHand();
+    renderBall();
+    renderLog();
+}
+
+function renderHand() {
+    const handDiv = document.getElementById('player-hand');
+    handDiv.innerHTML = '';
+    
+    if (!gameState.playerHand) return;
+    
+    // 決定計算預覽戰力時的基準位置
+    let baseZone = 'near';
+    let baseHand = 'forehand';
+    if (gameState.phase === 'PLAYER_RECEIVE' || (gameState.phase === 'PLAYER_SERVE' && gameState.isSelectingTarget)) {
+        // 接球時使用當前球的位置
+        if (gameState.ballPos.zone) {
+            baseZone = gameState.ballPos.zone;
+            baseHand = gameState.ballPos.hand;
+        }
+    }
+
+    gameState.playerHand.forEach((card, index) => {
+        const el = document.createElement('div');
+        el.className = 'card';
+        
+        let baseCanPlay = false;
+        if (gameState.phase === 'PLAYER_SERVE' && card.serve) baseCanPlay = true;
+        if (gameState.phase === 'PLAYER_RECEIVE') {
+            baseCanPlay = true;
+            if (card.special === 'kou' && gameState.ballPos.zone !== 'far') baseCanPlay = false; 
+        }
+
+        if (!baseCanPlay) {
+            el.classList.add('disabled');
+        } else {
+            if (gameState.isSelectingTarget && gameState.tempSelectedCardIndex === index) {
+                el.classList.add('selected');
+            } else {
+                el.onclick = () => startTargetSelection(index, card);
+            }
+        }
+        
+        // --- 計算預覽戰力 ---
+        // 這裡只計算 基礎 + 角色加成 - 接球懲罰，不計算落點懲罰（因為落點還沒選）
+        let previewPower = calcPowerPreview(card, baseZone, baseHand);
+        
+        el.innerHTML = `
+            <div class="card-header">${card.name}</div>
+            <div class="card-body">
+                <div class="preview-power">預計:${previewPower}</div>
+                基礎:${card.power} | ${card.zone === 'any' ? '任意' : card.zone === 'near' ? '近台' : card.zone === 'mid' ? '中台' : '遠台'}
+                ${card.hand === 'any' ? '' : card.hand === 'forehand' ? '正' : '反'}
+            </div>
+            <div class="card-footer">${card.serve ? '可發球' : '不可發球'}</div>
+        `;
+        handDiv.appendChild(el);
+    });
+}
+
+// 只計算 基礎 + 角色加成 - 接球錯位（用於手牌預覽）
+function calcPowerPreview(card, ballZone, ballHand) {
+    let power = card.power;
+    let char = gameState.playerChar;
+    
+    // 角色加成
+    if (char.id === 'shi' || char.id === 'zheng') {
+        power += char.bonus(ballHand); 
+    } else {
+        power += char.bonus(ballZone); 
+    }
+    
+    // 接球適配懲罰
+    let zoneMatch = (card.zone === 'any' || card.zone === ballZone);
+    let handMatch = (card.hand === 'any' || card.hand === ballHand);
+    if (card.id === 'kou') zoneMatch = true;
+    
+    if (!zoneMatch && !handMatch) power -= 2;
+    else if (!zoneMatch || !handMatch) power -= 1;
+    
+    return power;
+}
+
+function renderBall() {
+    const ball = document.getElementById('ball');
+    if (!gameState.ballPos.zone) {
+        ball.style.display = 'none';
+        document.querySelectorAll('.zone').forEach(z => z.classList.remove('highlight'));
+        return;
+    }
+    ball.style.display = 'block';
+    
+    let zoneSelector = `.zone[data-zone="${gameState.ballPos.zone}"][data-hand="${gameState.ballPos.hand}"]`;
+    let zones = document.querySelectorAll(zoneSelector);
+    let targetEl = null;
+    
+    if (gameState.ballPos.owner === 'player') {
+        targetEl = zones[0]; 
+    } else {
+        targetEl = zones[1]; 
+    }
+
+    if (targetEl) {
+        document.querySelectorAll('.zone').forEach(z => z.classList.remove('highlight'));
+        targetEl.classList.add('highlight');
+        
+        const rect = targetEl.getBoundingClientRect();
+        const tableRect = document.getElementById('table').getBoundingClientRect();
+        ball.style.top = (rect.top - tableRect.top + rect.height / 2) + 'px';
+        ball.style.left = (rect.left - tableRect.left + rect.width / 2) + 'px';
+    }
+}
+
+function renderLog() {
+    const list = document.getElementById('history-list');
+    list.innerHTML = gameState.turnLog.map(log => `<div>${log}</div>`).join('') || '暫無紀錄';
+}
+
+// ================= 遊戲邏輯 =================
+function initGame() {
+    gameState = {
+        phase: 'INIT',
+        playerScore: 0, aiScore: 0,
+        playerChar: null, aiChar: null,
+        playerHand: [], aiHand: [],
+        deck: [], discard: [],
+        ballPos: { zone: null, hand: null, owner: null },
+        lastAttackPower: 0,
+        currentAttacker: null,
+        turnLog: [],
+        isMuted: gameState.isMuted,
+        isSelectingTarget: false,
+        tempSelectedCardIndex: -1,
+        tempSelectedCard: null
+    };
+    
+    for (let key in HIT_CARDS) {
+        const card = HIT_CARDS[key];
+        for (let i = 0; i < card.count; i++) {
+            gameState.deck.push({ ...card, id: key });
+        }
+    }
+    shuffle(gameState.deck);
+    
+    for (let i = 0; i < 4; i++) {
+        gameState.playerHand.push(gameState.deck.pop());
+        gameState.aiHand.push(gameState.deck.pop());
+    }
+    
+    openCharacterSelect();
+}
+
+function openCharacterSelect() {
+    const modal = document.getElementById('character-modal');
+    const list = document.getElementById('char-list');
+    list.innerHTML = '';
+    
+    CHARACTERS.forEach(char => {
+        const btn = document.createElement('div');
+        btn.className = 'card';
+        btn.style.flex = '1';
+        btn.style.height = 'auto';
+        btn.style.padding = '10px';
+        btn.innerHTML = `
+            <div class="card-header" style="margin-bottom:5px;">${char.name}</div>
+            <div class="card-body" style="font-size:12px;">${char.type}<br>${char.desc}</div>
+        `;
+        btn.onclick = () => {
+            gameState.playerChar = char;
+            gameState.aiChar = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
+            modal.classList.remove('active');
+            startServe(Math.random() < 0.5 ? 'player' : 'ai');
+        };
+        list.appendChild(btn);
+    });
+    
+    modal.classList.add('active');
+}
+
+function startServe(server) {
+    gameState.currentAttacker = server;
+    gameState.ballPos = { zone: null, hand: null, owner: null };
+    gameState.lastAttackPower = 0;
+    gameState.isSelectingTarget = false;
+    
+    const banner = document.getElementById('status-banner');
+    banner.style.display = 'none';
+
+    if (server === 'player') {
+        gameState.phase = 'PLAYER_SERVE';
+        showToast('你的發球回合，請點擊手牌');
+    } else {
+        gameState.phase = 'AI_SERVE';
+        updateUI();
+        setTimeout(aiServe, 1500);
+        return;
+    }
+    updateUI();
+}
+
+function handleActionBtn() {
+    if (gameState.isSelectingTarget) {
+        cancelTargetSelection();
+    } else if (gameState.phase === 'PLAYER_RECEIVE') {
+        giveUp();
+    }
+}
+
+function giveUp() {
+    if (gameState.phase !== 'PLAYER_RECEIVE') return;
+    playSound('score');
+    addLog(`玩家放棄接球，AI 得分！`);
+    gameState.aiScore++;
+    endPoint('ai');
+}
+
+function startTargetSelection(index, card) {
+    if (gameState.isSelectingTarget && gameState.tempSelectedCardIndex === index) {
+        cancelTargetSelection();
+        return;
+    }
+    
+    if (gameState.phase === 'PLAYER_SERVE' && !card.serve) {
+        showToast('此卡牌不可用於發球！'); return;
+    }
+    if (gameState.phase === 'PLAYER_RECEIVE' && card.special === 'kou' && gameState.ballPos.zone !== 'far') {
+        showToast('扣殺僅能在對方擊球落於己方遠台時使用！'); return;
+    }
+    
+    gameState.isSelectingTarget = true;
+    gameState.tempSelectedCardIndex = index;
+    gameState.tempSelectedCard = card;
+    
+    document.querySelectorAll('.zone').forEach(z => z.classList.remove('targetable', 'zone-disabled'));
+    
+    document.querySelectorAll('.zone[data-owner="ai"]').forEach(zone => {
+        if (gameState.phase === 'PLAYER_SERVE' && zone.dataset.zone === 'far') {
+            zone.classList.add('zone-disabled');
+        } else {
+            zone.classList.add('targetable');
+        }
+    });
+    
+    updateUI();
+    playSound('click');
+}
+
+function handleTableClick(zoneEl) {
+    if (!gameState.isSelectingTarget) return;
+    if (zoneEl.classList.contains('zone-disabled')) {
+        showToast('發球不可打向遠台！');
+        return;
+    }
+    
+    const card = gameState.tempSelectedCard;
+    const index = gameState.tempSelectedCardIndex;
+    const targetZone = zoneEl.dataset.zone;
+    const targetHand = zoneEl.dataset.hand;
+    
+    cancelTargetSelection(true);
+    playSound('hit');
+    
+    let power = calcPower(card, gameState.ballPos.zone || 'near', gameState.ballPos.hand || 'forehand', targetZone, targetHand, 'player');
+    
+    if (gameState.phase === 'PLAYER_RECEIVE') {
+        if (power < gameState.lastAttackPower) {
+            showToast(`戰力不足！你的戰力 ${power} 小於對方 ${gameState.lastAttackPower}`);
+            updateUI();
+            return;
+        }
+    }
+    
+    gameState.playerHand.splice(index, 1);
+    gameState.discard.push(card);
+    
+    gameState.lastAttackPower = power;
+    gameState.currentAttacker = 'player';
+    gameState.ballPos = { zone: targetZone, hand: targetHand, owner: 'player' };
+    
+    addLog(`玩家打出【${card.name}】，落點：${getZoneName(targetZone)}${getHandName(targetHand)}，最終戰力：${power}`);
+    
+    const banner = document.getElementById('status-banner');
+    banner.innerText = `你的擊球戰力：${power}`;
+    banner.style.display = 'block';
+    
+    gameState.phase = 'AI_RECEIVE';
+    updateUI();
+    setTimeout(aiReceive, 1500);
+}
+
+function cancelTargetSelection(silent = false) {
+    if (!gameState.isSelectingTarget) return;
+    
+    gameState.isSelectingTarget = false;
+    gameState.tempSelectedCardIndex = -1;
+    gameState.tempSelectedCard = null;
+    
+    document.querySelectorAll('.zone').forEach(z => z.classList.remove('targetable', 'zone-disabled'));
+    
+    if (!silent) {
+        playSound('click');
+        showToast('已取消出牌');
+        updateUI();
+    }
+}
+
+// 完整戰力計算（包含落點懲罰）
+function calcPower(card, ballZone, ballHand, targetZone, targetHand, player) {
+    let power = card.power;
+    let char = player === 'player' ? gameState.playerChar : gameState.aiChar;
+    
+    if (char.id === 'shi' || char.id === 'zheng') {
+        power += char.bonus(ballHand); 
+    } else {
+        power += char.bonus(ballZone); 
+    }
+    
+    let zoneMatch = (card.zone === 'any' || card.zone === ballZone);
+    let handMatch = (card.hand === 'any' || card.hand === ballHand);
+    if (card.id === 'kou') zoneMatch = true;
+    
+    if (!zoneMatch && !handMatch) power -= 2;
+    else if (!zoneMatch || !handMatch) power -= 1;
+    
+    let stdZone = card.targetZone;
+    if (card.id === 'xue') stdZone = 'near';
+    
+    let stdHand = card.targetHand;
+    if (stdHand === 'opposite') {
+        stdHand = (ballHand === 'forehand') ? 'backhand' : 'forehand';
+    }
+    
+    let zoneDiff = getZoneDiff(stdZone, targetZone);
+    let handDiff = (stdHand === 'any' || stdHand === targetHand) ? 0 : 1;
+    
+    if (zoneDiff >= 2 || (zoneDiff >= 1 && handDiff >= 1)) power -= 2;
+    else if (zoneDiff === 1 || handDiff === 1) power -= 1;
+    
+    return power;
+}
+
+function getZoneDiff(z1, z2) {
+    const order = { 'near': 0, 'mid': 1, 'far': 2 };
+    return Math.abs(order[z1] - order[z2]);
+}
+function getZoneName(z) { return z === 'near' ? '近台' : z === 'mid' ? '中台' : '遠台'; }
+function getHandName(h) { return h === 'forehand' ? '正手' : '反手'; }
+
+function aiServe() {
+    let playable = gameState.aiHand.filter(c => c.serve);
+    if (playable.length === 0) {
+        addLog('AI 無法發球，丟失一分！');
+        gameState.playerScore++;
+        endPoint('player');
+        return;
+    }
+    
+    let card = playable[Math.floor(Math.random() * playable.length)];
+    let index = gameState.aiHand.indexOf(card);
+    gameState.aiHand.splice(index, 1);
+    gameState.discard.push(card);
+    
+    const zones = ['near', 'mid'];
+    const hands = ['forehand', 'backhand'];
+    let targetZone = zones[Math.floor(Math.random() * zones.length)];
+    let targetHand = hands[Math.floor(Math.random() * hands.length)];
+    
+    let power = calcPower(card, 'near', 'forehand', targetZone, targetHand, 'ai');
+    
+    gameState.lastAttackPower = power;
+    gameState.currentAttacker = 'ai';
+    gameState.ballPos = { zone: targetZone, hand: targetHand, owner: 'ai' };
+    gameState.phase = 'PLAYER_RECEIVE';
+    
+    addLog(`AI 發球【${card.name}】，落點：${getZoneName(targetZone)}${getHandName(targetHand)}，戰力：${power}`);
+    
+    const banner = document.getElementById('status-banner');
+    banner.innerText = `來球：${getZoneName(targetZone)}${getHandName(targetHand)} | 敵方戰力：${power}`;
+    banner.style.display = 'block';
+    
+    updateUI();
+}
+
+function aiReceive() {
+    let bestCard = null;
+    let bestPower = -99;
+    let bestIndex = -1;
+    let bestTarget = { zone: 'near', hand: 'forehand' };
+    
+    gameState.aiHand.forEach((card, idx) => {
+        if (card.id === 'kou' && gameState.ballPos.zone !== 'far') return;
+        
+        const zones = ['near', 'mid', 'far'];
+        const hands = ['forehand', 'backhand'];
+        
+        zones.forEach(tz => {
+            hands.forEach(th => {
+                let p = calcPower(card, gameState.ballPos.zone, gameState.ballPos.hand, tz, th, 'ai');
+                if (p >= gameState.lastAttackPower && p > bestPower) {
+                    bestPower = p;
+                    bestCard = card;
+                    bestIndex = idx;
+                    bestTarget = { zone: tz, hand: th };
+                }
+            });
+        });
+    });
+    
+    if (!bestCard) {
+        addLog('AI 無法回擊，選擇放棄！');
+        gameState.playerScore++;
+        endPoint('player');
+        return;
+    }
+    
+    gameState.aiHand.splice(bestIndex, 1);
+    gameState.discard.push(bestCard);
+    
+    gameState.lastAttackPower = bestPower;
+    gameState.currentAttacker = 'ai';
+    gameState.ballPos = { zone: bestTarget.zone, hand: bestTarget.hand, owner: 'ai' };
+    gameState.phase = 'PLAYER_RECEIVE';
+    
+    addLog(`AI 回擊【${bestCard.name}】，落點：${getZoneName(bestTarget.zone)}${getHandName(bestTarget.hand)}，戰力：${bestPower}`);
+    
+    const banner = document.getElementById('status-banner');
+    banner.innerText = `來球：${getZoneName(bestTarget.zone)}${getHandName(bestTarget.hand)} | 敵方戰力：${bestPower}`;
+    banner.style.display = 'block';
+    
+    updateUI();
+}
+
+function endPoint(winner) {
+    playSound('score');
+    
+    if (gameState.playerScore >= 11 || gameState.aiScore >= 11) {
+        gameState.phase = 'GAMEOVER';
+        updateUI();
+        setTimeout(() => {
+            alert(gameState.playerScore >= 11 ? '🎉 恭喜你贏得了比賽！' : '💀 AI 贏得了比賽，再接再厲！');
+            initGame();
+        }, 500);
+        return;
+    }
+    
+    while (gameState.playerHand.length < 4 && gameState.deck.length > 0) gameState.playerHand.push(gameState.deck.pop());
+    while (gameState.aiHand.length < 4 && gameState.deck.length > 0) gameState.aiHand.push(gameState.deck.pop());
+    
+    gameState.phase = 'INIT';
+    updateUI();
+    
+    setTimeout(() => {
+        let total = gameState.playerScore + gameState.aiScore;
+        startServe(total % 2 === 0 ? 'player' : 'ai');
+    }, 1500);
+}
+
+function addLog(msg) {
+    gameState.turnLog.push(msg);
+    if (gameState.turnLog.length > 30) gameState.turnLog.shift();
+    renderLog();
+}
+
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+// ================= 存讀檔 =================
+function saveGame() {
+    if (gameState.phase === 'INIT') {
+        showToast('遊戲尚未開始，無法存檔');
+        return;
+    }
+    localStorage.setItem('pingpong_save', JSON.stringify(gameState));
+    showToast('遊戲已存檔！');
+    playSound('click');
+}
+
+function loadGame() {
+    const save = localStorage.getItem('pingpong_save');
+    if (!save) {
+        showToast('沒有找到存檔');
+        return;
+    }
+    try {
+        gameState = JSON.parse(save);
+        updateUI();
+        showToast('讀檔成功！');
+        playSound('click');
+    } catch(e) {
+        showToast('存檔損壞');
+    }
+}
+
+// ================= 啟動 =================
+window.onload = () => {
+    document.body.addEventListener('click', () => { initAudio(); }, { once: true });
+    initGame();
+};
+</script>
+</body>
+</html>

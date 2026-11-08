@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>殖民火星 - 單人模式 (兒童友善版)</title>
+<style>
+    :root {
+        --bg-color: #1a1a1a;
+        --panel-bg: rgba(30, 20, 15, 0.95);
+        --text-color: #e0e0e0;
+        --mars-red: #c1440e;
+        --mars-orange: #d67a3a;
+        --mars-green: #4caf50;
+        --mars-blue: #2196f3;
+        --border-color: #5a3a2a;
+        --font-main: 'Georgia', serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+    body {
+        background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main);
+        overflow: hidden; display: flex; flex-direction: column; height: 100vh;
+        background-image: radial-gradient(circle at center, #2a1a15 0%, #000000 100%);
+    }
+
+    body::after {
+        content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        box-shadow: inset 0 0 150px rgba(0,0,0,0.9); pointer-events: none; z-index: 1000;
+    }
+
+    /* 頂部狀態列 */
+    #top-bar {
+        display: flex; justify-content: space-between; padding: 8px 15px; background: var(--panel-bg);
+        font-size: 13px; z-index: 10; overflow-x: auto; border-bottom: 2px solid var(--mars-red);
+    }
+    .status-item { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .status-item span { font-weight: bold; color: var(--mars-orange); }
+
+    /* 資源列 */
+    #resource-bar {
+        display: flex; gap: 10px; padding: 10px 15px; background: rgba(0,0,0,0.8);
+        font-size: 12px; z-index: 10; overflow-x: auto; border-bottom: 1px solid var(--border-color);
+    }
+    .res-item { 
+        display: flex; align-items: center; gap: 4px; white-space: nowrap; 
+        background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;
+    }
+    .res-item span.val { font-weight: bold; color: #fff; font-size: 14px; }
+    .res-item span.prod { color: #4caf50; font-size: 11px; }
+    
+    .icon { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .icon-m { background: gold; }
+    .icon-steel { background: #b0bec5; }
+    .icon-titan { background: #90caf9; }
+    .icon-plant { background: #81c784; }
+    .icon-energy { background: #ba68c8; }
+    .icon-heat { background: #ff7043; }
+
+    /* 主區域 */
+    #main-area { flex: 1; display: flex; flex-direction: column; align-items: center; overflow: hidden; position: relative; padding: 10px 0; }
+    #board-container { flex: 1; width: 100%; display: flex; justify-content: center; align-items: center; overflow: auto; padding: 20px; min-height: 300px; }
+    #mars-board { position: relative; }
+
+    /* 六邊形 */
+    .hex {
+        position: absolute; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        background-color: #5c2e1a; background-image: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.5) 100%);
+        transform: scale(0.95); display: flex; flex-direction: column; justify-content: center; align-items: center;
+        font-size: 9px; color: rgba(255,255,255,0.4); transition: all 0.2s; cursor: pointer; box-shadow: inset 0 0 5px rgba(0,0,0,0.8);
+    }
+    .hex:hover { filter: brightness(1.5); transform: scale(1); z-index: 10; }
+    .hex.ocean-reserved { background-image: repeating-linear-gradient(45deg, rgba(33,150,243,0.4) 0, rgba(33,150,243,0.4) 4px, transparent 4px, transparent 8px); box-shadow: inset 0 0 10px rgba(33,150,243,0.8); color: var(--mars-blue); }
+    .hex.ocean-placed { background-color: var(--mars-blue); background-image: none; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); color: white; }
+    .hex.forest-placed { background-color: var(--mars-green); background-image: none; box-shadow: inset 0 0 10px rgba(0,0,0,0.6); }
+    .hex.city-placed { background-color: #757575; background-image: none; box-shadow: inset 0 0 10px rgba(0,0,0,0.6); }
+    .hex.neutral-placed { filter: grayscale(100%) brightness(0.8); border: 1px dashed rgba(255,255,255,0.3); }
+    .hex-reward { position: absolute; bottom: 2px; background: rgba(0,0,0,0.7); color: white; font-size: 8px; padding: 1px 2px; border-radius: 2px; pointer-events: none; white-space: nowrap; }
+
+    /* 卡牌區域 */
+    #card-area {
+        height: 180px; width: 100%; display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden;
+        padding: 10px; align-items: center; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.7);
+    }
+    #card-area::-webkit-scrollbar { height: 6px; }
+    #card-area::-webkit-scrollbar-thumb { background: var(--mars-orange); border-radius: 3px; }
+
+    .card {
+        flex: 0 0 120px; height: 160px; background: linear-gradient(135deg, #2c3e50, #1a252f);
+        border: 2px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column;
+        overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.6); transition: transform 0.2s; cursor: pointer; position: relative;
+    }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(214, 122, 58, 0.6); }
+    .card.event { border-color: #e53935; }
+    .card.auto { border-color: #43a047; }
+    .card.active { border-color: #1e88e5; }
+    .card-header { padding: 4px; text-align: center; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.7); }
+    .card-cost { position: absolute; top: 4px; left: 4px; background: gold; color: black; border-radius: 50%; width: 20px; height: 20px; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 11px; }
+    .card-svg { flex: 1; display: flex; justify-content: center; align-items: center; background: #000; }
+    .card-footer { background: rgba(0,0,0,0.8); padding: 4px; font-size: 9px; text-align: center; min-height: 35px; }
+
+    /* 底部操作列 */
+    #bottom-bar { display: flex; padding: 8px; background: var(--panel-bg); border-top: 2px solid var(--mars-red); gap: 5px; z-index: 10; }
+    button {
+        flex: 1; padding: 8px 4px; background: #3e2723; color: var(--text-color);
+        border: 1px solid var(--mars-orange); border-radius: 4px; font-family: var(--font-main); font-size: 12px; cursor: pointer; transition: all 0.2s;
+    }
+    button:hover:not(:disabled) { background: var(--mars-orange); color: black; }
+    button:active:not(:disabled) { transform: scale(0.95); }
+    button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* 彈窗與 Toast */
+    .modal {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+        display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .modal.active { opacity: 1; pointer-events: auto; }
+    .modal-content {
+        background: #2c1a12; padding: 20px; border-radius: 8px; border: 2px solid var(--mars-orange);
+        max-width: 90%; max-height: 80vh; overflow-y: auto; width: 500px;
+    }
+    .modal-content h2 { color: var(--mars-orange); margin-bottom: 10px; text-align: center; font-size: 20px; }
+    
+    #toast-container { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 10000; pointer-events: none; }
+    .toast {
+        background: rgba(193, 68, 14, 0.95); color: white; padding: 8px 16px; border-radius: 4px;
+        font-size: 13px; animation: fadeInOut 2.5s forwards; margin-bottom: 5px; text-align: center;
+    }
+    @keyframes fadeInOut { 0% { opacity: 0; transform: translateY(-10px); } 10%, 80% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-10px); } }
+
+    #sidebar {
+        position: fixed; right: -280px; top: 0; width: 280px; height: 100%; background: rgba(20, 15, 10, 0.95);
+        border-left: 2px solid var(--mars-orange); padding: 20px; transition: right 0.3s; z-index: 1500; overflow-y: auto;
+    }
+    #sidebar.active { right: 0; }
+
+    /* 設定面板開關 */
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 10px; }
+    .toggle-switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 20px; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--mars-orange); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* 公司卡選擇 UI */
+    .company-card {
+        background: #1a252f; border: 2px solid var(--mars-orange); padding: 15px; margin-bottom: 10px;
+        border-radius: 8px; cursor: pointer; transition: all 0.2s;
+    }
+    .company-card:hover { transform: scale(1.02); box-shadow: 0 0 15px var(--mars-orange); }
+
+    /* 小朋友說明專用 CSS */
+    .kid-guide { line-height: 1.6; font-size: 14px; }
+    .kid-guide h3 { color: #ffb74d; margin-top: 15px; margin-bottom: 5px; border-bottom: 1px dashed #ffb74d; padding-bottom: 3px; }
+    .kid-guide p { margin-bottom: 8px; }
+    .kid-guide ul { margin-left: 20px; margin-bottom: 10px; }
+    .kid-guide li { margin-bottom: 5px; }
+    .highlight { color: #81c784; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div id="top-bar">
+    <div class="status-item">世代: <span id="lbl-gen">1</span>/14</div>
+    <div class="status-item">TR: <span id="lbl-tr">14</span></div>
+    <div class="status-item">氧氣: <span id="lbl-oxy">0</span>%</div>
+    <div class="status-item">溫度: <span id="lbl-temp">-30</span>°C</div>
+    <div class="status-item">海洋: <span id="lbl-ocean">0</span>/9</div>
+</div>
+
+<div id="resource-bar">
+    <div class="res-item">
+        <span class="icon icon-m"></span> 金幣: <span class="val" id="lbl-m">0</span> 
+        <span class="prod">(領薪水+<span id="lbl-m-prod">0</span>)</span>
+    </div>
+    <div class="res-item">
+        <span class="icon icon-steel"></span> 鋼鐵: <span class="val" id="lbl-steel">0</span> 
+        <span class="prod">(+<span id="lbl-steel-prod">0</span>)</span>
+    </div>
+    <div class="res-item">
+        <span class="icon icon-titan"></span> 鈦: <span class="val" id="lbl-titan">0</span> 
+        <span class="prod">(+<span id="lbl-titan-prod">0</span>)</span>
+    </div>
+    <div class="res-item">
+        <span class="icon icon-plant"></span> 植物: <span class="val" id="lbl-plant">0</span> 
+        <span class="prod">(+<span id="lbl-plant-prod">0</span>)</span>
+    </div>
+    <div class="res-item">
+        <span class="icon icon-energy"></span> 電力: <span class="val" id="lbl-energy">0</span> 
+        <span class="prod">(+<span id="lbl-energy-prod">0</span>)</span>
+    </div>
+    <div class="res-item">
+        <span class="icon icon-heat"></span> 熱能: <span class="val" id="lbl-heat">0</span> 
+        <span class="prod">(+<span id="lbl-heat-prod">0</span>)</span>
+    </div>
+</div>
+
+<div id="main-area">
+    <div id="board-container">
+        <div id="mars-board"></div>
+    </div>
+    <div id="card-area"></div>
+</div>
+
+<div id="bottom-bar">
+    <button id="btn-research" onclick="Game.researchPhase()">保留卡牌</button>
+    <button id="btn-action" onclick="Game.toggleActionMode()" disabled>打牌</button>
+    <button id="btn-project" onclick="Game.openStandardProjects()">標準專案</button>
+    <button id="btn-convert" onclick="Game.convertResources()">轉換資源</button>
+    <button id="btn-pass" onclick="Game.endActionPhase()">結束回合</button>
+</div>
+
+<div style="display:flex; justify-content:space-around; background:#111; padding:5px; z-index:10;">
+    <!-- 點擊說明按鈕只會單純開啟/關閉說明，不會重置遊戲 -->
+    <button style="flex:1; padding:5px; font-size:12px; background:transparent; border:none; color:#aaa;" onclick="UI.toggleModal('modal-rules')">📖 說明</button>
+    <button style="flex:1; padding:5px; font-size:12px; background:transparent; border:none; color:#aaa;" onclick="Game.saveGame()">💾 存檔</button>
+    <button style="flex:1; padding:5px; font-size:12px; background:transparent; border:none; color:#aaa;" onclick="Game.loadGame()">📂 讀檔</button>
+    <button style="flex:1; padding:5px; font-size:12px; background:transparent; border:none; color:#aaa;" onclick="UI.toggleModal('modal-settings')">⚙️ 設定</button>
+    <button style="flex:1; padding:5px; font-size:12px; background:transparent; border:none; color:#aaa;" onclick="UI.toggleSidebar()">📜 紀錄</button>
+    <button style="flex:1; padding:5px; font-size:12px; background:transparent; border:none; color:#aaa;" onclick="Audio.toggle()">🔊 音效</button>
+</div>
+
+<!-- 側邊欄 -->
+<div id="sidebar">
+    <h3 style="color:var(--mars-orange); margin-bottom:10px;">歷史紀錄</h3>
+    <ul id="history-list" style="list-style:none; font-size:12px; line-height:1.5;"></ul>
+    <button style="margin-top:20px; width:100%;" onclick="UI.toggleSidebar()">關閉</button>
+</div>
+
+<!-- 說明文件彈窗 -->
+<div id="modal-rules" class="modal">
+    <div class="modal-content kid-guide">
+        <h2>🚀 火星探險指南</h2>
+        <p style="text-align:center; color:#ffb74d; margin-bottom:15px;">你是火星總指揮官，要在 14 回合內把紅色星球變成綠色家園！</p>
+        
+        <h3>🔍 1. 畫面上的東西是什麼？</h3>
+        <p>請看畫面的最上方，有兩排字，那是你的「生命值」：</p>
+        <ul>
+            <li><b>最頂端 (黑底)</b>：顯示目前的氧氣、溫度和海洋數量。右邊是 <b>TR (你的底薪分數)</b>。</li>
+            <li><b>第二排 (資源列)</b>：這裡是你的財產！
+                <ul>
+                    <li>🟡 <b>金幣</b>：買東西用的錢。後面括號寫著 <b>「(領薪水+14)」</b>，意思是<b>每次你按「結束回合」時，會拿到 14 塊錢</b>！</li>
+                    <li>🟢 <b>植物</b>：集滿 8 個可以種樹（氧氣+1）。</li>
+                    <li>🟠 <b>熱能</b>：集滿 8 個可以升溫（溫度+1）。</li>
+                    <li>其他像是鋼鐵、鈦、電力，都是輔助資源。</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>💰 2. 「薪水」是怎麼算的？</h3>
+        <p>這是新手最容易卡關的地方！你的薪水計算方式是：</p>
+        <p style="text-align:center; font-weight:bold; color:gold; background:#333; padding:5px; border-radius:5px;">
+            你的「薪水」 = 頂端的 TR + 資源列的金幣產量
+        </p>
+        <ul>
+            <li>一開始 TR 是 <b>14</b>，所以就算你什麼都不做，每回合也能領 14 塊。</li>
+            <li>如果你打出了綠色的卡牌（例如：金錢產量+2），你以後每回合就會變成 <b>14 + 2 = 16 塊</b>。</li>
+            <li>如果你放了海洋或綠化板塊，TR 會 +1，你的薪水也會跟著變多！</li>
+        </ul>
+
+        <h3>🗺️ 3. 地圖上的格子</h3>
+        <ul>
+            <li>藍色斜線 (🌊)：<b>海洋坑</b>，海洋板塊只能放這裡。</li>
+            <li>有小字的格子 (🎁)：<b>寶箱</b>！蓋東西在這裡會送資源。</li>
+            <li>深灰屋子 (🏠) / 綠格 (🌲)：一開始就有的無人建築。</li>
+        </ul>
+
+        <h3>🕹️ 4. 每回合要做什麼？</h3>
+        <p><b>第一步：挑選魔法卡</b><br>每回合拿 4 張卡，點擊想要的卡片，花 <b>3 塊錢</b> 買下它（按「保留卡牌」）。</p>
+        <p><b>第二步：做行動</b><br>按「打牌」出牌，或花錢買「標準專案」（不用卡牌就能蓋東西！）。</p>
+        <p><b>第三步：領薪水！</b><br>按「結束回合」，你就會拿到剛剛算好的薪水，以及植物、熱能等資源。</p>
+
+        <h3>🧠 5. 過關小訣竅</h3>
+        <ul>
+            <li>前期多打<b>綠色卡</b>增加金幣產量，讓薪水變多，後期才有錢買大卡！</li>
+            <li>樹木要蓋在自己板塊的<b>旁邊</b>；城市<b>不可以</b>黏在一起。</li>
+        </ul>
+
+        <button id="btn-start-game" style="width:100%; margin-top:15px; font-size:16px;">我準備好了！開始遊戲</button>
+    </div>
+</div>
+
+<div id="modal-settings" class="modal">
+    <div class="modal-content">
+        <h2>遊戲設定</h2>
+        <div class="toggle-row">
+            <span>使用公司卡</span>
+            <label class="toggle-switch"><input type="checkbox" id="set-company" checked><span class="slider"></span></label>
+        </div>
+        <div class="toggle-row">
+            <span>嚴格相鄰規則</span>
+            <label class="toggle-switch"><input type="checkbox" id="set-adj" checked><span class="slider"></span></label>
+        </div>
+        <div class="toggle-row">
+            <span>啟用中立玩家</span>
+            <label class="toggle-switch"><input type="checkbox" id="set-neutral" checked><span class="slider"></span></label>
+        </div>
+        <div class="toggle-row">
+            <span>海洋邊緣優先</span>
+            <label class="toggle-switch"><input type="checkbox" id="set-ocean-edge" checked><span class="slider"></span></label>
+        </div>
+        <div class="toggle-row">
+            <span>版圖印製獎勵</span>
+            <label class="toggle-switch"><input type="checkbox" id="set-reward" checked><span class="slider"></span></label>
+        </div>
+        <button onclick="Game.applySettings(); UI.toggleModal('modal-settings')" style="width:100%; margin-top:15px;">套用設定</button>
+    </div>
+</div>
+
+<div id="modal-company" class="modal">
+    <div class="modal-content">
+        <h2>選擇你的公司</h2>
+        <div id="company-list"></div>
+    </div>
+</div>
+
+<div id="modal-projects" class="modal">
+    <div class="modal-content">
+        <h2>標準專案 (免抽卡直接買)</h2>
+        <p style="font-size:12px; color:#aaa; margin-bottom:10px;">只要有錢隨時可以買，不用管手牌！</p>
+        <div id="project-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        <button onclick="UI.toggleModal('modal-projects')" style="width:100%; margin-top:15px;">關閉</button>
+    </div>
+</div>
+
+<div id="modal-card" class="modal">
+    <div class="modal-content">
+        <h2 id="modal-card-title">卡牌名稱</h2>
+        <div id="modal-card-svg" style="height: 120px; display: flex; justify-content: center; align-items: center; background: #000; margin-bottom: 10px;"></div>
+        <p id="modal-card-text" style="font-size:14px; line-height:1.6;"></p>
+        <button onclick="UI.toggleModal('modal-card')" style="width:100%; margin-top:15px;">關閉</button>
+    </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+const Audio = {
+    enabled: true, ctx: null,
+    init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+    playTone(freq, type = 'sine', duration = 0.1) {
+        if (!this.enabled) return;
+        try {
+            this.init();
+            if (this.ctx.state === 'suspended') this.ctx.resume();
+            const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+            osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(); osc.stop(this.ctx.currentTime + duration);
+        } catch(e) {}
+    },
+    click() { this.playTone(600, 'square', 0.05); },
+    success() { this.playTone(800, 'sine', 0.1); setTimeout(() => this.playTone(1200, 'sine', 0.15), 100); },
+    error() { this.playTone(200, 'sawtooth', 0.2); },
+    toggle() { this.enabled = !this.enabled; this.click(); UI.toast(this.enabled ? "音效已開啟" : "音效已關閉"); }
+};
+
+const Game = {
+    gen: 1, tr: 14, oxygen: 0, temp: -30, oceans: 0,
+    m: 0, steel: 0, titan: 0, plant: 0, energy: 0, heat: 0,
+    prod: { m: 0, steel: 0, titan: 0, plant: 0, energy: 0, heat: 0 },
+    phase: 'SETUP', isActionMode: false,
+    drawnCards: [], handCards: [], boardData: [], history: [],
+    
+    settings: { company: true, adj: true, neutral: true, oceanEdge: true, reward: true },
+    neutralPlayer: { plant: 5, steel: 5, energy: 5 },
+    company: null,
+
+    mapGrid: [
+        [0,0,1,1,1,1,1,0,0], [0,1,1,1,1,1,1,0,0], [0,1,1,1,1,1,1,1,0], [1,1,1,1,1,1,1,1,0], [1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,0], [0,1,1,1,1,1,1,1,0], [0,1,1,1,1,1,1,0,0], [0,0,1,1,1,1,1,0,0]
+    ],
+
+    companies: [
+        { id: 'c1', name: '生態學線', desc: '起始資金 20 M€，植物產量 +1。', apply: () => { Game.m = 20; Game.prod.plant += 1; } },
+        { id: 'c2', name: '採礦公會', desc: '起始資金 14 M€，鋼鐵產量 +1。', apply: () => { Game.m = 14; Game.prod.steel += 1; } },
+        { id: 'c3', name: '土星系統', desc: '起始資金 30 M€，無額外產量。', apply: () => { Game.m = 30; } },
+        { id: 'c4', name: '托爾蓋特', desc: '起始資金 14 M€，熱能產量 +2。', apply: () => { Game.m = 14; Game.prod.heat += 2; } }
+    ],
+
+    init() {
+        this.gen = 1; this.tr = 14; this.oxygen = 0; this.temp = -30; this.oceans = 0;
+        this.m = 0; this.steel = 0; this.titan = 0; this.plant = 0; this.energy = 0; this.heat = 0;
+        this.prod = { m: 0, steel: 0, titan: 0, plant: 0, energy: 0, heat: 0 };
+        this.history = []; this.phase = 'SETUP'; this.isActionMode = false;
+        this.drawnCards = []; this.handCards = []; this.company = null;
+        
+        this.initBoard();
+        this.updateUI();
+        // 初始化後，等待玩家看完說明，按下「開始遊戲」才會觸發 setupNextPhase()
+    },
+
+    // 當玩家看完說明並關閉視窗後，決定下一步（選公司或直接開局）
+    setupNextPhase() {
+        if (this.settings.company) {
+            this.showCompanySelect();
+        } else {
+            this.m = 14; // 無公司卡的基本資金
+            this.startResearchPhase();
+        }
+    },
+
+    applySettings() {
+        this.settings.company = document.getElementById('set-company').checked;
+        this.settings.adj = document.getElementById('set-adj').checked;
+        this.settings.neutral = document.getElementById('set-neutral').checked;
+        this.settings.oceanEdge = document.getElementById('set-ocean-edge').checked;
+        this.settings.reward = document.getElementById('set-reward').checked;
+        UI.toast("設定已套用，將於新遊戲生效");
+        Audio.success();
+    },
+
+    showCompanySelect() {
+        const list = document.getElementById('company-list');
+        if(!list) return;
+        list.innerHTML = '';
+        let shuffled = [...this.companies].sort(() => 0.5 - Math.random());
+        let choices = shuffled.slice(0, 2);
+
+        choices.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'company-card';
+            div.innerHTML = `<h3>${c.name}</h3><p>${c.desc}</p>`;
+            div.onclick = () => {
+                this.company = c;
+                c.apply();
+                this.log(`選擇了公司：${c.name}`);
+                UI.toggleModal('modal-company');
+                Audio.success();
+                this.startResearchPhase();
+            };
+            list.appendChild(div);
+        });
+        UI.toggleModal('modal-company');
+    },
+
+    initBoard() {
+        this.boardData = [];
+        let gridCount = 0;
+        
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if (this.mapGrid[r][c] === 1) {
+                    let reward = null;
+                    let rand = Math.random();
+                    if (rand < 0.1) reward = { type: 'steel', amount: 2, text: '2鋼' };
+                    else if (rand < 0.2) reward = { type: 'titan', amount: 2, text: '2鈦' };
+                    else if (rand < 0.3) reward = { type: 'card', amount: 1, text: '抽牌' };
+                    else if (rand < 0.4) reward = { type: 'plant', amount: 2, text: '2植' };
+                    
+                    this.boardData.push({ id: gridCount++, r, c, type: 'empty', reward, isReservedOcean: false, owner: null });
+                }
+            }
+        }
+
+        let shuffled = [...this.boardData].sort(() => 0.5 - Math.random());
+        let reservedCount = 0;
+        for (let cell of shuffled) {
+            if (reservedCount >= 9) break;
+            if (cell.r === 0 || cell.r === 8 || cell.c === 0 || cell.c === 8 || Math.random() < 0.4) {
+                cell.isReservedOcean = true;
+                reservedCount++;
+            }
+        }
+
+        const nonOcean = this.boardData.filter(d => !d.isReservedOcean);
+        nonOcean.sort(() => 0.5 - Math.random());
+        
+        let placedCity = 0;
+        let placedForest = 0;
+        
+        for (let cell of nonOcean) {
+            if (placedCity < 2) {
+                cell.type = 'city';
+                cell.owner = 'neutral';
+                placedCity++;
+            } else if (placedForest < 2) {
+                cell.type = 'forest';
+                cell.owner = 'neutral';
+                placedForest++;
+            } else {
+                break;
+            }
+        }
+
+        this.renderBoard();
+    },
+
+    getAdjacentCells(r, c) {
+        const isOdd = r % 2 !== 0;
+        const dirs = isOdd ? [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]] : [[-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]];
+        return dirs.map(d => ({ r: r + d[0], c: c + d[1] }));
+    },
+
+    isValidPlacement(data, type) {
+        if (data.type !== 'empty') return false;
+        if (type === 'ocean') return data.isReservedOcean;
+        if (data.isReservedOcean) return false;
+
+        if (this.settings.adj) {
+            const adjacents = this.getAdjacentCells(data.r, data.c);
+            const neighborTiles = this.boardData.filter(d => adjacents.some(a => a.r === d.r && a.c === d.c));
+            
+            if (type === 'forest') {
+                const hasPlayerNeighbor = neighborTiles.some(d => d.owner === 'player');
+                if (this.boardData.some(d => d.owner === 'player') && !hasPlayerNeighbor) return false;
+            }
+            if (type === 'city') {
+                if (neighborTiles.some(d => d.type === 'city')) return false;
+            }
+        }
+        return true;
+    },
+
+    renderBoard() {
+        const boardEl = document.getElementById('mars-board');
+        if(!boardEl) return;
+        boardEl.innerHTML = '';
+        
+        const w = 38; 
+        const h = 43.87;
+
+        this.boardData.forEach(data => {
+            const hex = document.createElement('div');
+            hex.className = 'hex';
+            hex.style.width = `${w}px`;
+            hex.style.height = `${h}px`;
+            
+            if (data.isReservedOcean) hex.classList.add('ocean-reserved');
+            if (data.type === 'ocean') hex.classList.add('ocean-placed');
+            if (data.type === 'forest') hex.classList.add(data.owner === 'neutral' ? 'neutral-placed' : 'forest-placed');
+            if (data.type === 'city') hex.classList.add(data.owner === 'neutral' ? 'neutral-placed' : 'city-placed');
+            
+            if (data.reward && data.type === 'empty' && this.settings.reward) {
+                const rw = document.createElement('div');
+                rw.className = 'hex-reward';
+                rw.textContent = data.reward.text;
+                hex.appendChild(rw);
+            }
+            
+            const xOffset = (data.r % 2) * (w / 2);
+            hex.style.left = `${data.c * w + xOffset}px`;
+            hex.style.top = `${data.r * (h * 0.75)}px`;
+            
+            hex.onclick = () => this.onHexClick(data);
+            boardEl.appendChild(hex);
+        });
+        
+        boardEl.style.width = `${9 * w}px`;
+        boardEl.style.height = `${9 * h * 0.75 + h * 0.25}px`;
+    },
+
+    onHexClick(data) {
+        if (data.type !== 'empty') UI.toast(`已有板塊`);
+        else if (data.isReservedOcean) UI.toast(`海洋保留區`);
+        else if (data.reward && this.settings.reward) UI.toast(`放置可獲得: ${data.reward.text}`);
+    },
+
+    claimReward(data) {
+        if (!data.reward || !this.settings.reward) return;
+        const r = data.reward;
+        this.log(`獲得版圖獎勵: ${r.text}`);
+        if (r.type === 'steel') this.steel += r.amount;
+        if (r.type === 'titan') this.titan += r.amount;
+        if (r.type === 'plant') this.plant += r.amount;
+        if (r.type === 'card') this.handCards.push(this.generateCard());
+    },
+
+    log(msg) {
+        this.history.push(`[G${this.gen}] ${msg}`);
+        if (this.history.length > 50) this.history.shift();
+        const list = document.getElementById('history-list');
+        if(list) list.innerHTML = this.history.map(h => `<li>${h}</li>`).join('');
+    },
+
+    tryPlaceTile(type, conditionFn) {
+        let candidates = this.boardData.filter(d => this.isValidPlacement(d, type) && conditionFn(d));
+        
+        if (type === 'ocean' && this.settings.oceanEdge && candidates.length > 0) {
+            candidates.sort((a, b) => {
+                const distA = Math.min(a.r, 8-a.r, a.c, 8-a.c);
+                const distB = Math.min(b.r, 8-b.r, b.c, 8-b.c);
+                return distA - distB; 
+            });
+        }
+
+        if (candidates.length > 0) {
+            const target = candidates[0];
+            target.type = type;
+            target.owner = 'player';
+            this.claimReward(target);
+            this.renderBoard();
+            return true;
+        }
+        return false;
+    },
+
+    startResearchPhase() {
+        this.phase = 'RESEARCH'; this.isActionMode = false; this.drawnCards = [];
+        this.updateUI(); this.log("進入開發階段。");
+        for (let i = 0; i < 4; i++) this.drawnCards.push(this.generateCard());
+        this.renderCards(true);
+    },
+
+    researchPhase() {
+        if (this.phase !== 'RESEARCH') return;
+        let cost = this.drawnCards.filter(c => c.keep).length * 3;
+        if (this.m >= cost) {
+            this.m -= cost;
+            this.drawnCards.forEach(c => { if (c.keep) this.handCards.push(c); });
+            this.drawnCards = []; this.phase = 'ACTION';
+            this.updateUI(); this.renderCards(false);
+            this.log(`保留卡牌，花費 ${cost} M€。`);
+            Audio.success();
+        } else { UI.toast("金錢不足！"); Audio.error(); }
+    },
+
+    toggleKeep(index) {
+        if (this.phase !== 'RESEARCH') return;
+        this.drawnCards[index].keep = !this.drawnCards[index].keep;
+        Audio.click(); this.renderCards(true);
+    },
+
+    toggleActionMode() { this.isActionMode = !this.isActionMode; Audio.click(); this.updateUI(); },
+
+    playCard(index) {
+        if (this.phase !== 'ACTION' || !this.isActionMode) return;
+        const card = this.handCards[index];
+        if (this.m < card.cost) { UI.toast(`金錢不足，需要 ${card.cost} M€`); Audio.error(); return; }
+        
+        if (card.effect === 'ocean' && !this.boardData.some(d => this.isValidPlacement(d, 'ocean'))) {
+            UI.toast("沒有合法的海洋保留區可放置！"); Audio.error(); return;
+        }
+        if (card.effect === 'forest' && !this.boardData.some(d => this.isValidPlacement(d, 'forest'))) {
+            UI.toast("沒有合法的空地可放置綠化！"); Audio.error(); return;
+        }
+
+        this.m -= card.cost;
+        this.log(`打出了：${card.name}`);
+        
+        if (card.effect === 'temp') {
+            this.temp += 2; this.tr += 1;
+            this.log(`溫度提升至 ${this.temp}°C`);
+        } else if (card.effect === 'ocean') {
+            this.tryPlaceTile('ocean', d => d.type === 'empty' && d.isReservedOcean);
+            this.oceans += 1; this.tr += 1;
+            this.log(`放置海洋板塊 (${this.oceans}/9)`);
+        } else if (card.effect === 'forest') {
+            this.tryPlaceTile('forest', d => d.type === 'empty' && !d.isReservedOcean);
+            this.oxygen += 1; this.tr += 1;
+            this.log(`放置綠化板塊，氧氣至 ${this.oxygen}%`);
+        } else if (card.effect === 'plant') {
+            this.prod.plant += 1; this.log(`植物產量 +1`);
+        } else if (card.effect === 'energy') {
+            this.prod.energy += 1; this.log(`電力產量 +1`);
+        } else if (card.effect === 'm') {
+            this.prod.m += 1; this.log(`金錢產量 +1`);
+        } else if (card.effect === 'attack') {
+            if (this.settings.neutral) {
+                this.neutralPlayer.plant = Math.max(0, this.neutralPlayer.plant - 3);
+                this.plant += 3; this.log(`奪取中立玩家 3 植物。`);
+            } else {
+                this.plant += 3; this.log(`獲得 3 植物。`);
+            }
+        }
+
+        this.handCards.splice(index, 1);
+        this.isActionMode = false;
+        this.checkWinCondition();
+        this.updateUI(); this.renderCards(false);
+        Audio.success();
+    },
+
+    openStandardProjects() {
+        if (this.phase !== 'ACTION') return;
+        const list = document.getElementById('project-list');
+        if(!list) return;
+        list.innerHTML = '';
+        
+        const projects = [
+            { name: '電力廠 (11 M€)', cost: 11, action: () => { this.prod.energy += 1; } },
+            { name: '小行星 (14 M€)', cost: 14, action: () => { this.temp += 1; this.tr += 1; } },
+            { name: '水資源 (18 M€)', cost: 18, action: () => { 
+                if (this.tryPlaceTile('ocean', d => d.type === 'empty' && d.isReservedOcean)) {
+                    this.oceans += 1; this.tr += 1;
+                } else { UI.toast("沒有可用的海洋保留區！"); }
+            }},
+            { name: '綠化 (23 M€)', cost: 23, action: () => { 
+                if (this.tryPlaceTile('forest', d => d.type === 'empty' && !d.isReservedOcean)) {
+                    this.oxygen += 1; this.tr += 1;
+                } else { UI.toast("沒有合法的空地！"); }
+            }},
+            { name: '城市 (25 M€)', cost: 25, action: () => { 
+                if (this.tryPlaceTile('city', d => d.type === 'empty' && !d.isReservedOcean)) {
+                    this.tr += 1;
+                } else { UI.toast("沒有合法的空地！"); }
+            }}
+        ];
+
+        projects.forEach(p => {
+            const btn = document.createElement('button');
+            btn.textContent = p.name;
+            btn.onclick = () => {
+                if (this.m >= p.cost) {
+                    this.m -= p.cost;
+                    p.action();
+                    this.log(`執行標準專案：${p.name}`);
+                    this.checkWinCondition();
+                    this.updateUI(); Audio.success();
+                    UI.toggleModal('modal-projects'); 
+                } else { UI.toast("金錢不足！"); Audio.error(); }
+            };
+            list.appendChild(btn);
+        });
+        UI.toggleModal('modal-projects');
+    },
+
+    convertResources() {
+        if (this.phase !== 'ACTION') return;
+        let converted = false;
+        if (this.plant >= 8) {
+            if (this.tryPlaceTile('forest', d => d.type === 'empty' && !d.isReservedOcean)) {
+                this.plant -= 8; this.oxygen += 1; this.tr += 1;
+                this.log("消耗 8 植物放置綠化，氧氣+1。");
+                converted = true;
+            } else { UI.toast("沒有合法的空地放置綠化！"); return; }
+        }
+        if (this.heat >= 8) {
+            this.heat -= 8; this.temp += 1; this.tr += 1;
+            this.log("消耗 8 熱能，溫度+1。");
+            converted = true;
+        }
+        
+        if (converted) {
+            this.checkWinCondition(); this.updateUI(); Audio.success();
+        } else { UI.toast("資源不足 8 點！"); Audio.error(); }
+    },
+
+    endActionPhase() {
+        if (this.phase !== 'ACTION') return;
+        this.phase = 'PRODUCTION'; this.updateUI(); this.log("進入生產階段。");
+        Audio.click();
+        setTimeout(() => this.productionPhase(), 800);
+    },
+
+    productionPhase() {
+        this.heat += this.energy; this.energy = 0;
+        this.m += this.prod.m + this.tr;
+        this.steel += this.prod.steel; this.titan += this.prod.titan;
+        this.plant += this.prod.plant; this.energy += this.prod.energy; this.heat += this.prod.heat;
+        
+        this.log(`生產階段：獲得 ${this.prod.m + this.tr} M€。`);
+        this.gen++;
+        if (this.gen > 14) this.gameOver(false);
+        else this.startResearchPhase();
+        this.updateUI();
+    },
+
+    checkWinCondition() {
+        if (this.oxygen >= 14 && this.temp >= 8 && this.oceans >= 9) this.gameOver(true);
+    },
+
+    gameOver(win) {
+        this.phase = 'GAMEOVER';
+        if (win) {
+            Audio.success(); this.log("成功改造火星！");
+            alert("恭喜勝利！你在第 " + this.gen + " 世代完成了火星改造！");
+        } else {
+            Audio.error(); this.log("改造失敗...");
+            alert("遊戲結束，未能完成火星改造。");
+        }
+        this.updateUI();
+    },
+
+    generateCard() {
+        const templates = [
+            { name: "二氧化碳助理", cost: 6, type: "auto", effect: "energy", text: "減少1電力，增加3熱能。" },
+            { name: "巨冰小行星", cost: 36, type: "event", effect: "ocean", text: "溫度+2，放置海洋。" },
+            { name: "赤道磁化器", cost: 11, type: "active", effect: "temp", text: "行動: 溫度+1。" },
+            { name: "磁力發動機", cost: 20, type: "auto", effect: "temp", text: "溫度+3，植物+2。" },
+            { name: "過氧化氫能源", cost: 7, type: "auto", effect: "energy", text: "減少1鋼鐵，增加2電力。" },
+            { name: "自然保護區", cost: 9, type: "auto", effect: "forest", text: "放置綠化。" },
+            { name: "生物量燃燒", cost: 4, type: "auto", effect: "plant", text: "植物產量+2。" },
+            { name: "太陽能", cost: 11, type: "auto", effect: "energy", text: "電力+1。" },
+            { name: "深井熱力", cost: 13, type: "auto", effect: "temp", text: "溫度+1。" },
+            { name: "移民航天機", cost: 31, type: "event", effect: "m", text: "金錢+5。" },
+            { name: "掠奪者", cost: 8, type: "event", effect: "attack", text: "奪取中立玩家3點植物。" }
+        ];
+        const t = templates[Math.floor(Math.random() * templates.length)];
+        return { ...t, keep: false, id: Math.random().toString(36).substr(2, 9) };
+    },
+
+    updateUI() {
+        document.getElementById('lbl-gen').textContent = this.gen;
+        document.getElementById('lbl-tr').textContent = this.tr;
+        document.getElementById('lbl-oxy').textContent = this.oxygen;
+        document.getElementById('lbl-temp').textContent = this.temp;
+        document.getElementById('lbl-ocean').textContent = this.oceans;
+        
+        document.getElementById('lbl-m').textContent = this.m;
+        document.getElementById('lbl-m-prod').textContent = this.prod.m + this.tr;
+        
+        document.getElementById('lbl-steel').textContent = this.steel;
+        document.getElementById('lbl-steel-prod').textContent = this.prod.steel;
+        document.getElementById('lbl-titan').textContent = this.titan;
+        document.getElementById('lbl-titan-prod').textContent = this.prod.titan;
+        document.getElementById('lbl-plant').textContent = this.plant;
+        document.getElementById('lbl-plant-prod').textContent = this.prod.plant;
+        document.getElementById('lbl-energy').textContent = this.energy;
+        document.getElementById('lbl-energy-prod').textContent = this.prod.energy;
+        document.getElementById('lbl-heat').textContent = this.heat;
+        document.getElementById('lbl-heat-prod').textContent = this.prod.heat;
+
+        document.getElementById('btn-research').disabled = (this.phase !== 'RESEARCH');
+        document.getElementById('btn-action').disabled = (this.phase !== 'ACTION');
+        document.getElementById('btn-project').disabled = (this.phase !== 'ACTION');
+        document.getElementById('btn-convert').disabled = (this.phase !== 'ACTION');
+        document.getElementById('btn-pass').disabled = (this.phase !== 'ACTION' || this.phase === 'GAMEOVER');
+        
+        document.getElementById('btn-action').style.background = this.isActionMode ? 'var(--mars-red)' : '';
+    },
+
+    renderCards(isResearch) {
+        const area = document.getElementById('card-area'); 
+        if(!area) return;
+        area.innerHTML = '';
+        const cards = isResearch ? this.drawnCards : this.handCards;
+        
+        cards.forEach((card, index) => {
+            const el = document.createElement('div');
+            el.className = `card ${card.type}`;
+            if (isResearch && card.keep) { el.style.border = '3px solid gold'; el.style.transform = 'translateY(-10px)'; }
+            
+            el.innerHTML = `
+                <div class="card-header">${card.name}</div>
+                <div class="card-cost">${card.cost}</div>
+                <div class="card-svg">${this.generateSvg(card.type)}</div>
+                <div class="card-footer">${card.text}</div>
+            `;
+            el.onclick = () => {
+                Audio.click();
+                if (isResearch) this.toggleKeep(index);
+                else if (this.isActionMode) this.playCard(index);
+                else UI.showCardDetail(card);
+            };
+            area.appendChild(el);
+        });
+
+        if (isResearch) {
+            document.getElementById('btn-research').textContent = `保留 (${this.drawnCards.filter(c=>c.keep).length} 張, ${this.drawnCards.filter(c=>c.keep).length * 3} M€)`;
+        }
+    },
+
+    generateSvg(type) {
+        let color = type === 'event' ? '#e53935' : type === 'auto' ? '#43a047' : '#1e88e5';
+        return `
+            <svg width="100%" height="100%" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="40" fill="${color}" opacity="0.2" />
+                <polygon points="50,20 80,40 80,70 50,90 20,70 20,40" fill="none" stroke="${color}" stroke-width="2"/>
+                <circle cx="50" cy="50" r="10" fill="${color}" />
+            </svg>
+        `;
+    },
+
+    saveGame() {
+        const data = {
+            gen: this.gen, tr: this.tr, oxygen: this.oxygen, temp: this.temp, oceans: this.oceans,
+            m: this.m, steel: this.steel, titan: this.titan, plant: this.plant, energy: this.energy, heat: this.heat,
+            prod: this.prod, phase: this.phase, history: this.history, handCards: this.handCards, boardData: this.boardData,
+            settings: this.settings, neutralPlayer: this.neutralPlayer, company: this.company
+        };
+        localStorage.setItem('mars_save_v5', JSON.stringify(data));
+        UI.toast("遊戲已存檔！"); Audio.success();
+    },
+
+    loadGame() {
+        const saved = localStorage.getItem('mars_save_v5');
+        if (saved) {
+            const data = JSON.parse(saved);
+            Object.assign(this, data);
+            document.getElementById('set-company').checked = this.settings.company;
+            document.getElementById('set-adj').checked = this.settings.adj;
+            document.getElementById('set-neutral').checked = this.settings.neutral;
+            document.getElementById('set-ocean-edge').checked = this.settings.oceanEdge;
+            document.getElementById('set-reward').checked = this.settings.reward;
+            
+            this.updateUI(); this.renderBoard(); this.renderCards(this.phase === 'RESEARCH');
+            UI.toast("遊戲已讀取！"); Audio.success();
+        } else { UI.toast("沒有找到存檔！"); Audio.error(); }
+    }
+};
+
+const UI = {
+    toast(msg) {
+        const container = document.getElementById('toast-container');
+        if(!container) return;
+        const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+        container.appendChild(el); setTimeout(() => el.remove(), 2500);
+    },
+    toggleModal(id) { 
+        const el = document.getElementById(id);
+        if(el) { el.classList.toggle('active'); Audio.click(); }
+    },
+    toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); Audio.click(); },
+    showCardDetail(card) {
+        document.getElementById('modal-card-title').textContent = card.name;
+        document.getElementById('modal-card-svg').innerHTML = Game.generateSvg(card.type);
+        document.getElementById('modal-card-text').innerHTML = `<b>費用:</b> ${card.cost} M€<br><b>效果:</b> ${card.text}`;
+        this.toggleModal('modal-card');
+    }
+};
+
+// ★ 處理首次載入流程 ★
+window.onload = () => { 
+    try {
+        Game.init(); 
+        
+        // 顯示說明文件
+        UI.toggleModal('modal-rules');
+        
+        // 綁定說明文件裡的「開始遊戲」按鈕
+        document.getElementById('btn-start-game').onclick = () => {
+            UI.toggleModal('modal-rules');
+            Game.setupNextPhase(); // 關閉說明後，才進入選公司或開局階段
+        };
+        
+    } catch (e) {
+        alert("初始化失敗，請重新整理網頁。錯誤：" + e.message);
+        console.error(e);
+    }
+};
+</script>
+</body>
+</html>

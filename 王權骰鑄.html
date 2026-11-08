@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dice Throne: 月精靈 vs 野蠻人</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
+
+        :root {
+            --bg-color: #1a1512;
+            --parchment: #e8d5b7;
+            --parchment-dark: #c7b295;
+            --elf-color: #3a86ff;
+            --barb-color: #d00000;
+            --text-main: #2b1f1a;
+            --gold: #d4af37;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: 'Noto Serif TC', serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background-image: radial-gradient(circle, transparent 20%, #000 120%);
+        }
+
+        /* 頂部狀態列 */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: linear-gradient(to bottom, #3e2e20, #1a1512);
+            color: var(--gold);
+            border-bottom: 2px solid var(--gold);
+            z-index: 10;
+        }
+
+        .player-panel {
+            display: flex;
+            flex-direction: column;
+            width: 45%;
+        }
+        .player-panel.enemy { text-align: right; align-items: flex-end; }
+        
+        .hp-cp {
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            gap: 10px;
+        }
+
+        .hp-bar-container {
+            width: 100%;
+            height: 12px;
+            background: #333;
+            border-radius: 6px;
+            margin-top: 5px;
+            border: 1px solid var(--gold);
+            overflow: hidden;
+        }
+
+        .hp-bar {
+            height: 100%;
+            background: #e63946;
+            width: 100%;
+            transition: width 0.3s;
+        }
+
+        .status-effects {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+            min-height: 20px;
+            flex-wrap: wrap;
+        }
+
+        .status-icon {
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+        }
+        .status-icon.positive { background: #2a9d8f; }
+        .status-icon.negative { background: #9d0208; }
+
+        /* 主要遊戲區域 */
+        .game-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        /* 中央訊息與骰子區 */
+        .center-board {
+            background: var(--parchment);
+            border: 4px solid #5c4033;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+            position: relative;
+            min-height: 150px;
+        }
+
+        .dice-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .die {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            transition: transform 0.2s, background 0.2s;
+        }
+        .die.selected { background: #ffd166; transform: scale(1.1); }
+        .die:active { transform: scale(0.9); }
+
+        .action-btn {
+            background: #5c4033;
+            color: #fff;
+            border: 2px solid var(--gold);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+        .action-btn:disabled {
+            background: #999;
+            border-color: #666;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .action-btn:hover:not(:disabled) { background: var(--gold); color: #000; }
+
+        /* 手牌區 */
+        .hand-area {
+            margin-top: 10px;
+        }
+        
+        .hand-title {
+            color: var(--gold);
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .card-scroll {
+            display: flex;
+            overflow-x: auto;
+            gap: 10px;
+            padding-bottom: 10px;
+            scrollbar-width: thin;
+        }
+
+        .card {
+            min-width: 100px;
+            height: 140px;
+            background: linear-gradient(135deg, #2c3e50, #000000);
+            border: 2px solid #777;
+            border-radius: 8px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .card:active { transform: translateY(-10px); }
+        
+        .card-header {
+            padding: 5px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.1);
+            border-bottom: 1px solid #555;
+        }
+
+        .card-body {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+        }
+
+        .card-footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: rgba(0,0,0,0.8);
+            padding: 5px;
+            font-size: 10px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        /* 底部導航列 */
+        .bottom-nav {
+            display: flex;
+            background: #2b1f1a;
+            border-top: 2px solid var(--gold);
+            padding: 5px;
+            justify-content: space-around;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--gold);
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+        .nav-btn i { font-size: 18px; margin-bottom: 2px; }
+
+        /* 彈窗介面 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: var(--parchment);
+            padding: 20px;
+            border-radius: 8px;
+            border: 3px solid var(--gold);
+            max-width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+            color: var(--text-main);
+        }
+        .modal-content h2 { text-align: center; margin-bottom: 15px; }
+        .modal-content p { margin-bottom: 10px; font-size: 14px; line-height: 1.5; }
+        .close-btn {
+            display: block;
+            margin: 15px auto 0;
+            background: #5c4033;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Toast 提示 */
+        #toast {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            border: 1px solid var(--gold);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 200;
+        }
+        #toast.show { opacity: 1; }
+
+        /* 歷史紀錄側邊欄 */
+        .history-panel {
+            position: fixed;
+            top: 0; right: -300px;
+            width: 280px;
+            height: 100%;
+            background: #1a1512;
+            border-left: 2px solid var(--gold);
+            color: #ccc;
+            padding: 15px;
+            transition: right 0.3s;
+            z-index: 50;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .history-panel.open { right: 0; }
+        .history-item {
+            border-bottom: 1px dashed #444;
+            padding: 5px 0;
+            margin-bottom: 5px;
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 600px) {
+            .die { width: 35px; height: 35px; font-size: 20px; }
+            .card { min-width: 90px; height: 120px; }
+            .action-btn { padding: 6px 12px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部狀態 -->
+    <div class="top-bar">
+        <div class="player-panel">
+            <div class="hp-cp">
+                <span>月精靈</span>
+                <span id="p-hp-text">50 HP</span>
+                <span id="p-cp-text">0 CP</span>
+            </div>
+            <div class="hp-bar-container">
+                <div class="hp-bar" id="p-hp-bar" style="background: var(--elf-color)"></div>
+            </div>
+            <div class="status-effects" id="p-status"></div>
+        </div>
+        
+        <div class="player-panel enemy">
+            <div class="hp-cp">
+                <span id="e-cp-text">0 CP</span>
+                <span id="e-hp-text">50 HP</span>
+                <span>野蠻人</span>
+            </div>
+            <div class="hp-bar-container">
+                <div class="hp-bar" id="e-hp-bar" style="background: var(--barb-color)"></div>
+            </div>
+            <div class="status-effects" id="e-status" style="justify-content: flex-end;"></div>
+        </div>
+    </div>
+
+    <!-- 遊戲區域 -->
+    <div class="game-area">
+        <div class="center-board">
+            <h3 id="phase-title" style="color: #5c4033;">準備開始遊戲</h3>
+            <div class="dice-container" id="dice-area">
+                <!-- 骰子會動態生成 -->
+            </div>
+            <div id="action-area">
+                <button class="action-btn" id="btn-start" onclick="startGame()">開始對戰</button>
+            </div>
+        </div>
+
+        <div class="hand-area">
+            <div class="hand-title">你的手牌 (點擊使用)</div>
+            <div class="card-scroll" id="hand-cards">
+                <!-- 卡牌動態生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部導航 -->
+    <div class="bottom-nav">
+        <button class="nav-btn" onclick="toggleSound()">
+            <span id="sound-icon">🔊</span>音效
+        </button>
+        <button class="nav-btn" onclick="showRules()">
+            <span>📖</span>說明
+        </button>
+        <button class="nav-btn" onclick="toggleHistory()">
+            <span>📜</span>歷史
+        </button>
+        <button class="nav-btn" onclick="saveGame()">
+            <span>💾</span>存檔
+        </button>
+        <button class="nav-btn" onclick="loadGame()">
+            <span>📂</span>讀檔
+        </button>
+    </div>
+
+    <!-- 歷史紀錄側邊欄 -->
+    <div class="history-panel" id="history-panel">
+        <h3 style="color: var(--gold); margin-bottom: 10px;">戰役紀錄</h3>
+        <div id="history-log"></div>
+    </div>
+
+    <!-- 規則彈窗 -->
+    <div class="modal-overlay" id="rules-modal">
+        <div class="modal-content">
+            <h2>遊戲說明</h2>
+            <p><strong>目標：</strong>將對手生命值降至 0。</p>
+            <p><strong>回合流程：</strong></p>
+            <ul style="margin-left: 20px; font-size: 14px; line-height: 1.6;">
+                <li><strong>收入階段：</strong>獲得 1 CP 並抽 1 張牌。</li>
+                <li><strong>主要階段：</strong>可花費 CP 打出卡牌或升級。</li>
+                <li><strong>攻擊階段：</strong>擲 5 顆骰子，可點擊骰子選擇重擲（最多兩次），然後根據牌型發動技能。</li>
+                <li><strong>防禦階段：</strong>對手擲防禦骰減免傷害。</li>
+            </ul>
+            <p><strong>月精靈技能：</strong>1-3 弓，4-5 腳，6 月亮。主打閃避與負面狀態。</p>
+            <p><strong>野蠻人技能：</strong>1-3 劍，4-5 心，6 爆炸。主打高傷害與恢復。</p>
+            <button class="close-btn" onclick="document.getElementById('rules-modal').style.display='none'">關閉</button>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        // --- 音效系統 (Web Audio API) ---
+        let audioCtx;
+        let soundEnabled = true;
+        
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'hit') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            } else if (type === 'dice') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(500, audioCtx.currentTime + 0.05);
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-icon').innerText = soundEnabled ? '🔊' : '🔇';
+            showToast(soundEnabled ? '音效已開啟' : '音效已關閉');
+        }
+
+        // --- 遊戲資料結構 ---
+        const GameState = {
+            ENUM: {
+                MENU: 'MENU',
+                PLAYER_TURN_START: 'PLAYER_TURN_START',
+                PLAYER_MAIN: 'PLAYER_MAIN',
+                PLAYER_ROLL: 'PLAYER_ROLL',
+                PLAYER_SELECT_ABILITY: 'PLAYER_SELECT_ABILITY',
+                ENEMY_TURN_START: 'ENEMY_TURN_START',
+                ENEMY_ROLL: 'ENEMY_ROLL',
+                DEFENSE_PHASE: 'DEFENSE_PHASE',
+                GAME_OVER: 'GAME_OVER'
+            },
+            currentState: 'MENU',
+            turn: 1,
+            player: { hp: 50, maxHp: 50, cp: 0, status: {}, hand: [] },
+            enemy: { hp: 50, maxHp: 50, cp: 0, status: {}, hand: [] },
+            dice: [1, 1, 1, 1, 1],
+            selectedDice: [false, false, false, false, false],
+            rollsLeft: 2,
+            currentAbility: null,
+            history: []
+        };
+
+        const DiceSymbols = {
+            Elf: { 1: '弓', 2: '弓', 3: '弓', 4: '腳', 5: '腳', 6: '月' },
+            Barbarian: { 1: '劍', 2: '劍', 3: '劍', 4: '心', 5: '心', 6: '爆' }
+        };
+
+        // 卡牌庫 (簡化版)
+        const CardData = [
+            { name: '重擲', type: 'roll', desc: '重擲任意骰子', cost: 1 },
+            { name: '防禦', type: 'defense', desc: '防止 6 點傷害', cost: 1 },
+            { name: '抽牌', type: 'instant', desc: '抽 2 張牌', cost: 1 },
+            { name: '加點', type: 'roll', desc: '任一骰子點數+1', cost: 1 },
+            { name: '升級', type: 'upgrade', desc: '提升技能傷害', cost: 2 }
+        ];
+
+        // --- 核心邏輯 ---
+        
+        function startGame() {
+            playSound('click');
+            GameState.player = { hp: 50, maxHp: 50, cp: 0, status: {}, hand: [] };
+            GameState.enemy = { hp: 50, maxHp: 50, cp: 0, status: {}, hand: [] };
+            GameState.turn = 1;
+            GameState.history = [];
+            GameState.currentState = GameState.ENUM.PLAYER_TURN_START;
+            
+            // 初始抽牌
+            for(let i=0; i<4; i++) {
+                GameState.player.hand.push({...CardData[Math.floor(Math.random() * CardData.length)]});
+                GameState.enemy.hand.push({...CardData[Math.floor(Math.random() * CardData.length)]});
+            }
+
+            logHistory('遊戲開始！');
+            updateUI();
+            nextPhase();
+        }
+
+        function nextPhase() {
+            if (GameState.player.hp <= 0 || GameState.enemy.hp <= 0) {
+                endGame();
+                return;
+            }
+
+            const state = GameState.currentState;
+            
+            if (state === GameState.ENUM.PLAYER_TURN_START) {
+                document.getElementById('phase-title').innerText = "你的回合 - 主要階段";
+                GameState.player.cp += 1;
+                if (GameState.player.hand.length < 6) {
+                    GameState.player.hand.push({...CardData[Math.floor(Math.random() * CardData.length)]});
+                }
+                GameState.currentState = GameState.ENUM.PLAYER_MAIN;
+                updateUI();
+            } 
+            else if (state === GameState.ENUM.PLAYER_MAIN) {
+                // 等待玩家點擊「進入擲骰階段」
+                GameState.currentState = GameState.ENUM.PLAYER_ROLL;
+                initRollPhase();
+            }
+            else if (state === GameState.ENUM.PLAYER_ROLL) {
+                // 玩家擲骰後結算
+                resolvePlayerAttack();
+            }
+            else if (state === GameState.ENUM.ENEMY_TURN_START) {
+                document.getElementById('phase-title').innerText = "野蠻人的回合";
+                GameState.enemy.cp += 1;
+                if (GameState.enemy.hand.length < 6) {
+                    GameState.enemy.hand.push({...CardData[Math.floor(Math.random() * CardData.length)]});
+                }
+                setTimeout(() => {
+                    GameState.currentState = GameState.ENUM.ENEMY_ROLL;
+                    enemyRollPhase();
+                }, 1000);
+                updateUI();
+            }
+            else if (state === GameState.ENUM.DEFENSE_PHASE) {
+                // 防禦結算
+            }
+        }
+
+        // 玩家擲骰
+        function initRollPhase() {
+            GameState.rollsLeft = 2;
+            GameState.dice = [1, 1, 1, 1, 1].map(() => Math.floor(Math.random() * 6) + 1);
+            GameState.selectedDice = [false, false, false, false, false];
+            document.getElementById('phase-title').innerText = "攻擊擲骰階段 (選擇要重擲的骰子)";
+            renderDice();
+            updateUI();
+        }
+
+        function toggleDie(index) {
+            if (GameState.currentState !== GameState.ENUM.PLAYER_ROLL || GameState.rollsLeft <= 0) return;
+            playSound('click');
+            GameState.selectedDice[index] = !GameState.selectedDice[index];
+            renderDice();
+        }
+
+        function rerollDice() {
+            if (GameState.rollsLeft <= 0) return;
+            playSound('dice');
+            for (let i = 0; i < 5; i++) {
+                if (GameState.selectedDice[i]) {
+                    GameState.dice[i] = Math.floor(Math.random() * 6) + 1;
+                    GameState.selectedDice[i] = false;
+                }
+            }
+            GameState.rollsLeft--;
+            renderDice();
+            updateUI();
+        }
+
+        function resolvePlayerAttack() {
+            playSound('hit');
+            // 簡單的技能判定
+            const counts = {};
+            GameState.dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
+            
+            let damage = 0;
+            let msg = "";
+
+            // 判定邏輯 (簡化)
+            if (counts[6] === 5) {
+                damage = 13; msg = "發動大招：月蝕！造成 13 點傷害！";
+            } else if (counts[1] >= 4 || counts[2] >= 4 || counts[3] >= 4) {
+                damage = 7; msg = "長弓射擊！造成 7 點傷害！";
+            } else if (GameState.dice.includes(1) && GameState.dice.includes(2) && GameState.dice.includes(3) && GameState.dice.includes(4) && GameState.dice.includes(5)) {
+                damage = 9; msg = "致盲射擊！造成 9 點傷害！";
+            } else {
+                // 基本攻擊
+                damage = Math.floor(Math.random() * 3) + 3; 
+                msg = `普通攻擊！造成 ${damage} 點傷害！`;
+            }
+
+            // 判定防禦
+            const enemyDefense = Math.floor(Math.random() * 6) + 1;
+            if (enemyDefense >= 5) {
+                damage = Math.ceil(damage / 2);
+                msg += ` (野蠻人防禦成功，傷害減半)`;
+            }
+
+            GameState.enemy.hp = Math.max(0, GameState.enemy.hp - damage);
+            logHistory(msg);
+            showToast(msg);
+            
+            document.getElementById('phase-title').innerText = msg;
+            
+            setTimeout(() => {
+                if (GameState.enemy.hp <= 0) {
+                    endGame(true);
+                } else {
+                    GameState.currentState = GameState.ENUM.ENEMY_TURN_START;
+                    nextPhase();
+                }
+            }, 2000);
+        }
+
+        // AI 回合
+        function enemyRollPhase() {
+            document.getElementById('phase-title').innerText = "野蠻人正在擲骰...";
+            GameState.dice = [1, 1, 1, 1, 1].map(() => Math.floor(Math.random() * 6) + 1);
+            renderDice();
+            playSound('dice');
+
+            setTimeout(() => {
+                // AI 簡單判定
+                const counts = {};
+                GameState.dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
+                
+                let damage = 0;
+                let msg = "";
+                if (counts[6] === 5) {
+                    damage = 15; msg = "野蠻人發動大招：憤怒！造成 15 點傷害！";
+                } else if (counts[1] >= 4 || counts[2] >= 4 || counts[3] >= 4) {
+                    damage = 8; msg = "野蠻人使用重擊！造成 8 點傷害！";
+                } else {
+                    damage = Math.floor(Math.random() * 4) + 4;
+                    msg = `野蠻人攻擊！造成 ${damage} 點傷害！`;
+                }
+
+                // 玩家防禦判定
+                const playerDefense = Math.floor(Math.random() * 6) + 1;
+                if (playerDefense >= 5) {
+                    damage = Math.ceil(damage / 2);
+                    msg += ` (你防禦成功，傷害減半)`;
+                }
+
+                GameState.player.hp = Math.max(0, GameState.player.hp - damage);
+                logHistory(msg);
+                showToast(msg);
+                document.getElementById('phase-title').innerText = msg;
+                playSound('hit');
+                updateUI();
+
+                setTimeout(() => {
+                    if (GameState.player.hp <= 0) {
+                        endGame(false);
+                    } else {
+                        GameState.turn++;
+                        GameState.currentState = GameState.ENUM.PLAYER_TURN_START;
+                        nextPhase();
+                    }
+                }, 2000);
+
+            }, 1000);
+        }
+
+        // --- UI 渲染 ---
+
+        function renderDice() {
+            const container = document.getElementById('dice-area');
+            container.innerHTML = '';
+            const isPlayerTurn = GameState.currentState === GameState.ENUM.PLAYER_ROLL;
+
+            GameState.dice.forEach((val, index) => {
+                const dieDiv = document.createElement('div');
+                dieDiv.className = `die ${GameState.selectedDice[index] ? 'selected' : ''}`;
+                
+                // 顯示數字與圖案
+                let symbol = "";
+                if (GameState.currentState === GameState.ENUM.ENEMY_ROLL || GameState.currentState === GameState.ENEMY_TURN_START) {
+                    symbol = DiceSymbols.Barbarian[val];
+                } else {
+                    symbol = DiceSymbols.Elf[val];
+                }
+
+                dieDiv.innerHTML = `<div style="font-size:14px;color:#666;">${val}</div><div>${symbol}</div>`;
+                
+                if (isPlayerTurn && GameState.rollsLeft > 0) {
+                    dieDiv.onclick = () => toggleDie(index);
+                } else {
+                    dieDiv.style.cursor = 'default';
+                }
+                container.appendChild(dieDiv);
+            });
+        }
+
+        function renderHand() {
+            const container = document.getElementById('hand-cards');
+            container.innerHTML = '';
+            GameState.player.hand.forEach((card, index) => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card';
+                cardDiv.innerHTML = `
+                    <div class="card-header">${card.name} (${card.cost} CP)</div>
+                    <div class="card-body">🃏</div>
+                    <div class="card-footer">${card.desc}</div>
+                `;
+                // 簡化：點擊卡牌直接消耗
+                cardDiv.onclick = () => {
+                    if (GameState.currentState === GameState.ENUM.PLAYER_MAIN && GameState.player.cp >= card.cost) {
+                        playSound('click');
+                        GameState.player.cp -= card.cost;
+                        GameState.player.hand.splice(index, 1);
+                        showToast(`使用了 ${card.name}`);
+                        logHistory(`你使用了 ${card.name}`);
+                        updateUI();
+                    } else if (GameState.player.cp < card.cost) {
+                        showToast('CP 不足！');
+                    } else {
+                        showToast('現在無法使用！');
+                    }
+                };
+                container.appendChild(cardDiv);
+            });
+        }
+
+        function updateUI() {
+            // 更新血量條
+            document.getElementById('p-hp-text').innerText = `${GameState.player.hp} HP`;
+            document.getElementById('p-hp-bar').style.width = `${(GameState.player.hp / GameState.player.maxHp) * 100}%`;
+            document.getElementById('p-cp-text').innerText = `${GameState.player.cp} CP`;
+
+            document.getElementById('e-hp-text').innerText = `${GameState.enemy.hp} HP`;
+            document.getElementById('e-hp-bar').style.width = `${(GameState.enemy.hp / GameState.enemy.maxHp) * 100}%`;
+            document.getElementById('e-cp-text').innerText = `${GameState.enemy.cp} CP`;
+
+            renderHand();
+            renderDice();
+
+            // 控制按鈕狀態
+            const actionArea = document.getElementById('action-area');
+            actionArea.innerHTML = '';
+
+            if (GameState.currentState === GameState.ENUM.PLAYER_MAIN) {
+                const btn = document.createElement('button');
+                btn.className = 'action-btn';
+                btn.innerText = '進入擲骰階段';
+                btn.onclick = () => {
+                    playSound('click');
+                    nextPhase();
+                };
+                actionArea.appendChild(btn);
+            } else if (GameState.currentState === GameState.ENUM.PLAYER_ROLL) {
+                if (GameState.rollsLeft > 0) {
+                    const btn = document.createElement('button');
+                    btn.className = 'action-btn';
+                    btn.innerText = `重擲選中的骰子 (剩餘 ${GameState.rollsLeft} 次)`;
+                    btn.onclick = rerollDice;
+                    actionArea.appendChild(btn);
+                } else {
+                    const btn = document.createElement('button');
+                    btn.className = 'action-btn';
+                    btn.innerText = '結算攻擊';
+                    btn.onclick = () => {
+                        playSound('click');
+                        nextPhase();
+                    };
+                    actionArea.appendChild(btn);
+                }
+            }
+        }
+
+        // --- 輔助功能 ---
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        function logHistory(msg) {
+            GameState.history.push(`[回合 ${GameState.turn}] ${msg}`);
+            const logDiv = document.getElementById('history-log');
+            logDiv.innerHTML = GameState.history.map(h => `<div class="history-item">${h}</div>`).reverse().join('');
+        }
+
+        function toggleHistory() {
+            playSound('click');
+            document.getElementById('history-panel').classList.toggle('open');
+        }
+
+        function showRules() {
+            playSound('click');
+            document.getElementById('rules-modal').style.display = 'flex';
+        }
+
+        function endGame(isWin) {
+            GameState.currentState = GameState.ENUM.GAME_OVER;
+            const title = document.getElementById('phase-title');
+            if (isWin) {
+                title.innerText = "🎉 勝利！你擊敗了野蠻人！";
+                showToast("遊戲勝利！");
+            } else {
+                title.innerText = "💀 失敗！你被野蠻人擊敗了...";
+                showToast("遊戲失敗！");
+            }
+            document.getElementById('action-area').innerHTML = `<button class="action-btn" onclick="startGame()">重新開始</button>`;
+            logHistory(isWin ? "你贏得了勝利！" : "你被擊敗了...");
+        }
+
+        // 存讀檔
+        function saveGame() {
+            playSound('click');
+            if (GameState.currentState === GameState.ENUM.MENU) return showToast('遊戲尚未開始');
+            localStorage.setItem('diceThroneSave', JSON.stringify(GameState));
+            showToast('遊戲已儲存！');
+        }
+
+        function loadGame() {
+            playSound('click');
+            const saved = localStorage.getItem('diceThroneSave');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                Object.assign(GameState, parsed);
+                showToast('遊戲已載入！');
+                updateUI();
+                // 根據載入的狀態恢復按鈕
+                if(GameState.currentState === GameState.ENUM.PLAYER_ROLL) {
+                     renderDice();
+                }
+            } else {
+                showToast('找不到存檔！');
+            }
+        }
+
+    </script>
+</body>
+</html>

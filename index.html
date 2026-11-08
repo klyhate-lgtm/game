@@ -3,81 +3,239 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>時空旅行者檔案庫</title>
+<title>🌸 時空旅行者檔案庫</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+  :root {
+    --bg-color: #fff5f6;
+    --text-main: #5a4a42;
+    --primary: #ff9a9e;
+    --secondary: #fecfef;
+    --card-bg: #ffffff;
+    --shadow: 0 8px 20px rgba(255, 154, 158, 0.2);
+  }
+
   body {
-    background-color: #30251c;
-    color: #ead9b7;
-    font-family: "Noto Serif TC", serif;
+    background: linear-gradient(135deg, var(--bg-color) 0%, var(--secondary) 100%);
+    color: var(--text-main);
+    font-family: 'Noto Sans TC', 'Fredoka', sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     min-height: 100vh;
     margin: 0;
-    padding: 20px;
+    padding: 30px 20px;
+    background-attachment: fixed;
   }
+
+  .container {
+    width: 100%;
+    max-width: 600px;
+  }
+
   h1 {
-    font-size: 2rem;
-    letter-spacing: 0.1em;
-    margin-bottom: 40px;
-    border-bottom: 2px solid #b58a45;
-    padding-bottom: 10px;
+    font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
+    font-size: 2.2rem;
+    text-align: center;
+    color: #ff6b81;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 0px #fff;
   }
+  
+  .subtitle {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #b08a8a;
+    margin-bottom: 30px;
+  }
+
+  /* 日誌看板 */
+  .log-board {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 20px;
+    padding: 15px 20px;
+    margin-bottom: 30px;
+    border: 2px dashed #ffb6c1;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+  }
+  .log-board h3 {
+    margin: 0 0 10px 0;
+    color: #ff6b81;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .log-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #7a6b63;
+    line-height: 1.6;
+  }
+
+  /* 遊戲選單 */
   #menu {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    width: 100%;
-    max-width: 400px;
   }
-  a {
-    display: block;
-    text-align: center;
-    padding: 15px 20px;
-    background: linear-gradient(90deg, #59432d, #392b20);
-    color: #f4e6c8;
+
+  .game-card {
+    background: var(--card-bg);
+    border-radius: 18px;
+    padding: 18px 20px;
     text-decoration: none;
-    border: 1px solid #a88a5e;
+    color: var(--text-main);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 2px solid transparent;
+  }
+
+  .game-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    border-color: #ffb6c1;
+    box-shadow: 0 12px 25px rgba(255, 154, 158, 0.3);
+  }
+
+  .game-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .game-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #ff6b81;
+  }
+
+  .game-time {
+    font-size: 0.8rem;
+    color: #b08a8a;
+  }
+
+  /* 點擊率標籤 */
+  .game-views {
+    background: #f0f8ff;
+    color: #7cb3d9;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  #loading { 
+    color: #ff9a9e; 
+    text-align: center; 
     font-size: 1.2rem;
-    transition: 0.2s;
+    animation: pulse 1.5s infinite;
   }
-  a:hover {
-    background: #6a4d2e;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+
+  @keyframes pulse {
+    0% { opacity: 0.6; transform: scale(0.98); }
+    50% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0.6; transform: scale(0.98); }
   }
-  #loading { color: #b58a45; font-style: italic; text-align: center; }
 </style>
 </head>
 <body>
-  <h1>時空旅行者檔案庫</h1>
-  <div id="menu">
-    <div id="loading">正在讀取檔案庫...</div>
+
+<div class="container">
+  <h1>🌸 時空旅行者檔案庫</h1>
+  <div class="subtitle">✦ 點擊卡片開始你的冒險 ✦</div>
+
+  <!-- 更新日誌區塊 -->
+  <div class="log-board" id="logBoard" style="display: none;">
+    <h3>📜 冒險者手札（最近更新）</h3>
+    <ul class="log-list" id="logList"></ul>
   </div>
 
+  <!-- 遊戲列表區塊 -->
+  <div id="menu">
+    <div id="loading">正在施展讀取魔法... 🪄</div>
+  </div>
+</div>
+
 <script>
+  // 使用免費的計數 API (Abacus) 來記錄點擊率
+  // 如果 API 掛了或不穩定，會默認顯示 0
+  const COUNTER_API = "https://abacus.jasoncameron.dev/hit/klyhate-lgtm-games/";
+
   async function loadGames() {
     const menu = document.getElementById('menu');
+    const logBoard = document.getElementById('logBoard');
+    const logList = document.getElementById('logList');
+    
     try {
-      // 直接讀取同一資料夾下的 games.json 檔案
       const response = await fetch('games.json');
       if (!response.ok) throw new Error('找不到 games.json');
       
       const games = await response.json();
       menu.innerHTML = '';
+      logList.innerHTML = '';
 
+      // 生成最近更新日誌 (最多顯示前 3 筆)
+      games.slice(0, 3).forEach(game => {
+        const li = document.createElement('li');
+        li.textContent = `${game.time} 更新了《${game.title}》`;
+        logList.appendChild(li);
+      });
+      if (games.length > 0) logBoard.style.display = 'block';
+
+      // 生成遊戲卡片
       games.forEach(game => {
         const a = document.createElement('a');
-        a.href = encodeURI(game.file); // 處理中文與特殊符號檔名
-        a.textContent = game.title;
+        a.href = encodeURI(game.file);
+        a.className = 'game-card';
+        
+        // 將檔名轉換為唯一 ID 用於計數
+        const pageId = encodeURIComponent(game.file);
+
+        a.innerHTML = `
+          <div class="game-info">
+            <div class="game-title">🎮 ${game.title}</div>
+            <div class="game-time">🕒 ${game.time}</div>
+          </div>
+          <div class="game-views" id="views-${pageId}">
+            👁️ 讀取中
+          </div>
+        `;
+        
+        // 點擊時發送計數請求
+        a.addEventListener('click', () => {
+           fetch(`${COUNTER_API}${pageId}`).catch(() => {});
+        });
+
         menu.appendChild(a);
+
+        // 異步獲取點擊率並更新 UI
+        fetch(`${COUNTER_API}${pageId}`)
+          .then(res => res.json())
+          .then(data => {
+            const viewEl = document.getElementById(`views-${pageId}`);
+            if (viewEl && data.value !== undefined) {
+              viewEl.innerHTML = `👁️ ${data.value}`;
+            }
+          })
+          .catch(() => {
+            const viewEl = document.getElementById(`views-${pageId}`);
+            if (viewEl) viewEl.innerHTML = `👁️ 0`;
+          });
       });
 
     } catch (error) {
-      menu.innerHTML = `<div style="color:#f4a261;text-align:center;">讀取失敗<br><small>${error.message}</small></div>`;
+      menu.innerHTML = `<div style="color:#ff6b81;text-align:center;">讀取失敗 🥺<br><small>${error.message}</small></div>`;
     }
   }
+
   loadGames();
 </script>
 </body>

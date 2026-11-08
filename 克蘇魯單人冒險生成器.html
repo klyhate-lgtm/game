@@ -1,0 +1,2120 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>克蘇魯單人冒險生成器</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:"Songti SC","Noto Serif TC","Source Han Serif TC",Georgia,"Times New Roman",serif;
+  background:#080605;color:#e8dcc0;
+}
+#app{
+  height:100dvh;display:flex;flex-direction:column;max-width:860px;margin:0 auto;position:relative;
+  background:radial-gradient(ellipse at 50% -10%,#2c2218 0%,#15100b 55%,#080605 100%);
+}
+#app::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:20;
+  box-shadow:inset 0 0 140px 40px rgba(0,0,0,.9);}
+
+/* ---------- HUD ---------- */
+#hud{display:flex;gap:5px;padding:7px 8px;flex-wrap:wrap;justify-content:center;
+  background:linear-gradient(#20180f,#130e09);border-bottom:1px solid #3d2f1f;z-index:22;position:relative}
+.hud-item{display:flex;align-items:center;gap:4px;font-size:12.5px;
+  background:#251c12;border:1px solid #4d3c27;border-radius:6px;padding:3px 8px;color:#d8c9a8;
+  white-space:nowrap;transition:.2s}
+.hud-item.warn{border-color:#c9a227;color:#ffe9b0;box-shadow:0 0 8px rgba(201,162,39,.4)}
+.hud-item.danger{border-color:#a02020;color:#ff9a9a;box-shadow:0 0 8px rgba(200,40,40,.5)}
+.hud-item.pop{transform:scale(1.15)}
+
+/* ---------- STAGE ---------- */
+#stage{flex:1;overflow-y:auto;overflow-x:hidden;padding:10px 11px 16px;display:flex;flex-direction:column;
+  gap:10px;z-index:1;position:relative;scrollbar-width:thin}
+#stage::-webkit-scrollbar{width:6px}
+#stage::-webkit-scrollbar-thumb{background:#4a3a26;border-radius:3px}
+
+#scene{width:100%;height:150px;border-radius:10px;overflow:hidden;border:1px solid #4a3a26;
+  background:#0d0a07;flex-shrink:0;position:relative;box-shadow:0 4px 14px rgba(0,0,0,.6)}
+#scene svg{width:100%;height:100%;display:block}
+#sceneLabel{position:absolute;bottom:6px;right:9px;font-size:10.5px;letter-spacing:2px;
+  color:#8a7857;text-transform:uppercase}
+
+.card{background:linear-gradient(160deg,#ece0c4,#dccfb0 55%,#d2c4a2);color:#251c12;
+  border-radius:10px;padding:14px 15px;border:2px solid #8a6d3f;
+  box-shadow:0 8px 22px rgba(0,0,0,.55), inset 0 0 40px rgba(140,110,60,.18);
+  position:relative;font-size:15px;line-height:1.85;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.card::before{content:'';position:absolute;inset:5px;border:1px solid rgba(120,95,55,.35);
+  border-radius:6px;pointer-events:none}
+
+#eventTitle{font-size:12px;letter-spacing:3px;color:#7a5c2e;margin-bottom:7px;
+  border-bottom:1px dashed #a08a5e;padding-bottom:5px;text-transform:uppercase}
+#eventText{min-height:3em;cursor:pointer;user-select:none}
+#eventText .hl{color:#8b1a1a;font-weight:bold}
+
+#clueTags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.clue{background:#2a2018;color:#f0dfae;font-size:11.5px;padding:3px 9px;border-radius:20px;
+  border:1px solid #8a6d3f;animation:popIn .3s ease}
+@keyframes popIn{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.clue::before{content:'ʘ ';color:#c9a227}
+
+#actions{display:flex;flex-direction:column;gap:8px;margin-top:2px}
+.btn{
+  display:block;width:100%;padding:12px 15px;font-family:inherit;font-size:15px;line-height:1.4;
+  background:linear-gradient(#3b2d1d,#241a10);color:#e8dcc0;border:1px solid #7a5f35;
+  border-radius:9px;cursor:pointer;transition:.15s;text-align:center;letter-spacing:.5px;
+  box-shadow:0 3px 10px rgba(0,0,0,.4);
+}
+.btn:hover:not(:disabled){background:linear-gradient(#4f3b25,#2f2317);border-color:#c9a227;color:#ffe9b0;
+  box-shadow:0 4px 16px rgba(201,162,39,.22)}
+.btn:active:not(:disabled){transform:scale(.975)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.primary{background:linear-gradient(#7d2121,#4a1010);border-color:#c9a227;color:#ffe9b0}
+.btn.primary:hover:not(:disabled){background:linear-gradient(#9c2b2b,#5e1414)}
+.btn.gold{background:linear-gradient(#6a5320,#3d2f10);border-color:#c9a227;color:#ffe9b0}
+.btn.small{padding:9px 12px;font-size:13.5px}
+.btn.dim{background:#1b1410;border-color:#3d2f1f;color:#9a8a6a}
+
+#resultBox{margin-top:10px;padding:11px 13px;border-radius:8px;font-size:14.5px;line-height:1.75;
+  animation:fadeUp .35s ease}
+#resultBox.ok{background:#1d3a22;border:1px solid #4a8a55;color:#c8f0cc}
+#resultBox.bad{background:#3a1a1a;border:1px solid #8a4444;color:#f0c8c8}
+#resultBox.neutral{background:#2c2418;border:1px solid #7a5f35;color:#e8dcc0}
+
+/* ---------- Combat ---------- */
+.cmb-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cmb-stat{flex:1;min-width:130px;background:#1a130d;border:1px solid #4a3a26;border-radius:8px;padding:8px 10px}
+.cmb-name{font-size:13px;color:#c9a227;letter-spacing:1px;margin-bottom:4px}
+.bar{height:9px;background:#2a2018;border-radius:5px;overflow:hidden;margin-top:5px;border:1px solid #3d2f1f}
+.bar>i{display:block;height:100%;transition:width .4s ease}
+.bar.hp>i{background:linear-gradient(90deg,#8b1a1a,#d33)}
+.bar.san>i{background:linear-gradient(90deg,#1a4a8b,#3a9ad9)}
+.bar.dp>i{background:linear-gradient(90deg,#6a5320,#c9a227)}
+.cmb-log{max-height:150px;overflow-y:auto;font-size:13px;line-height:1.7;color:#b8a888;
+  background:#120e09;border:1px solid #3d2f1f;border-radius:8px;padding:9px 11px;margin-top:4px}
+.cmb-log div{padding:2px 0;border-bottom:1px dotted #2a2018}
+
+/* ---------- Nav ---------- */
+#nav{display:flex;background:linear-gradient(#1a130d,#0e0a07);border-top:1px solid #3d2f1f;
+  z-index:22;position:relative;padding-bottom:env(safe-area-inset-bottom)}
+#nav button{flex:1;background:none;border:none;color:#b8a888;font-family:inherit;font-size:10px;
+  padding:8px 2px 9px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
+  transition:.15s;letter-spacing:.5px}
+#nav button span.ico{font-size:17px;line-height:1}
+#nav button:hover{color:#ffe9b0;background:rgba(201,162,39,.08)}
+#nav button:active{background:rgba(201,162,39,.16)}
+
+/* ---------- Modal ---------- */
+#modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  background:rgba(4,3,2,.86);backdrop-filter:blur(3px);padding:14px}
+#modal.show{display:flex;animation:fadeIn .25s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-box{background:linear-gradient(160deg,#ece0c4,#d6c8a6);color:#251c12;border-radius:12px;
+  max-width:620px;width:100%;max-height:86dvh;overflow-y:auto;padding:20px 20px 16px;
+  border:2px solid #8a6d3f;box-shadow:0 20px 60px rgba(0,0,0,.85);position:relative;
+  animation:zoomIn .3s ease;line-height:1.8;font-size:14.5px}
+@keyframes zoomIn{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-box::-webkit-scrollbar{width:7px}
+.modal-box::-webkit-scrollbar-thumb{background:#a08a5e;border-radius:4px}
+.modal-box h2{font-size:19px;letter-spacing:2px;color:#6b1a1a;margin-bottom:12px;
+  border-bottom:2px solid #a08a5e;padding-bottom:9px;text-align:center}
+.modal-box h3{font-size:15px;color:#6b3a10;margin:14px 0 6px;letter-spacing:1px}
+.modal-box p{margin:6px 0}
+.modal-box ul{margin:5px 0 5px 20px}
+.modal-box li{margin:3px 0}
+.modal-box b{color:#6b1a1a}
+.modal-box code{background:#c9b894;padding:1px 5px;border-radius:3px;font-size:13px;color:#3a1a0a}
+.modal-close{position:sticky;bottom:-6px;margin-top:16px}
+
+/* ---------- Char sheet ---------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:400px){.grid2{grid-template-columns:1fr}}
+.mini-card{background:rgba(120,95,55,.14);border:1px solid #a08a5e;border-radius:7px;padding:8px 10px}
+.mini-card .k{font-size:11.5px;color:#7a5c2e;letter-spacing:1px}
+.mini-card .v{font-size:15px;color:#251c12;font-weight:bold}
+
+.skill-row{display:flex;justify-content:space-between;padding:2.5px 6px;font-size:13px;
+  border-bottom:1px dotted #b8a888}
+.skill-row:nth-child(odd){background:rgba(120,95,55,.08)}
+.skill-row .sv{font-weight:bold;color:#6b3a10}
+
+/* ---------- History ---------- */
+.hist-item{background:rgba(120,95,55,.12);border-left:3px solid #8a6d3f;padding:7px 10px;
+  margin-bottom:6px;border-radius:0 6px 6px 0;font-size:13px;line-height:1.6}
+.hist-item .t{font-size:10.5px;color:#7a5c2e;letter-spacing:1px}
+
+/* ---------- Toast ---------- */
+#toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%) translateY(20px);
+  background:#241a10;color:#ffe9b0;border:1px solid #c9a227;border-radius:24px;
+  padding:9px 20px;font-size:13.5px;z-index:90;opacity:0;pointer-events:none;
+  transition:.3s;box-shadow:0 6px 24px rgba(0,0,0,.7);max-width:88vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- Intro ---------- */
+.intro-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex:1;gap:16px;text-align:center;padding:20px}
+.intro-title{font-size:27px;letter-spacing:6px;color:#c9a227;
+  text-shadow:0 0 26px rgba(201,162,39,.5);line-height:1.5}
+.intro-sub{font-size:13px;color:#8a7857;letter-spacing:3px}
+.intro-quote{font-size:13.5px;color:#a8946e;font-style:italic;max-width:340px;line-height:2;
+  border-top:1px solid #3d2f1f;border-bottom:1px solid #3d2f1f;padding:12px 0}
+
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tab{flex:1;min-width:70px;padding:7px 6px;text-align:center;font-size:12.5px;
+  background:rgba(120,95,55,.15);border:1px solid #a08a5e;border-radius:6px;cursor:pointer;transition:.15s}
+.tab.on{background:#6b1a1a;color:#ffe9b0;border-color:#c9a227}
+
+.hide{display:none!important}
+
+/* ---- 卡牌橫向捲動列（結局／道具等使用） ---- */
+.hscroll{display:flex;flex-wrap:nowrap;gap:9px;overflow-x:auto;overflow-y:hidden;
+  padding:6px 2px 10px;align-items:stretch;scrollbar-width:thin}
+.hscroll::-webkit-scrollbar{height:6px}
+.hscroll::-webkit-scrollbar-thumb{background:#4a3a26;border-radius:3px}
+.mini-cardv{flex:0 0 auto;width:118px;background:#1c150e;border:1px solid #4a3a26;border-radius:8px;
+  padding:8px;position:relative;display:flex;flex-direction:column;gap:5px}
+.mini-cardv .art{height:52px;background:#0f0b07;border-radius:5px;overflow:hidden}
+.mini-cardv .art svg{width:100%;height:100%;display:block}
+.mini-cardv .lbl{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.72);
+  color:#f0dfae;font-size:10.5px;padding:4px 6px;line-height:1.35;border-radius:0 0 8px 8px}
+.mini-cardv .pad{height:34px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud"></div>
+  <div id="stage"></div>
+  <nav id="nav">
+    <button data-act="help"><span class="ico">❓</span>說明</button>
+    <button data-act="sheet"><span class="ico">📋</span>角色</button>
+    <button data-act="log"><span class="ico">📜</span>紀錄</button>
+    <button data-act="save"><span class="ico">💾</span>存檔</button>
+    <button data-act="load"><span class="ico">📂</span>讀檔</button>
+    <button data-act="mute"><span class="ico" id="muteIco">🔊</span>音效</button>
+  </nav>
+</div>
+
+<div id="modal"><div class="modal-box" id="modalBox"></div></div>
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   1. 基礎工具
+   ========================================================= */
+const $  = s => document.querySelector(s);
+const d  = n => Math.floor(Math.random()*n)+1;
+const d100 = () => d(100);
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+
+function rollExpr(expr){
+  if(expr==null) return 0;
+  if(typeof expr === 'number') return expr;
+  const m = String(expr).trim().match(/^([+-]?)\s*(\d*)D(\d+)$/i);
+  if(m){
+    const sign = m[1]==='-'?-1:1;
+    const cnt = parseInt(m[2]||'1',10);
+    const face = parseInt(m[3],10);
+    let sum=0; for(let i=0;i<cnt;i++) sum+=d(face);
+    return sign*sum;
+  }
+  const n = parseInt(expr,10);
+  return isNaN(n)?0:n;
+}
+
+/* ---------- 音效 ---------- */
+let AC=null, soundOn=true;
+function beep(freq=440,dur=.07,type='sine',vol=.05){
+  if(!soundOn) return;
+  try{
+    if(!AC) AC = new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==='suspended') AC.resume();
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(); o.stop(AC.currentTime+dur);
+  }catch(e){}
+}
+const SFX = {
+  click:()=>beep(520,.05,'square',.035),
+  good:()=>{beep(660,.08,'sine',.05);setTimeout(()=>beep(880,.1,'sine',.05),80);},
+  bad:()=>{beep(180,.16,'sawtooth',.05);setTimeout(()=>beep(120,.2,'sawtooth',.04),120);},
+  dice:()=>beep(300,.04,'triangle',.03),
+  fight:()=>{beep(140,.1,'square',.06);setTimeout(()=>beep(90,.14,'square',.05),100);},
+  san:()=>{beep(220,.2,'sine',.05);setTimeout(()=>beep(160,.3,'sine',.04),160);}
+};
+
+/* ---------- Toast ---------- */
+let toastTimer=null;
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* =========================================================
+   2. 技能與原型資料
+   ========================================================= */
+const BASE_SKILLS = {
+  '行政管理':10,'警覺':20,'人類學':0,'鑑定':10,'考古學':0,'藝術':0,'運動':30,
+  '魅力':20,'工藝':0,'偽裝':10,'閃避':30,'駕駛（陸）':20,'槍械':20,'急救':10,
+  '外語':0,'慷慨陳詞':10,'重型機械':10,'歷史學':10,'洞察力':10,'法律':0,'醫學':0,
+  '近戰武器':30,'軍事訓練':0,'自然世界':10,'導航':10,'神秘學':10,'說服':20,
+  '駕駛（空）':0,'精神分析':10,'地區知識':0,'研究':10,'騎術':10,'科學':0,
+  '搜索':20,'社交禮儀':10,'潛行':10,'街頭智慧':0,'外科手術':0,'生存':10,
+  '游泳':20,'追蹤':10,'徒手格鬥':20,'超自然':0,'使用工具':0
+};
+const SKILL_NAMES = Object.keys(BASE_SKILLS);
+
+const ARCHETYPES = {
+  alienist:{ name:'精神科醫師', res:5, bonds:3,
+    core:{'人類學':50,'洞察力':60,'醫學':40,'精神分析':70,'科學':50,'社交禮儀':40},
+    alt:['行政管理','警覺','魅力','外語','法律','研究'] },
+  antiquarian:{ name:'古物商／書商', res:4, bonds:3,
+    core:{'行政管理':50,'鑑定':60,'歷史學':80,'說服':60,'研究':60,'搜索':60},
+    alt:['魅力','工藝','外語','神秘學','地區知識','街頭智慧','使用工具'] },
+  artist:{ name:'藝術家／工匠', res:4, bonds:3,
+    core:{'鑑定':40,'藝術':60,'洞察力':60,'搜索':60,'街頭智慧':30,'社交禮儀':50},
+    alt:['行政管理','警覺','人類學','運動','慷慨陳詞','重型機械','自然世界','使用工具'] },
+  bonvivant:{ name:'享樂主義者／神秘學涉獵者', res:5, bonds:4,
+    core:{'人類學':30,'洞察力':50,'神秘學':70,'說服':40,'研究':40,'社交禮儀':60},
+    alt:['藝術','魅力','外語','歷史學','精神分析','地區知識'] },
+  criminal:{ name:'罪犯／匪徒', res:5, bonds:4,
+    core:{'警覺':50,'鑑定':40,'運動':50,'洞察力':40,'搜索':50,'潛行':60,'街頭智慧':40},
+    alt:['工藝','偽裝','槍械','慷慨陳詞','法律','近戰武器','徒手格鬥','使用工具'] },
+  doctor:{ name:'醫生／護士', res:5, bonds:3,
+    core:{'行政管理':30,'魅力':60,'急救':50,'洞察力':50,'醫學':50,'搜索':60,'社交禮儀':50,'外科手術':50},
+    alt:['外語','軍事訓練','精神分析','研究','科學','使用工具'] },
+  historian:{ name:'歷史學家／系譜學家', res:4, bonds:3,
+    core:{'行政管理':60,'人類學':50,'考古學':50,'歷史學':70,'研究':60,'社交禮儀':40},
+    alt:['藝術','工藝','外語','法律','軍事訓練','說服','地區知識','搜索'] },
+  journalist:{ name:'記者／作家', res:4, bonds:4,
+    core:{'警覺':50,'藝術':50,'洞察力':60,'研究':60,'搜索':60,'社交禮儀':30},
+    alt:['行政管理','人類學','考古學','外語','歷史學','法律','神秘學','地區知識','科學','使用工具'] },
+  detective:{ name:'私家偵探／警察', res:4, bonds:3,
+    core:{'警覺':50,'槍械':60,'急救':50,'洞察力':50,'法律':50,'搜索':70,'街頭智慧':40,'使用工具':40},
+    alt:['行政管理','社交禮儀','運動','魅力','偽裝','閃避','駕駛（陸）','慷慨陳詞','近戰武器','研究'] },
+  professor:{ name:'教授／圖書管理員', res:4, bonds:2,
+    core:{'行政管理':40,'洞察力':60,'說服':60,'研究':70,'搜索':60,'社交禮儀':50,'使用工具':40},
+    alt:['人類學','考古學','藝術','外語','歷史學','法律','醫學','神秘學','地區知識','科學'] },
+  scientist:{ name:'科學家／發明家', res:5, bonds:2,
+    core:{'工藝':50,'法律':20,'研究':60,'科學':60,'搜索':60,'社交禮儀':30,'使用工具':50},
+    alt:['人類學','考古學','槍械','外語','重型機械','軍事訓練','精神分析'] }
+};
+
+const GENDERS=['男','女'];
+
+/* =========================================================
+   3. 怪物與敵人資料
+   ========================================================= */
+const ENEMIES = {
+  civilian:{name:'平民',hp:12,prot:0,atk:30,dmg:'1D4',san:null,desc:'一個被捲入事件的可憐人'},
+  cultist:{name:'邪教徒',hp:12,prot:0,atk:40,dmg:'1D6',san:null,desc:'袍下藏著狂熱與刀鋒'},
+  severalCult:{name:'多名邪教徒',hp:16,prot:1,atk:50,dmg:'1D6',san:null,desc:'一群人同時逼近'},
+  gangster:{name:'匪徒',hp:11,prot:0,atk:50,dmg:'1D6',san:null,desc:'黑幫打手'},
+  severalGang:{name:'多名匪徒',hp:15,prot:0,atk:60,dmg:'1D6',san:null,desc:'黑幫圍攻'},
+  assassin:{name:'刺客',hp:14,prot:0,atk:60,dmg:'1D8',san:null,desc:'出手快而狠'},
+  brute:{name:'壯漢',hp:14,prot:0,atk:60,dmg:'1D6',san:null,desc:'體格驚人的打手'},
+  leader:{name:'邪教領袖',hp:12,prot:0,atk:70,dmg:'1D6',san:null,desc:'眼神裡沒有半點人性'},
+  warlock:{name:'巫師',hp:12,prot:0,atk:50,dmg:'1D6',san:null,desc:'口中唸著褻瀆的音節'},
+  madSci:{name:'瘋狂科學家',hp:8,prot:0,atk:40,dmg:'1D6',san:null,desc:'手術刀與瘋狂並存'},
+  police:{name:'警察',hp:11,prot:1,atk:50,dmg:'1D6',san:null,desc:'制服下同樣是血肉'},
+  ghoul:{name:'食屍鬼',hp:20,prot:1,atk:60,dmg:'1D6',san:{s:1,f:'1D6'},desc:'不朽的食屍生物'},
+  deepone:{name:'深潛者',hp:28,prot:3,atk:50,dmg:'1D6+2',san:{s:1,f:'1D8'},desc:'海洋的災禍'},
+  starspawn:{name:'星之眷族',hp:100,prot:4,atk:65,dmg:'1D12',san:{s:'1D8',f:'1D20'},desc:'偉大舊神的沉睡僕從'},
+  shoggoth:{name:'修格斯',hp:80,prot:2,atk:50,dmg:'1D6',san:{s:'1D8',f:'1D20'},desc:'來自遠古紀元的無形恐怖'},
+  colour:{name:'來自異星的顏色',hp:60,prot:0,atk:40,dmg:'1D6',san:{s:'1D8',f:'1D20'},desc:'無形的生命力吞噬者'},
+  hound:{name:'死亡獵犬',hp:20,prot:1,atk:60,dmg:'1D8',san:{s:1,f:'1D8'},desc:'無情的亡靈獵手'},
+  nightgaunt:{name:'夜魘',hp:25,prot:1,atk:50,dmg:'1D6',san:{s:1,f:'1D8'},desc:'漆黑無面的生物'},
+  ratthing:{name:'鼠人',hp:4,prot:1,atk:40,dmg:'1D4',san:{s:1,f:'1D4'},desc:'群聚的陰影'},
+  zoog:{name:'佐格',hp:5,prot:0,atk:45,dmg:'1D4',san:{s:0,f:'1'},desc:'幻夢境的好奇森林居民'}
+};
+
+/* =========================================================
+   4. 冒險事件池
+   ========================================================= */
+/* 事件結構：
+   { t:文字, c:[線索], check:{skill,succ,fail,fxS,fxF}, fx:{san,hp,res,clue:[],sanCheck},
+     combat:'enemyKey', opts:[{label,fx,next}], next:'M'|'I'|'T'|'E' }
+*/
+
+const POOL_B = [
+  { t:'你被令人不安的噩夢困擾了一整夜。夢中總會出現一場降神會，場景逐漸變得恐怖，最終某個不可名狀之物現身。你渾身冷汗地驚醒，再也無法入睡，於是起身煮咖啡。就在這時……',
+    c:['噩夢中的形體'], next:'M' },
+  { t:'你被困在鄉下小鎮一家骯髒破舊的旅館裡。原本計畫前往一所知名大學，卻因汽車爆胎不得不滯留一晚。你正望著旅館房間的窗戶，突然……',
+    c:['小鎮旅館'], next:'M' },
+  { t:'你坐在光線昏暗的圖書館裡，周圍是高聳的古老書架，空氣中瀰漫著舊紙張與皮革的厚重氣味。你正專注閱讀一本關於當地民俗的塵封典籍，突然……',
+    c:['塵封典籍'], next:'M' },
+  { t:'你在市中心一家小咖啡館享受寧靜的夜晚，輕柔的交談聲與杯碟碰撞聲交織成舒緩的背景音。你一邊啜茶一邊看報紙，突然……',
+    c:['晚報'], next:'M' },
+  { t:'你漫步在熱鬧的集市中，鮮豔的色彩與奇異的氣味充斥四周。你正在一個小販攤位前查看一件奇特的小飾品，突然……',
+    c:['奇特小飾品'], next:'M' },
+  { t:'你坐在河邊的長椅上，看著緩緩流淌的河水與偶爾駛過的船隻，這寧靜的場景令人安心。你陷入沉思，突然……',
+    c:['河畔長椅'], next:'M' },
+  { t:'你在小鎮郊外探索一座廢棄的古老豪宅，空氣中瀰漫著霉味，每走一步地板都會發出吱呀聲。你正查看牆上一幅褪色的肖像畫，突然……',
+    c:['褪色肖像'], next:'M' },
+  { t:'你沿著荒蕪的海灘行走，海浪拍打海岸的聲音充斥耳畔，天空陰沉，風勢凜冽。你正收集貝殼，突然……',
+    c:['海灘貝殼'], next:'M' },
+  { t:'你在常去的咖啡館放鬆，陽光透過窗戶灑進來。你不禁注意到角落裡坐著一位神秘的陌生人，獨自待著，就在這時……',
+    c:['角落的陌生人'], next:'M' },
+  { t:'你在當地跳蚤市場閒逛，發現了一本皮面裝訂的典籍，封面上壓印著奇特的符號。打開後，書頁上滿是古老文字與詭異插圖。你剛放下書，正考慮是否購買，突然……',
+    c:['皮面典籍'], next:'M' },
+  { t:'你正享受難得的休息日，穿著睡衣在家聽廣播節目。這是一檔俗套卻有趣的超自然調查系列節目，你沉浸在故事中，突然……',
+    c:['廣播節目'], next:'M' },
+  { t:'你獨自在野外露營，享受遠離城市的寧靜。夜幕降臨，繁星佈滿天空。一切都十分美好，但你卻莫名感到不安，彷彿樹林中並非只有自己一人，突然……',
+    c:['野外營地'], next:'M' },
+  { t:'你參觀博物館，觀看關於古老器物與儀式的新展覽。當你漫步展廳時，發現一個展示櫃裡擺放著一件散發著令人不安氣息的古老器物，突然……',
+    c:['詭異的古老器物'], next:'M' },
+  { t:'你坐在常去的書店裡瀏覽新書。當你翻閱一本關於古老神話傳說的書時，發現一段關於失傳已久的「永生儀式」的描述。你正思索這段記載的真實性，突然……',
+    c:['失傳的儀式'], next:'M' },
+  { t:'你在一家古董店閒逛，貨架上擺滿新奇有趣卻被遺忘的珍寶。你被一面古老華麗的鏡子吸引，就在這時……',
+    c:['古老鏡子'], next:'M' },
+  { t:'你因替熟識的團體處理緊急事務，來到一個偏遠漁村。鹹鹹的海風混合著魚腥味與海藻味，村莊異常安靜，大多數居民都躲在家裡。你坐在當地海濱酒吧裡，凝視著漆黑洶湧的海面，就在這時……',
+    c:['偏僻漁村'], next:'M' },
+  { t:'你在迷霧籠罩的山脈中徒步，空氣稀薄寒冷。抵達山頂時，發現一處神秘石圈，石圈中央矗立著一尊約一英尺高的粗製石像，上面刻有圖案。你正思索這尊石像的來歷，突然……',
+    c:['粗製石像'], next:'M' },
+  { t:'你行走在老城區一條安靜的林蔭道上，微風拂過樹葉的沙沙聲構成舒緩的背景音。你經過一座爬滿常春藤的迷人房屋，突然……',
+    c:['常春藤房屋'], next:'M' }
+];
+
+const POOL_M = [
+  { t:'……突然，一聲巨響，燃燒瓶從窗戶扔進屋內。瓶子落地碎裂，燃燒的液體濺滿地板。你瞥見縱火犯逃離現場，是個神色慌張的可疑人物。',
+    c:['縱火犯'], check:{skill:'警覺',succ:'你及時撲滅了火焰，房子保住了。',fail:'火勢蔓延，房子被燒毀。',fxF:{res:-1}}, next:'I' },
+  { t:'……門外傳來紙張摩擦的細微聲響，一封信從門縫塞進來。信封無寄件人資訊、無郵票。打開信，內容為：「他們要來抓你了，立刻離開，永不回來——這是最後警告。」',
+    c:['恐嚇信'], next:'I' },
+  { t:'……一股詭異的寒意在家中蔓延，一位女性幽靈現身，張開雙臂做出歡迎姿態。但當你靠近時，幽靈化作長爪利齒的恐怖怪物，發出嘶嘶聲襲來，卻在觸碰到你前蒸發消散。',
+    c:['幽靈幻影'], check:{skill:'意志',stat:'POW',succ:'你穩住了心神，冷汗直流。',fail:'那張臉刻進了你腦海深處。',fxF:{san:'1D4'}}, next:'I' },
+  { t:'……一陣突然的狂風席捲房屋，吹滅所有明火。你聽到有人輕聲呼喚自己的名字，四處尋找聲源時，在地板上發現一把古老的小鑰匙。',
+    c:['古老鑰匙'], next:'I' },
+  { t:'……樓上傳來腳步聲，但家裡只有你一人。',
+    c:['幽靈腳步聲'], next:'I' },
+  { t:'……門鈴響起，開門後，你看到一位年輕女子站在門階上，眼神中充滿恐懼與絕望。她低聲說：「他們在追我，求你幫幫我。」你讓她進屋，鎖上門。',
+    c:['受驚女子'], next:'I' },
+  { t:'……空氣中瀰漫著煙味，你循味找到書架，發現一本名為《過往的秘密》的書正在冒煙。',
+    c:['冒煙的書'], next:'I' },
+  { t:'……夜晚突然傳來一聲淒厲的尖叫，來自屋外。你衝出去，在小巷中發現一具神秘陌生人的屍體。',
+    c:['遇害的陌生人'], check:{skill:'搜索',succ:'你在巷弄中找到凶器——一把精緻的刀。',fail:'你什麼也沒找到，只聞到血腥味。',fxS:{clue:['精緻刀具']}}, next:'I' },
+  { t:'……你書房的牆上突然出現一個詭異的發光符號，符號散發著陰森的光芒，似乎是用未知文字書寫的。片刻後，符號消退消失。',
+    c:['發光符號'], next:'I' },
+  { t:'……一聲血腥的咆哮傳來，某個不可名狀的形體出現在視野中，狂暴嘶吼，彷彿在打量你，準備獵殺。隨後牠發起攻擊。',
+    c:['狂暴的形體'], check:{skill:'意志',stat:'POW',succ:'你強忍住嘔吐的衝動。',fail:'那東西的模樣永遠烙在你眼裡。',fxF:{san:'1D6'}}, combat:'ghoul', next:'I' },
+  { t:'……你注意到天空中出現詭異現象：一團纏繞的亮點以難以置信的速度劃過天空，伴隨低沉的嗡嗡聲。',
+    c:['空中光點'], check:{skill:'運動',succ:'你找到了亮點的降落位置。',fail:'你沒能找到降落點。',fxS:{clue:['降落點']}}, next:'I' },
+  { t:'……你遠處看到一隊黑影，排成肅穆的隊伍，吟唱著詭異的無調聖歌。所有人都穿著帶兜帽的長袍，有人手持燃燒的火把。隊伍首領穿紅色長袍。',
+    c:['神秘隊伍'], next:'I' },
+  { t:'……突然一陣狂風襲來，濃霧瀰漫。霧中顯現出一個巨大形體的身影，雙眼緊盯著你，空氣驟然變冷，牠發出恐怖的嚎叫。你因恐懼無法動彈，牠隨後消失在霧中。',
+    c:['霧中形體'], check:{skill:'意志',stat:'POW',succ:'你勉強撐住了。',fail:'你雙腿發軟，幾乎跪倒。',fxF:{san:'1D8'}}, next:'I' },
+  { t:'……你發現一個被雜草半掩的洞穴入口，洞內傳來微弱的吟唱聲。你不敢進入，只能在外聆聽。',
+    c:['隱藏洞穴'], check:{skill:'警覺',succ:'你分辨出吟唱內容是讚美某位邪神的禱文。',fail:'你無法聽清歌詞。',fxS:{clue:['邪神禱文']}}, next:'I' },
+  { t:'……你發現地面半埋著一件散發著既誘人又不祥氣息的物品。你將它帶回家中。',
+    c:['神秘器物'], next:'I' },
+  { t:'……天空突然閃過一道光，隨後傳來巨響。你看到遠處一架燃燒的飛機墜毀。你衝向墜機地點。',
+    c:['墜毀的飛機'], check:{skill:'急救',succ:'你救下了一位神秘陌生人的性命。',fail:'無人生還。',fxS:{clue:['獲救的陌生人']}}, next:'I' },
+  { t:'……你發現一處廢棄營地，有近期打鬥的痕跡，血跡與破損裝備散落四周。',
+    c:['廢棄營地'], check:{skill:'搜索',succ:'你找到一本帶血的日記。',fail:'你什麼也沒找到。',fxS:{clue:['帶血日記']}}, next:'I' },
+  { t:'……你發現一名女子的殘屍躺在地上，衣服破損，面部扭曲。',
+    c:['殘屍'], check:{skill:'意志',stat:'POW',succ:'你強忍著沒有吐出來。',fail:'那畫面在你腦中揮之不去。',fxF:{san:'1D6'}}, next:'I' },
+  { t:'……你看到一名普通民眾拖著一個又大又重的箱子，將其推入新挖的坑中掩埋。',
+    c:['秘密掩埋'], check:{skill:'潛行',succ:'你沒有被發現。',fail:'你被發現了，對方驚慌逃竄。'}, next:'I' },
+  { t:'……濃霧瀰漫，視野受阻。你聽到遠處傳來詭異的吟唱聲，循聲走去，霧中顯現出一圈兜帽人影，正在進行奇怪儀式。儀式領袖戴著黑色面具，手持一把詭異的儀式匕首。',
+    c:['邪教儀式','儀式匕首'], check:{skill:'潛行',succ:'你悄然退開，未被察覺。',fail:'邪教成員發現了你並發起攻擊！',fxF:{combat:'severalCult'}}, next:'I' },
+  { t:'……你低頭發現腳邊有一個小木人偶，環顧四周，發現附近還散落著更多小木人偶——有些代表人類，有些代表家畜，但有些形態無法辨認，肢體數量異常。',
+    c:['人偶'], next:'I' },
+  { t:'……你突然劇烈頭痛，偏頭痛發作，痛苦難忍，倒地後意識混亂。恢復意識時，發現自己已在家中，完全不記得如何回來。困惑中坐在廚房，瞥見桌上的報紙——時間已過去三年。',
+    c:['記憶缺失'], fx:{sanCheck:'1D8'}, next:'I' },
+  { t:'……你在一間昏暗房間裡，發現牆上擺滿裝有標本的罐子，房間中央的大玻璃缸中裝著某個休眠中的形體。',
+    c:['玻璃缸中的形體'], check:{skill:'警覺',succ:'你聽到屋外微弱聲響，望向窗外，看到一個神秘陌生人逃跑。',fail:'你沒能發現更多。',fxS:{clue:['逃跑的陌生人']}}, next:'I' },
+  { t:'……你進入一間佈滿灰塵的房間，桌上攤開著一本寫滿詭異符號的書。你突然感到一陣恐懼：書的主人在哪裡？書頁沒有灰塵，顯然剛被翻閱過。你抓起書衝向出口——這無疑是偷竊，但這本書散發著無法抗拒的吸引力。',
+    c:['神祕書籍'], next:'I' },
+  { t:'……你聽到門內傳來微弱的呼救聲，破門而入後，發現一個神秘陌生人被鐵鏈鎖在牆上，虛弱不堪，瀕臨死亡。',
+    c:['被囚者'], check:{skill:'醫學',succ:'你救活了他。',fail:'他死在了你面前。',fxF:{san:'1D4'},fxS:{clue:['獲救的陌生人']}}, next:'I' },
+  { t:'……你進入一間擺滿詭異機器的房間，空氣中瀰漫著電流的嗡嗡聲，房間中央放置著一台外形奇特的大型裝置。檢查裝置時，你發現裝置內有一個隱藏隔間，裡面裝有一塊巨大的神秘水晶。',
+    c:['神秘水晶'], check:{skill:'使用工具',succ:'你安全取下了水晶。',fail:'裝置爆炸，你受了傷。',fxF:{hp:'1D6'}}, next:'I' },
+  { t:'……你進入一間佈滿灰塵的書房，紙張散落四處。書桌上攤開著一張手繪的未知地點地圖，地圖上有模糊潦草的地點註釋。你被好奇心驅使，拿起地圖回家。',
+    c:['神秘地圖'], next:'I' },
+  { t:'……你聽到身後傳來低沉的咆哮聲，轉身看到某個形體出現在視野中，狂暴嘶吼，隨後發起攻擊。',
+    c:['咆哮的形體'], check:{skill:'運動',succ:'你成功逃脫，避免了戰鬥。',fail:'你被逼入死角！',fxF:{combat:'deepone'}}, next:'I' },
+  { t:'……一位幽靈突然出現在你面前，似乎沒有注意到你，隨後發出令人毛骨悚然的呻吟聲離開。',
+    c:['鬧鬼房屋'], fx:{sanCheck:'1D4'}, next:'I' },
+  { t:'……你在一座古老教堂的地窖中發現一具被鐵鍊鎖住的石棺。棺蓋上刻著無法辨識的文字，縫隙間滲出黑色液體。',
+    c:['鎖住的石棺'], fx:{sanCheck:'1D6'}, next:'I' },
+  { t:'……一隻渡鴉停在窗台上，歪著頭看你，然後用清晰得不像動物的聲音說出你的名字。',
+    c:['會說話的渡鴉'], fx:{sanCheck:'1D4'}, next:'I' },
+  { t:'……你在街上被一個衣衫襤褸的老人攔住。他抓住你的手腕，力氣大得驚人，低聲說：「你身上有他們的氣味。」然後放開你，消失在人群中。',
+    c:['老人的警告'], next:'I' }
+];
+
+const POOL_I = [
+  { t:'你翻閱相關資料，在一份舊報紙的邊角找到一段被刻意忽略的報導——數十年前，同一地點曾發生過集體失蹤事件。',
+    c:['舊報導'], check:{skill:'研究',succ:'你從檔案中拼湊出關鍵事實。',fail:'資料殘缺，你只得到模糊的輪廓。',fxS:{clue:['檔案線索']}}, next:'T' },
+  { t:'你循線索找到一位不願開口的知情人。對方在街角抽著菸，眼神不斷飄向巷口。',
+    c:['不情願的知情人'], check:{skill:'說服',succ:'對方終於鬆口，提到了一個名字。',fail:'對方推開你快步離去。',fxS:{clue:['神秘名字']}}, next:'T' },
+  { t:'深夜，你潛入一棟可疑的建築。走廊盡頭的房間透出微弱的光，裡面傳來低語聲。',
+    c:['可疑建築'], check:{skill:'潛行',succ:'你貼近門縫，聽清了幾句關鍵對話。',fail:'地板發出一聲巨響——裡面的人發現了你！',fxF:{combat:'severalCult'}}, next:'T' },
+  { t:'你在一間舊書店的地下室發現一批被鎖起來的文件。鎖已經生鏽，但看起來仍很結實。',
+    c:['鎖住的文件'], check:{skill:'使用工具',succ:'你撬開了鎖，找到一份名單。',fail:'鎖紋絲不動，你只能放棄。',fxS:{clue:['名單']}}, next:'T' },
+  { t:'一位記者主動找上你，表示對你正在調查的事情很感興趣，願意交換情報。',
+    opts:[
+      {label:'與記者交換情報', fx:{clue:['記者的情報'],res:1}, next:'T'},
+      {label:'婉拒記者，獨自行動', fx:{clue:['記者的懷疑']}, next:'T'}
+    ]},
+  { t:'你在一處廢棄倉庫裡，發現牆上釘滿了照片與剪報，全部圍繞著同一張模糊的臉。照片中央用紅線連成一個星形。',
+    c:['調查牆'], check:{skill:'洞察力',succ:'你看出星形其實是一個特定儀式的陣型圖。',fail:'你看不出其中的規律。',fxS:{clue:['儀式陣型']}}, next:'T' },
+  { t:'你在深夜被電話鈴聲驚醒。話筒那頭只有沉重的呼吸聲，接著是一個沙啞的聲音：「停止，否則你會像他們一樣。」',
+    c:['恐嚇電話'], fx:{sanCheck:'1D4'}, next:'T' },
+  { t:'你發現一份被丟棄的醫療記錄，上面的名字被墨水塗掉，但日期就在最近。記錄記載著「極端精神崩解，伴隨非人類語言輸出」。',
+    c:['醫療記錄'], check:{skill:'醫學',succ:'你從專業角度判斷，這個病患的症狀並非任何已知精神疾病。',fail:'你看不懂其中大部分的術語。',fxS:{clue:['異常症狀']}}, next:'T' },
+  { t:'你在一間當鋪的後室發現一批來歷不明的物品：一只刻著眼睛的戒指、一束用頭髮綁住的乾草、一片寫滿符文的骨片。',
+    c:['當鋪收藏'], next:'T' },
+  { t:'你順著線索來到一棟公寓，敲門無人回應。門縫下滲出一股難以形容的氣味。',
+    c:['異味的公寓'], check:{skill:'搜索',succ:'你在屋內找到一本日記，最後一頁寫著：「牠們今晚會來。」',fail:'屋內空無一物，只有那股氣味。',fxS:{clue:['末日記']}}, next:'T' },
+  { t:'你在圖書館的禁書區遇見一位同樣在翻閱相關資料的老學者。他抬頭看你一眼，把一本書推到你面前，翻到某一頁。',
+    c:['老學者','禁書'], check:{skill:'外語',succ:'你讀懂了書頁上的古老文字。',fail:'你只看懂零星幾個字。',fxS:{clue:['古老文獻']}}, next:'T' },
+  { t:'你收到一個沒有寄件人的包裹，裡面是一枚鏽跡斑斑的鑰匙，以及一張紙條：「打開你該打開的門。」',
+    c:['鏽鑰匙'], next:'T' },
+  { t:'你在一處墓園發現一座新墳，墓碑上刻著的名字讓你心頭一凜——那是你自己的名字。',
+    c:['刻著自己名字的墓碑'], fx:{sanCheck:'1D6'}, next:'T' },
+  { t:'你設法混入一場私人聚會。賓客們舉止優雅，但當談到某個特定話題時，所有人同時安靜下來。',
+    c:['私人聚會'], check:{skill:'社交禮儀',succ:'你巧妙地融入了談話，套出了集會地點。',fail:'你的失禮讓氣氛變得尷尬，你被請了出去。',fxS:{clue:['集會地點']}}, next:'T' },
+  { t:'你在碼頭邊遇到一名醉醺醺的水手，他一見到你就抓住你的袖子，反覆唸著一句你聽不懂的話。',
+    c:['醉酒水手'], check:{skill:'外語',succ:'你聽懂了那句禱詞的含意，並記下了它的發音。',fail:'那是一串你無法理解的音節。',fxS:{clue:['異界禱詞']}}, next:'T' }
+];
+
+const POOL_T = [
+  { t:'你在博物館的儲藏室裡發現一個神秘的盒子。打開後，裡面是一件充滿能量的物品。你確信，這就是所有人都在追尋的那件神器。',
+    c:['強大神器'], next:'E' },
+  { t:'你感到腦海中出現一種奇怪的感覺，有什麼東西在拉扯著你，承諾只要服從就能獲得答案與清晰的認知。有人——或某種東西——正試圖控制你！',
+    c:['心智侵蝕'], fx:{sanCheck:'1D6'}, next:'E' },
+  { t:'你在圖書館裡找到一本舊日記，最後一條記錄寫道：「他們會來找你的。」突然，房間裡瀰漫起一股詭異、超自然的氣息。',
+    c:['舊日記'], next:'E' },
+  { t:'你在一家熱鬧的咖啡館裡，突然一位神秘陌生人走進來坐在附近，低聲說道：「現在立刻離開這裡！他們來了！」',
+    c:['陌生人的警告'], next:'E' },
+  { t:'你在圖書館裡時，太陽穴突然傳來一陣劇痛。你聽到一陣吟唱聲，聲音越來越大，似乎只有自己能聽到：「服從。服從。服從。」',
+    c:['腦中的吟唱'], fx:{sanCheck:'1D4'}, next:'E' },
+  { t:'你在調查一座古老、破敗的教堂時，聽到椽子上傳來一聲低沉的咆哮。抬頭一看，一個怪物身影正朝著你俯衝下來。',
+    c:['俯衝的怪物'], check:{skill:'閃避',succ:'你翻滾閃開，怪物撞上了長椅。',fail:'利爪劃過你的肩膀！',fxF:{hp:'1D6'},fxS:{combat:'nightgaunt'}}, next:'E' },
+  { t:'你梳理目前掌握的所有證據，準確猜到了一座秘密神殿的位置。神殿中央有一個血跡斑斑的基座，上面刻著奇怪的符號。當你將手放在基座上時，基座開始發光。',
+    c:['古老預言'], next:'E' },
+  { t:'所有線索都指向一艘擱淺的舊沉船。在船長的船艙裡，你發現一個上了鎖的箱子。撬開箱子後，裡面是一件散發著詭異光芒的物品。當你拿起它時，過去與未來的景象在眼前閃現。',
+    c:['沉船神器'], fx:{sanCheck:'1D4'}, next:'E' },
+  { t:'在茂密森林的中央，你發現一個古老的石圈。石圈中央埋著一件刻著符文的神秘器物。當你觸摸它時，一股力量湧入體內，同時感受到一種命運的召喚。',
+    c:['石圈神器'], next:'E' },
+  { t:'在城市下方一個隱藏的房間裡，你破解了一段古老的文字。當你大聲讀出文字時，牆壁開始發出神秘的光芒。',
+    c:['古老銘文'], next:'E' },
+  { t:'一位神秘學調查者主動聯繫你，表示願意協助，但警告：「不管你發現了什麼，都不要相信它表面看起來的樣子。」',
+    c:['神秘學盟友'], next:'E' },
+  { t:'你發現自己最近幾天的記憶出現大片空白。桌上的日曆被撕掉了好幾頁，而你完全不記得那些日子。',
+    c:['記憶空白'], fx:{sanCheck:'1D4'}, next:'E' }
+];
+
+/* 結局：三步技能檢定，至少兩步成功才算勝利 */
+const POOL_E = [
+  { t:'一個秘密且恐怖的邪教正試圖召喚他們邪惡神明的化身。你必須在儀式完成前阻止他們。',
+    steps:[
+      {label:'夜間潛入秘密圖書館', skill:'潛行'},
+      {label:'在藏書中找到反制咒語', skill:'研究'},
+      {label:'施展反制咒語', skill:'超自然'}
+    ],
+    win:{san:'1D8', text:'咒語在最後一刻生效，儀式的光芒黯淡下去。你阻止了它。'},
+    lose:{san:'-1D10', text:'儀式完成了。你只能無力地看著那道門被推開一條縫。'} },
+
+  { t:'一位透過黑暗咒語獲得永生的古老魔法師，打算召喚一位邪神並與其達成褻瀆的交易。',
+    steps:[
+      {label:'查明魔法師的真實身份與卑微出身', skill:'地區知識'},
+      {label:'找到魔法師在世的親屬', skill:'行政管理'},
+      {label:'說服那名親屬朗讀終結咒語', skill:'說服'}
+    ],
+    win:{san:'1D6', text:'咒語唸完的那一刻，魔法師化為一灘灰燼。召喚中止了。'},
+    lose:{san:'-1D8', text:'親屬拒絕了你。當晚，天空出現了不該存在的顏色。'} },
+
+  { t:'一個黑暗兄弟會計畫接管一艘遠洋客輪，並將船上所有人獻祭給他們嗜血的神明。',
+    steps:[
+      {label:'導航前往那艘遠洋客輪', skill:'導航'},
+      {label:'從乘客中識別出邪教成員', skill:'精神分析'},
+      {label:'在船艙裡找到指控他們的證據', skill:'搜索'}
+    ],
+    win:{san:'1D8', text:'船長下令將邪教徒關進禁閉室。天亮時，客輪平安靠岸。'},
+    lose:{san:'-1D10', text:'你搞錯了人。當你發現真正的邪教徒時，他們已經完成了禱告。'} },
+
+  { t:'一群頹廢的學者正準備舉行一場禁忌儀式，召喚一位邪神。',
+    steps:[
+      {label:'滲透學者們活動的社交圈', skill:'社交禮儀'},
+      {label:'與這群學者搞好關係', skill:'魅力'},
+      {label:'取得能讓當局合法逮捕他們的證據', skill:'法律'}
+    ],
+    win:{san:'1D4', text:'證據確鑿。員警破門而入時，祭壇上的蠟燭還沒點燃。'},
+    lose:{san:'-1D4', text:'學者們識破了你的身份。當你帶著員警趕到時，房間裡只剩下灰燼。'} },
+
+  { t:'一個邪惡的女巫團計畫打開一扇通往超自然存在的傳送門。',
+    steps:[
+      {label:'了解巫術的運作方式', skill:'神秘學'},
+      {label:'追蹤女巫團的秘密集會地點', skill:'追蹤'},
+      {label:'協助獵巫人在該地點設下埋伏', skill:'軍事訓練'}
+    ],
+    win:{san:'1D6', text:'埋伏奏效。傳送門在打開前就被打斷了。'},
+    lose:{san:'-1D8', text:'傳送門開了一瞬。那一瞬已經足夠了。'} },
+
+  { t:'一群外國邪教徒遠道而來，為的是實現一則關於他們邪神降臨的預言。',
+    steps:[
+      {label:'聽完整則預言內容', skill:'外語'},
+      {label:'前往荒野中預言所指的降臨之地', skill:'生存'},
+      {label:'摧毀該地的神聖立石', skill:'重型機械'}
+    ],
+    win:{san:'1D8', text:'立石轟然倒塌。預言失去了它的舞台。'},
+    lose:{san:'-1D10', text:'立石紋絲不動。當晚，地平線上出現了不屬於這個世界的輪廓。'} },
+
+  { t:'一個頹廢的紳士俱樂部沉迷於神秘學，領袖計畫透過一場血腥儀式召喚邪神。',
+    steps:[
+      {label:'與俱樂部領袖會面並察覺其精神失常', skill:'洞察力'},
+      {label:'威逼利誘讓一名成員坦白計畫', skill:'慷慨陳詞'},
+      {label:'給俱樂部領袖下毒', skill:'醫學'}
+    ],
+    win:{san:'1D8', text:'領袖在儀式前夜倒下。俱樂部群龍無首，樹倒猢猻散。'},
+    lose:{san:'-1D10', text:'毒藥被換成了水。當你醒來時，儀式已經進行過半。'} },
+
+  { t:'一座考古博物館中的某些文物，是打開通往黑暗恐怖神明安息之地的關鍵。一個秘密邪教正計畫偷走它們。',
+    steps:[
+      {label:'識別出邪教想要盜取的文物', skill:'考古學'},
+      {label:'獲取製作這些文物所用的稀有材料', skill:'街頭智慧'},
+      {label:'製作假文物讓邪教偷走', skill:'工藝'}
+    ],
+    win:{san:'1D8', text:'邪教偷走了贗品。當他們發現時，你已經把真品藏好了。'},
+    lose:{san:'-1D10', text:'你的手藝不夠好。邪教徒在倉庫裡發現了真品，並「感謝」你的協助。'} },
+
+  { t:'一個激進的退伍軍人團體計畫在歐洲舊戰場遺址召喚一位邪神。',
+    steps:[
+      {label:'搭船或飛機前往法國', skill:'駕駛（空）'},
+      {label:'在廢棄戰場上找到召喚地點', skill:'自然世界'},
+      {label:'為這些退伍軍人設下致命陷阱', skill:'使用工具'}
+    ],
+    win:{san:'1D4', text:'陷阱在召喚最關鍵的時刻引爆。老兵們四散奔逃。'},
+    lose:{san:'-1D4', text:'你在濃霧中迷了路。當你趕到時，召喚已經開始。'} },
+
+  { t:'你發現一位因犯下駭人罪行而被處決的邪教領袖，透過靈魂轉移逃過了死亡，如今附在某個可疑人物身上。',
+    steps:[
+      {label:'解讀禁忌書籍，了解轉移儀式', skill:'超自然'},
+      {label:'在邪教成員開車撞向你時躲過暗殺', skill:'閃避'},
+      {label:'伏擊並終結邪教領袖', skill:'槍械'}
+    ],
+    win:{san:'1D6', text:'你在靈魂再次轉移前終結了他。這一次，他沒有回來。'},
+    lose:{san:'-1D8', text:'你打中的只是軀殼。靈魂在煙霧中笑著消失了。'} }
+];
+
+/* =========================================================
+   5. 休整期活動
+   ========================================================= */
+const DOWNTIME_ACTS = [
+  {key:'bond',  name:'提升個人羈絆', cost:2, desc:'花時間陪伴一位重要的人。'},
+  {key:'cbond', name:'提升社群羈絆', cost:3, desc:'在團體中經營人際關係。'},
+  {key:'meet',  name:'結識新朋友',   cost:3, desc:'嘗試建立一段新的個人羈絆。'},
+  {key:'join',  name:'加入新團體',   cost:3, desc:'嘗試加入一個新的社群。'},
+  {key:'heal',  name:'治療與康復',   cost:'hp', desc:'恢復生命值，每點消耗 1 DP。'},
+  {key:'mind',  name:'改善心理健康', cost:4, desc:'接受治療或靜養，恢復理智值。'},
+  {key:'skill', name:'提升技能',     cost:4, desc:'投入時間訓練某一項技能。'},
+  {key:'stat',  name:'提升屬性',     cost:6, desc:'鍛鍊某一項核心屬性。'},
+  {key:'money', name:'改善經濟狀況', cost:4, desc:'專注於工作，提升資源評級。'}
+];
+
+/* =========================================================
+   6. 遊戲狀態
+   ========================================================= */
+let G = null;
+
+function freshState(){
+  return {
+    phase:'intro',
+    sub:'',
+    pc:null,
+    cur:null,
+    curStage:null,
+    combat:null,
+    dp:0,
+    adventureCount:0,
+    history:[],
+    achievements:{},
+    soundOn:true,
+    ended:false
+  };
+}
+G = freshState();
+
+/* =========================================================
+   7. 角色建立
+   ========================================================= */
+function rollStat(){
+  const rolls=[d(6),d(6),d(6),d(6)].sort((a,b)=>b-a);
+  return rolls[0]+rolls[1]+rolls[2];
+}
+
+const NAMES_M=['亞瑟·布萊克','亨利·華德','賽勒斯·葛林','愛德華·摩爾','法蘭克·道爾'];
+const NAMES_F=['艾格妮絲·懷特','瑪格麗特·費雪','蘿絲瑪麗·凱恩','薇薇安·霍華','伊迪絲·葛雷'];
+
+function createPC(archKey){
+  const A = ARCHETYPES[archKey];
+  const stats = {
+    STR: rollStat(), CON: rollStat(), DEX: rollStat(),
+    INT: rollStat(), POW: rollStat(), CHA: rollStat()
+  };
+  const skills = {};
+  for(const k in BASE_SKILLS) skills[k]=BASE_SKILLS[k];
+  for(const k in A.core) skills[k]=A.core[k];
+  // 額外 10 點：隨機挑 3 個可選技能各 +20
+  const alts = A.alt.slice();
+  for(let i=0;i<3 && alts.length;i++){
+    const idx = Math.floor(Math.random()*alts.length);
+    const sk = alts.splice(idx,1)[0];
+    skills[sk] = (skills[sk]||0) + 20;
+  }
+  const hpMax = Math.ceil((stats.STR+stats.CON)/2);
+  const sanMax = stats.POW*5;
+  const bp = stats.POW*4;
+  const db = stats.STR<=4?-2 : stats.STR<=8?-1 : stats.STR<=12?0 : stats.STR<=16?1 : 2;
+
+  const gender = Math.random()<.5?'男':'女';
+  const name = pick(gender==='男'?NAMES_M:NAMES_F);
+
+  // 羈絆
+  const bondsP = [{name: pick(['摯友 湯瑪斯','伴侶 伊蓮','兄長 羅伯特','摯友 露西','妹妹 安娜']), val: stats.CHA}];
+  while(bondsP.length < Math.min(2, A.bonds)) {
+    bondsP.push({name: pick(['鄰居 老威爾','同行 凱薩琳','表親 艾德蒙']), val: stats.CHA});
+  }
+  const cbondVal = Math.ceil(A.res/2);
+  const bondsC = [{name: pick(['警察局','《每日公報》','地方圖書館','共濟會分會','運動俱樂部']), val: cbondVal}];
+
+  const weapons = [];
+  if(archKey==='detective'){ weapons.push({name:'警棍',skill:'近戰武器',dmg:'1D8+DB'},{name:'手槍',skill:'槍械',dmg:'1D10'}); }
+  else if(archKey==='criminal'){ weapons.push({name:'彈簧刀',skill:'近戰武器',dmg:'1D6+DB'},{name:'手槍',skill:'槍械',dmg:'1D10'}); }
+  else if(archKey==='doctor'){ weapons.push({name:'手術刀',skill:'近戰武器',dmg:'1D4+DB'}); }
+  else { weapons.push({name:'手槍',skill:'槍械',dmg:'1D10'}); }
+
+  return {
+    name, gender, arch:archKey, archName:A.name,
+    age: 25+Math.floor(Math.random()*20),
+    home:'阿卡姆', birth:'阿卡姆',
+    stats, skills,
+    hp:hpMax, hpMax,
+    san:sanMax, sanMax, bp,
+    res:A.res, db,
+    bondsP, bondsC,
+    weapons,
+    disorders:[],
+    usedSkills: []
+  };
+}
+
+/* =========================================================
+   8. 畫面渲染 —— HUD
+   ========================================================= */
+function renderHUD(){
+  const hud = $('#hud');
+  if(!G.pc){ hud.innerHTML = ''; return; }
+  const p = G.pc;
+  const sanPct = Math.round(p.san / p.sanMax * 100);
+  const hpPct  = Math.round(p.hp / p.hpMax * 100);
+  const sanCls = p.san <= p.bp ? 'danger' : (sanPct < 50 ? 'warn' : '');
+  const hpCls  = p.hp <= 3 ? 'danger' : (hpPct < 40 ? 'warn' : '');
+  let phaseTxt = '冒險';
+  if(G.phase==='downtime') phaseTxt='休整';
+  else if(G.phase==='ending') phaseTxt='結局';
+  else if(G.phase==='combat') phaseTxt='戰鬥';
+  else if(G.phase==='gameover') phaseTxt='終局';
+
+  hud.innerHTML = `
+    <div class="hud-item ${sanCls}" title="理智值 / 崩潰點">🧠 ${p.san}/${p.sanMax}<small style="opacity:.6"> ·BP${p.bp}</small></div>
+    <div class="hud-item ${hpCls}" title="生命值">❤️ ${p.hp}/${p.hpMax}</div>
+    <div class="hud-item" title="資源評級">💰 ${p.res}</div>
+    <div class="hud-item" title="持有線索">🔍 ${G.clues ? G.clues.length : 0}</div>
+    <div class="hud-item" title="當前階段">📖 ${phaseTxt}</div>
+  `;
+}
+
+/* 線索存放於 pc.clues */
+function ensurePCArrays(){ if(G.pc){ G.pc.clues = G.pc.clues || []; } }
+
+function flashHUD(){ 
+  document.querySelectorAll('.hud-item').forEach(e=>{
+    e.classList.add('pop'); setTimeout(()=>e.classList.remove('pop'),200);
+  });
+}
+
+/* =========================================================
+   9. 場景 SVG 生成
+   ========================================================= */
+function sceneFor(text){
+  if(/海|水|船|浪|岸|碼頭|漁村/.test(text)) return 'sea';
+  if(/圖書館|書|典籍|日記|筆記|文獻|檔案/.test(text)) return 'book';
+  if(/森林|樹林|野外|營地|山|荒野/.test(text)) return 'forest';
+  if(/墓|教堂|神殿|石圈|地窖|古廟/.test(text)) return 'temple';
+  if(/家|屋內|房間|客廳|窗|門|旅館|公寓/.test(text)) return 'home';
+  return 'city';
+}
+
+function sceneSVG(kind){
+  const common = `<defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#c9a227" stop-opacity=".5"/>
+      <stop offset="100%" stop-color="#c9a227" stop-opacity="0"/>
+    </radialGradient>
+  </defs>`;
+  const stars = Array.from({length:26},()=>
+    `<circle cx="${Math.random()*400|0}" cy="${Math.random()*110|0}" r="${(Math.random()*1.3+.4).toFixed(1)}" fill="#e8dcc0" opacity="${(Math.random()*.6+.2).toFixed(2)}">
+      <animate attributeName="opacity" values="${(Math.random()*.5+.2).toFixed(2)};1;${(Math.random()*.5+.2).toFixed(2)}" dur="${(Math.random()*4+2).toFixed(1)}s" repeatCount="indefinite"/>
+    </circle>`).join('');
+
+  const maps = {
+    city: `<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
+      ${common}
+      <rect width="400" height="200" fill="#0d0b14"/>
+      <circle cx="320" cy="42" r="20" fill="#e8dcc0" opacity=".7"/>
+      <circle cx="313" cy="37" r="20" fill="#0d0b14"/>
+      ${stars}
+      <path d="M0 200 L0 120 L30 120 L30 90 L60 90 L60 130 L95 130 L95 70 L130 70 L130 110 L170 110 L170 85 L205 85 L205 140 L245 140 L245 60 L280 60 L280 105 L320 105 L320 80 L355 80 L355 125 L400 125 L400 200 Z" fill="#151220" stroke="#2a2440" stroke-width="1.2"/>
+      ${Array.from({length:22},()=>`<rect x="${Math.random()*390|0}" y="${110+Math.random()*80|0}" width="4" height="5" fill="#c9a227" opacity="${(Math.random()*.6+.2).toFixed(2)}"/>`).join('')}
+      <ellipse cx="200" cy="200" rx="260" ry="45" fill="#0a0810" opacity=".9"/>
+    </svg>`,
+    home: `<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
+      ${common}
+      <rect width="400" height="200" fill="#120e0a"/>
+      <rect x="60" y="55" width="130" height="115" fill="#1c1610" stroke="#3d2f1f" stroke-width="2"/>
+      <rect x="88" y="78" width="30" height="38" fill="#c9a227" opacity=".22"/>
+      <rect x="132" y="78" width="30" height="38" fill="#c9a227" opacity=".12"/>
+      <rect x="88" y="130" width="74" height="40" fill="#0c0906" stroke="#3d2f1f"/>
+      <rect x="240" y="80" width="100" height="90" fill="#1a140e" stroke="#3d2f1f"/>
+      <circle cx="330" cy="60" r="30" fill="url(#glow)"/>
+      <path d="M0 200 L400 200 L400 178 L0 178 Z" fill="#0a0705"/>
+      <g opacity=".55">
+        <rect x="255" y="95" width="70" height="4" fill="#4a3a26"/>
+        <rect x="255" y="110" width="50" height="4" fill="#4a3a26"/>
+        <rect x="255" y="125" width="62" height="4" fill="#4a3a26"/>
+      </g>
+      <rect x="0" y="0" width="400" height="200" fill="url(#glow)" opacity=".07"/>
+    </svg>`,
+    sea: `<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
+      ${common}
+      <defs>
+        <linearGradient id="seaG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0a1620"/><stop offset="100%" stop-color="#03080c"/>
+        </linearGradient>
+      </defs>
+      <rect width="400" height="200" fill="#0a0d16"/>
+      ${stars}
+      <circle cx="300" cy="45" r="18" fill="#dfe6ee" opacity=".65"/>
+      <rect y="110" width="400" height="90" fill="url(#seaG)"/>
+      ${Array.from({length:9},(_,i)=>{
+        const y=118+i*10;
+        return `<path d="M0 ${y} Q 50 ${y-4} 100 ${y} T 200 ${y} T 300 ${y} T 400 ${y}" stroke="#1e3a52" stroke-width="1.4" fill="none" opacity="${.7-i*.06}"/>`;
+      }).join('')}
+      <path d="M0 200 L400 200 L400 186 Q300 176 200 186 T0 186 Z" fill="#02060a"/>
+      <path d="M150 128 L158 108 L166 128 Z" fill="#1a2635"/>
+      <rect x="157" y="104" width="1.6" height="26" fill="#2a3a4c"/>
+      <path d="M158 106 L182 118 L158 124 Z" fill="#3a4a5c" opacity=".8"/>
+    </svg>`,
+    book: `<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
+      ${common}
+      <rect width="400" height="200" fill="#140f0a"/>
+      <rect x="0" y="0" width="400" height="200" fill="url(#glow)" opacity=".1"/>
+      ${Array.from({length:4},(_,r)=>`<rect x="${20+r*95}" y="18" width="78" height="160" fill="#1e1710" stroke="#3d2f1f" stroke-width="1.5"/>`).join('')}
+      <g opacity=".7">
+        ${Array.from({length:30},()=>{
+          const x=26+Math.floor(Math.random()*4)*95+Math.random()*62;
+          const y=24+Math.random()*140;
+          const w=Math.random()*8+4;
+          return `<rect x="${x.toFixed(0)}" y="${y.toFixed(0)}" width="${w.toFixed(0)}" height="14" fill="${pick(['#5a2a1a','#2a3a2a','#3a2a4a','#6a5320'])}"/>`;
+        }).join('')}
+      </g>
+      <path d="M140 150 L260 150 L255 175 L145 175 Z" fill="#e0d2ae" stroke="#8a6d3f"/>
+      <path d="M200 150 L200 175" stroke="#8a6d3f"/>
+      <g opacity=".45">
+        ${Array.from({length:5},(_,i)=>`<rect x="${150+ (i%2)*8}" y="${155+i*3}" width="${30-i*4}" height="1.4" fill="#3a2a1a"/>`).join('')}
+      </g>
+    </svg>`,
+    forest: `<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
+      ${common}
+      <rect width="400" height="200" fill="#080f0a"/>
+      ${stars}
+      <path d="M0 200 L0 130 Q100 110 200 128 T400 120 L400 200 Z" fill="#0b1a12"/>
+      ${Array.from({length:11},(_,i)=>{
+        const x=i*38+Math.random()*16;
+        const h=60+Math.random()*70;
+        return `<path d="M${x} 200 L${x+11} ${200-h} L${x+22} 200 Z" fill="#0f2418" opacity="${(.6+Math.random()*.4).toFixed(2)}"/>`;
+      }).join('')}
+      ${Array.from({length:7},(_,i)=>{
+        const x=Math.random()*380;
+        return `<circle cx="${x.toFixed(0)}" cy="${(140+Math.random()*40).toFixed(0)}" r="${(Math.random()*2+.8).toFixed(1)}" fill="#c9a227" opacity=".8">
+          <animate attributeName="opacity" values=".2;1;.2" dur="${(Math.random()*3+1.5).toFixed(1)}s" repeatCount="indefinite"/>
+        </circle>`;
+      }).join('')}
+      <ellipse cx="200" cy="200" rx="230" ry="30" fill="#050a07" opacity=".9"/>
+    </svg>`,
+    temple: `<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
+      ${common}
+      <rect width="400" height="200" fill="#0b0910"/>
+      ${stars}
+      <path d="M0 200 L0 160 Q200 120 400 160 L400 200 Z" fill="#12101a"/>
+      <g stroke="#2e2a44" stroke-width="3" fill="#1a1726">
+        <rect x="150" y="60" width="100" height="100"/>
+        <rect x="165" y="80" width="70" height="60" fill="#0b0910"/>
+        <path d="M140 60 L200 26 L260 60 Z"/>
+      </g>
+      <circle cx="200" cy="110" r="16" fill="#c9a227" opacity=".5">
+        <animate attributeName="opacity" values=".2;.7;.2" dur="3s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="200" cy="110" r="34" fill="url(#glow)"/>
+      ${Array.from({length:6},(_,i)=>{
+        const x=40+i*64;
+        return `<rect x="${x}" y="${150+Math.random()*20}" width="10" height="${20+Math.random()*20}" fill="#1a1726" stroke="#2e2a44"/>`;
+      }).join('')}
+    </svg>`
+  };
+  return maps[kind] || maps.city;
+}
+
+/* =========================================================
+   10. 畫面骨架
+   ========================================================= */
+function setStage(html){
+  const stage = $('#stage');
+  stage.innerHTML = html;
+  stage.scrollTop = 0;
+}
+
+let typingTimer = null;
+function typeText(el, text, cb){
+  clearInterval(typingTimer);
+  el.textContent = '';
+  el.dataset.full = text;
+  let i = 0;
+  const speed = 16;
+  let done = false;
+  const finish = ()=>{
+    if(done) return; done = true;
+    clearInterval(typingTimer);
+    el.textContent = text;
+    if(cb) cb();
+  };
+  el.onclick = finish;
+  typingTimer = setInterval(()=>{
+    i++;
+    el.textContent = text.slice(0,i);
+    if(i >= text.length) finish();
+  }, speed);
+}
+
+/* =========================================================
+   11. 冒險主流程
+   ========================================================= */
+function startAdventure(){
+  ensurePCArrays();
+  G.phase = 'adventure';
+  G.adventureCount++;
+  G.pc.usedSkills = [];
+  addHistory('冒險開始', `第 ${G.adventureCount} 次冒險`);
+  const ev = pick(POOL_B);
+  showEvent(ev, '起始');
+}
+
+function addHistory(title, text){
+  G.history.unshift({t: new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}), title, text});
+  if(G.history.length > 200) G.history.pop();
+}
+
+function addClues(list){
+  if(!list || !list.length) return;
+  ensurePCArrays();
+  list.forEach(c=>{
+    if(!G.pc.clues.includes(c)) G.pc.clues.push(c);
+  });
+}
+
+function showEvent(ev, stageName){
+  G.cur = ev;
+  G.curStage = stageName;
+  G.sub = 'event';
+
+  const kind = sceneFor(ev.t);
+  const stageEl = $('#stage');
+  stageEl.innerHTML = `
+    <div id="scene">${sceneSVG(kind)}<div id="sceneLabel">${stageName}</div></div>
+    <div class="card">
+      <div id="eventTitle">${stageName} · 事件</div>
+      <div id="eventText"></div>
+      <div id="clueTags"></div>
+    </div>
+    <div id="actions"></div>
+    <div id="resultBox" class="hide"></div>
+  `;
+
+  const txtEl = $('#eventText');
+  typeText(txtEl, ev.t, ()=>{
+    renderEventActions();
+  });
+
+  if(ev.c && ev.c.length){
+    addClues(ev.c);
+    const ct = $('#clueTags');
+    ev.c.forEach(c=>{
+      const s = document.createElement('span');
+      s.className='clue'; s.textContent = c;
+      ct.appendChild(s);
+    });
+    SFX.good();
+  }
+  renderHUD();
+  addHistory(stageName, ev.t.slice(0,60)+'…');
+}
+
+function renderEventActions(){
+  const ev = G.cur;
+  const box = $('#actions');
+  if(!box) return;
+  box.innerHTML = '';
+
+  // 戰鬥事件先處理理智
+  if(ev.combat){
+    const btn = document.createElement('button');
+    btn.className='btn primary';
+    btn.textContent = `⚔️ 進入戰鬥`;
+    btn.onclick = ()=>{ SFX.fight(); startCombat(ev.combat, ()=>afterEventResolution(ev)); };
+    box.appendChild(btn);
+    // 若有理智檢定需求（combat 事件通常已含於 check）
+    return;
+  }
+
+  if(ev.check && !ev._checked){
+    const sk = ev.check.skill;
+    let target = 0;
+    if(ev.check.stat){
+      target = G.pc.stats[ev.check.stat]*5;
+    } else {
+      target = G.pc.skills[sk] || 0;
+    }
+    const btn = document.createElement('button');
+    btn.className='btn primary';
+    btn.textContent = `🎲 進行【${ev.check.stat?statName(ev.check.stat):sk}】檢定（目標 ${Math.min(99,target)}%）`;
+    btn.onclick = ()=>doCheck(ev.check, btn);
+    box.appendChild(btn);
+
+    if(G.pc.clues.length>0){
+      const b2 = document.createElement('button');
+      b2.className='btn gold small';
+      b2.textContent = `ʘ 消耗線索 +30%（剩餘 ${G.pc.clues.length}）`;
+      b2.onclick = ()=>{
+        consumeClue();
+        ev._bonus = (ev._bonus||0)+30;
+        toast('已消耗 1 個線索，本次檢定 +30%');
+        renderEventActions();
+      };
+      box.appendChild(b2);
+    }
+    return;
+  }
+
+  if(ev.check && ev._checked){
+    const btn = document.createElement('button');
+    btn.className='btn';
+    btn.textContent = '繼續 ▸';
+    btn.onclick = ()=>afterEventResolution(ev);
+    box.appendChild(btn);
+    return;
+  }
+
+  if(ev.opts && !ev._chosen){
+    ev.opts.forEach((o,i)=>{
+      const b = document.createElement('button');
+      b.className='btn';
+      b.textContent = o.label;
+      b.onclick = ()=>{
+        SFX.click();
+        ev._chosen = i;
+        applyFx(o.fx);
+        addHistory('抉擇', o.label);
+        afterEventResolution(o);
+      };
+      box.appendChild(b);
+    });
+    return;
+  }
+
+  // 普通繼續
+  const b = document.createElement('button');
+  b.className='btn';
+  b.textContent = '繼續調查 ▸';
+  b.onclick = ()=>afterEventResolution(ev);
+  box.appendChild(b);
+}
+
+function statName(s){
+  return {STR:'力量',CON:'體質',DEX:'敏捷',INT:'智力',POW:'意志',CHA:'魅力'}[s]||s;
+}
+
+function consumeClue(){
+  if(G.pc.clues && G.pc.clues.length){
+    G.pc.clues.splice(0,1);
+    renderHUD();
+    return true;
+  }
+  return false;
+}
+
+function afterEventResolution(evOrOpt){
+  const next = evOrOpt && evOrOpt.next ? evOrOpt.next : (ev.next || 'I');
+  advance(next);
+}
+
+function advance(next){
+  // 清空暫存標記
+  if(next === 'E'){ startEnding(); return; }
+  if(next === 'DOWNTIME'){ startDowntime(); return; }
+  const pools = {M:POOL_M, I:POOL_I, T:POOL_T, B:POOL_B};
+  const pool = pools[next] || POOL_I;
+  const ev = pick(pool);
+  const labels = {M:'謎團', I:'調查', T:'轉折點', B:'起始'};
+  showEvent(ev, labels[next] || '調查');
+}
+
+/* --------- 技能檢定 --------- */
+function doCheck(check, btn){
+  const ev = G.cur;
+  let target = 0;
+  if(check.stat) target = G.pc.stats[check.stat]*5;
+  else target = G.pc.skills[check.skill]||0;
+  target = clamp(target + (ev._bonus||0), 1, 99);
+
+  const roll = d100();
+  SFX.dice();
+  const success = (roll <= target) || roll === 1;
+
+  // 記錄技能使用（用於冒險後成長）
+  const skillKey = check.stat ? statName(check.stat) : check.skill;
+  if(!check.stat) G.pc.usedSkills.push(check.skill);
+
+  ev._checked = true;
+  ev._success = success;
+
+  const box = $('#resultBox');
+  box.classList.remove('hide','ok','bad','neutral');
+  box.classList.add(success?'ok':'bad');
+  box.innerHTML = `<b>${success?'✔ 成功':'✘ 失敗'}</b>　（擲出 ${roll}，目標 ${target}%）<br>${success?check.succ:check.fail}`;
+
+  if(success){ SFX.good(); if(check.fxS) applyFx(check.fxS); }
+  else { SFX.bad(); if(check.fxF) applyFx(check.fxF); }
+
+  // 更新按鈕
+  const acts = $('#actions');
+  acts.innerHTML = '';
+  // 若失敗觸發戰鬥
+  if(!success && check.fxF && check.fxF.combat){
+    const b = document.createElement('button');
+    b.className='btn primary';
+    b.textContent='⚔️ 進入戰鬥';
+    b.onclick=()=>{ SFX.fight(); startCombat(check.fxF.combat, ()=>afterEventResolution(G.cur)); };
+    acts.appendChild(b);
+    return;
+  }
+  const b = document.createElement('button');
+  b.className='btn';
+  b.textContent = '繼續 ▸';
+  b.onclick = ()=>afterEventResolution(G.cur);
+  acts.appendChild(b);
+  renderHUD();
+  addHistory('檢定', `${skillKey} ${success?'成功':'失敗'}（${roll}/${target}）`);
+}
+
+/* --------- 效果套用 --------- */
+function applyFx(fx){
+  if(!fx || !G.pc) return;
+  const p = G.pc;
+  if(fx.clue) addClues(fx.clue);
+  if(fx.res){ p.res = clamp(p.res + fx.res, 0, 20); }
+  if(fx.hp){
+    const v = rollExpr(fx.hp);
+    p.hp = clamp(p.hp + v, 0, p.hpMax);
+    if(v<0) toast(`你失去了 ${-v} 點生命值`);
+    if(p.hp<=0) handleDown();
+  }
+  if(fx.san){
+    const v = rollExpr(fx.san);
+    p.san = clamp(p.san + v, 0, p.sanMax);
+    if(v<0){ toast(`你失去了 ${-v} 點理智值`); SFX.san(); checkBreak(v); }
+    else if(v>0) toast(`你恢復了 ${v} 點理智值`);
+    if(p.san<=0) handleInsane();
+  }
+  if(fx.sanCheck){
+    const roll = d100();
+    if(roll > p.san){
+      const v = rollExpr(fx.sanCheck);
+      p.san = clamp(p.san - v, 0, p.sanMax);
+      toast(`理智檢定失敗，失去 ${v} 點理智值`);
+      SFX.san();
+      checkBreak(v);
+      if(p.san<=0) handleInsane();
+    } else {
+      toast('理智檢定成功，你穩住了心神');
+    }
+  }
+  if(fx.combat){
+    // 由調用方處理
+  }
+  renderHUD();
+}
+
+function checkBreak(lost){
+  const p = G.pc;
+  if(lost >= 5 || p.san <= p.bp){
+    // 暫時瘋狂
+    const gain = p.disorders.length? 1 : 5;
+    p.skills['超自然'] = clamp((p.skills['超自然']||0) + gain, 0, 99);
+    p.disorders.push(pick(['恐高症','急性憂鬱症','成癮','偏執症','黑暗恐懼症','彈震症','強迫症','精神分裂型人格障礙']));
+    toast('⚠️ 你陷入了暫時瘋狂……');
+    SFX.bad();
+    // 重新計算崩潰點
+    const nb = Math.max(0, p.san - p.stats.POW);
+    p.bp = Math.max(0, Math.min(p.bp, nb));
+    renderHUD();
+  }
+}
+
+function handleDown(){
+  toast('你倒下了……');
+  SFX.bad();
+  G.pc.hp = 0;
+}
+
+function handleInsane(){
+  G.phase = 'gameover';
+  G.ended = true;
+  unlockAchievement('永恆瘋狂', '理智值歸零，你永遠迷失在宇宙的真相之中。');
+  renderGameOver('你的理智徹底崩解。宇宙的真相再也無法承受，你成為了永遠遊蕩在意識邊緣的存在。', '瘋狂');
+}
+
+/* =========================================================
+   12. 戰鬥
+   ========================================================= */
+function startCombat(enemyKey, onEnd){
+  const proto = ENEMIES[enemyKey];
+  if(!proto){ if(onEnd) onEnd(); return; }
+  const e = {
+    key:enemyKey, name:proto.name, hp:proto.hp, hpMax:proto.hp,
+    prot:proto.prot, atk:proto.atk, dmg:proto.dmg, san:proto.san, desc:proto.desc
+  };
+  // 戰鬥前理智檢定
+  if(e.san){
+    const p=G.pc;
+    const roll = d100();
+    let loss = 0;
+    if(roll <= p.san){
+      loss = rollExpr(e.san.s);
+    } else {
+      loss = rollExpr(e.san.f);
+    }
+    if(loss>0){
+      p.san = clamp(p.san-loss,0,p.sanMax);
+      toast(`目睹【${e.name}】，失去 ${loss} 點理智值`);
+      SFX.san();
+      checkBreak(loss);
+      if(p.san<=0){ handleInsane(); return; }
+    }
+  }
+
+  G.combat = { enemy:e, round:1, log:[], onEnd };
+  G.phase = 'combat';
+  renderCombat();
+}
+
+function renderCombat(){
+  const c = G.combat;
+  const p = G.pc;
+  if(!c) return;
+  setStage(`
+    <div class="card">
+      <div id="eventTitle">戰鬥遭遇 · 第 ${c.round} 回合 / 10</div>
+      <div style="font-size:14.5px;line-height:1.7;margin-bottom:10px">
+        ${c.enemy.desc}
+      </div>
+      <div class="cmb-head">
+        <div class="cmb-stat">
+          <div class="cmb-name">你 · ${p.name}</div>
+          <div style="font-size:12px;color:#6b3a10">生命 ${p.hp}/${p.hpMax}</div>
+          <div class="bar hp"><i style="width:${(p.hp/p.hpMax*100)}%"></i></div>
+        </div>
+        <div class="cmb-stat">
+          <div class="cmb-name">${c.enemy.name}</div>
+          <div style="font-size:12px;color:#6b3a10">生命 ${c.enemy.hp}/${c.enemy.hpMax} · 防禦 ${c.enemy.prot}</div>
+          <div class="bar hp"><i style="width:${(c.enemy.hp/c.enemy.hpMax*100)}%;background:linear-gradient(90deg,#8b1a1a,#d33)"></i></div>
+        </div>
+      </div>
+      <div class="cmb-log" id="cmbLog">${c.log.map(l=>`<div>${l}</div>`).join('') || '<div>戰鬥一觸即發……</div>'}</div>
+    </div>
+    <div id="actions"></div>
+  `);
+  const acts = $('#actions');
+
+  if(c.round > 10 || c.enemy.hp<=0 || p.hp<=0){
+    // 戰鬥已結束
+    return;
+  }
+
+  // 攻擊（選擇武器）
+  p.weapons.forEach(w=>{
+    const sk = p.skills[w.skill]||0;
+    const b = document.createElement('button');
+    b.className='btn primary';
+    b.textContent = `⚔️ 使用【${w.name}】攻擊（${w.skill} ${sk}%）`;
+    b.onclick = ()=>combatRound(w);
+    acts.appendChild(b);
+  });
+
+  const b2 = document.createElement('button');
+  b2.className='btn dim small';
+  b2.textContent = '🏃 嘗試脫離戰鬥（判定為逃跑，直接結束遭遇）';
+  b2.onclick = ()=>{ c.log.push('你成功脫離了戰鬥。'); endCombat(false, true); };
+  acts.appendChild(b2);
+}
+
+function combatRound(weapon){
+  const c = G.combat, p = G.pc;
+  if(!c) return;
+  const e = c.enemy;
+  const sk = p.skills[weapon.skill]||0;
+  const roll = d100();
+  SFX.dice();
+  const hit = (roll <= sk) || roll===1;
+
+  if(hit){
+    let dmg = rollExpr(weapon.dmg.replace(/\+DB/i, p.db>=0? '+'+p.db : String(p.db)));
+    if(/\+DB/i.test(weapon.dmg)){
+      // 已在上面處理
+    }
+    dmg = Math.max(1, dmg - e.prot);
+    e.hp = Math.max(0, e.hp - dmg);
+    c.log.push(`你以${weapon.name}命中（擲 ${roll}/${sk}），造成 ${dmg} 點傷害。`);
+    SFX.good();
+  } else {
+    c.log.push(`你以${weapon.name}揮空（擲 ${roll}/${sk}）。`);
+    SFX.bad();
+  }
+
+  if(e.hp<=0){
+    c.log.push(`【${e.name}】倒下了！`);
+    endCombat(true, false);
+    return;
+  }
+
+  // 敵人反擊
+  const eroll = d100();
+  const ehit = (eroll <= e.atk) || eroll===1;
+  if(ehit){
+    let edmg = Math.max(1, rollExpr(e.dmg) - 0);
+    p.hp = Math.max(0, p.hp - edmg);
+    c.log.push(`【${e.name}】反擊命中（擲 ${eroll}/${e.atk}），你受到 ${edmg} 點傷害。`);
+    SFX.bad();
+  } else {
+    c.log.push(`【${e.name}】反擊落空（擲 ${eroll}/${e.atk}）。`);
+  }
+
+  if(p.hp<=0){
+    c.log.push('你倒下了……');
+    endCombat(false,false,true);
+    return;
+  }
+
+  c.round++;
+  if(c.round > 10){
+    c.log.push('十個回合過去，你成功脫離了戰鬥。');
+    endCombat(false,true);
+    return;
+  }
+  renderHUD();
+  renderCombat();
+}
+
+function endCombat(win, fled, down){
+  const c = G.combat;
+  if(!c) return;
+  const cb = c.onEnd;
+
+  if(win){
+    // 擊敗怪物恢復理智
+    if(c.enemy.san){
+      const rec = rollExpr(c.enemy.san.s);
+      if(rec>0){
+        G.pc.san = clamp(G.pc.san + rec, 0, G.pc.sanMax);
+        toast(`擊敗【${c.enemy.name}】，恢復 ${rec} 點理智值`);
+      }
+    }
+    addHistory('戰鬥', `擊敗了 ${c.enemy.name}`);
+  }
+
+  if(down){
+    // 住院
+    G.pc.hp = 1;
+    const rec = d(12);
+    G.pc.hp = clamp(rec, 1, G.pc.hpMax);
+    toast('你在醫院醒來，醫護人員說你能活下來是奇蹟。');
+    addHistory('重傷', '你在戰鬥中倒下，被送進了醫院。');
+    G.combat = null;
+    G.phase='adventure';
+    renderHUD();
+    setStage(`
+      <div class="card">
+        <div id="eventTitle">醫院</div>
+        <div style="line-height:1.9">
+          你在陌生的病床上醒來。消毒水的氣味刺鼻，窗外陽光刺眼。<br><br>
+          護士告訴你，是路人把你送來的。你記不清自己昏迷了多久，只知道全身每一處都在疼。<br><br>
+          出院時，醫生叮囑你「好好照顧自己」。
+        </div>
+      </div>
+      <div id="actions"></div>
+    `);
+    const b=document.createElement('button');
+    b.className='btn'; b.textContent='繼續 ▸';
+    b.onclick=()=>{ if(cb) cb(); };
+    $('#actions').appendChild(b);
+    return;
+  }
+
+  G.combat = null;
+  G.phase = 'adventure';
+  renderHUD();
+  if(cb) cb();
+}
+
+/* =========================================================
+   13. 結局
+   ========================================================= */
+function startEnding(){
+  const ev = pick(POOL_E);
+  G.cur = ev;
+  G.phase = 'ending';
+  G.endStep = 0;
+  G.endWins = 0;
+  G.endResults = [];
+  renderEnding();
+}
+
+function renderEnding(){
+  const ev = G.cur;
+  const idx = G.endStep;
+  setStage(`
+    <div id="scene">${sceneSVG('temple')}<div id="sceneLabel">結局</div></div>
+    <div class="card">
+      <div id="eventTitle">最終對決</div>
+      <div id="eventText">${ev.t}</div>
+    </div>
+    <div class="hscroll" id="stepScroll">
+      ${ev.steps.map((s,i)=>{
+        const done = i < idx;
+        const win = G.endResults[i];
+        const cls = done ? (win?'ok':'bad') : '';
+        return `<div class="mini-cardv" style="width:150px">
+          <div style="font-size:11px;color:#8a7857;letter-spacing:1px">步驟 ${i+1}</div>
+          <div style="font-size:12.5px;color:#e8dcc0;line-height:1.5">${s.label}</div>
+          <div style="font-size:11.5px;color:${done?(win?'#8ee08e':'#e08e8e'):'#6a5a44'};margin-top:4px">
+            ${done?(win?'✔ 成功':'✘ 失敗'):'待進行'}
+          </div>
+          <div class="pad"></div>
+          <div class="lbl" style="background:rgba(0,0,0,.6)">${done?(win?'已達成':'未達成'):'尚未嘗試'}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div id="resultBox" class="hide"></div>
+    <div id="actions"></div>
+  `);
+
+  const acts = $('#actions');
+  if(idx < ev.steps.length){
+    const s = ev.steps[idx];
+    const target = G.pc.skills[s.skill]||0;
+    const b = document.createElement('button');
+    b.className='btn primary';
+    b.textContent = `🎲 步驟 ${idx+1}：${s.label}（${s.skill} ${target}%）`;
+    b.onclick = ()=>endStepRoll(s);
+    acts.appendChild(b);
+  } else {
+    resolveEnding();
+  }
+}
+
+function endStepRoll(step){
+  const skill = G.pc.skills[step.skill]||0;
+  const roll = d100();
+  SFX.dice();
+  const ok = (roll <= skill) || roll===1;
+  G.endResults[G.endStep] = ok;
+  if(ok) G.endWins++;
+  G.endStep++;
+
+  const box = $('#resultBox');
+  box.classList.remove('hide','ok','bad','neutral');
+  box.classList.add(ok?'ok':'bad');
+  box.innerHTML = `<b>${ok?'✔':'✘'} ${step.label}</b>　（擲出 ${roll}，目標 ${skill}%）`;
+  if(ok) SFX.good(); else SFX.bad();
+
+  addHistory('最終檢定', `${step.label}：${ok?'成功':'失敗'}`);
+
+  // 重新渲染剩餘步驟
+  setTimeout(()=>{
+    renderEnding();
+    const rb = $('#resultBox');
+    if(rb){ rb.classList.remove('hide','ok','bad'); rb.classList.add(ok?'ok':'bad'); rb.innerHTML = `<b>${ok?'✔':'✘'} ${step.label}</b>　（擲出 ${roll}，目標 ${skill}%）`; }
+  }, 260);
+}
+
+function resolveEnding(){
+  const ev = G.cur;
+  const win = G.endWins >= 2;
+  const sanMod = win ? ev.win.san : ev.lose.san;
+  const v = rollExpr(sanMod);
+  G.pc.san = clamp(G.pc.san + v, 0, G.pc.sanMax);
+
+  const text = win ? ev.win.text : ev.lose.text;
+  addHistory(win?'結局·勝利':'結局·失敗', text);
+
+  if(win){
+    unlockAchievement('守護者', '成功阻止了一次宇宙級災難。');
+  }
+
+  setStage(`
+    <div id="scene">${sceneSVG(win?'temple':'sea')}<div id="sceneLabel">${win?'勝利':'失敗'}</div></div>
+    <div class="card">
+      <div id="eventTitle">${win?'結局 · 成功':'結局 · 失敗'}</div>
+      <div style="line-height:1.9">${text}</div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #a08a5e;font-size:13.5px">
+        成功步驟：${G.endWins} / 3　·　理智值變動：${v>0?'+':''}${v}
+      </div>
+    </div>
+    <div id="actions"></div>
+  `);
+  renderHUD();
+
+  const acts = $('#actions');
+  if(G.pc.san<=0){
+    const b=document.createElement('button');
+    b.className='btn primary'; b.textContent='……';
+    b.onclick=()=>handleInsane();
+    acts.appendChild(b);
+    return;
+  }
+
+  const b = document.createElement('button');
+  b.className='btn primary';
+  b.textContent='結束冒險，進入休整期 ▸';
+  b.onclick = ()=>startDowntime();
+  acts.appendChild(b);
+}
+
+/* =========================================================
+   14. 休整期
+   ========================================================= */
+function startDowntime(){
+  G.phase='downtime';
+  G.dp = d(6)+d(6)+d(6);
+  G.downtimeLog = [];
+  addHistory('休整期', `獲得 ${G.dp} 點休整點數`);
+
+  // 冒險後技能成長
+  skillGrowth();
+
+  renderDowntime();
+}
+
+function skillGrowth(){
+  if(!G.pc) return;
+  const used = [...new Set(G.pc.usedSkills||[])];
+  const grown = [];
+  used.forEach(sk=>{
+    if(sk==='超自然') return;
+    const cur = G.pc.skills[sk]||0;
+    const roll = d100();
+    if(roll > cur){
+      const inc = d(6);
+      G.pc.skills[sk] = clamp(cur+inc, 0, 99);
+      grown.push(`${sk} +${inc}%`);
+    }
+  });
+  G.pc.usedSkills = [];
+  if(grown.length){
+    toast('技能成長：'+grown.join('、'));
+    addHistory('技能成長', grown.join('、'));
+  }
+}
+
+function renderDowntime(){
+  const p = G.pc;
+  setStage(`
+    <div id="scene">${sceneSVG('home')}<div id="sceneLabel">休整期</div></div>
+    <div class="card">
+      <div id="eventTitle">休整期 · 剩餘 ${G.dp} DP</div>
+      <div style="line-height:1.8">
+        冒險結束了。現在是屬於你自己的時間。<br>
+        你可以休息、療傷、經營人際關係，或是磨練技藝。
+      </div>
+      <div style="margin-top:10px;font-size:13px;color:#6b3a10">
+        生命 ${p.hp}/${p.hpMax}　·　理智 ${p.san}/${p.sanMax}　·　資源 ${p.res}
+      </div>
+      <div class="bar dp" style="margin-top:8px"><i style="width:${Math.min(100,G.dp/18*100)}%"></i></div>
+    </div>
+    <div class="card" id="dtLog" style="font-size:13px;line-height:1.7">
+      ${(G.downtimeLog||[]).length? (G.downtimeLog||[]).map(l=>`<div>· ${l}</div>`).join('') : '<i style="color:#7a5c2e">尚未進行任何活動。</i>'}
+    </div>
+    <div id="actions"></div>
+  `);
+
+  const acts = $('#actions');
+  DOWNTIME_ACTS.forEach(a=>{
+    let cost = a.cost;
+    if(a.key==='heal'){
+      cost = Math.max(1, p.hpMax - p.hp);
+      if(p.hp >= p.hpMax){ return; }
+    }
+    if(G.dp < cost) return;
+
+    const b = document.createElement('button');
+    b.className='btn';
+    b.textContent = `${a.name}　（${cost} DP）`;
+    b.onclick = ()=>doDowntime(a, cost);
+    acts.appendChild(b);
+  });
+
+  const b2 = document.createElement('button');
+  b2.className='btn primary';
+  b2.textContent = G.dp>0 ? '結束休整，展開新冒險 ▸' : '展開新冒險 ▸';
+  b2.onclick = ()=>{ SFX.click(); startAdventure(); };
+  acts.appendChild(b2);
+
+  if(G.dp<=0){
+    const note = document.createElement('div');
+    note.style.cssText='text-align:center;font-size:12px;color:#8a7857;padding:4px';
+    note.textContent='休整點數已耗盡。';
+    acts.appendChild(note);
+  }
+  renderHUD();
+}
+
+function doDowntime(act, cost){
+  const p = G.pc;
+  if(G.dp < cost){ toast('休整點數不足'); return; }
+  G.dp -= cost;
+  SFX.click();
+  let msg='';
+
+  switch(act.key){
+    case 'heal': {
+      const before=p.hp;
+      p.hp = Math.min(p.hpMax, p.hp + cost);
+      msg=`治療與康復：生命值 ${before} → ${p.hp}`;
+      break;
+    }
+    case 'mind': {
+      const roll=d100();
+      if(roll <= 70){
+        const inc=d(6);
+        p.san=clamp(p.san+inc,0,p.sanMax);
+        msg=`改善心理健康：恢復 ${inc} 點理智值（${p.san}/${p.sanMax}）`;
+      } else {
+        p.san=clamp(p.san-1,0,p.sanMax);
+        msg='改善心理健康：療程並不順利，反而讓你更加不安（-1 理智）。';
+      }
+      break;
+    }
+    case 'skill': {
+      const sk=pick(SKILL_NAMES.filter(s=>s!=='超自然'));
+      const cur=p.skills[sk]||0;
+      const roll=d100();
+      if(roll > cur){
+        const inc=d(6)+d(6)+d(6);
+        p.skills[sk]=clamp(cur+inc,0,99);
+        msg=`提升技能：${sk} ${cur}% → ${p.skills[sk]}%`;
+      } else {
+        msg=`提升技能：練習【${sk}】沒有明顯進展。`;
+      }
+      break;
+    }
+    case 'stat': {
+      const st=pick(['STR','CON','DEX','INT','POW','CHA']);
+      const cur=p.stats[st];
+      const roll=d100();
+      if(roll > cur*5 && cur<18){
+        p.stats[st]++;
+        msg=`提升屬性：${statName(st)} ${cur} → ${p.stats[st]}`;
+        if(st==='CON'||st==='STR'){ p.hpMax=Math.ceil((p.stats.STR+p.stats.CON)/2); p.hp=Math.min(p.hp,p.hpMax); }
+        if(st==='POW'){ p.sanMax=p.stats.POW*5; p.bp=p.stats.POW*4; }
+      } else {
+        msg=`提升屬性：鍛鍊${statName(st)}沒有明顯成果。`;
+      }
+      break;
+    }
+    case 'money': {
+      const roll=d100();
+      const skills=pick(['行政管理','說服','社交禮儀','研究']);
+      const tgt=p.skills[skills]||10;
+      if(roll <= tgt){
+        p.res=clamp(p.res+1,0,20);
+        msg=`改善經濟狀況：資源評級 → ${p.res}`;
+      } else {
+        msg='改善經濟狀況：這次投資血本無歸。';
+      }
+      break;
+    }
+    case 'bond': {
+      if(!p.bondsP.length){ msg='你沒有可以經營的個人羈絆。'; break; }
+      const b=pick(p.bondsP);
+      const roll=d100();
+      if(roll <= p.stats.CHA*5){
+        const inc=d(3);
+        b.val=clamp(b.val+inc,0,20);
+        msg=`提升個人羈絆：${b.name} → ${b.val}`;
+      } else {
+        msg=`提升個人羈絆：與${b.name}的相處並不愉快。`;
+      }
+      break;
+    }
+    case 'cbond': {
+      if(!p.bondsC.length){ msg='你沒有可以經營的社群羈絆。'; break; }
+      const b=pick(p.bondsC);
+      const roll=d100();
+      if(roll > b.val*5){
+        b.val=clamp(b.val+1,0,20);
+        msg=`提升社群羈絆：${b.name} → ${b.val}`;
+      } else {
+        msg=`提升社群羈絆：你在${b.name}中的表現沒有引起注意。`;
+      }
+      break;
+    }
+    case 'meet': {
+      const roll=d100();
+      if(roll <= p.stats.CHA*5){
+        const nm=pick(['酒保 老傑克','鄰居 米莉','報童 湯米','書店老闆 哈里斯','同事 艾倫']);
+        const val=Math.ceil(p.stats.CHA/2);
+        p.bondsP.push({name:nm, val});
+        msg=`結識新朋友：${nm}（羈絆 ${val}）`;
+      } else {
+        msg='結識新朋友：這次沒能建立起友誼。';
+      }
+      break;
+    }
+    case 'join': {
+      const roll=d100();
+      if(roll <= p.stats.CHA*5){
+        const nm=pick(['業餘天文學會','慈善互助會','退伍軍人協會','讀書沙龍','地方商會']);
+        const val=Math.ceil(p.res/2);
+        p.bondsC.push({name:nm, val});
+        msg=`加入新團體：${nm}（羈絆 ${val}）`;
+      } else {
+        msg='加入新團體：申請沒有通過。';
+      }
+      break;
+    }
+  }
+
+  G.downtimeLog = G.downtimeLog||[];
+  G.downtimeLog.unshift(msg);
+  addHistory('休整活動', msg);
+  if(/→/.test(msg)) SFX.good(); else SFX.click();
+  renderDowntime();
+}
+
+/* =========================================================
+   15. 遊戲結束 / 成就
+   ========================================================= */
+function unlockAchievement(name, desc){
+  if(!G.achievements) G.achievements={};
+  if(G.achievements[name]) return;
+  G.achievements[name] = desc;
+  toast(`🏆 解鎖成就：${name}`);
+}
+
+function renderGameOver(text, type){
+  G.phase='gameover';
+  setStage(`
+    <div id="scene">${sceneSVG('temple')}<div id="sceneLabel">終局</div></div>
+    <div class="card">
+      <div id="eventTitle">${type}</div>
+      <div style="line-height:2;font-size:15.5px">${text}</div>
+    </div>
+    <div id="actions"></div>
+  `);
+  const acts=$('#actions');
+  const b=document.createElement('button');
+  b.className='btn primary'; b.textContent='重新開始';
+  b.onclick=()=>{ G=freshState(); G.soundOn=soundOn; showIntro(); };
+  acts.appendChild(b);
+  const b2=document.createElement('button');
+  b2.className='btn'; b2.textContent='查看紀錄';
+  b2.onclick=()=>openLog();
+  acts.appendChild(b2);
+  renderHUD();
+}
+
+/* =========================================================
+   16. 畫面：開場
+   ========================================================= */
+function showIntro(){
+  G.phase='intro';
+  $('#hud').innerHTML='';
+  setStage(`
+    <div class="intro-wrap">
+      <div class="intro-sub">1925 · 阿卡姆</div>
+      <div class="intro-title">克蘇魯<br>單人冒險生成器</div>
+      <div class="intro-quote">
+        「世上最仁慈的事，莫過於人類心智無法將其所知串聯起來。」<br>
+        —— H.P. 洛夫克拉夫特
+      </div>
+      <button class="btn primary" style="max-width:280px" id="startBtn">開始遊戲</button>
+      <button class="btn" style="max-width:280px" id="helpBtn">閱讀玩法說明</button>
+    </div>
+  `);
+  $('#startBtn').onclick = ()=>{ SFX.click(); showCreate(); };
+  $('#helpBtn').onclick = ()=>{ SFX.click(); openHelp(true); };
+}
+
+/* --------- 角色建立畫面 --------- */
+function showCreate(){
+  G.phase='create';
+  const opts = Object.entries(ARCHETYPES).map(([k,a])=>
+    `<button class="btn" data-arch="${k}">${a.name}<span style="opacity:.55;font-size:12px"> · 資源 ${a.res} · 羈絆 ${a.bonds}</span></button>`
+  ).join('');
+  setStage(`
+    <div class="card">
+      <div id="eventTitle">建立你的調查員</div>
+      <div style="line-height:1.8">
+        你是一名生活在 1920 年代的普通人。<br>
+        白天你有工作、有朋友、有煩惱；<br>
+        但某些夜晚，你會撞見不該存在的東西。<br><br>
+        選擇一個<b>原型</b>，代表你的職業與專長：
+      </div>
+    </div>
+    <div id="actions">${opts}</div>
+  `);
+  document.querySelectorAll('[data-arch]').forEach(b=>{
+    b.onclick = ()=>{ SFX.click(); buildCharacter(b.dataset.arch); };
+  });
+}
+
+function buildCharacter(archKey){
+  const pc = createPC(archKey);
+  pc.clues = [];
+  G.pc = pc;
+  G.phase='adventure';
+  renderHUD();
+  showCharacterReveal();
+}
+
+function showCharacterReveal(){
+  const p = G.pc;
+  setStage(`
+    <div class="card">
+      <div id="eventTitle">你的調查員</div>
+      <div style="font-size:19px;letter-spacing:2px;color:#6b1a1a;margin-bottom:6px">${p.name}</div>
+      <div style="font-size:13.5px;line-height:1.9">
+        ${p.gender} · ${p.age} 歲 · ${p.archName}<br>
+        出生地：${p.birth}　現居：${p.home}
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        ${Object.entries(p.stats).map(([k,v])=>`
+          <div class="mini-card"><div class="k">${statName(k)}</div><div class="v">${v}（${v*5}%）</div></div>
+        `).join('')}
+      </div>
+      <div class="grid2" style="margin-top:8px">
+        <div class="mini-card"><div class="k">生命值</div><div class="v">${p.hp}/${p.hpMax}</div></div>
+        <div class="mini-card"><div class="k">理智值</div><div class="v">${p.san}/${p.sanMax}</div></div>
+        <div class="mini-card"><div class="k">崩潰點</div><div class="v">${p.bp}</div></div>
+        <div class="mini-card"><div class="k">傷害加成</div><div class="v">${p.db>=0?'+':''}${p.db}</div></div>
+        <div class="mini-card"><div class="k">資源評級</div><div class="v">${p.res}</div></div>
+        <div class="mini-card"><div class="k">武器</div><div class="v" style="font-size:12.5px">${p.weapons.map(w=>w.name).join('、')}</div></div>
+      </div>
+      <div style="margin-top:12px;font-size:13px;line-height:1.8">
+        <b>個人羈絆：</b>${p.bondsP.map(b=>`${b.name}（${b.val}）`).join('、')}<br>
+        <b>社群羈絆：</b>${p.bondsC.map(b=>`${b.name}（${b.val}）`).join('、')}
+      </div>
+    </div>
+    <div id="actions"></div>
+  `);
+  const acts=$('#actions');
+  const b=document.createElement('button');
+  b.className='btn primary'; b.textContent='踏上第一次冒險 ▸';
+  b.onclick=()=>{ SFX.click(); startAdventure(); };
+  acts.appendChild(b);
+  const b2=document.createElement('button');
+  b2.className='btn'; b2.textContent='查看完整角色表';
+  b2.onclick=()=>openSheet();
+  acts.appendChild(b2);
+}
+
+/* =========================================================
+   17. 彈窗：說明 / 角色 / 紀錄
+   ========================================================= */
+const modal = $('#modal');
+const modalBox = $('#modalBox');
+
+function openModal(html, closable=true){
+  modalBox.innerHTML = html;
+  modal.classList.add('show');
+  // 阻止背景滾動
+  document.body.style.overflow='hidden';
+}
+
+function closeModal(){
+  modal.classList.remove('show');
+  document.body.style.overflow='';
+}
+
+function openHelp(firstTime=false){
+  const html = `
+    <h2>📖 玩法說明</h2>
+    <p>這是一款<b>單人跑團遊戲</b>。你同時扮演「調查員」與「故事主持人」，透過表格與骰子，一步步揭開隱藏在日常之下的宇宙恐怖。</p>
+
+    <h3>🎯 遊戲目標</h3>
+    <p>你扮演一名 1920 年代的調查員，一次又一次地捲入詭異事件。<b>你不需要「贏」</b>——你要做的，是讓你的角色盡可能活久一點、知道少一點、保持理智多一點。當理智值降到 0，這個角色就永久退場了。</p>
+
+    <h3>👀 看懂畫面</h3>
+    <ul>
+      <li><b>最上方那一排</b>是你的狀態列：</li>
+      <li>🧠 <b>理智值</b>：例如 <code>55/55</code>，斜線右邊是上限。<code>·BP44</code> 是「崩潰點」，理智掉到這個數字以下會觸發瘋狂。</li>
+      <li>❤️ <b>生命值</b>：歸零你就會昏迷送醫。</li>
+      <li>💰 <b>資源評級</b>：0～20，代表你的財力與社會地位。</li>
+      <li>🔍 <b>線索</b>：你手上握有幾條線索。可以在技能檢定前消耗 1 條，換取 <b>+30%</b> 的成功率。</li>
+      <li>📖 <b>階段</b>：目前處於「起始／謎團／調查／轉折點／結局／戰鬥／休整」哪個階段。</li>
+    </ul>
+
+    <h3>▶️ 操作流程</h3>
+    <ul>
+      <li><b>1. 選擇原型</b>：開場時選擇你的職業，系統會自動幫你配好屬性、技能與羈絆。</li>
+      <li><b>2. 閱讀事件</b>：中間的羊皮紙卡片會以打字機效果顯示事件文字。<b>點一下文字區域</b>可以立刻跳過動畫。</li>
+      <li><b>3. 進行檢定</b>：如果事件需要檢定，下方會出現 <code>🎲 進行【技能】檢定</code> 按鈕。系統會擲 1D100，<b>擲出小於等於技能值就成功</b>。</li>
+      <li><b>4. 使用線索</b>：檢定前可點 <code>ʘ 消耗線索 +30%</code>，讓這次檢定更容易成功。線索用掉就沒了。</li>
+      <li><b>5. 繼續調查</b>：事件結算後，點「繼續調查」推進到下一個表格。</li>
+      <li><b>6. 遭遇戰鬥</b>：若進入戰鬥，你會看到雙方的生命條。選擇武器攻擊，敵人會反擊。撐過 10 回合或擊倒敵人就算脫身。</li>
+      <li><b>7. 進入結局</b>：冒險最後會進入「最終對決」，需要連續進行 3 項技能檢定，<b>成功 2 項以上</b>才算勝利。</li>
+      <li><b>8. 休整期</b>：冒險結束後會擲 3D6 得到休整點數（DP），用來療傷、恢復理智、提升技能或經營羈絆。</li>
+    </ul>
+
+    <h3>⚙️ 特殊機制</h3>
+    <ul>
+      <li><b>理智與瘋狂</b>：單次失去 5 點以上理智，或理智降到崩潰點以下，就會陷入「暫時瘋狂」，你會學到一些不該知道的事（超自然技能提升），但也會留下永久的精神障礙。</li>
+      <li><b>線索就是籌碼</b>：線索可以在任何技能檢定前使用，連 0% 的技能也能靠線索硬闖。</li>
+      <li><b>技能會成長</b>：冒險中成功使用過的技能，在冒險結束時會進行「成長檢定」——擲出高於技能值就 +1D6%。</li>
+      <li><b>羈絆會斷</b>：羈絆歸零會觸發理智檢定，而且會痛。</li>
+      <li><b>戰鬥不一定要打完</b>：撐滿 10 回合也算脫身，只是拿不到擊敗敵人的理智獎勵。</li>
+    </ul>
+
+    <h3>💡 小訣竅</h3>
+    <ul>
+      <li>線索別亂花——留給「結局三步驟」或「戰鬥前的關鍵檢定」。</li>
+      <li>理智低於崩潰點時，任何一次理智損失都可能讓你直接送進精神病院。</li>
+      <li>休整期是補血的黃金時段，別讓生命值一直卡在低檔。</li>
+      <li>存檔隨時可按，不用怕玩到一半斷線。</li>
+    </ul>
+
+    <button class="btn primary modal-close" id="helpClose">
+      ${firstTime?'我準備好了，開始遊戲':'關閉說明'}
+    </button>
+  `;
+  openModal(html);
+  $('#helpClose').onclick = ()=>{
+    SFX.click();
+    closeModal();
+    if(firstTime){ showCreate(); }
+  };
+}
+
+function openSheet(){
+  if(!G.pc){ toast('尚未建立角色'); return; }
+  const p=G.pc;
+  const skills = Object.entries(p.skills).sort((a,b)=>b[1]-a[1]);
+  openModal(`
+    <h2>📋 ${p.name}</h2>
+    <div style="text-align:center;font-size:13px;color:#7a5c2e;margin-bottom:10px">
+      ${p.gender} · ${p.age} 歲 · ${p.archName}
+    </div>
+
+    <h3>核心屬性</h3>
+    <div class="grid2">
+      ${Object.entries(p.stats).map(([k,v])=>`
+        <div class="mini-card"><div class="k">${statName(k)}</div><div class="v">${v} <span style="font-size:11px;opacity:.6">(${v*5}%)</span></div></div>
+      `).join('')}
+    </div>
+
+    <h3>衍生屬性</h3>
+    <div class="grid2">
+      <div class="mini-card"><div class="k">生命值</div><div class="v">${p.hp}/${p.hpMax}</div></div>
+      <div class="mini-card"><div class="k">理智值</div><div class="v">${p.san}/${p.sanMax}</div></div>
+      <div class="mini-card"><div class="k">崩潰點</div><div class="v">${p.bp}</div></div>
+      <div class="mini-card"><div class="k">傷害加成</div><div class="v">${p.db>=0?'+':''}${p.db}</div></div>
+      <div class="mini-card"><div class="k">資源評級</div><div class="v">${p.res}</div></div>
+      <div class="mini-card"><div class="k">線索</div><div class="v">${(p.clues||[]).length}</div></div>
+    </div>
+
+    <h3>羈絆</h3>
+    <p><b>個人：</b>${p.bondsP.map(b=>`${b.name}（${b.val}）`).join('、') || '無'}</p>
+    <p><b>社群：</b>${p.bondsC.map(b=>`${b.name}（${b.val}）`).join('、') || '無'}</p>
+
+    <h3>武器</h3>
+    <p>${p.weapons.map(w=>`${w.name}（${w.skill} ${p.skills[w.skill]||0}%，${w.dmg}）`).join('<br>')}</p>
+
+    <h3>精神障礙</h3>
+    <p>${p.disorders.length? p.disorders.join('、') : '目前無'}</p>
+
+    <h3>持有線索</h3>
+    <p>${(p.clues||[]).length? p.clues.map(c=>`ʘ ${c}`).join('、') : '無'}</p>
+
+    <h3>技能（依高低排序）</h3>
+    <div style="max-height:220px;overflow-y:auto;border:1px solid #a08a5e;border-radius:6px;padding:4px;background:rgba(255,255,255,.18)">
+      ${skills.map(([k,v])=>`<div class="skill-row"><span>${k}</span><span class="sv">${v}%</span></div>`).join('')}
+    </div>
+
+    <button class="btn modal-close" onclick="closeModal()">關閉</button>
+  `);
+}
+
+function openLog(){
+  const hist = G.history||[];
+  const ach = G.achievements||{};
+  openModal(`
+    <h2>📜 冒險紀錄</h2>
+    <h3>成就</h3>
+    ${Object.keys(ach).length ?
+      Object.entries(ach).map(([k,v])=>`<div class="hist-item"><b>🏆 ${k}</b><br><span style="font-size:12.5px">${v}</span></div>`).join('')
+      : '<p style="color:#7a5c2e">尚未解鎖任何成就。</p>'}
+
+    <h3>歷史紀錄</h3>
+    <div style="max-height:340px;overflow-y:auto">
+    ${hist.length ? hist.map(h=>`
+      <div class="hist-item">
+        <div class="t">${h.t} · ${h.title}</div>
+        <div>${h.text}</div>
+      </div>`).join('') : '<p style="color:#7a5c2e">尚無紀錄。</p>'}
+    </div>
+
+    <button class="btn modal-close" onclick="closeModal()">關閉</button>
+  `);
+}
+
+/* =========================================================
+   18. 存檔 / 讀檔
+   ========================================================= */
+const SAVE_KEY = 'cthulhu_solo_save_v1';
+
+function saveGame(){
+  if(!G.pc){ toast('還沒有可以儲存的進度'); return; }
+  try{
+    const snapshot = {
+      phase:G.phase, sub:G.sub, pc:G.pc, cur:G.cur, curStage:G.curStage,
+      dp:G.dp, adventureCount:G.adventureCount, history:G.history,
+      achievements:G.achievements, soundOn:G.soundOn, downtimeLog:G.downtimeLog,
+      endStep:G.endStep, endWins:G.endWins, endResults:G.endResults
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot));
+    toast('💾 已儲存進度');
+    SFX.good();
+  }catch(e){ toast('儲存失敗：'+e.message); }
+}
+
+function loadGame(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw){ toast('沒有找到存檔'); return; }
+    const s = JSON.parse(raw);
+    G = freshState();
+    Object.assign(G, s);
+    G.pc.clues = G.pc.clues || [];
+    G.soundOn = soundOn;
+    renderHUD();
+    toast('📂 已讀取進度');
+    SFX.good();
+    resumeFromState();
+  }catch(e){ toast('讀取失敗：'+e.message); }
+}
+
+function resumeFromState(){
+  if(G.phase==='combat' && G.combat){
+    G.phase='combat';
+    renderCombat();
+    return;
+  }
+  if(G.phase==='ending' && G.cur){
+    renderEnding();
+    return;
+  }
+  if(G.phase==='downtime'){
+    renderDowntime();
+    return;
+  }
+  if(G.phase==='gameover'){
+    renderGameOver('冒險已經結束。', '終局');
+    return;
+  }
+  if(G.pc && G.cur){
+    // 重新顯示當前事件
+    const ev = G.cur;
+    const kind = sceneFor(ev.t);
+    setStage(`
+      <div id="scene">${sceneSVG(kind)}<div id="sceneLabel">${G.curStage||'冒險'}</div></div>
+      <div class="card">
+        <div id="eventTitle">${G.curStage||'冒險'} · 事件</div>
+        <div id="eventText">${ev.t}</div>
+        <div id="clueTags"></div>
+      </div>
+      <div id="actions"></div>
+      <div id="resultBox" class="hide"></div>
+    `);
+    renderEventActions();
+    renderHUD();
+    return;
+  }
+  showCharacterReveal();
+}
+
+/* =========================================================
+   19. 底部導覽事件
+   ========================================================= */
+$('#nav').addEventListener('click', e=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  const act = btn.dataset.act;
+  SFX.click();
+  switch(act){
+    case 'help': openHelp(false); break;
+    case 'sheet': openSheet(); break;
+    case 'log': openLog(); break;
+    case 'save': saveGame(); break;
+    case 'load': loadGame(); break;
+    case 'mute':
+      soundOn = !soundOn;
+      G.soundOn = soundOn;
+      $('#muteIco').textContent = soundOn?'🔊':'🔇';
+      toast(soundOn?'音效已開啟':'音效已關閉');
+      break;
+  }
+});
+
+/* 點擊遮罩關閉彈窗 */
+modal.addEventListener('click', e=>{
+  if(e.target === modal){
+    // 說明首次彈窗不允許點遮罩關閉
+    const closeBtn = modalBox.querySelector('#helpClose');
+    if(closeBtn && G.phase==='intro' && !G.pc) return;
+    closeModal();
+  }
+});
+
+/* 全域函式供 inline onclick 使用 */
+window.closeModal = closeModal;
+
+/* =========================================================
+   20. 啟動
+   ========================================================= */
+(function init(){
+  showIntro();
+  // 首次進入提示
+  setTimeout(()=>{
+    if(G.phase==='intro' && !G.pc){
+      // 不強制彈出，讓玩家自己點
+    }
+  }, 300);
+})();
+</script>
+</body>
+</html>

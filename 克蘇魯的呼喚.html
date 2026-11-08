@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>克蘇魯的呼喚：榕省系列</title>
+    <style>
+        :root {
+            --bg-paper: #fdfaf2; 
+            --text-main: #1a1a1a; 
+            --text-muted: #4a3b32;
+            --accent-red: #a30000;
+            --accent-gold: #b8860b;
+            --panel-bg: rgba(253, 250, 242, 0.98);
+            --border-color: #8c7b6b;
+            --btn-bg: #3e2f26;
+            --btn-text: #fdfaf2;
+            --btn-hover: #5c4538;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', 'PMingLiU', 'Microsoft JhengHei', sans-serif;
+            background-color: #1a1512;
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #app {
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-paper);
+            background-image: 
+                radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.15) 100%),
+                url('data:image/svg+xml;utf8,<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.03"/></svg>');
+            overflow: hidden;
+        }
+
+        #status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: rgba(30, 20, 15, 0.95);
+            color: #fff;
+            font-size: 0.9rem;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .stat-item { display: flex; gap: 5px; align-items: center; font-weight: bold; }
+        #ui-hp { color: #ff6b6b; }
+        #ui-san { color: #6bc4ff; }
+        #ui-mp { color: #b86bff; }
+        #ui-luck { color: #ffd93d; }
+
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        #story-area {
+            flex: 1;
+            font-size: 1.15rem;
+            line-height: 1.9;
+            margin-bottom: 20px;
+            min-height: 150px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--accent-gold);
+        }
+        .highlight { color: var(--accent-red); font-weight: bold; }
+        .npc-dialogue { color: #1a5276; font-style: italic; font-weight: bold; }
+
+        #inventory-container {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.04);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            display: none;
+        }
+        .inventory-title { font-size: 0.9rem; font-weight: bold; margin-bottom: 8px; color: var(--text-muted); }
+        #inventory-scroll {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 10px;
+            padding-bottom: 8px;
+        }
+        #inventory-scroll::-webkit-scrollbar { height: 6px; }
+        #inventory-scroll::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        
+        .card {
+            flex: 0 0 80px;
+            height: 110px;
+            background: #fff;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 2px 2px 6px rgba(0,0,0,0.15);
+        }
+        .card:hover { transform: translateY(-3px); }
+        .card svg { width: 40px; height: 40px; margin-bottom: 5px; }
+        .card-label {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            font-size: 0.7rem;
+            text-align: center;
+            padding: 4px 2px;
+            border-radius: 0 0 4px 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #action-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .btn {
+            background: var(--btn-bg);
+            color: var(--btn-text);
+            border: 1px solid var(--accent-gold);
+            padding: 14px;
+            font-size: 1.05rem;
+            font-family: inherit;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:hover:not(:disabled) { background: var(--btn-hover); transform: translateX(5px); }
+        .btn:active:not(:disabled) { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+        
+        .btn-module {
+            padding: 20px;
+            text-align: center;
+            font-size: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-module svg { width: 50px; height: 50px; }
+
+        #dice-panel {
+            display: none;
+            background: var(--panel-bg);
+            border: 2px solid var(--accent-red);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+        #dice-panel.active { display: block; animation: fadeIn 0.3s; }
+        .dice-result { font-size: 2.5rem; font-weight: bold; margin: 10px 0; color: var(--accent-red); }
+        .dice-desc { font-size: 1rem; margin-bottom: 10px; font-weight: bold;}
+
+        #bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background: #1e140f;
+            padding: 10px 0;
+            z-index: 10;
+            border-top: 2px solid var(--border-color);
+        }
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #ddd;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        .nav-btn:hover { opacity: 1; color: var(--accent-gold); }
+        .nav-icon { font-size: 1.3rem; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .modal.show { display: flex; opacity: 1; }
+        .modal-content {
+            background: #fdfaf2;
+            padding: 20px;
+            border: 3px solid var(--accent-gold);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px; right: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--accent-red);
+            font-weight: bold;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(163, 0, 0, 0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+            z-index: 200;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        #menu-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        @media (min-width: 768px) {
+            #menu-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 600px) {
+            #story-area { font-size: 1.05rem; line-height: 1.8; padding: 10px;}
+            .btn { padding: 12px; font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="status-bar">
+        <div class="stat-item">HP: <span id="ui-hp">12</span></div>
+        <div class="stat-item">SAN: <span id="ui-san">60</span></div>
+        <div class="stat-item">MP: <span id="ui-mp">12</span></div>
+        <div class="stat-item">幸運: <span id="ui-luck">50</span></div>
+    </div>
+
+    <div id="main-content">
+        <div id="story-area"></div>
+
+        <div id="inventory-container">
+            <div class="inventory-title">🎒 攜帶物品與線索</div>
+            <div id="inventory-scroll"></div>
+        </div>
+
+        <div id="action-area"></div>
+
+        <div id="menu-grid" style="display: none;"></div>
+
+        <div id="dice-panel">
+            <div class="dice-desc" id="dice-desc-text">正在進行技能檢定...</div>
+            <div class="dice-result" id="dice-result-text">--</div>
+            <button class="btn" id="btn-roll" style="text-align: center; width: 100%;">🎲 擲骰 (d100)</button>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn" id="btn-push" style="text-align: center; flex: 1; display: none; background: #8b0000;">💀 孤注一擲</button>
+                <button class="btn" id="btn-accept-fail" style="text-align: center; flex: 1; display: none; background: #444;">接受失敗</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bottom-nav">
+        <button class="nav-btn" onclick="ui.showModal('help')"><span class="nav-icon">📖</span>規則</button>
+        <button class="nav-btn" onclick="ui.showModal('log')"><span class="nav-icon">📜</span>紀錄</button>
+        <button class="nav-btn" onclick="game.saveGame()"><span class="nav-icon">💾</span>存檔</button>
+        <button class="nav-btn" onclick="game.loadGame()"><span class="nav-icon">📂</span>讀檔</button>
+        <button class="nav-btn" onclick="ui.toggleSound()"><span class="nav-icon" id="sound-icon">🔊</span>音效</button>
+    </div>
+</div>
+
+<div id="modal-help" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="ui.closeModal('help')">×</span>
+        <h2>調查員指南 (CoC 7th 簡化版)</h2><br>
+        <p><b>技能檢定：</b><br>系統會擲出 1d100 與你的技能值對比。<br>
+        - 大成功：01<br>- 極難成功：≤ 技能值 1/5<br>- 困難成功：≤ 技能值 1/2<br>- 常規成功：≤ 技能值<br>- 失敗：> 技能值</p><br>
+        <p><b>孤注一擲：</b><br>失敗時可消耗 10 點幸運值重試，但若再次失敗會受到嚴重懲罰。</p><br>
+        <p><b>理智 (SAN)：</b><br>遭遇恐怖事物需進行理智檢定，失敗會扣除 SAN 值。歸零則永久瘋狂。</p>
+    </div>
+</div>
+
+<div id="modal-log" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="ui.closeModal('log')">×</span>
+        <h2>調查日誌</h2><br>
+        <div id="log-content" style="font-size: 0.9rem; line-height: 1.6;"></div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ==========================================
+   模擬外部 JSON 載入
+   ========================================== */
+const JSON_DATA_NANSHAN = {
+    id: "nanshan", title: "南山鎮詭事", subtitle: "畫皮", icon: "paint",
+    desc: "1993年，為了尋回失散的妹妹，你來到了偏遠的南山鎮。這裡正上演著酬神戲，但失蹤案與詭異的生物正潛伏在陰影中。",
+    startScene: "ns_start",
+    scenes: {
+        "ns_start": {
+            text: `1993年，正月初十六。<br><br>你坐在顛簸的長途巴士上，看著窗外蜿蜒的山路。你的口袋裡緊緊攥著一張照片，那是你失散多年的妹妹——程雨璇。<br><br>十年前，家裡因為貧困將她送給了戲班班主李文才。如今你打聽到李班主正在這偏遠的<b>南山鎮</b>演出。你決定藉此機會將妹妹接回家。<br><br>巴士終於停下。前方寫著「南山鎮 2KM」的路牌。你下了車，迎面走來一個提著鳥籠的中年男人。`,
+            actions: [
+                { text: "上前搭話，詢問李班主的下落。", next: "ns_scene_1" },
+                { text: "保持距離，先觀察四周環境。", next: "ns_scene_observe" }
+            ]
+        },
+        "ns_scene_observe": {
+            text: `你站在原地，仔細打量著這個男人。他手裡的鳥籠裡裝著一隻黑色的、長相怪異的動物。<br><br>你定睛一看，心頭猛地一跳——那似乎是一隻<b>狗</b>，但卻長著一顆像人一樣的頭！牠的毛髮濃密，眼睛和嘴巴卻帶著人類的特徵，正死死地盯著你。<br><br>（進行一次理智檢定 SAN Check，難度：普通）`,
+            actions: [{ text: "進行理智檢定", action: "ns_check_san_dog" }]
+        },
+        "ns_scene_1": {
+            text: `你鼓起勇氣上前搭話。男人轉過身，用警惕的眼神打量著你。<br><br>「我是來找李班主的，」你說道，「聽說他帶著戲班在鎮上演出。」<br><br>男人眉頭一皺：「我就是李文才。你有什麼事？」<br><br>你拿出程雨璇的照片遞給他。李班主看了一眼，眼神複雜：「她現在是我的接班人。你憑什麼帶她走？」`,
+            actions: [
+                { text: "出示信件與信物，說明你是她的親人。", action: "ns_check_persuade" },
+                { text: "直接提出用錢贖回妹妹。", next: "ns_scene_2" }
+            ]
+        },
+        "ns_scene_2": {
+            text: `李班主冷笑一聲：「親人？當初把她賣給我的時候怎麼不說親人？」<br><br>他指了指不遠處正在搭建的戲台：「她現在在那邊排練。你自己去問她願不願意跟你走。」<br><br>你道了聲謝，快步走向戲台。`,
+            actions: [{ text: "前往戲台尋找程雨璇", next: "ns_scene_3" }]
+        },
+        "ns_scene_3": {
+            text: `戲台後方，一個年輕的女孩正在給幾個孩子化妝。她雖然還很年輕，但眼神裡透著一股超越年齡的成熟。<br><br>「雨璇？」你輕聲喚道。<br><br>她回過頭，疑惑地看著你：「你是？」`,
+            actions: [{ text: "拿出照片與信件，慢慢跟她解釋。", next: "ns_scene_4" }]
+        },
+        "ns_scene_4": {
+            text: `程雨璇聽完你的來意，沉默了很久。<br><br>「我現在還不能走。」她低聲說，「昨晚，吳老爺失蹤了。他是鎮上義莊的善人，李班主昨晚還去他家喝過酒。今天一早，吳家的人找上門來，懷疑跟他有關。」`,
+            actions: [
+                { text: "調查吳老爺的失蹤案，洗清李班主的嫌疑。", next: "ns_scene_5" },
+                { text: "趁機帶走程雨璇，不管這些閒事。", next: "ns_scene_leave" }
+            ]
+        },
+        "ns_scene_leave": {
+            text: `你試圖強行帶走程雨璇，但她卻掙脫了你的手。<br><br>「我不會跟你走的！」她大聲說道，「我要留在這裡！」<br><br>她的聲音驚動了鎮民。幾個拿著農具的漢子圍了過來。<br><br>（由於你無法取得程雨璇的信任，任務失敗。）`,
+            actions: [{ text: "無奈地離開南山鎮", action: "trigger_bad_end_nanshan" }]
+        },
+        "ns_scene_5": {
+            text: `你決定前往吳家厝一探究竟。剛一進門，你便看到吳老爺的孫子吳賢正坐在院子裡發呆。他面色蒼白，看起來十分虛弱。<br><br>「你們是來找我爺爺的嗎？」他抬起頭，眼神空洞。`,
+            actions: [
+                { text: "安撫吳賢，詢問昨晚的情況。", action: "ns_check_psychology" },
+                { text: "在院子裡四處搜查。", action: "ns_check_spot_hidden" }
+            ]
+        },
+        "ns_scene_6": {
+            text: `經過一番搜尋，你在院子的角落發現了一口廢棄的水井。井口不大，往下一望，黑漆漆的看不到底。<br><br>你發現井壁上似乎掛著什麼東西，在微弱的光線下反射著金屬的光芒。`,
+            actions: [
+                { text: "嘗試打撈井壁上的物品 (偵查檢定)", action: "ns_check_spot_well" },
+                { text: "放棄這裡，去問問吳賢其他線索", next: "ns_scene_5" }
+            ]
+        },
+        "ns_scene_7": {
+            text: `你找來一根長竹竿，小心翼翼地將井壁上的東西勾了上来。<br><br>那是一個<b>玉鐲子</b>和一個<b>銀質的長命鎖</b>。<br><br>長命鎖上刻著「歲歲平安」四個字，但似乎被用力扯斷了。<br><br>（獲得線索：玉鐲與長命鎖）`,
+            onEnter: "add_jade",
+            actions: [{ text: "拿著這些物品去質問吳賢", next: "ns_scene_8" }]
+        },
+        "ns_scene_8": {
+            text: `你將玉鐲和長命鎖拍在吳賢面前。他看到這些東西，臉色瞬間變得慘白。<br><br>「這是……這是趙阿婆的鐲子！」他驚呼道，「兩年前，我和趙家姑娘的女兒在井邊玩，不小心掉進井裡溺死了。當時趙阿婆也在場！」<br><br>吳賢的話讓你意識到，這背後可能隱藏著一起謀殺。`,
+            actions: [{ text: "前往趙婆子家調查", next: "ns_scene_9" }]
+        },
+        "ns_scene_9": {
+            text: `趙婆子的屋宅離吳家厝不遠。你敲開門，一個六十多歲的阿婆走了出來，正是趙婆子。<br><br>她看到你，眼神有些閃躲：「你是誰？來幹什麼？」`,
+            actions: [
+                { text: "直接質問她關於井裡的鐲子和長命鎖。", action: "ns_confront_zhao" },
+                { text: "假裝是迷路的旅人，請求借宿一晚。", action: "ns_check_fast_talk" }
+            ]
+        },
+        "ns_combat_ghoul": {
+            text: `就在你準備離開時，院子角落的陰影裡突然竄出一個怪物！<br><br>牠渾身長滿了黑色的毛髮，頭部卻是一個扭曲的人臉。這正是你在鎮口見過的那種「狗孩」！<br><br>牠發出一聲尖銳的嘶吼，朝你撲了過來！<br><br>（進入戰鬥！）`,
+            onEnter: "combat_ghoul"
+        },
+        "ns_ending_good": {
+            text: `<p class="highlight">結局：好夢一場 (TE)</p><p>你成功帶著程雨璇離開了南山鎮，並將吳老爺的罪行報告給了有關部門。雖然她對小時候的事依舊不能放下心防，但和你們的遭遇使得逢年過節也會拜訪你們慶賀。</p>`,
+            actions: [{ text: "返回主選單", action: "return_menu" }]
+        }
+    }
+};
+
+const JSON_DATA_DONGXIANG = {
+    id: "dongxiang", title: "東鄉村疑雲", subtitle: "樹人", icon: "tree",
+    desc: "1991年，市裡派你前往東鄉村調查孩童死亡率異常的案件。村裡的神樹與伐木會之間，似乎隱藏著不可告人的秘密。",
+    startScene: "dx_start",
+    scenes: {
+        "dx_start": {
+            text: `1991年初，你跟隨市調研組來到了偏僻的東鄉村。<br><br>剛進村，你們就看到了一場葬禮。顧所長熱情地接待了你們，並解釋說最近村裡確實有不少孩子因為高燒不退而夭折。<br><br>「都是些意外，」顧所長遞給你一支菸，「各位專家先安頓下來吧。」`,
+            actions: [
+                { text: "前往村委會調查。", next: "dx_scene_1" },
+                { text: "去村中的神樹看看。", next: "dx_scene_2" }
+            ]
+        },
+        "dx_scene_1": {
+            text: `村委會由一群老婦人把持。吳家婆子熱情地招呼你們，但當你問起孩子們的死因時，她們卻閃爍其詞。<br><br>你注意到，有些孩子臉色蒼白，手背上似乎有針孔和抓撓的痕跡。`,
+            actions: [
+                { text: "檢查孩子們的傷口 (醫學檢定)", action: "dx_check_medical" },
+                { text: "前往伐木會的汨水屋調查。", next: "dx_scene_3" }
+            ]
+        },
+        "dx_scene_2": {
+            text: `這是一棵十米高的參天大樹，樹根盤根錯節。村民們對它極為虔誠，視為「神樹」。<br><br>你靠近神樹，隱約聞到一股奇特的腥甜味。一個老道士（陳道長）走了過來，警告你們不要隨意觸碰。`,
+            actions: [
+                { text: "向陳道長打聽村民的情況。", action: "dx_check_talk" },
+                { text: "仔細觀察神樹 (偵查檢定)", action: "dx_check_tree" }
+            ]
+        },
+        "dx_scene_3": {
+            text: `你們來到了伐木會的據點——汨水屋。這裡散發著濃烈的酸臭味。<br><br>透過門縫，你們看到角落裡堆著巨大的木頭，一個大缸裡似乎裝滿了暗紅色的液體。`,
+            actions: [
+                { text: "潛入汨水屋調查 (潛行檢定)", action: "dx_check_stealth" },
+                { text: "與陳道長會合，準備夜探。", next: "dx_combat_tree" }
+            ]
+        },
+        "dx_combat_tree": {
+            text: `夜晚，你們跟隨陳道長來到了汨水屋。突然，門被撞開，幾個肢體僵硬、皮膚如樹皮般的伐木會成員衝了出來！<br><br>「是樹人！」陳道長大喊，揮舞著桃木劍衝了上去。<br><br>（進入戰鬥！）`,
+            onEnter: "combat_tree"
+        },
+        "dx_ending": {
+            text: `<p class="highlight">結局：塵封的往事</p><p>你們在陳道長的幫助下，用火焰燒毀了神樹和樹人。東鄉村恢復了平靜，但那些死去孩子的真相，卻永遠留在了這片愚昧的土地上。</p>`,
+            actions: [{ text: "返回主選單", action: "return_menu" }]
+        }
+    }
+};
+
+const JSON_DATA_SHUOSHU = {
+    id: "shuoshu", title: "碩鼠", subtitle: "蠕行者", icon: "worm",
+    desc: "1992年，民警王勇在三城村失蹤。你作為專家顧問前往調查，卻發現村裡流傳著「劉玄仙君」的信仰，而一種蠕動的恐怖正在蔓延。",
+    startScene: "ss_start",
+    scenes: {
+        "ss_start": {
+            text: `1992年端午前夕，你來到了三城村。<br><br>村支書劉愛國熱情地接待了你，並帶你參加了盛大的「游神」慶典。村民們抬著一尊被稱為「劉玄仙君」的神像，氣氛狂熱。<br><br>「劉玄仙君很靈驗的，」劉愛國笑著說，「不過最近村裡確實不太太平，常有村民失蹤。」`,
+            actions: [
+                { text: "前往謝家宗祠調查。", next: "ss_scene_1" },
+                { text: "拜訪村裡的衛生所。", next: "ss_scene_2" }
+            ]
+        },
+        "ss_scene_1": {
+            text: `謝家宗祠裡供奉著劉玄仙君的神像。你在水井邊發現了一串手銬，似乎屬於失蹤的民警王勇。<br><br>在神像上方的橫樑上，你還找到了一個寫著「下面」的紅梅香菸盒。`,
+            actions: [
+                { text: "深入調查水井 (偵查檢定)", action: "ss_check_spot" },
+                { text: "前往衛生所尋找張建英醫生。", next: "ss_scene_2" }
+            ]
+        },
+        "ss_scene_2": {
+            text: `衛生所裡，張建英醫生正在給一個渾身裹滿繃帶的「啞巴助手」遞藥。<br><br>張醫生解釋說那是他收留的燒傷患者。你注意到張醫生的臉色很差，而且衛生所的垃圾桶裡有一些沒有標籤的烈性止痛藥瓶。`,
+            actions: [
+                { text: "盤問張醫生關於王勇的事。", action: "ss_check_medical" },
+                { text: "尋找逃犯謝明濤的蹤跡。", next: "ss_scene_3" }
+            ]
+        },
+        "ss_scene_3": {
+            text: `在鄧家住宅區，你找到了躲藏的逃犯謝明濤。<br><br>他驚恐地告訴你：「那個民警……被蟲子吃了！變成了一個披著警服的怪物！」<br><br>就在這時，屋外傳來了悉悉索索的聲音，無數黑色的蠕蟲從門縫裡湧了進來！`,
+            actions: [{ text: "掩護謝明濤撤離！", next: "ss_combat_worm" }]
+        },
+        "ss_combat_worm": {
+            text: `蠕蟲匯聚成一個類人形，那是啞巴助手——蠕行者！<br><br>張建英醫生站在遠處，狂熱地喊著：「仙君將賜予我永生！」<br><br>（進入戰鬥！）`,
+            onEnter: "combat_worm"
+        },
+        "ss_ending": {
+            text: `<p class="highlight">結局：爭分奪秒</p><p>你們利用村裡的殺蟲劑和火焰，暫時逼退了蠕行者，成功帶著謝明濤逃出了三城村。雖然未能徹底消滅劉玄仙君，但你們活下來了，並將真相報告給了上級。</p>`,
+            actions: [{ text: "返回主選單", action: "return_menu" }]
+        }
+    }
+};
+
+const MODULE_DATABASE = {
+    "nanshan": JSON_DATA_NANSHAN,
+    "dongxiang": JSON_DATA_DONGXIANG,
+    "shuoshu": JSON_DATA_SHUOSHU
+};
+
+/* ==========================================
+   音效系統
+   ========================================== */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let soundEnabled = true;
+
+function playSound(type) {
+    if (!soundEnabled) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    if (type === 'click') {
+        osc.type = 'sine'; osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'dice') {
+        osc.type = 'square'; osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime + 0.05);
+        gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    } else if (type === 'success') {
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(554, audioCtx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.2);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+    } else if (type === 'fail') {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+    }
+}
+
+/* ==========================================
+   UI 控制
+   ========================================== */
+const ui = {
+    typeWriterTimeout: null,
+    isTyping: false,
+
+    showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    },
+
+    updateStats(stats) {
+        document.getElementById('ui-hp').textContent = stats.hp;
+        document.getElementById('ui-san').textContent = stats.san;
+        document.getElementById('ui-mp').textContent = stats.mp;
+        document.getElementById('ui-luck').textContent = stats.luck;
+    },
+
+    typeWriter(text, elementId, callback) {
+        if (this.typeWriterTimeout) clearTimeout(this.typeWriterTimeout);
+        const el = document.getElementById(elementId);
+        el.innerHTML = '';
+        this.isTyping = true;
+        
+        const tokens = text.match(/(<[^>]+>)|([^<])/g) || [];
+        let i = 0;
+        
+        const type = () => {
+            if (i < tokens.length) {
+                const token = tokens[i];
+                if (token.startsWith('<')) {
+                    el.innerHTML += token;
+                    i++;
+                    type(); 
+                } else {
+                    el.innerHTML += token;
+                    i++;
+                    this.typeWriterTimeout = setTimeout(type, 15);
+                }
+            } else {
+                this.isTyping = false;
+                if (callback) callback();
+            }
+        };
+        type();
+        
+        el.onclick = () => {
+            if (this.isTyping) {
+                clearTimeout(this.typeWriterTimeout);
+                el.innerHTML = text;
+                this.isTyping = false;
+                if (callback) callback();
+            }
+        };
+    },
+
+    clearActions() { document.getElementById('action-area').innerHTML = ''; },
+
+    addAction(text, callback, disabled = false, tooltip = '') {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.innerHTML = text;
+        btn.disabled = disabled;
+        btn.onclick = () => {
+            if (disabled) { if (tooltip) this.showToast(tooltip); return; }
+            playSound('click'); callback();
+        };
+        document.getElementById('action-area').appendChild(btn);
+    },
+
+    showModal(id) { document.getElementById(`modal-${id}`).classList.add('show'); },
+    closeModal(id) { document.getElementById(`modal-${id}`).classList.remove('show'); },
+    
+    toggleSound() {
+        soundEnabled = !soundEnabled;
+        document.getElementById('sound-icon').textContent = soundEnabled ? '🔊' : '🔇';
+        this.showToast(soundEnabled ? '音效已開啟' : '音效已關閉');
+    },
+
+    renderInventory(items) {
+        const container = document.getElementById('inventory-scroll');
+        container.innerHTML = '';
+        items.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `${this.getSVG(item.icon)}<div class="card-label">${item.name}</div>`;
+            card.onclick = () => { playSound('click'); this.showToast(`${item.name}：${item.desc}`); };
+            container.appendChild(card);
+        });
+    },
+
+    getSVG(type) {
+        if (type === 'jade') return `<svg viewBox="0 0 24 24" fill="none" stroke="#2e8b57" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16"/></svg>`;
+        if (type === 'lock') return `<svg viewBox="0 0 24 24" fill="none" stroke="#b8860b" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+        if (type === 'talisman') return `<svg viewBox="0 0 24 24" fill="none" stroke="#8b0000" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>`;
+        if (type === 'gun') return `<svg viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><path d="M3 12h14l3-3v-2H6L3 12zm14 0v4h-4v-4"/></svg>`;
+        if (type === 'document') return `<svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>`;
+        if (type === 'paint') return `<svg viewBox="0 0 24 24" fill="none" stroke="#8b0000" stroke-width="2"><path d="M12 2a9 9 0 0 0-9 9c0 4.97 4.03 9 9 9a3 3 0 0 0 3-3v-2a2 2 0 0 1 2-2h2c2.76 0 5-2.24 5-5C24 6 18 2 12 2z"/><circle cx="7.5" cy="10.5" r="1.5"/><circle cx="12" cy="7.5" r="1.5"/><circle cx="16.5" cy="10.5" r="1.5"/></svg>`;
+        if (type === 'tree') return `<svg viewBox="0 0 24 24" fill="none" stroke="#2e8b57" stroke-width="2"><path d="M12 22V12m0 0l-4-4m4 4l4-4M12 8V2m-4 4V4m8 0v2"/><path d="M8 12l-4 4m16-4l-4 4"/></svg>`;
+        if (type === 'worm') return `<svg viewBox="0 0 24 24" fill="none" stroke="#4a3b32" stroke-width="2"><path d="M4 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0M6 12c2-2 4-2 6 0s4 2 6 0"/><circle cx="12" cy="6" r="2"/></svg>`;
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`;
+    }
+};
+
+/* ==========================================
+   遊戲核心
+   ========================================== */
+const game = {
+    STATES: { MENU: 'menu', EXPLORING: 'exploring', CHECKING: 'checking', COMBAT: 'combat', GAME_OVER: 'game_over' },
+    currentState: 'menu',
+    currentModule: null,
+    currentSceneId: null,
+    
+    player: { hp: 12, maxHp: 12, san: 60, maxSan: 99, mp: 12, luck: 50, inventory: [] },
+    history: [],
+    enemy: null,
+    unlockedEndings: [],
+    flags: {}, // 用於記錄一次性事件
+
+    init() {
+        this.loadUnlockedEndings();
+        this.loadMenu();
+    },
+
+    loadUnlockedEndings() {
+        const saved = localStorage.getItem('coc_endings');
+        if (saved) this.unlockedEndings = JSON.parse(saved);
+    },
+
+    unlockEnding(endingId) {
+        if (!this.unlockedEndings.includes(endingId)) {
+            this.unlockedEndings.push(endingId);
+            localStorage.setItem('coc_endings', JSON.stringify(this.unlockedEndings));
+            ui.showToast(`解鎖新結局！`);
+        }
+    },
+
+    loadMenu() {
+        this.currentState = this.STATES.MENU;
+        this.currentModule = null;
+        document.getElementById('story-area').style.display = 'none';
+        document.getElementById('inventory-container').style.display = 'none';
+        document.getElementById('dice-panel').classList.remove('active');
+        ui.clearActions();
+        
+        const menuGrid = document.getElementById('menu-grid');
+        menuGrid.style.display = 'grid';
+        menuGrid.innerHTML = '';
+        
+        const title = document.createElement('div');
+        title.style.gridColumn = '1 / -1';
+        title.style.textAlign = 'center';
+        title.style.marginBottom = '20px';
+        title.innerHTML = '<h1 style="font-size: 2.5rem; color: var(--accent-red); border-bottom: 2px solid var(--accent-gold); padding-bottom: 10px;">克蘇魯的呼喚<br><span style="font-size: 1.2rem; color: var(--text-main);">榕省系列</span></h1>';
+        menuGrid.appendChild(title);
+
+        Object.values(MODULE_DATABASE).forEach(mod => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-module';
+            btn.innerHTML = `
+                ${ui.getSVG(mod.icon)}
+                <div style="font-size: 1.3rem; font-weight: bold; color: var(--accent-gold);">${mod.title}</div>
+                <div style="font-size: 0.9rem; color: #ccc;">${mod.subtitle}</div>
+                <div style="font-size: 0.85rem; color: #ddd; text-align: left; margin-top: 10px; line-height: 1.4;">${mod.desc}</div>
+                <div style="margin-top: 15px; font-size: 0.8rem; padding: 4px 8px; border: 1px solid var(--accent-gold); border-radius: 10px;">開始調查</div>
+            `;
+            btn.onclick = () => { playSound('click'); this.startModule(mod.id); };
+            menuGrid.appendChild(btn);
+        });
+
+        if (this.unlockedEndings.length > 0) {
+            const achDiv = document.createElement('div');
+            achDiv.style.gridColumn = '1 / -1';
+            achDiv.style.marginTop = '20px';
+            achDiv.style.textAlign = 'center';
+            achDiv.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem;">🏆 已解鎖結局: ${this.unlockedEndings.length} / 3</p>`;
+            menuGrid.appendChild(achDiv);
+        }
+    },
+
+    startModule(modId) {
+        this.currentModule = modId;
+        const mod = MODULE_DATABASE[modId];
+        
+        this.player = { hp: 12, maxHp: 12, san: 60, maxSan: 99, mp: 12, luck: 50, inventory: [] };
+        this.history = [];
+        this.flags = {}; // 重置標記
+        
+        if (modId === 'nanshan') this.addItem('photo', '程雨璇照片', '失散妹妹的照片，那是你唯一的線索。', 'document');
+        if (modId === 'dongxiang') this.addItem('doc', '調研組介紹信', '市衛生局開具的介紹信。', 'document');
+        if (modId === 'shuoshu') this.addItem('doc', '公安介紹信', '綠都市公安局開具的介紹信。', 'document');
+        
+        document.getElementById('menu-grid').style.display = 'none';
+        document.getElementById('story-area').style.display = 'block';
+        document.getElementById('inventory-container').style.display = 'block';
+        
+        this.updateUI();
+        this.loadScene(mod.startScene);
+    },
+
+    updateUI() { ui.updateStats(this.player); ui.renderInventory(this.player.inventory); },
+
+    addHistory(text) {
+        this.history.push(`[${new Date().toLocaleTimeString()}] ${text}`);
+        document.getElementById('log-content').innerHTML += `<p style="margin-bottom:5px;">> ${text}</p>`;
+    },
+
+    addItem(id, name, desc, icon) {
+        if (!this.player.inventory.find(i => i.id === id)) {
+            this.player.inventory.push({ id, name, desc, icon });
+            this.updateUI();
+            ui.showToast(`獲得物品：${name}`);
+            playSound('success');
+        }
+    },
+
+    hasItem(id) { return this.player.inventory.some(i => i.id === id); },
+
+    changeSan(amount) {
+        this.player.san += amount;
+        if (this.player.san < 0) this.player.san = 0;
+        this.updateUI();
+        if (this.player.san === 0) this.triggerGameOver('你的理智崩潰了，陷入了永久的瘋狂。');
+    },
+
+    changeHp(amount) {
+        this.player.hp += amount;
+        if (this.player.hp < 0) this.player.hp = 0;
+        this.updateUI();
+        if (this.player.hp === 0) this.triggerGameOver('你倒在了冰冷的泥地上，意識逐漸模糊...');
+    },
+
+    triggerGameOver(reason) {
+        this.currentState = this.STATES.GAME_OVER;
+        ui.clearActions();
+        ui.typeWriter(`<p class="highlight">遊戲結束</p><p>${reason}</p>`, 'story-area');
+        ui.addAction('返回主選單', () => this.loadMenu());
+    },
+
+    saveGame() {
+        if (this.currentState === this.STATES.MENU) { ui.showToast('請先進入遊戲再存檔'); return; }
+        const saveData = { moduleId: this.currentModule, player: this.player, currentSceneId: this.currentSceneId, history: this.history, flags: this.flags };
+        localStorage.setItem('coc_save', JSON.stringify(saveData));
+        ui.showToast('遊戲已存檔'); playSound('success');
+    },
+
+    loadGame() {
+        const data = localStorage.getItem('coc_save');
+        if (data) {
+            const parsed = JSON.parse(data);
+            this.currentModule = parsed.moduleId;
+            this.player = parsed.player;
+            this.history = parsed.history;
+            this.flags = parsed.flags || {};
+            this.currentSceneId = parsed.currentSceneId;
+            this.currentState = this.STATES.EXPLORING;
+            
+            document.getElementById('menu-grid').style.display = 'none';
+            document.getElementById('story-area').style.display = 'block';
+            document.getElementById('inventory-container').style.display = 'block';
+            
+            this.updateUI();
+            this.loadScene(this.currentSceneId);
+            
+            document.getElementById('log-content').innerHTML = '';
+            this.history.forEach(h => document.getElementById('log-content').innerHTML += `<p style="margin-bottom:5px;">> ${h}</p>`);
+            
+            ui.showToast('讀檔成功'); playSound('success');
+        } else {
+            ui.showToast('沒有找到存檔'); playSound('fail');
+        }
+    },
+
+    loadScene(id) {
+        this.currentSceneId = id;
+        this.currentState = this.STATES.EXPLORING;
+        const scene = MODULE_DATABASE[this.currentModule].scenes[id];
+        if (!scene) return;
+
+        ui.clearActions();
+        document.getElementById('dice-panel').classList.remove('active');
+        
+        ui.typeWriter(scene.text, 'story-area', () => {
+            if (scene.onEnter) {
+                if (scene.onEnter === 'add_jade') {
+                    this.addItem('jade_lock', '玉鐲與長命鎖', '從井裡打撈出來的物品，似乎隱藏著某個秘密。', 'jade');
+                } else if (scene.onEnter === 'combat_ghoul') {
+                    this.startCombat('狗孩', 8, '1d4');
+                } else if (scene.onEnter === 'combat_tree') {
+                    this.startCombat('樹人', 16, '1d6');
+                } else if (scene.onEnter === 'combat_worm') {
+                    this.startCombat('蠕行者', 13, '1d6');
+                }
+            }
+            
+            // 動態判斷場景按鈕
+            if (id === 'ns_scene_6') {
+                if (this.hasItem('jade_lock')) {
+                    ui.addAction('拿著玉鐲與長命鎖，去質問吳賢。', () => this.loadScene('ns_scene_8'));
+                } else {
+                    ui.addAction("嘗試打撈井壁上的物品 (偵查檢定)", () => this.executeAction('ns_check_spot_well'));
+                }
+                ui.addAction('放棄這裡，去問問吳賢其他線索', () => this.loadScene('ns_scene_5'));
+            } 
+            else if (id === 'ss_scene_1') {
+                if (this.hasItem('handcuff')) {
+                    ui.addAction('前往衛生所尋找張建英醫生。', () => this.loadScene('ss_scene_2'));
+                } else {
+                    ui.addAction('深入調查水井 (偵查檢定)', () => this.executeAction('ss_check_spot'));
+                    ui.addAction('前往衛生所尋找張建英醫生。', () => this.loadScene('ss_scene_2'));
+                }
+            }
+            else if (scene.actions) {
+                scene.actions.forEach(act => {
+                    ui.addAction(act.text, () => {
+                        if (act.next) this.loadScene(act.next);
+                        else if (act.action) this.executeAction(act.action);
+                    });
+                });
+            }
+        });
+        this.addHistory(`抵達：${id}`);
+    },
+
+    executeAction(actionId) {
+        if (actionId === 'return_menu') { this.loadMenu(); return; }
+        if (actionId.startsWith('trigger_bad_end_')) {
+            const modId = actionId.split('_').pop();
+            this.unlockEnding(`${modId}_bad`);
+            ui.typeWriter(`<p class="highlight">結局：失敗</p><p>你的調查以失敗告終...</p>`, 'story-area', () => ui.addAction('返回主選單', () => this.loadMenu()));
+            return;
+        }
+
+        // 南山鎮
+        if (actionId === 'ns_check_san_dog') {
+            this.startCheck('理智', this.player.san, (success) => {
+                if (success) { this.changeSan(-1); this.loadScene('ns_scene_1'); }
+                else { this.changeSan(-4); this.loadScene('ns_scene_1'); }
+            });
+        } else if (actionId === 'ns_check_persuade') {
+            this.startCheck('話術', 50, (success) => this.loadScene(success ? 'ns_scene_2' : 'ns_scene_leave'));
+        } else if (actionId === 'ns_check_psychology') {
+            this.startCheck('心理學', 40, (success) => this.loadScene('ns_scene_6'));
+        } else if (actionId === 'ns_check_spot_hidden') {
+            this.startCheck('偵查', 50, (success) => this.loadScene('ns_scene_6'));
+        } else if (actionId === 'ns_check_spot_well') {
+            this.startCheck('偵查', 50, (success) => {
+                if(success) { this.loadScene('ns_scene_7'); }
+                else { ui.typeWriter(`你努力了一番，但什麼也沒撈到。`, 'story-area', () => this.loadScene('ns_scene_6')); }
+            });
+        } else if (actionId === 'ns_confront_zhao') {
+            this.startCheck('話術', 50, (success) => this.loadScene(success ? 'ns_combat_ghoul' : 'ns_scene_5'));
+        } else if (actionId === 'ns_check_fast_talk') {
+            this.startCheck('話術', 50, (success) => {
+                if (success) {
+                    ui.typeWriter(`趙婆子猶豫了一下，還是讓你進了屋。<br><br>你在院子裡閒晃時，發現角落的石磨上竟然有沒洗淨的暗紅色血跡！<br><br>趙婆子見你發現了秘密，眼神瞬間變得陰狠，從背後掏出一把柴刀朝你砍來！`, 'story-area', () => this.loadScene('ns_combat_ghoul'));
+                } else {
+                    ui.typeWriter(`趙婆子破口大罵：「你這個外鄉人，少在這裡裝模作樣！」<br><br>她大聲呼喊，引來了附近的鎮民，你只好暫時撤退。`, 'story-area', () => this.loadScene('ns_scene_5'));
+                }
+            });
+        }
+        
+        // 東鄉村
+        else if (actionId === 'dx_check_medical') {
+            this.startCheck('醫學', 40, (success) => {
+                if(success) ui.typeWriter('你發現孩子們不僅營養不良，手背上的針孔還伴隨著感染。這絕對不是簡單的疾病。', 'story-area', () => this.loadScene('dx_scene_3'));
+                else ui.typeWriter('你只看出孩子們營養不良，沒有發現其他異狀。', 'story-area', () => this.loadScene('dx_scene_3'));
+            });
+        } else if (actionId === 'dx_check_talk') {
+            this.startCheck('話術', 50, (success) => {
+                if(success) ui.typeWriter('陳道長告訴你，村裡的伐木會在用童子血餵養某種邪物，他正在調查。', 'story-area', () => this.loadScene('dx_scene_3'));
+                else ui.typeWriter('陳道長打了個哈哈，不願多說。', 'story-area', () => this.loadScene('dx_scene_3'));
+            });
+        } else if (actionId === 'dx_check_tree') {
+            this.startCheck('偵查', 50, (success) => {
+                if(success) { this.changeSan(-2); ui.typeWriter('你發現神樹的樹皮紋理竟然像人類的肌肉，這絕非自然之物！（SAN -2）', 'story-area', () => this.loadScene('dx_scene_3')); }
+                else ui.typeWriter('你只覺得這棵樹特別大，沒有看出其他端倪。', 'story-area', () => this.loadScene('dx_scene_3'));
+            });
+        } else if (actionId === 'dx_check_stealth') {
+            this.startCheck('潛行', 40, (success) => {
+                if (success) { ui.typeWriter(`你悄悄潛入了汨水屋，發現大缸裡泡著一堆人類的殘肢，以及散發著腥味的所謂「神木」！（SAN -4）`, 'story-area', () => { this.changeSan(-4); this.loadScene('dx_combat_tree'); }); }
+                else { ui.typeWriter(`你不小心踢到了地上的鐵桶，發出巨大的聲響！伐木會的人發現了你，幾個僵硬的壯漢從屋裡衝了出來！`, 'story-area', () => this.loadScene('dx_combat_tree')); }
+            });
+        }
+        
+        // 碩鼠
+        else if (actionId === 'ss_check_spot') {
+            this.startCheck('偵查', 50, (success) => {
+                if(success) { this.addItem('handcuff', '手銬', '刻有編號的手銬，屬於失蹤民警。', 'document'); this.loadScene('ss_scene_2'); }
+                else { ui.typeWriter('你什麼也沒找到。', 'story-area', () => this.loadScene('ss_scene_2')); }
+            });
+        } else if (actionId === 'ss_check_medical') {
+            this.startCheck('醫學', 40, (success) => {
+                if(success) { this.changeSan(-2); ui.typeWriter('你發現張醫生的肺部有異常的雜音，似乎有東西在裡面蠕動！（SAN -2）', 'story-area', () => this.loadScene('ss_scene_3')); }
+                else { ui.typeWriter('你認為他只是普通的支氣管炎。', 'story-area', () => this.loadScene('ss_scene_3')); }
+            });
+        }
+    },
+
+    startCheck(skillName, skillValue, callback) {
+        this.currentState = this.STATES.CHECKING;
+        ui.clearActions();
+        const panel = document.getElementById('dice-panel');
+        panel.classList.add('active');
+        document.getElementById('dice-desc-text').innerHTML = `需要進行【${skillName}】檢定 (目標值: ${skillValue})`;
+        document.getElementById('dice-result-text').textContent = '--';
+        
+        const btnRoll = document.getElementById('btn-roll');
+        const btnPush = document.getElementById('btn-push');
+        const btnAccept = document.getElementById('btn-accept-fail');
+
+        btnRoll.style.display = 'block'; btnPush.style.display = 'none'; btnAccept.style.display = 'none';
+        btnRoll.disabled = false; btnPush.disabled = true; btnAccept.disabled = true;
+        
+        btnRoll.onclick = null; btnPush.onclick = null; btnAccept.onclick = null;
+
+        btnRoll.onclick = () => {
+            playSound('dice'); btnRoll.disabled = true;
+            const roll = Math.floor(Math.random() * 100) + 1;
+            document.getElementById('dice-result-text').textContent = roll;
+            
+            let resultLevel = ''; let success = false;
+            if (roll === 1) { resultLevel = '大成功！'; success = true; }
+            else if (roll >= 96) { resultLevel = '大失敗！'; success = false; }
+            else if (roll <= Math.floor(skillValue / 5)) { resultLevel = '極難成功'; success = true; }
+            else if (roll <= Math.floor(skillValue / 2)) { resultLevel = '困難成功'; success = true; }
+            else if (roll <= skillValue) { resultLevel = '常規成功'; success = true; }
+            else { resultLevel = '失敗'; success = false; }
+            
+            ui.typeWriter(`你擲出了 ${roll}，結果：<span class="highlight">${resultLevel}</span>`, 'story-area');
+            
+            if (success) {
+                playSound('success'); panel.classList.remove('active');
+                this.currentState = this.STATES.EXPLORING;
+                setTimeout(() => callback(true), 1000);
+            } else {
+                playSound('fail');
+                btnPush.style.display = 'block'; btnAccept.style.display = 'block';
+                btnPush.disabled = false; btnAccept.disabled = false;
+                
+                btnPush.onclick = () => {
+                    if (this.player.luck >= 10) {
+                        this.player.luck -= 10; this.updateUI();
+                        ui.showToast('消耗 10 點幸運孤注一擲！');
+                        btnPush.disabled = true; btnAccept.disabled = true;
+                        setTimeout(() => {
+                            const pushRoll = Math.floor(Math.random() * 100) + 1;
+                            document.getElementById('dice-result-text').textContent = pushRoll;
+                            if (pushRoll <= skillValue) {
+                                ui.typeWriter(`孤注一擲成功！(擲出 ${pushRoll})`, 'story-area');
+                                playSound('success'); panel.classList.remove('active');
+                                this.currentState = this.STATES.EXPLORING;
+                                setTimeout(() => callback(true), 1000);
+                            } else {
+                                ui.typeWriter(`孤注一擲失敗！(擲出 ${pushRoll})<br><br>你陷入了更糟糕的境地...`, 'story-area');
+                                playSound('fail'); panel.classList.remove('active');
+                                this.currentState = this.STATES.EXPLORING;
+                                this.changeHp(-3); this.changeSan(-3);
+                                setTimeout(() => callback(false), 1500);
+                            }
+                        }, 500);
+                    } else {
+                        ui.showToast('幸運值不足，無法孤注一擲');
+                        btnPush.disabled = true; 
+                    }
+                };
+                
+                btnAccept.onclick = () => {
+                    panel.classList.remove('active');
+                    this.currentState = this.STATES.EXPLORING;
+                    ui.typeWriter(`你接受了失敗的事實。`, 'story-area', () => setTimeout(() => callback(false), 500));
+                };
+            }
+        };
+    },
+
+    startCombat(name, hp, dmg) {
+        this.currentState = this.STATES.COMBAT;
+        this.enemy = { name, hp, maxHp: hp, damage: dmg };
+        this.renderCombat();
+    },
+
+    renderCombat() {
+        ui.clearActions();
+        ui.addAction('用手邊的武器反擊 (鬥毆檢定)', () => this.combatAction('attack'));
+        ui.addAction('舉起手槍射擊 (射擊檢定)', () => this.combatAction('shoot'), !this.hasItem('gun'), '你沒有攜帶槍械');
+        ui.addAction('嘗試閃避牠的攻擊 (閃避檢定)', () => this.combatAction('dodge'));
+        ui.addAction('轉身逃跑 (敏捷檢定)', () => this.combatAction('escape'));
+    },
+
+    combatAction(type) {
+        ui.clearActions(); 
+
+        if (type === 'attack') {
+            this.startCheck('鬥毆', 35, (success) => {
+                if (success) {
+                    const dmg = Math.floor(Math.random() * 6) + 1;
+                    this.enemy.hp -= dmg;
+                    ui.typeWriter(`你揮舞著武器砸向${this.enemy.name}，造成了 ${dmg} 點傷害！`, 'story-area', () => this.enemyTurn());
+                } else {
+                    ui.typeWriter(`你攻擊落空，${this.enemy.name}趁機反擊！`, 'story-area', () => this.enemyTurn());
+                }
+            });
+        } else if (type === 'dodge') {
+            this.startCheck('閃避', 40, (success) => {
+                if (success) {
+                    ui.typeWriter(`你靈巧地躲開了${this.enemy.name}的攻擊！`, 'story-area', () => this.renderCombat());
+                } else {
+                    const dmg = Math.floor(Math.random() * 4) + 1;
+                    this.changeHp(-dmg);
+                    ui.typeWriter(`你沒能躲開，受到了 ${dmg} 點傷害！`, 'story-area', () => {
+                        if (this.player.hp <= 0) this.triggerGameOver('你被怪物撕碎了...');
+                        else this.renderCombat();
+                    });
+                }
+            });
+        } else if (type === 'shoot') {
+            this.startCheck('射擊', 40, (success) => {
+                if (success) {
+                    const dmg = Math.floor(Math.random() * 8) + 1;
+                    this.enemy.hp -= dmg;
+                    ui.typeWriter(`你扣下扳機，子彈擊中了${this.enemy.name}，造成 ${dmg} 點傷害！`, 'story-area', () => this.enemyTurn());
+                } else {
+                    ui.typeWriter(`槍聲大作，但子彈打偏了！`, 'story-area', () => this.enemyTurn());
+                }
+            });
+        } else if (type === 'escape') {
+            this.startCheck('敏捷', 50, (success) => {
+                if (success) {
+                    ui.typeWriter(`你趁著${this.enemy.name}不備，轉身拼命逃跑！`, 'story-area', () => {
+                        this.currentState = this.STATES.EXPLORING;
+                        if (this.currentModule === 'nanshan') {
+                            this.flags.escaped_ghoul = true; // 標記已逃跑
+                            ui.typeWriter(`你狼狽地逃回了吳家厝的院子裡，心有餘悸地喘著粗氣。`, 'story-area', () => this.loadScene('ns_scene_5'));
+                        } else if (this.currentModule === 'dongxiang') {
+                            ui.typeWriter(`你逃回了村口，顧所長看著你驚恐的樣子，遞給你一杯水。`, 'story-area', () => this.loadScene('dx_start'));
+                        } else if (this.currentModule === 'shuoshu') {
+                            ui.typeWriter(`你拼盡全力逃出了鄧家，身後的蠕蟲暫時沒有追上來。`, 'story-area', () => this.loadScene('ss_scene_2'));
+                        }
+                    });
+                } else {
+                    const dmg = Math.floor(Math.random() * 4) + 1;
+                    this.changeHp(-dmg);
+                    ui.typeWriter(`你逃跑失敗，被${this.enemy.name}抓傷了後背，受到了 ${dmg} 點傷害！`, 'story-area', () => {
+                        if (this.player.hp <= 0) this.triggerGameOver('你沒能逃掉...');
+                        else this.renderCombat();
+                    });
+                }
+            });
+        }
+    },
+
+    enemyTurn() {
+        if (this.enemy.hp <= 0) {
+            ui.typeWriter(`隨著最後一擊，${this.enemy.name}倒在地上抽搐了幾下，不再動彈。<br><br>你喘著粗氣，環顧四周。`, 'story-area', () => {
+                this.currentState = this.STATES.EXPLORING;
+                if (this.currentModule === 'nanshan') { this.unlockEnding('nanshan_good'); this.loadScene('ns_ending_good'); }
+                else if (this.currentModule === 'dongxiang') { this.unlockEnding('dongxiang_good'); this.loadScene('dx_ending'); }
+                else if (this.currentModule === 'shuoshu') { this.unlockEnding('shuoshu_good'); this.loadScene('ss_ending'); }
+            });
+            return;
+        }
+
+        const enemyDmg = Math.floor(Math.random() * 4) + 1;
+        this.changeHp(-enemyDmg);
+        ui.typeWriter(`${this.enemy.name}發出一聲怪叫，朝你撲來並造成了 ${enemyDmg} 點傷害！`, 'story-area', () => {
+            if (this.player.hp <= 0) this.triggerGameOver('你倒在了冰冷的泥地上...');
+            else this.renderCombat();
+        });
+    }
+};
+
+window.onload = () => {
+    document.body.addEventListener('click', () => {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }, { once: true });
+    game.init();
+};
+</script>
+</body>
+</html>
