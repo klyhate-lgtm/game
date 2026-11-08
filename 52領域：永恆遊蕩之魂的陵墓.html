@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>52領域：永恆遊蕩之魂的陵墓</title>
+    <style>
+        :root {
+            --bg: #1a120e;
+            --paper: #f4ecd8;
+            --paper-dark: #d6c6b2;
+            --ink: #2b1e16;
+            --red: #8b2a1c;
+            --gold: #c9a84c;
+            --border: #4a3525;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at center, transparent 0%, #0a0705 100%), 
+                              url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.08"/></svg>');
+            font-family: 'Georgia', 'Times New Roman', serif;
+            color: var(--ink);
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* 頂部狀態 */
+        header {
+            background: linear-gradient(to bottom, #2a1e15, #1a120e);
+            color: var(--paper);
+            padding: 10px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--gold); z-index: 10;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+        }
+        .stats { display: flex; gap: 10px; font-size: 13px; flex-wrap: wrap; }
+        .stat-badge {
+            background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 4px;
+            border: 1px solid var(--border); display: flex; align-items: center; gap: 5px;
+        }
+
+        /* 主遊戲區 */
+        main {
+            flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;
+        }
+
+        .panel {
+            background: var(--paper); border: 2px solid var(--border); border-radius: 6px;
+            padding: 15px; box-shadow: inset 0 0 30px rgba(139, 90, 43, 0.1);
+            position: relative; flex-shrink: 0;
+        }
+
+        .section-title {
+            font-size: 14px; font-weight: bold; color: var(--red); border-bottom: 1px solid var(--paper-dark);
+            padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between;
+        }
+
+        /* 卡牌設計 */
+        .card-row {
+            display: flex; gap: 8px; overflow-x: auto; padding: 10px 2px; min-height: 120px;
+            align-items: center; scrollbar-width: thin;
+        }
+        .card-row::-webkit-scrollbar { height: 6px; }
+        .card-row::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+
+        .card {
+            width: 65px; height: 95px; background: #fff; border-radius: 4px;
+            border: 1px solid #888; position: relative; display: flex; flex-direction: column;
+            justify-content: space-between; padding: 3px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            transition: all 0.2s; cursor: pointer; flex-shrink: 0;
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: 2px 7px 10px rgba(0,0,0,0.4); }
+        .card.red { color: #c0392b; }
+        .card.black { color: #2c3e50; }
+        .card .rank { font-size: 15px; font-weight: bold; line-height: 1; }
+        .card .suit { font-size: 18px; text-align: right; line-height: 1; }
+        .card .center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 28px; opacity: 0.6; }
+        
+        .card.tapped { transform: rotate(90deg); opacity: 0.6; box-shadow: none; }
+        .card.tapped:hover { transform: rotate(90deg) translateY(-5px); }
+
+        .card-label {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: rgba(0,0,0,0.75); color: #fff; font-size: 9px;
+            padding: 2px 0; text-align: center; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* 按鈕 */
+        .btn {
+            background: linear-gradient(to bottom, #7a2316, #4a120a); color: var(--paper);
+            border: 1px solid var(--gold); padding: 8px 15px; border-radius: 4px;
+            font-family: inherit; font-size: 14px; font-weight: bold; cursor: pointer;
+            transition: all 0.1s; box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .btn:hover:not(:disabled) { background: linear-gradient(to bottom, #a03020, #6a1a10); }
+        .btn:active:not(:disabled) { transform: translateY(1px); }
+        .btn:disabled { background: #555; color: #999; border-color: #444; cursor: not-allowed; box-shadow: none; }
+        .btn-sec { background: linear-gradient(to bottom, #4a4a4a, #2b2b2b); }
+        .btn-sec:hover:not(:disabled) { background: linear-gradient(to bottom, #5a5a5a, #3b3b3b); }
+
+        /* 地圖/事件區域 */
+        .board-area {
+            text-align: center; min-height: 150px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 10px;
+        }
+        .event-text { font-size: 15px; line-height: 1.5; max-width: 600px; }
+        .action-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+
+        /* 敵人血條 */
+        .enemy-box {
+            width: 100%; max-width: 400px; background: rgba(0,0,0,0.05);
+            border: 2px dashed var(--border); border-radius: 8px; padding: 10px;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+        .hp-track {
+            width: 100%; height: 24px; background: #333; border-radius: 12px;
+            position: relative; overflow: hidden; border: 1px solid #000;
+        }
+        .hp-fill { height: 100%; background: linear-gradient(90deg, #c0392b, #e74c3c); transition: width 0.3s; }
+        .hp-text {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            color: white; font-size: 13px; font-weight: bold; text-align: center; line-height: 24px;
+            text-shadow: 1px 1px 2px #000; pointer-events: none;
+        }
+        .hp-symbols {
+            display: flex; justify-content: space-between; width: 100%; font-size: 11px; color: #555; padding: 0 5px;
+        }
+
+        /* 彈窗 */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal {
+            background: var(--paper); width: 90%; max-width: 600px; max-height: 85vh;
+            border: 3px solid var(--gold); border-radius: 8px; display: flex; flex-direction: column;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8); transform: scale(0.95); transition: transform 0.3s;
+        }
+        .modal-overlay.active .modal { transform: scale(1); }
+        .modal-header { background: var(--red); color: #fff; padding: 12px; font-size: 18px; font-weight: bold; text-align: center; }
+        .modal-body { padding: 20px; overflow-y: auto; font-size: 14px; line-height: 1.6; color: var(--ink); }
+        .modal-footer { padding: 15px; border-top: 1px solid var(--paper-dark); text-align: center; }
+
+        /* 側邊欄 */
+        .sidebar {
+            position: fixed; top: 0; right: -320px; width: 320px; height: 100%;
+            background: var(--paper); border-left: 3px solid var(--gold);
+            z-index: 50; transition: right 0.3s; display: flex; flex-direction: column;
+        }
+        .sidebar.active { right: 0; }
+        .sidebar-head { background: var(--red); color: #fff; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .sidebar-body { padding: 15px; overflow-y: auto; flex: 1; font-size: 13px; }
+        .log-item { border-bottom: 1px dashed var(--paper-dark); padding: 6px 0; color: #444; }
+
+        /* Toast */
+        #toast {
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); color: #fff; padding: 10px 20px;
+            border-radius: 20px; font-size: 14px; border: 1px solid var(--gold);
+            opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 200;
+        }
+        #toast.show { opacity: 1; }
+
+        /* 底部導航 */
+        .nav-bar {
+            background: #150e0a; border-top: 2px solid var(--gold);
+            padding: 10px; display: flex; gap: 10px; justify-content: center; z-index: 10;
+        }
+
+        @media (max-width: 600px) {
+            .card { width: 55px; height: 80px; }
+            .card .rank { font-size: 13px; }
+            .card .suit { font-size: 15px; }
+            .card .center { font-size: 22px; }
+            .stats { font-size: 11px; gap: 5px; }
+            .btn { padding: 6px 10px; font-size: 13px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="stats">
+            <div class="stat-badge">💀 創傷: <span id="ui-trauma">0</span>/<span id="ui-max-trauma">25</span></div>
+            <div class="stat-badge">🃏 牌堆: <span id="ui-deck">52</span></div>
+            <div class="stat-badge">📍 <span id="ui-room">起點</span></div>
+        </div>
+        <button class="btn btn-sec" id="btn-sound" style="padding: 4px 8px; font-size: 12px;">🔊 音效</button>
+    </header>
+
+    <main>
+        <!-- 事件與戰鬥區 -->
+        <div class="panel board-area" id="board">
+            <h2 id="title" style="color: var(--red); margin: 0;">永恆遊蕩之魂的陵墓</h2>
+            <div class="event-text" id="desc">準備好面對你的命運了嗎？</div>
+            
+            <!-- 敵人介面 -->
+            <div class="enemy-box hidden" id="enemy-box">
+                <div style="font-weight: bold; color: #c0392b;" id="enemy-name">未知敵人</div>
+                <div class="hp-track">
+                    <div class="hp-fill" id="enemy-hp-fill" style="width: 100%;"></div>
+                    <div class="hp-text" id="enemy-hp-text">10 / 10</div>
+                </div>
+                <div class="hp-symbols" id="hp-symbols"></div>
+                <div class="card-row" id="enemy-cards" style="min-height: 100px;"></div>
+            </div>
+
+            <!-- 動作按鈕區 -->
+            <div class="action-row" id="actions"></div>
+        </div>
+
+        <!-- 玩家資源區 -->
+        <div class="panel">
+            <div class="section-title">
+                <span>⚔️ 裝備 (點擊使用)</span>
+                <span style="font-size: 12px; color: #666;">總和: <span id="ui-equip-total">0</span> / 20</span>
+            </div>
+            <div class="card-row" id="ui-equipment"></div>
+
+            <div class="section-title">🧪 物品</div>
+            <div class="card-row" id="ui-items"></div>
+
+            <div class="section-title">💎 戰利品</div>
+            <div class="card-row" id="ui-loot"></div>
+        </div>
+    </main>
+
+    <div class="nav-bar">
+        <button class="btn" id="btn-rules">📖 說明</button>
+        <button class="btn btn-sec" id="btn-save">💾 存檔</button>
+        <button class="btn btn-sec" id="btn-load">📂 讀檔</button>
+        <button class="btn btn-sec" id="btn-history">📜 日誌</button>
+    </div>
+
+    <!-- 側邊欄與彈窗 -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-head">
+            <span>冒險日誌</span>
+            <button class="btn btn-sec" id="close-history" style="padding: 2px 8px;">✖</button>
+        </div>
+        <div class="sidebar-body" id="history-list"></div>
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <div class="modal-header" id="modal-title"></div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer" id="modal-footer">
+                <button class="btn" id="modal-close">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        // ==========================================
+        // 音效系統
+        // ==========================================
+        let actx = null;
+        let soundOn = true;
+        function initAudio() {
+            if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        function playSfx(type) {
+            if (!soundOn || !actx) return;
+            const osc = actx.createOscillator();
+            const gain = actx.createGain();
+            osc.connect(gain); gain.connect(actx.destination);
+            const t = actx.currentTime;
+
+            if (type === 'click') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, t);
+                osc.frequency.exponentialRampToValueAtTime(300, t + 0.1);
+                gain.gain.setValueAtTime(0.1, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+                osc.start(); osc.stop(t + 0.1);
+            } else if (type === 'dmg') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, t);
+                osc.frequency.exponentialRampToValueAtTime(50, t + 0.3);
+                gain.gain.setValueAtTime(0.2, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+                osc.start(); osc.stop(t + 0.3);
+            } else if (type === 'heal') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(400, t);
+                osc.frequency.exponentialRampToValueAtTime(800, t + 0.2);
+                gain.gain.setValueAtTime(0.1, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+                osc.start(); osc.stop(t + 0.2);
+            } else if (type === 'draw') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(300, t);
+                gain.gain.setValueAtTime(0.05, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+                osc.start(); osc.stop(t + 0.05);
+            }
+        }
+
+        // ==========================================
+        // 遊戲核心狀態
+        // ==========================================
+        const S = { SETUP: 'SETUP', MAP: 'MAP', COMBAT: 'COMBAT', GAMEOVER: 'GAMEOVER' };
+        let curState = S.SETUP;
+
+        const SUITS = ['♠', '♥', '♣', '♦'];
+        const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+        
+        let game = {
+            deck: [], discard: [],
+            player: { trauma: [], equipment: [], items: [], loot: [], room: '起點', block: 0 },
+            enemy: null,
+            state: 'SETUP',
+            logs: []
+        };
+
+        // 房間資料 (簡化地圖)
+        const MAP = [
+            { id: 0, name: '起點', type: 'START' },
+            { id: 1, name: '幽暗走廊', type: 'ENEMY', level: 'A', cost: 5, next: [2, 3] },
+            { id: 2, name: '廢棄祭壇', type: 'EVENT', next: [4] },
+            { id: 3, name: '泉水', type: 'SPRING', next: [4] },
+            { id: 4, name: '守衛室', type: 'ENEMY', level: 'B', next: [5] },
+            { id: 5, name: '首領房', type: 'BOSS' }
+        ];
+        let curRoomIdx = 0;
+
+        // ==========================================
+        // 工具函數
+        // ==========================================
+        function val(c) {
+            if (!c) return 0;
+            if (c.rank === 'A') return 0;
+            if (c.rank === 'J') return 11;
+            if (c.rank === 'Q') return 12;
+            if (c.rank === 'K') return 13;
+            return parseInt(c.rank);
+        }
+        
+        function color(c) { return (c.suit === '♥' || c.suit === '♦') ? 'red' : 'black'; }
+
+        function shuffle(a) {
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+        }
+
+        function createDeck() {
+            let d = [];
+            for (let s of SUITS) {
+                for (let r of RANKS) d.push({ suit: s, rank: r });
+            }
+            shuffle(d);
+            return d;
+        }
+
+        function drawCard(isCombat = false) {
+            if (game.deck.length === 0) {
+                if (game.discard.length > 0) {
+                    game.deck = [...game.discard]; game.discard = []; shuffle(game.deck);
+                    log('牌堆已耗盡，重新洗入棄牌堆。');
+                } else {
+                    gameOver('牌堆耗盡，精力枯竭...');
+                    return null;
+                }
+            }
+            let c = game.deck.pop();
+            if (c.rank === 'A') {
+                applyCurse(c.suit);
+                game.discard.push(c);
+                return drawCard(isCombat);
+            }
+            playSfx('draw');
+            return c;
+        }
+
+        function getTraumaTotal() { return game.player.trauma.reduce((s, c) => s + val(c), 0); }
+        function getEquipTotal() { return game.player.equipment.reduce((s, c) => s + val(c), 0); }
+
+        // 承受傷害 (嚴格判定創傷)
+        function takeDamage(amount, isAutoTrauma = false) {
+            if (amount <= 0) return;
+            playSfx('dmg');
+            
+            if (isAutoTrauma) {
+                // 幽靈特性：直接獲得創傷
+                let t = drawCard();
+                if (t) {
+                    game.player.trauma.push(t);
+                    log(`受到 ${amount} 點傷害 (自動創傷)，獲得創傷牌 ${t.rank}${t.suit}！`);
+                }
+            } else {
+                let t = drawCard();
+                if (t) {
+                    if (val(t) <= amount) {
+                        game.player.trauma.push(t);
+                        log(`受到 ${amount} 點傷害，獲得創傷牌 ${t.rank}${t.suit} (等級 ${val(t)})！`);
+                    } else {
+                        game.discard.push(t);
+                        log(`受到 ${amount} 點傷害，但未獲得創傷 (抽到 ${t.rank}${t.suit})。`);
+                    }
+                }
+            }
+            
+            if (getTraumaTotal() >= 25) gameOver('創傷過重，不治身亡...');
+            updateUI();
+        }
+
+        // A 牌詛咒
+        function applyCurse(suit) {
+            log(`抽到 A (${suit})，觸發詛咒！`);
+            if (suit === '♠') {
+                let ready = game.player.equipment.filter(e => !e.tapped);
+                if (ready.length > 0) { ready[0].tapped = true; toast('黑桃詛咒：耗盡 1 張裝備'); }
+            } else if (suit === '♥') {
+                takeDamage(1); toast('紅心詛咒：受到 1 創傷');
+            } else if (suit === '♦') {
+                if (game.player.loot.length > 0) {
+                    game.player.loot.sort((a,b) => val(b) - val(a));
+                    game.player.loot.shift();
+                    toast('方塊詛咒：丟棄最高戰利品');
+                }
+            } else if (suit === '♣') {
+                takeDamage(2); toast('梅花詛咒：受到 2 創傷');
+            }
+        }
+
+        // ==========================================
+        // 渲染 UI
+        // ==========================================
+        function createCardEl(c, context = '', idx = -1) {
+            let el = document.createElement('div');
+            el.className = `card ${color(c)} ${c.tapped ? 'tapped' : ''}`;
+            el.innerHTML = `
+                <div class="rank">${c.rank}</div>
+                <div class="center">${c.suit}</div>
+                <div class="suit">${c.suit}</div>
+            `;
+            let lbl = document.createElement('div');
+            lbl.className = 'card-label';
+            
+            if (context === 'equip') {
+                lbl.innerText = c.tapped ? `已耗盡 (${val(c)})` : `就緒 (${val(c)})`;
+                el.onclick = () => useEquip(idx);
+            } else if (context === 'item') {
+                lbl.innerText = getItemName(c.suit);
+                el.onclick = () => useItem(idx);
+            } else if (context === 'loot') {
+                lbl.innerText = `戰利品 (${val(c)}分)`;
+            } else if (context === 'trauma') {
+                lbl.innerText = `創傷 (${val(c)})`;
+            } else {
+                lbl.innerText = val(c) > 0 ? `等級 ${val(c)}` : '特殊卡';
+            }
+            
+            el.appendChild(lbl);
+            return el;
+        }
+
+        function getItemName(s) {
+            return s === '♣' ? '力量藥水' : s === '♠' ? '欺詐斗篷' : s === '♥' ? '生命藥水' : '幸運水晶';
+        }
+
+        function renderRow(id, cards, ctx) {
+            let el = document.getElementById(id);
+            el.innerHTML = '';
+            if (cards.length === 0) {
+                el.innerHTML = '<div style="color:#999; font-size:12px; font-style:italic; padding:10px;">空</div>';
+                return;
+            }
+            cards.forEach((c, i) => el.appendChild(createCardEl(c, ctx, i)));
+        }
+
+        function updateUI() {
+            document.getElementById('ui-trauma').innerText = getTraumaTotal();
+            document.getElementById('ui-deck').innerText = game.deck.length;
+            document.getElementById('ui-room').innerText = game.player.room;
+            document.getElementById('ui-equip-total').innerText = getEquipTotal();
+
+            renderRow('ui-equipment', game.player.equipment, 'equip');
+            renderRow('ui-items', game.player.items, 'item');
+            renderRow('ui-loot', game.player.loot, 'loot');
+
+            if (game.enemy && curState === S.COMBAT) {
+                document.getElementById('enemy-box').classList.remove('hidden');
+                document.getElementById('enemy-name').innerText = game.enemy.name;
+                let pct = Math.max(0, (game.enemy.hp / game.enemy.maxHp) * 100);
+                document.getElementById('enemy-hp-fill').style.width = pct + '%';
+                document.getElementById('enemy-hp-text').innerText = `${game.enemy.hp} / ${game.enemy.maxHp}`;
+                
+                // 渲染敵人戰鬥牌
+                let ec = document.getElementById('enemy-cards');
+                ec.innerHTML = '';
+                if (game.enemy.card) ec.appendChild(createCardEl(game.enemy.card, 'enemy'));
+            } else {
+                document.getElementById('enemy-box').classList.add('hidden');
+            }
+        }
+
+        function setActions(btns) {
+            let el = document.getElementById('actions');
+            el.innerHTML = '';
+            btns.forEach(b => {
+                let btn = document.createElement('button');
+                btn.className = `btn ${b.sec ? 'btn-sec' : ''}`;
+                btn.innerText = b.text;
+                btn.disabled = b.disabled || false;
+                btn.onclick = () => { playSfx('click'); b.fn(); };
+                el.appendChild(btn);
+            });
+        }
+
+        // ==========================================
+        // 遊戲流程控制
+        // ==========================================
+        function startGame() {
+            game.deck = createDeck();
+            game.discard = [];
+            game.player = { trauma: [], equipment: [], items: [], loot: [], room: '起點', block: 0 };
+            game.enemy = null;
+            game.logs = ['冒險開始。'];
+            curRoomIdx = 0;
+            curState = S.SETUP;
+
+            // 初始抽牌
+            for(let i=0; i<2; i++) { let c = drawCard(); if(c) game.player.items.push(c); }
+            let tot = 0;
+            while(tot < 20) {
+                let c = drawCard();
+                if (c) { game.player.equipment.push(c); tot += val(c); }
+            }
+            log('準備完成，裝備與物品已就緒。');
+            
+            enterRoom(0);
+        }
+
+        function enterRoom(idx) {
+            curRoomIdx = idx;
+            let room = MAP[idx];
+            game.player.room = room.name;
+            document.getElementById('title').innerText = room.name;
+            document.getElementById('desc').innerText = '';
+            
+            log(`進入了 ${room.name}。`);
+            updateUI();
+
+            if (room.type === 'START') {
+                document.getElementById('desc').innerText = '你站在陵墓的入口。前方有兩條路，一條通往幽暗走廊（需耗費 5 點裝備通行），一條通往廢棄祭壇。';
+                setActions([
+                    { text: '前往幽暗走廊', fn: () => checkPassage(room.next[0], room.cost) },
+                    { text: '前往廢棄祭壇', fn: () => enterRoom(room.next[1]) }
+                ]);
+            } else if (room.type === 'ENEMY') {
+                curState = S.COMBAT;
+                startCombat(room.level);
+            } else if (room.type === 'SPRING') {
+                document.getElementById('desc').innerText = '清澈的泉水。你可以選擇治癒 1 張創傷或重置所有裝備。';
+                setActions([
+                    { text: '治癒 1 張創傷', fn: () => {
+                        if (game.player.trauma.length > 0) {
+                            game.player.trauma.pop();
+                            log('在泉水治癒了 1 張創傷。');
+                            playSfx('heal');
+                            enterRoom(room.next[0]);
+                        } else toast('沒有創傷！');
+                    }},
+                    { text: '重置所有裝備', fn: () => {
+                        game.player.equipment.forEach(e => e.tapped = false);
+                        log('在泉水重置了所有裝備。');
+                        playSfx('heal');
+                        enterRoom(room.next[0]);
+                    }}
+                ]);
+            } else if (room.type === 'EVENT') {
+                document.getElementById('desc').innerText = '神秘的祭壇。觸摸它可能會獲得獎勵或受到懲罰。';
+                setActions([
+                    { text: '觸摸祭壇', fn: () => {
+                        let c = drawCard();
+                        if (c.suit === '♥') { takeDamage(2); log('祭壇發出紅光！'); }
+                        else { game.player.loot.push(c); log('祭壇給予了戰利品！'); playSfx('heal'); }
+                        enterRoom(room.next[0]);
+                    }}
+                ]);
+            } else if (room.type === 'BOSS') {
+                document.getElementById('desc').innerText = '看守者擋住了去路！';
+                setActions([{ text: '決一死戰', fn: () => { curState = S.COMBAT; startCombat('BOSS'); } }]);
+            }
+        }
+
+        function checkPassage(nextIdx, cost) {
+            let eq = game.player.equipment;
+            let ready = eq.filter(e => !e.tapped);
+            if (ready.length === 0) { toast('沒有就緒裝備可通行！'); return; }
+            
+            // 自動選擇裝備支付
+            ready.sort((a,b) => val(a) - val(b)); // 消耗小牌優先
+            let sum = 0;
+            for(let e of ready) { e.tapped = true; sum += val(e); if(sum >= cost) break; }
+            
+            if (sum >= cost) {
+                log(`支付 ${sum} 點裝備通行費用。`);
+                enterRoom(nextIdx);
+            } else {
+                toast('裝備不足，無法通行！');
+                ready.forEach(e => e.tapped = false); // 退還
+            }
+        }
+
+        // ==========================================
+        // 戰鬥系統
+        // ==========================================
+        function startCombat(level) {
+            let c1 = drawCard(true), c2 = drawCard(true);
+            let enemyCard, reward;
+            if (val(c1) >= val(c2)) { enemyCard = c1; reward = c2; }
+            else { enemyCard = c2; reward = c1; }
+
+            let hpMod = level === 'A' ? 5 : level === 'B' ? 10 : 15;
+            let name = enemyCard.suit === '♠' ? '哥布林' : enemyCard.suit === '♣' ? '食屍鬼' : enemyCard.suit === '♥' ? '幽靈' : '蜥蜴';
+            
+            if (level === 'BOSS') {
+                name = '看守者';
+                enemyCard = { suit: '♠', rank: 'K' };
+                hpMod = 15;
+            }
+
+            game.enemy = {
+                name: name, suit: enemyCard.suit, rank: val(enemyCard),
+                hp: val(enemyCard) + hpMod, maxHp: val(enemyCard) + hpMod,
+                reward: reward, card: null, isBoss: level === 'BOSS', isGhost: enemyCard.suit === '♥'
+            };
+
+            document.getElementById('desc').innerText = `遭遇了 ${game.enemy.name}！`;
+            log(`遭遇 ${game.enemy.name}，生命值 ${game.enemy.hp}。`);
+            
+            if (level === 'BOSS') {
+                let ready = game.player.equipment.filter(e => !e.tapped);
+                if (ready.length > 0) { ready[0].tapped = true; log('看守者威壓：耗盡 1 張裝備。'); }
+            }
+            enemyTurn();
+        }
+
+        function enemyTurn() {
+            let c = drawCard(true);
+            if (!c) return;
+            game.enemy.card = c;
+            log(`敵人翻開戰鬥牌：${c.rank}${c.suit}`);
+            updateUI();
+            
+            // 檢查立即結算 (簡化：若有閃電符號，在此處直接結算，但我們保留玩家先手權，除了 Boss 的額外技能)
+            renderPlayerCombatActions();
+        }
+
+        function renderPlayerCombatActions() {
+            let buttons = [];
+            
+            // 攻擊 (需有就緒裝備)
+            let readyEq = game.player.equipment.filter(e => !e.tapped);
+            buttons.push({
+                text: '⚔️ 攻擊 (需耗盡裝備)',
+                disabled: readyEq.length === 0,
+                fn: () => {
+                    let eq = readyEq[0];
+                    eq.tapped = true;
+                    let dmg = val(eq);
+                    game.enemy.hp -= dmg;
+                    log(`你使用 ${eq.rank}${eq.suit} 攻擊，造成 ${dmg} 點傷害。`);
+                    playSfx('dmg');
+                    
+                    // 檢查敵人生命值符號
+                    checkHpSymbols();
+                    
+                    if (game.enemy.hp <= 0) winCombat();
+                    else resolveEnemyAction();
+                }
+            });
+
+            // 防禦 (耗盡裝備減傷)
+            buttons.push({
+                text: '🛡️ 防禦 (耗盡 1 張減傷)',
+                disabled: readyEq.length === 0,
+                fn: () => {
+                    let eq = readyEq[0];
+                    eq.tapped = true;
+                    game.player.block += val(eq);
+                    log(`你耗盡 ${eq.rank}${eq.suit} 防禦，獲得 ${val(eq)} 點格擋。`);
+                    resolveEnemyAction();
+                }
+            });
+
+            // 休息
+            buttons.push({
+                text: '💤 休息 (重置所有裝備)',
+                fn: () => {
+                    game.player.equipment.forEach(e => e.tapped = false);
+                    log('你選擇休息，重置所有裝備。');
+                    resolveEnemyAction();
+                }
+            });
+
+            setActions(buttons);
+        }
+
+        function checkHpSymbols() {
+            // 簡化符號觸發：血量降至 8 點以下觸發創傷，降至 4 點觸發重置
+            if (game.enemy.hp <= 8 && game.enemy.hp > 7 && !game.enemy.sym1) {
+                game.enemy.sym1 = true;
+                takeDamage(1); toast('生命追蹤條：觸發 1 創傷！');
+            }
+            if (game.enemy.hp <= 4 && game.enemy.hp > 3 && !game.enemy.sym2) {
+                game.enemy.sym2 = true;
+                game.player.equipment.forEach(e => e.tapped = false);
+                toast('生命追蹤條：觸發重置裝備！');
+            }
+        }
+
+        function resolveEnemyAction() {
+            if (!game.enemy.card) return;
+            let c = game.enemy.card;
+            let dmg = 0;
+
+            if (c.suit === '♠') { dmg = val(c); log(`敵人攻擊，造成 ${dmg} 點傷害。`); }
+            else if (c.suit === '♣') { dmg = val(c); log(`敵人攻擊，造成 ${dmg} 點傷害。`); }
+            else if (c.suit === '♥') { dmg = val(c); log(`幽靈攻擊，造成 ${dmg} 點傷害 (自動創傷)。`); }
+            else if (c.suit === '♦') { dmg = val(c) + 5; log(`蜥蜴猛擊，造成 ${dmg} 點傷害。`); }
+            
+            if (game.enemy.isBoss) dmg += 2;
+
+            // 減傷
+            let finalDmg = Math.max(0, dmg - game.player.block);
+            if (game.player.block > 0) log(`格擋減免了 ${dmg - finalDmg} 點傷害。`);
+            
+            if (finalDmg > 0) {
+                takeDamage(finalDmg, game.enemy.isGhost);
+            }
+
+            // 重置狀態
+            game.player.block = 0;
+            game.enemy.card = null;
+            
+            if (curState !== S.GAMEOVER) {
+                // 檢查玩家是否死亡
+                if (getTraumaTotal() >= 25) return;
+                // 下一回合
+                enemyTurn();
+            }
+        }
+
+        function winCombat() {
+            curState = S.MAP;
+            log(`擊敗了 ${game.enemy.name}！`);
+            playSfx('heal');
+            
+            if (game.enemy.reward) {
+                game.player.loot.push(game.enemy.reward);
+                log(`獲得獎勵卡：${game.enemy.reward.rank}${game.enemy.reward.suit}。`);
+            }
+
+            if (game.enemy.isBoss) {
+                gameOver('恭喜擊敗首領！', true);
+            } else {
+                game.enemy = null;
+                let room = MAP[curRoomIdx];
+                if (room.next) enterRoom(room.next[0]);
+                else gameOver('探索結束。', true);
+            }
+        }
+
+        // ==========================================
+        // 玩家操作
+        // ==========================================
+        function useEquip(idx) {
+            if (curState !== S.COMBAT) { toast('只能在戰鬥中使用裝備攻擊！'); return; }
+            let eq = game.player.equipment[idx];
+            if (eq.tapped) { toast('裝備已耗盡！'); return; }
+            
+            eq.tapped = true;
+            game.enemy.hp -= val(eq);
+            log(`你使用 ${eq.rank}${eq.suit} 攻擊，造成 ${val(eq)} 點傷害。`);
+            playSfx('dmg');
+            checkHpSymbols();
+            updateUI();
+            
+            if (game.enemy.hp <= 0) winCombat();
+            else resolveEnemyAction();
+        }
+
+        function useItem(idx) {
+            let item = game.player.items[idx];
+            if (!item) return;
+            
+            playSfx('heal');
+            if (item.suit === '♣') {
+                game.player.equipment.forEach(e => e.tapped = false);
+                toast('力量藥水：所有裝備已重置！');
+            } else if (item.suit === '♥') {
+                if (game.player.trauma.length > 0) { game.player.trauma.pop(); toast('生命藥水：治癒 1 張創傷。'); }
+                else { toast('沒有創傷可治癒！'); return; }
+            } else if (item.suit === '♠') {
+                toast('欺詐斗篷：抽取 1 張新裝備！');
+                let c = drawCard(); if(c) game.player.equipment.push(c);
+            } else if (item.suit === '♦') {
+                toast('幸運水晶：抽取 1 張戰利品！');
+                let c = drawCard(); if(c) game.player.loot.push(c);
+            }
+
+            game.player.items.splice(idx, 1);
+            game.discard.push(item);
+            updateUI();
+        }
+
+        // ==========================================
+        // 輔助與結束
+        // ==========================================
+        function log(msg) {
+            game.logs.push(msg);
+            let el = document.getElementById('history-list');
+            let d = document.createElement('div');
+            d.className = 'log-item'; d.innerText = msg;
+            el.appendChild(d);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function toast(msg) {
+            let t = document.getElementById('toast');
+            t.innerText = msg; t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        function gameOver(msg, isWin = false) {
+            curState = S.GAMEOVER;
+            document.getElementById('title').innerText = isWin ? '🏆 凱旋而歸' : '💀 遊戲結束';
+            document.getElementById('desc').innerText = msg;
+            setActions([{ text: '重新開始', fn: () => location.reload() }]);
+            
+            let score = game.player.items.length * 2 + game.player.loot.reduce((s, c) => s + val(c), 0);
+            let scoreText = isWin ? `最終得分：${score} 分` : '';
+            
+            showModal(isWin ? '勝利！' : '失敗...', `<p>${msg}</p><p>${scoreText}</p>`, '重新開始', () => location.reload());
+        }
+
+        function showModal(title, body, btnText, cb) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-body').innerHTML = body;
+            let footer = document.getElementById('modal-footer');
+            footer.innerHTML = `<button class="btn" id="modal-close">${btnText}</button>`;
+            document.getElementById('modal-close').onclick = () => {
+                playSfx('click');
+                document.getElementById('modal').classList.remove('active');
+                if (cb) cb();
+            };
+            document.getElementById('modal').classList.add('active');
+        }
+
+        // 綁定事件
+        document.getElementById('btn-rules').onclick = () => {
+            playSfx('click');
+            showModal('📖 遊戲說明', `
+                <div style="text-align:left;">
+                    <h3>🎯 遊戲目標</h3>
+                    <p>擊敗最終首領「看守者」。若創傷總和達到 25 或牌堆耗盡，則遊戲失敗。</p>
+                    <h3>🖥️ 看懂畫面</h3>
+                    <ul>
+                        <li><b>💀 創傷：</b> 左上角數值，達到紅色數字即失敗。</li>
+                        <li><b>🃏 牌堆：</b> 剩餘卡牌數。</li>
+                        <li><b>⚔️ 裝備：</b> 點擊可攻擊。橫置代表「已耗盡」，需休息或泉水重置。</li>
+                        <li><b>🧪 物品：</b> 點擊立即使用。</li>
+                    </ul>
+                    <h3>🎮 戰鬥流程</h3>
+                    <ol>
+                        <li>敵人翻開戰鬥牌。</li>
+                        <li>玩家選擇：<b>攻擊</b>（耗盡裝備造成傷害）、<b>防禦</b>（耗盡裝備減免本回合傷害）、<b>休息</b>（重置裝備）。</li>
+                        <li>結算敵人行動。若敵人為幽靈，傷害必為創傷。</li>
+                    </ol>
+                    <h3>💡 特殊機制</h3>
+                    <p>抽到 A 會觸發詛咒。敵人血量降至特定區間會觸發額外效果。</p>
+                </div>
+            `, '我準備好了', () => startGame());
+        };
+
+        document.getElementById('btn-history').onclick = () => { playSfx('click'); document.getElementById('sidebar').classList.add('active'); };
+        document.getElementById('close-history').onclick = () => { playSfx('click'); document.getElementById('sidebar').classList.remove('active'); };
+        
+        document.getElementById('btn-sound').onclick = (e) => {
+            soundOn = !soundOn;
+            e.target.innerText = soundOn ? '🔊 音效' : '🔇 靜音';
+            if(soundOn) { initAudio(); playSfx('click'); }
+        };
+
+        document.getElementById('btn-save').onclick = () => {
+            playSfx('click');
+            localStorage.setItem('52realms_v2', JSON.stringify({ game, curRoomIdx, curState }));
+            toast('遊戲已存檔！');
+        };
+
+        document.getElementById('btn-load').onclick = () => {
+            playSfx('click');
+            let s = localStorage.getItem('52realms_v2');
+            if (s) {
+                let d = JSON.parse(s);
+                game = d.game; curRoomIdx = d.curRoomIdx; curState = d.curState;
+                updateUI();
+                if (curState === S.COMBAT) renderPlayerCombatActions();
+                else if (curState === S.MAP) enterRoom(curRoomIdx);
+                else if (curState === S.GAMEOVER) gameOver('讀檔：遊戲已結束', false);
+                toast('讀檔成功！');
+            } else toast('沒有存檔！');
+        };
+
+        // 初始化
+        window.onload = () => {
+            initAudio();
+            document.getElementById('btn-rules').click();
+        };
+
+    </script>
+</body>
+</html>
