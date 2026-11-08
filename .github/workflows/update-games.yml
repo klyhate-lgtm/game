@@ -1,0 +1,40 @@
+name: Auto Update Game List
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-list:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate games.json
+        run: |
+          python3 -c "
+          import os, json, urllib.parse
+          games = []
+          for f in os.listdir('.'):
+              if f.endswith('.html') and f != 'index.html':
+                  # 去掉 .html 當作標題
+                  title = f[:-5]
+                  games.append({'title': title, 'file': f})
+          games.sort(key=lambda x: x['title'])
+          with open('games.json', 'w', encoding='utf-8') as out:
+              json.dump(games, out, ensure_ascii=False, indent=2)
+          "
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add games.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update games.json" && git push)
