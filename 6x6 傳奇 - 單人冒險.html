@@ -316,10 +316,6 @@
 
         #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* 面板控制 */
-        .panel { display: none; }
-        .panel.active { display: block; }
-
         /* 物品與卷軸列表 */
         .inventory-list {
             display: flex;
@@ -342,17 +338,6 @@
         /* 打字機光標 */
         .cursor { display: inline-block; width: 2px; height: 1em; background: var(--ink); animation: blink 1s step-end infinite; vertical-align: bottom; }
         @keyframes blink { 50% { opacity: 0; } }
-
-        /* 骰子動畫 */
-        .dice-roll {
-            display: inline-block;
-            animation: roll 0.5s ease;
-        }
-        @keyframes roll {
-            0% { transform: rotate(0deg) scale(1); }
-            50% { transform: rotate(180deg) scale(1.5); }
-            100% { transform: rotate(360deg) scale(1); }
-        }
 
         @media (max-width: 480px) {
             #status-bar { font-size: 11px; padding: 5px; }
@@ -399,8 +384,9 @@
 
     <!-- 底部導航 -->
     <div id="bottom-nav">
-        <button onclick="toggleModal('help')"><span>📖</span>說明</button>
-        <button onclick="toggleModal('inventory')"><span>🎒</span>背包</button>
+        <!-- 修復：將 toggleModal 改為 showModal -->
+        <button onclick="showModal('help')"><span>📖</span>說明</button>
+        <button onclick="showModal('inventory')"><span>🎒</span>背包</button>
         <button onclick="toggleHistory()"><span>🕒</span>歷史</button>
         <button onclick="saveGame()"><span>💾</span>存檔</button>
         <button onclick="toggleSound()"><span id="sound-icon">🔊</span>音效</button>
@@ -465,14 +451,6 @@
                 gain.gain.setValueAtTime(0.1, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
                 osc.start(); osc.stop(now + 0.3);
-            } else if (type === 'win') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(523, now);
-                osc.frequency.setValueAtTime(659, now + 0.1);
-                osc.frequency.setValueAtTime(784, now + 0.2);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-                osc.start(); osc.stop(now + 0.4);
             }
         }
 
@@ -592,7 +570,6 @@
                 cellDiv.dataset.y = cell.y;
 
                 if (cell.explored) {
-                    // 繪製道路 SVG
                     let path = '';
                     const cx = 50, cy = 50;
                     if (cell.road.n) path += `M ${cx} ${cy} L ${cx} 0 `;
@@ -604,7 +581,6 @@
                         cellDiv.innerHTML += `<svg class="road-svg" viewBox="0 0 100 100"><path class="road-path" d="${path}"/></svg>`;
                     }
 
-                    // 地形圖標
                     let icon = '';
                     if (cell.terrain === Terrain.FOREST) icon = '🌲';
                     else if (cell.terrain === Terrain.MOUNTAIN) icon = '⛰️';
@@ -639,7 +615,6 @@
                     addBtn(bar, '處理事件', () => processEvent(state.activeEvent), 'primary');
                 } else {
                     addBtn(bar, '結束回合', () => endTurn());
-                    // 移動提示
                     const hint = document.createElement('div');
                     hint.style.cssText = 'width:100%; text-align:center; font-size:12px; color:var(--parchment); margin-top:5px;';
                     hint.textContent = '👆 點擊地圖上相鄰且有道路連接的格子進行移動';
@@ -685,7 +660,6 @@
             const currentCell = getCell(state.pos.x, state.pos.y);
             const targetCell = getCell(tx, ty);
             
-            // 檢查道路連接
             let canMove = false;
             if (tx > state.pos.x && currentCell.road.e) canMove = true;
             if (tx < state.pos.x && currentCell.road.w) canMove = true;
@@ -693,7 +667,6 @@
             if (ty < state.pos.y && currentCell.road.n) canMove = true;
 
             if (!targetCell.explored) {
-                // 探索新格子，自動生成連接
                 canMove = true; 
             }
 
@@ -714,48 +687,43 @@
 
         function exploreCell(cell) {
             cell.explored = true;
-            const roll1 = Math.floor(Math.random() * 6) + 1; // 道路
-            const roll2 = Math.floor(Math.random() * 6) + 1; // 地形
+            const roll1 = Math.floor(Math.random() * 6) + 1; 
+            const roll2 = Math.floor(Math.random() * 6) + 1; 
             
             log(`探索新區域！道路骰:${roll1}, 地形骰:${roll2}`, true);
             playSound('dice');
 
-            // 設定與前一個格子的連接
             const prev = state.pos;
             cell.road.n = (cell.y > prev.y);
             cell.road.s = (cell.y < prev.y);
             cell.road.e = (cell.x < prev.x);
             cell.road.w = (cell.x > prev.x);
 
-            // 根據骰子生成其他方向的道路
-            // 0:無, 1:直, 2:彎, 3:T, 4:十字 (簡化實作)
-            if (roll1 <= 2) { // 直路
+            if (roll1 <= 2) { 
                 if (cell.road.n || cell.road.s) { cell.road.n = true; cell.road.s = true; }
                 else { cell.road.e = true; cell.road.w = true; }
-            } else if (roll1 <= 4) { // 彎路
-                // 已有連接點，再隨機接一個相鄰方向
+            } else if (roll1 <= 4) { 
                 const dirs = ['n','e','s','w'].filter(d => !cell.road[d]);
                 if (dirs.length > 0) {
                     const d = dirs[Math.floor(Math.random() * dirs.length)];
                     cell.road[d] = true;
                 }
-            } else if (roll1 === 5) { // T型
+            } else if (roll1 === 5) { 
                 const dirs = ['n','e','s','w'].filter(d => !cell.road[d]);
                 if (dirs.length > 0) cell.road[dirs[Math.floor(Math.random() * dirs.length)]] = true;
                 if (dirs.length > 1) {
                     const remaining = dirs.filter(d => !cell.road[d]);
                     if (remaining.length > 0) cell.road[remaining[Math.floor(Math.random() * remaining.length)]] = true;
                 }
-            } else { // 十字
+            } else { 
                 cell.road = { n: true, e: true, s: true, w: true };
             }
 
-            // 更新相鄰格子的道路連接
             const neighbors = [
-                { x: cell.x, y: cell.y - 1, dir: 's' }, // N
-                { x: cell.x + 1, y: cell.y, dir: 'w' }, // E
-                { x: cell.x, y: cell.y + 1, dir: 'n' }, // S
-                { x: cell.x - 1, y: cell.y, dir: 'e' }  // W
+                { x: cell.x, y: cell.y - 1, dir: 's' }, 
+                { x: cell.x + 1, y: cell.y, dir: 'w' }, 
+                { x: cell.x, y: cell.y + 1, dir: 'n' }, 
+                { x: cell.x - 1, y: cell.y, dir: 'e' }  
             ];
             neighbors.forEach(n => {
                 const nc = getCell(n.x, n.y);
@@ -766,14 +734,12 @@
                 }
             });
 
-            // 地形
             if (roll2 <= 2) cell.terrain = Terrain.PLAIN;
             else if (roll2 === 3) cell.terrain = Terrain.MOUNTAIN;
             else if (roll2 === 4) cell.terrain = Terrain.FOREST;
             else if (roll2 === 5) cell.terrain = Terrain.SWAMP;
             else {
                 cell.terrain = Terrain.VILLAGE;
-                // 第一個和第三個村莊寫 E08，第二和第四寫 E15
                 const villageCount = state.map.filter(c => c.terrain === Terrain.VILLAGE && c.event !== 'E01').length;
                 cell.event = (villageCount % 2 === 0) ? 'E08' : 'E15';
             }
@@ -793,7 +759,7 @@
         // ================= 核心邏輯：事件 =================
         function processEvent(eventId) {
             if (state.screen !== GameState.PLAYING) return;
-            state.activeEvent = null; // 清除當前事件
+            state.activeEvent = null; 
 
             switch(eventId) {
                 case 'E01':
@@ -809,7 +775,6 @@
                     showModal(eventId === 'E08' ? 'shop_e08' : 'shop_e15');
                     return;
                 case 'E14':
-                    // 接任務 (簡化版)
                     log('📜 接取新任務！');
                     showToast('你接取了一個新任務。');
                     break;
@@ -879,7 +844,6 @@
             const c = state.combat;
             const m = c.monster;
 
-            // 混沌騎士進化
             if (m.special === 'evolve') {
                 const evo = Math.floor(Math.random() * 6) + 1;
                 if (evo === 1) m.atk++;
@@ -921,7 +885,6 @@
                 }
             }
 
-            // 怪物死亡判定
             if (m.hp <= 0) {
                 if (m.special === 'regen') {
                     const regen = Math.floor(Math.random() * 6) + Math.floor(Math.random() * 6) + 2;
@@ -983,7 +946,6 @@
 
             log(`--- W${state.week} D${state.day} ---`);
 
-            // 中毒判定
             if (state.hero.poison === 1) {
                 const roll = Math.floor(Math.random() * 6) + Math.floor(Math.random() * 6) + 2;
                 if (roll <= 5) {
@@ -993,7 +955,7 @@
                 }
             }
 
-            state.hero.spd = 2; // 重置速度
+            state.hero.spd = 2; 
             state.activeEvent = null;
             checkHeroDeath();
             updateUI();
@@ -1074,7 +1036,7 @@
                     <p><strong>回合流程：</strong>移動 (消耗速度) ➔ 處理事件 ➔ 結束回合。</p>
                     <p><strong>戰鬥：</strong>短暫休息可逃跑或交戰。交戰擲 2d6+Atk 對抗怪物 Atk。</p>
                     <p><strong>提示：</strong>點擊地圖相鄰格移動，城堡與村莊可恢復 HP。</p>
-                    <button onclick="closeModal()" style="width:100%; margin-top:10px;">我準備好了</button>
+                    <button onclick="closeModal()" style="width:100%; margin-top:10px;">關閉說明</button>
                 `;
             } else if (type === 'shop_castle' || type === 'shop_e08' || type === 'shop_e15') {
                 const shopKey = type.split('_')[1];
@@ -1117,11 +1079,7 @@
         function closeModal() {
             document.getElementById('modal-overlay').classList.remove('active');
             modalType = null;
-            if (state.screen === GameState.SETUP && !state.activeEvent) {
-                state.screen = GameState.PLAYING;
-                log('冒險開始！你從城堡出發。');
-                updateUI();
-            }
+            // 如果是初始選擇種族，選完後會由 selectRace 觸發進入遊戲
             playSound('click');
         }
 
@@ -1133,6 +1091,10 @@
             else if (race === 'hobbit') state.hero.items.pie = 1;
             
             closeModal();
+            // 進入遊戲狀態
+            state.screen = GameState.PLAYING;
+            log('冒險開始！你從城堡出發。');
+            updateUI();
         }
 
         function buyScroll(key, price, shopKey) {
