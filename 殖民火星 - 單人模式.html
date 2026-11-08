@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>殖民火星 - 單人模式 (星空土灰版)</title>
+<title>殖民火星 - 單人模式 (火星土色版)</title>
 <style>
     :root {
         --bg-color: #0a0a0f;
@@ -92,22 +92,21 @@
     /* 主區域 */
     #main-area { flex: 1; display: flex; flex-direction: column; align-items: center; overflow: hidden; position: relative; padding: 10px 0; }
     
-    /* ★ 修改：加大容器空間，並允許滾動以防地圖太大跑出螢幕 ★ */
     #board-container { 
         flex: 1; width: 100%; display: flex; justify-content: center; align-items: center; 
-        overflow: auto; padding: 40px; min-height: 450px;
+        overflow: auto; padding: 20px; min-height: 450px;
     }
     
-    /* ★ 修改：火星外圈改為土灰色調 ★ */
+    /* 外圈大氣層：帶有火星塵土感的深土色 */
     #mars-atmosphere {
         position: relative;
-        padding: 40px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(120, 110, 105, 0.15) 0%, rgba(80, 70, 65, 0.08) 60%, transparent 80%);
+        background-color: #3e2b25; 
+        background-image: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.5) 100%);
         box-shadow: 
-            0 0 50px rgba(120, 110, 105, 0.2),
-            inset 0 0 40px rgba(80, 70, 65, 0.2);
-        border: 1px solid rgba(160, 150, 145, 0.2);
+            0 0 60px rgba(193, 68, 14, 0.2), /* 外圈微弱的紅光暈 */
+            inset 0 0 40px rgba(0, 0, 0, 0.8);
+        border: 1px solid rgba(214, 122, 58, 0.3);
         display: flex;
         justify-content: center;
         align-items: center;
@@ -115,22 +114,25 @@
 
     #mars-board { position: relative; }
 
-    /* 六邊形 */
+    /* 六邊形：換成火星經典的土鏽色 (赭石色) */
     .hex {
         position: absolute; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-        /* ★ 修改：底色調成偏土灰的棕色 ★ */
-        background-color: #5e4d45; 
-        background-image: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.5) 100%);
+        background-color: #8c5a48; /* 火星土色 */
+        background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%);
         transform: scale(0.95); display: flex; flex-direction: column; justify-content: center; align-items: center;
-        font-size: 10px; color: rgba(255,255,255,0.5); transition: all 0.2s; cursor: pointer; box-shadow: inset 0 0 8px rgba(0,0,0,0.8);
+        font-size: 10px; color: #fff; text-shadow: 1px 1px 2px #000;
+        transition: all 0.2s; cursor: pointer; box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
     }
-    .hex:hover { filter: brightness(1.5); transform: scale(1); z-index: 10; }
-    .hex.ocean-reserved { background-image: repeating-linear-gradient(45deg, rgba(33,150,243,0.4) 0, rgba(33,150,243,0.4) 4px, transparent 4px, transparent 8px); box-shadow: inset 0 0 10px rgba(33,150,243,0.8); color: var(--mars-blue); }
-    .hex.ocean-placed { background-color: var(--mars-blue); background-image: none; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); color: white; }
-    .hex.forest-placed { background-color: var(--mars-green); background-image: none; box-shadow: inset 0 0 10px rgba(0,0,0,0.6); }
-    .hex.city-placed { background-color: #757575; background-image: none; box-shadow: inset 0 0 10px rgba(0,0,0,0.6); }
-    .hex.neutral-placed { filter: grayscale(100%) brightness(0.8); border: 1px dashed rgba(255,255,255,0.3); }
-    .hex-reward { position: absolute; bottom: 2px; background: rgba(0,0,0,0.7); color: white; font-size: 9px; padding: 1px 3px; border-radius: 2px; pointer-events: none; white-space: nowrap; }
+    .hex:hover { filter: brightness(1.2); transform: scale(1); z-index: 10; }
+    
+    /* 保留海洋與綠化板塊的原本顏色 */
+    .hex.ocean-reserved { background-image: repeating-linear-gradient(45deg, rgba(33,150,243,0.4) 0, rgba(33,150,243,0.4) 4px, transparent 4px, transparent 8px); box-shadow: inset 0 0 10px rgba(33,150,243,0.8); color: var(--mars-blue); text-shadow: none; }
+    .hex.ocean-placed { background-color: var(--mars-blue); background-image: none; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); color: white; text-shadow: none; }
+    .hex.forest-placed { background-color: var(--mars-green); background-image: none; box-shadow: inset 0 0 10px rgba(0,0,0,0.6); color: white; text-shadow: none; }
+    .hex.city-placed { background-color: #4a4a4a; background-image: none; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); color: white; text-shadow: none; }
+    .hex.neutral-placed { filter: grayscale(100%) brightness(0.6); border: 1px dashed rgba(255,255,255,0.5); }
+
+    .hex-reward { position: absolute; bottom: 2px; background: rgba(0,0,0,0.8); color: white; font-size: 9px; padding: 1px 3px; border-radius: 2px; pointer-events: none; white-space: nowrap; text-shadow: none; }
 
     /* 卡牌區域 */
     #card-area {
@@ -213,10 +215,10 @@
     .kid-guide li { margin-bottom: 5px; }
     .highlight { color: #81c784; font-weight: bold; }
 
-    /* 手機板調整：自動縮小地圖以符合螢幕 */
+    /* 手機板調整 */
     @media (max-width: 768px) {
         #board-container { padding: 10px; }
-        #mars-atmosphere { padding: 15px; }
+        #mars-atmosphere { box-shadow: 0 0 30px rgba(120, 110, 105, 0.2); }
     }
 </style>
 </head>
@@ -575,10 +577,10 @@ const Game = {
 
     renderBoard() {
         const boardEl = document.getElementById('mars-board');
+        const atmosEl = document.getElementById('mars-atmosphere');
         if(!boardEl) return;
         boardEl.innerHTML = '';
         
-        // ★ 修改：地圖再次放大 (從 42 -> 52) ★
         const w = 52; 
         const h = 60; 
 
@@ -608,8 +610,16 @@ const Game = {
             boardEl.appendChild(hex);
         });
         
-        boardEl.style.width = `${9 * w}px`;
-        boardEl.style.height = `${9 * h * 0.75 + h * 0.25}px`;
+        const boardWidth = 9 * w;
+        const boardHeight = 9 * h * 0.75 + h * 0.25;
+
+        boardEl.style.width = `${boardWidth}px`;
+        boardEl.style.height = `${boardHeight}px`;
+
+        if (atmosEl) {
+            atmosEl.style.width = `${boardWidth}px`;
+            atmosEl.style.height = `${boardHeight}px`;
+        }
     },
 
     onHexClick(data) {
