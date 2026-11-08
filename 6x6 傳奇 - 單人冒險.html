@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>6x6 傳奇 - 單人冒險</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
+
+        :root {
+            --parchment: #f4e4c1;
+            --parchment-dark: #e0cda7;
+            --ink: #2b1d14;
+            --accent: #8b4513;
+            --gold: #d4af37;
+            --hp: #b22222;
+            --danger: #ff4500;
+            --bg-dark: #1a1512;
+            --road: #5c4033;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Noto Serif TC', serif;
+            background-color: var(--bg-dark);
+            color: var(--ink);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.8) 100%),
+                url('data:image/svg+xml;utf8,<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.4"/></svg>');
+        }
+
+        /* 頂部狀態列 */
+        #status-bar {
+            background: linear-gradient(to bottom, var(--parchment), var(--parchment-dark));
+            border-bottom: 3px solid var(--accent);
+            padding: 8px 10px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        .stat-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            background: rgba(255,255,255,0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(0,0,0,0.15);
+        }
+
+        /* 主要遊戲區 */
+        #game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+            padding: 10px;
+            overflow: hidden;
+            transition: opacity 0.5s ease;
+        }
+
+        /* 6x6 地圖 */
+        #map-container {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 2px;
+            background: #3e2723;
+            border: 4px solid var(--accent);
+            border-radius: 8px;
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1 / 1;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.6);
+            position: relative;
+        }
+
+        .map-cell {
+            background: var(--parchment);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .map-cell.visited { background: #e8d5b5; }
+        .map-cell.current { box-shadow: inset 0 0 0 3px var(--gold); z-index: 2; }
+        .map-cell.unexplored { background: #8c7b6e; color: rgba(0,0,0,0.3); cursor: default; }
+
+        /* 道路 SVG 繪製 */
+        .road-svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
+        .road-path { stroke: var(--road); stroke-width: 8; fill: none; stroke-linecap: round; }
+
+        .event-marker {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            background: var(--accent);
+            color: white;
+            font-size: 9px;
+            padding: 1px 3px;
+            border-radius: 3px;
+            font-weight: bold;
+            z-index: 3;
+        }
+
+        /* 對話與日誌面板 */
+        #log-panel {
+            width: 100%;
+            max-width: 450px;
+            background: rgba(244, 228, 193, 0.95);
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            height: 100px;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.5;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            scroll-behavior: smooth;
+        }
+
+        #log-text {
+            white-space: pre-wrap;
+        }
+
+        /* 操作按鈕區 */
+        #action-bar {
+            width: 100%;
+            max-width: 450px;
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            font-family: inherit;
+            font-weight: bold;
+            background: linear-gradient(to bottom, var(--parchment), var(--parchment-dark));
+            color: var(--ink);
+            border: 2px solid var(--accent);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 0 var(--accent);
+            transition: all 0.1s ease;
+            font-size: 13px;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(2px);
+            box-shadow: 0 0 0 var(--accent);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        button.primary { background: var(--accent); color: white; box-shadow: 0 2px 0 #4a250a; border-color: #4a250a; }
+        button.danger { background: var(--hp); color: white; box-shadow: 0 2px 0 #600; border-color: #600; }
+        button.gold { background: var(--gold); color: var(--ink); box-shadow: 0 2px 0 #b8860b; border-color: #b8860b; }
+
+        /* 底部導航 */
+        #bottom-nav {
+            background: var(--ink);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px;
+            border-top: 2px solid var(--accent);
+            z-index: 10;
+        }
+
+        #bottom-nav button {
+            background: transparent;
+            color: var(--parchment);
+            border: none;
+            box-shadow: none;
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 4px;
+            min-width: 50px;
+        }
+
+        #bottom-nav button:active { transform: scale(0.95); }
+        #bottom-nav button span { font-size: 18px; }
+
+        /* 彈窗/模態框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal-content {
+            background: var(--parchment);
+            padding: 20px;
+            border-radius: 8px;
+            border: 3px solid var(--accent);
+            max-width: 90%;
+            width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            color: var(--ink);
+        }
+
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        .modal-content h2 {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .modal-content p { margin-bottom: 10px; line-height: 1.6; font-size: 14px; }
+        .modal-content ul { padding-left: 20px; margin-bottom: 15px; font-size: 14px; }
+        .modal-content li { margin-bottom: 5px; }
+
+        /* 歷史紀錄側邊欄 */
+        #history-sidebar {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 280px;
+            height: 100%;
+            background: var(--parchment);
+            border-right: 3px solid var(--accent);
+            z-index: 50;
+            transition: left 0.3s ease;
+            padding: 15px;
+            overflow-y: auto;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+        }
+
+        #history-sidebar.active { left: 0; }
+        #history-sidebar h3 { color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 10px; }
+        .history-item { font-size: 12px; border-bottom: 1px dashed #ccc; padding: 8px 0; }
+
+        /* Toast 提示 */
+        #toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--ink);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 200;
+            border: 1px solid var(--gold);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* 面板控制 */
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        /* 物品與卷軸列表 */
+        .inventory-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .inv-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.5);
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 13px;
+        }
+        .inv-item button { min-width: 60px; flex: none; padding: 4px 8px; font-size: 11px; margin-left: 5px; }
+
+        /* 打字機光標 */
+        .cursor { display: inline-block; width: 2px; height: 1em; background: var(--ink); animation: blink 1s step-end infinite; vertical-align: bottom; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* 骰子動畫 */
+        .dice-roll {
+            display: inline-block;
+            animation: roll 0.5s ease;
+        }
+        @keyframes roll {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.5); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        @media (max-width: 480px) {
+            #status-bar { font-size: 11px; padding: 5px; }
+            .stat { padding: 1px 4px; }
+            button { padding: 6px 8px; font-size: 12px; min-width: 70px; }
+            #log-panel { height: 80px; font-size: 12px; }
+            .map-cell { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部狀態列 -->
+    <div id="status-bar">
+        <div class="stat-group">
+            <div class="stat">❤️ <span id="stat-hp">4/4</span></div>
+            <div class="stat">⚔️ <span id="stat-atk">1</span></div>
+            <div class="stat">💥 <span id="stat-dmg">1</span></div>
+            <div class="stat">👟 <span id="stat-spd">2</span></div>
+            <div class="stat">💰 <span id="stat-gold">1</span></div>
+            <div class="stat">🌟 <span id="stat-fame">0</span></div>
+        </div>
+        <div class="stat-group">
+            <div class="stat" id="stat-poison">☠️ <span>0</span></div>
+            <div class="stat">📅 <span id="stat-day">W1 D1</span></div>
+        </div>
+    </div>
+
+    <!-- 主遊戲區 -->
+    <div id="game-container">
+        <!-- 地圖 -->
+        <div id="map-container"></div>
+        
+        <!-- 日誌面板 -->
+        <div id="log-panel">
+            <div id="log-text"></div>
+        </div>
+
+        <!-- 操作按鈕 -->
+        <div id="action-bar">
+            <!-- 按鈕由 JS 動態生成 -->
+        </div>
+    </div>
+
+    <!-- 底部導航 -->
+    <div id="bottom-nav">
+        <button onclick="toggleModal('help')"><span>📖</span>說明</button>
+        <button onclick="toggleModal('inventory')"><span>🎒</span>背包</button>
+        <button onclick="toggleHistory()"><span>🕒</span>歷史</button>
+        <button onclick="saveGame()"><span>💾</span>存檔</button>
+        <button onclick="toggleSound()"><span id="sound-icon">🔊</span>音效</button>
+    </div>
+
+    <!-- 歷史紀錄側邊欄 -->
+    <div id="history-sidebar">
+        <h3>🕒 冒險軌跡</h3>
+        <div id="history-list"></div>
+    </div>
+
+    <!-- 通用彈窗 -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-content" id="modal-content"></div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div id="toast"></div>
+
+    <script>
+        // ================= 音效系統 =================
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+            if (type === 'click') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(); osc.stop(now + 0.1);
+            } else if (type === 'dice') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.setValueAtTime(600, now + 0.05);
+                osc.frequency.setValueAtTime(500, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(); osc.stop(now + 0.2);
+            } else if (type === 'damage') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(); osc.stop(now + 0.3);
+            } else if (type === 'heal') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(); osc.stop(now + 0.3);
+            } else if (type === 'win') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523, now);
+                osc.frequency.setValueAtTime(659, now + 0.1);
+                osc.frequency.setValueAtTime(784, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.start(); osc.stop(now + 0.4);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-icon').textContent = soundEnabled ? '🔊' : '🔇';
+            showToast(soundEnabled ? '音效已開啟' : '音效已關閉');
+        }
+
+        // ================= 遊戲資料 =================
+        const GameState = { SETUP: 'setup', PLAYING: 'playing', COMBAT: 'combat', GAME_OVER: 'game_over' };
+        
+        const Terrain = { PLAIN: 'plain', FOREST: 'forest', MOUNTAIN: 'mountain', SWAMP: 'swamp', VILLAGE: 'village' };
+
+        const MonsterData = {
+            1: {
+                swamp: { name: '骷髏', atk: 7, dmg: 1, hp: 2, icon: '💀' },
+                forest: { name: '大老鼠', atk: 9, dmg: 1, hp: 1, icon: '🐀' },
+                mountain: { name: '哥布林', atk: 6, dmg: 2, hp: 2, icon: '👺' },
+                plain: { name: '粉色史萊姆', atk: 8, dmg: 1, hp: 1, icon: '🟪', special: 'ambush' }
+            },
+            2: {
+                swamp: { name: '殭屍', atk: 8, dmg: 1, hp: 3, icon: '🧟', special: 'poison' },
+                forest: { name: '大蝙蝠', atk: 10, dmg: 1, hp: 1, icon: '🦇', special: 'ambush' },
+                mountain: { name: '獸人', atk: 7, dmg: 2, hp: 3, icon: '👹', special: 'regen' },
+                plain: { name: '藍色史萊姆', atk: 9, dmg: 2, hp: 2, icon: '🟦' }
+            },
+            3: {
+                swamp: { name: '食屍鬼', atk: 9, dmg: 2, hp: 5, icon: '🧟‍♂️' },
+                forest: { name: '巨型蜘蛛', atk: 11, dmg: 1, hp: 2, icon: '🕷️', special: 'poison' },
+                mountain: { name: '巨魔', atk: 8, dmg: 2, hp: 5, icon: '🧌', special: 'regen' },
+                plain: { name: '金色史萊姆', atk: 10, dmg: 2, hp: 3, icon: '🟨' }
+            }
+        };
+
+        const ScrollPrices = {
+            castle: { antidote: 1, dash: 1, rush: 0, carrot: 1, tomato: 0, pear: 3, spark: 1, blast: 2, kaboom: 0 },
+            e08: { antidote: 0, dash: 1, rush: 2, carrot: 0, tomato: 2, pear: 3, spark: 1, blast: 0, kaboom: 3 },
+            e15: { antidote: 1, dash: 0, rush: 2, carrot: 1, tomato: 2, pear: 0, spark: 0, blast: 2, kaboom: 3 }
+        };
+
+        const ScrollNames = { antidote: '解毒劑', dash: '猛衝', rush: '衝刺', carrot: '胡蘿蔔', tomato: '番茄', pear: '梨子', spark: '火花', blast: '衝擊波', kaboom: '爆炸' };
+
+        // ================= 遊戲狀態 =================
+        let state = {
+            screen: GameState.SETUP,
+            hero: {
+                name: '英雄',
+                race: 'human',
+                atk: 1, dmg: 1, spd: 2, poison: 0, maxHp: 4, hp: 4, gold: 1, fame: 0,
+                items: { pie: 0, potion: 0, ruby: 0, sword: 0 },
+                scrolls: { antidote: 0, dash: 0, rush: 0, carrot: 0, tomato: 0, pear: 0, spark: 0, blast: 0, kaboom: 0 }
+            },
+            week: 1, day: 1,
+            pos: { x: 0, y: 0 },
+            map: [],
+            activeEvent: null,
+            combat: null,
+            history: [],
+            tasks: []
+        };
+
+        let modalType = null;
+
+        // ================= 初始化與渲染 =================
+        function initGame() {
+            state.map = [];
+            for (let y = 0; y < 6; y++) {
+                for (let x = 0; x < 6; x++) {
+                    state.map.push({
+                        x, y, explored: false,
+                        road: { n: false, e: false, s: false, w: false },
+                        terrain: Terrain.PLAIN,
+                        event: null
+                    });
+                }
+            }
+            
+            // 起始城堡
+            state.pos = { x: Math.floor(Math.random() * 6), y: Math.floor(Math.random() * 6) };
+            let startCell = getCell(state.pos.x, state.pos.y);
+            startCell.explored = true;
+            startCell.road = { n: true, e: true, s: true, w: true };
+            startCell.terrain = Terrain.VILLAGE;
+            startCell.event = 'E01';
+
+            state.tasks.push({ id: 'main', qGiver: '英雄', qLoc: '任意', qNotes: '探索所有地圖：E02', completed: false });
+
+            state.screen = GameState.SETUP;
+            updateUI();
+            showModal('setup');
+        }
+
+        function getCell(x, y) {
+            if (x < 0 || x >= 6 || y < 0 || y >= 6) return null;
+            return state.map[y * 6 + x];
+        }
+
+        function updateUI() {
+            // 更新頂部狀態
+            document.getElementById('stat-hp').textContent = `${state.hero.hp}/${state.hero.maxHp}`;
+            document.getElementById('stat-atk').textContent = state.hero.atk;
+            document.getElementById('stat-dmg').textContent = state.hero.dmg;
+            document.getElementById('stat-spd').textContent = state.hero.spd;
+            document.getElementById('stat-gold').textContent = state.hero.gold;
+            document.getElementById('stat-fame').textContent = state.hero.fame;
+            document.getElementById('stat-poison').innerHTML = `☠️ <span>${state.hero.poison}</span>`;
+            document.getElementById('stat-day').textContent = `W${state.week} D${state.day}`;
+
+            // 更新地圖
+            const mapContainer = document.getElementById('map-container');
+            mapContainer.innerHTML = '';
+            state.map.forEach(cell => {
+                const cellDiv = document.createElement('div');
+                cellDiv.className = `map-cell ${cell.explored ? 'visited' : 'unexplored'} ${cell.x === state.pos.x && cell.y === state.pos.y ? 'current' : ''}`;
+                cellDiv.dataset.x = cell.x;
+                cellDiv.dataset.y = cell.y;
+
+                if (cell.explored) {
+                    // 繪製道路 SVG
+                    let path = '';
+                    const cx = 50, cy = 50;
+                    if (cell.road.n) path += `M ${cx} ${cy} L ${cx} 0 `;
+                    if (cell.road.e) path += `M ${cx} ${cy} L 100 ${cy} `;
+                    if (cell.road.s) path += `M ${cx} ${cy} L ${cx} 100 `;
+                    if (cell.road.w) path += `M ${cx} ${cy} L 0 ${cy} `;
+                    
+                    if (path) {
+                        cellDiv.innerHTML += `<svg class="road-svg" viewBox="0 0 100 100"><path class="road-path" d="${path}"/></svg>`;
+                    }
+
+                    // 地形圖標
+                    let icon = '';
+                    if (cell.terrain === Terrain.FOREST) icon = '🌲';
+                    else if (cell.terrain === Terrain.MOUNTAIN) icon = '⛰️';
+                    else if (cell.terrain === Terrain.SWAMP) icon = '🌊';
+                    else if (cell.terrain === Terrain.PLAIN) icon = '🌾';
+                    else if (cell.terrain === Terrain.VILLAGE) icon = '🏘️';
+                    
+                    if (cell.event === 'E01') icon = '🏰';
+                    
+                    cellDiv.innerHTML += `<span style="z-index:1; position:relative; text-shadow: 0 0 3px white">${icon}</span>`;
+                    
+                    if (cell.event) {
+                        cellDiv.innerHTML += `<div class="event-marker">${cell.event}</div>`;
+                    }
+                } else {
+                    cellDiv.innerHTML = '?';
+                }
+                mapContainer.appendChild(cellDiv);
+            });
+
+            updateActionButtons();
+        }
+
+        function updateActionButtons() {
+            const bar = document.getElementById('action-bar');
+            bar.innerHTML = '';
+
+            if (state.screen === GameState.SETUP) {
+                // 由 Modal 控制
+            } else if (state.screen === GameState.PLAYING) {
+                if (state.activeEvent) {
+                    addBtn(bar, '處理事件', () => processEvent(state.activeEvent), 'primary');
+                } else {
+                    addBtn(bar, '結束回合', () => endTurn());
+                    // 移動提示
+                    const hint = document.createElement('div');
+                    hint.style.cssText = 'width:100%; text-align:center; font-size:12px; color:var(--parchment); margin-top:5px;';
+                    hint.textContent = '👆 點擊地圖上相鄰且有道路連接的格子進行移動';
+                    bar.appendChild(hint);
+                }
+            } else if (state.screen === GameState.COMBAT) {
+                const c = state.combat;
+                if (c.phase === 'short_rest') {
+                    addBtn(bar, '🏃 逃跑 (1d6)', () => attemptEscape());
+                    addBtn(bar, '⚔️ 交戰 (2d6+Atk)', () => engageCombat(), 'primary');
+                } else if (c.phase === 'result') {
+                    addBtn(bar, '繼續', () => closeCombat(), 'primary');
+                }
+            } else if (state.screen === GameState.GAME_OVER) {
+                addBtn(bar, '重新開始', () => location.reload(), 'primary');
+            }
+        }
+
+        function addBtn(parent, text, onClick, className = '') {
+            const btn = document.createElement('button');
+            btn.textContent = text;
+            btn.className = className;
+            btn.onclick = () => { playSound('click'); onClick(); };
+            parent.appendChild(btn);
+        }
+
+        // ================= 核心邏輯：移動與探索 (R04) =================
+        document.getElementById('map-container').addEventListener('click', (e) => {
+            if (state.screen !== GameState.PLAYING || state.activeEvent) return;
+            const cellDiv = e.target.closest('.map-cell');
+            if (!cellDiv) return;
+            
+            const x = parseInt(cellDiv.dataset.x);
+            const y = parseInt(cellDiv.dataset.y);
+            handleMove(x, y);
+        });
+
+        function handleMove(tx, ty) {
+            const dist = Math.abs(tx - state.pos.x) + Math.abs(ty - state.pos.y);
+            if (dist !== 1) { showToast('只能移動到相鄰的格子！'); return; }
+            if (state.hero.spd <= 0) { showToast('速度不足，請結束回合！'); return; }
+
+            const currentCell = getCell(state.pos.x, state.pos.y);
+            const targetCell = getCell(tx, ty);
+            
+            // 檢查道路連接
+            let canMove = false;
+            if (tx > state.pos.x && currentCell.road.e) canMove = true;
+            if (tx < state.pos.x && currentCell.road.w) canMove = true;
+            if (ty > state.pos.y && currentCell.road.s) canMove = true;
+            if (ty < state.pos.y && currentCell.road.n) canMove = true;
+
+            if (!targetCell.explored) {
+                // 探索新格子，自動生成連接
+                canMove = true; 
+            }
+
+            if (!canMove) { showToast('沒有道路連接到該方向！'); return; }
+
+            state.hero.spd--;
+            state.pos = { x: tx, y: ty };
+            playSound('click');
+
+            if (!targetCell.explored) {
+                exploreCell(targetCell);
+            } else {
+                log(`移動到 ${getCoordString(tx, ty)}。`);
+                checkCellEvent(targetCell);
+            }
+            updateUI();
+        }
+
+        function exploreCell(cell) {
+            cell.explored = true;
+            const roll1 = Math.floor(Math.random() * 6) + 1; // 道路
+            const roll2 = Math.floor(Math.random() * 6) + 1; // 地形
+            
+            log(`探索新區域！道路骰:${roll1}, 地形骰:${roll2}`, true);
+            playSound('dice');
+
+            // 設定與前一個格子的連接
+            const prev = state.pos;
+            cell.road.n = (cell.y > prev.y);
+            cell.road.s = (cell.y < prev.y);
+            cell.road.e = (cell.x < prev.x);
+            cell.road.w = (cell.x > prev.x);
+
+            // 根據骰子生成其他方向的道路
+            // 0:無, 1:直, 2:彎, 3:T, 4:十字 (簡化實作)
+            if (roll1 <= 2) { // 直路
+                if (cell.road.n || cell.road.s) { cell.road.n = true; cell.road.s = true; }
+                else { cell.road.e = true; cell.road.w = true; }
+            } else if (roll1 <= 4) { // 彎路
+                // 已有連接點，再隨機接一個相鄰方向
+                const dirs = ['n','e','s','w'].filter(d => !cell.road[d]);
+                if (dirs.length > 0) {
+                    const d = dirs[Math.floor(Math.random() * dirs.length)];
+                    cell.road[d] = true;
+                }
+            } else if (roll1 === 5) { // T型
+                const dirs = ['n','e','s','w'].filter(d => !cell.road[d]);
+                if (dirs.length > 0) cell.road[dirs[Math.floor(Math.random() * dirs.length)]] = true;
+                if (dirs.length > 1) {
+                    const remaining = dirs.filter(d => !cell.road[d]);
+                    if (remaining.length > 0) cell.road[remaining[Math.floor(Math.random() * remaining.length)]] = true;
+                }
+            } else { // 十字
+                cell.road = { n: true, e: true, s: true, w: true };
+            }
+
+            // 更新相鄰格子的道路連接
+            const neighbors = [
+                { x: cell.x, y: cell.y - 1, dir: 's' }, // N
+                { x: cell.x + 1, y: cell.y, dir: 'w' }, // E
+                { x: cell.x, y: cell.y + 1, dir: 'n' }, // S
+                { x: cell.x - 1, y: cell.y, dir: 'e' }  // W
+            ];
+            neighbors.forEach(n => {
+                const nc = getCell(n.x, n.y);
+                if (nc && nc.explored) {
+                    if (cell.road[n.dir === 'n' ? 's' : n.dir === 's' ? 'n' : n.dir === 'e' ? 'w' : 'e']) {
+                        nc.road[n.dir] = true;
+                    }
+                }
+            });
+
+            // 地形
+            if (roll2 <= 2) cell.terrain = Terrain.PLAIN;
+            else if (roll2 === 3) cell.terrain = Terrain.MOUNTAIN;
+            else if (roll2 === 4) cell.terrain = Terrain.FOREST;
+            else if (roll2 === 5) cell.terrain = Terrain.SWAMP;
+            else {
+                cell.terrain = Terrain.VILLAGE;
+                // 第一個和第三個村莊寫 E08，第二和第四寫 E15
+                const villageCount = state.map.filter(c => c.terrain === Terrain.VILLAGE && c.event !== 'E01').length;
+                cell.event = (villageCount % 2 === 0) ? 'E08' : 'E15';
+            }
+
+            log(`發現 ${getTerrainName(cell.terrain)}。`);
+            checkCellEvent(cell);
+        }
+
+        function checkCellEvent(cell) {
+            if (cell.event) {
+                state.activeEvent = cell.event;
+                log(`觸發事件：${cell.event}。`);
+            }
+            updateUI();
+        }
+
+        // ================= 核心邏輯：事件 =================
+        function processEvent(eventId) {
+            if (state.screen !== GameState.PLAYING) return;
+            state.activeEvent = null; // 清除當前事件
+
+            switch(eventId) {
+                case 'E01':
+                    log('🏰 城堡：休息恢復 1 HP，解毒，可買賣卷軸。');
+                    state.hero.hp = Math.min(state.hero.maxHp, state.hero.hp + 1);
+                    state.hero.poison = 0;
+                    showModal('shop_castle');
+                    return;
+                case 'E08':
+                case 'E15':
+                    log('🏘️ 村莊：休息恢復 1 HP，可買賣卷軸。');
+                    state.hero.hp = Math.min(state.hero.maxHp, state.hero.hp + 1);
+                    showModal(eventId === 'E08' ? 'shop_e08' : 'shop_e15');
+                    return;
+                case 'E14':
+                    // 接任務 (簡化版)
+                    log('📜 接取新任務！');
+                    showToast('你接取了一個新任務。');
+                    break;
+                case 'E21':
+                    log('⚠️ 混沌騎士出現了！');
+                    startCombat('chaos_knight');
+                    return;
+                case 'E29':
+                    log('🎉 擊敗邪惡源頭！島嶼恢復和平。');
+                    state.hero.fame += 200;
+                    gameOver(true);
+                    return;
+                default:
+                    log(`事件 ${eventId} 處理完畢。`);
+                    break;
+            }
+            updateUI();
+        }
+
+        // ================= 核心邏輯：戰鬥 (R09) =================
+        function startCombat(monsterType) {
+            state.screen = GameState.COMBAT;
+            let monster;
+            if (monsterType === 'chaos_knight') {
+                monster = { name: '混沌騎士', atk: 10, dmg: 2, hp: 7, maxHp: 7, icon: '🌑', loot: 0, special: 'evolve' };
+            } else {
+                const terrain = getCell(state.pos.x, state.pos.y).terrain;
+                const data = MonsterData[state.week][terrain];
+                monster = { ...data, maxHp: data.hp, loot: state.week };
+            }
+
+            state.combat = { monster, round: 1, phase: 'short_rest', isAmbush: monster.special === 'ambush' };
+            
+            if (state.combat.isAmbush) {
+                log(`⚔️ 遭遇 ${monster.name}！怪物伏擊，跳過休息！`);
+                state.combat.phase = 'engage';
+            } else {
+                log(`⚔️ 遭遇 ${monster.name}！(Atk:${monster.atk}, Dmg:${monster.dmg}, HP:${monster.hp})`);
+            }
+            updateUI();
+        }
+
+        function attemptEscape() {
+            playSound('dice');
+            const roll = Math.floor(Math.random() * 6) + 1;
+            log(`🎲 逃跑擲骰：${roll}`);
+            
+            if (roll === 1) {
+                log('逃跑失敗！怪物攻擊！');
+                state.hero.hp -= state.combat.monster.dmg;
+                playSound('damage');
+                checkHeroDeath();
+                if (state.screen !== GameState.GAME_OVER) {
+                    state.combat.phase = 'short_rest';
+                }
+            } else {
+                log('成功逃跑了！');
+                closeCombat();
+                return;
+            }
+            updateUI();
+        }
+
+        function engageCombat() {
+            playSound('dice');
+            state.combat.phase = 'result';
+            const c = state.combat;
+            const m = c.monster;
+
+            // 混沌騎士進化
+            if (m.special === 'evolve') {
+                const evo = Math.floor(Math.random() * 6) + 1;
+                if (evo === 1) m.atk++;
+                else if (evo <= 3) m.dmg++;
+                else if (evo <= 5) { m.hp++; m.maxHp++; }
+                else { m.hp+=2; m.maxHp+=2; }
+                log(`混沌騎士進化！(Atk:${m.atk}, Dmg:${m.dmg}, HP:${m.hp})`);
+            }
+
+            const r1 = Math.floor(Math.random() * 6) + 1;
+            const r2 = Math.floor(Math.random() * 6) + 1;
+            const total = r1 + r2;
+            const atkTotal = total + state.hero.atk;
+
+            log(`🎲 交戰擲骰：${r1}+${r2} + ${state.hero.atk} = ${atkTotal}`);
+
+            if (total === 2) {
+                log('💥 怪物造成傷害！');
+                state.hero.hp -= m.dmg;
+                playSound('damage');
+            } else if (total === 12) {
+                log('✨ 大成功！額外傷害！');
+                const dmg = state.hero.dmg + (state.hero.race === 'elf' ? 2 : 1);
+                m.hp -= dmg;
+                playSound('damage');
+            } else {
+                if (atkTotal >= m.atk) {
+                    log('⚔️ 擊中怪物！');
+                    m.hp -= state.hero.dmg;
+                    playSound('damage');
+                } else {
+                    log('🩸 怪物擊中你！');
+                    state.hero.hp -= m.dmg;
+                    playSound('damage');
+                    if (m.special === 'poison') {
+                        state.hero.poison = 1;
+                        log('☠️ 中毒了！');
+                    }
+                }
+            }
+
+            // 怪物死亡判定
+            if (m.hp <= 0) {
+                if (m.special === 'regen') {
+                    const regen = Math.floor(Math.random() * 6) + Math.floor(Math.random() * 6) + 2;
+                    if (regen >= 4 && regen <= 6) {
+                        m.hp = 1;
+                        log('🧬 怪物再生，以 1 HP 復活！');
+                    } else {
+                        winCombat(); return;
+                    }
+                } else {
+                    winCombat(); return;
+                }
+            }
+
+            checkHeroDeath();
+            if (state.screen !== GameState.GAME_OVER) {
+                state.combat.round++;
+                state.combat.phase = 'short_rest';
+            }
+            updateUI();
+        }
+
+        function winCombat() {
+            const m = state.combat.monster;
+            if (m.loot > 0) {
+                state.hero.gold += m.loot;
+                log(`💰 獲得 ${m.loot} 金幣。`);
+            }
+            if (m.name === '混沌騎士') {
+                processEvent('E09');
+            } else {
+                state.combat.phase = 'result';
+            }
+            updateUI();
+        }
+
+        function closeCombat() {
+            state.combat = null;
+            state.screen = GameState.PLAYING;
+            state.activeEvent = null;
+            updateUI();
+        }
+
+        function checkHeroDeath() {
+            if (state.hero.hp <= 0) gameOver(false);
+        }
+
+        // ================= 核心邏輯：時間與回合 =================
+        function endTurn() {
+            if (state.screen !== GameState.PLAYING) return;
+            playSound('click');
+            
+            state.day++;
+            if (state.day > 6) {
+                state.day = 1;
+                state.week++;
+                if (state.week > 3) { gameOver(false); return; }
+            }
+
+            log(`--- W${state.week} D${state.day} ---`);
+
+            // 中毒判定
+            if (state.hero.poison === 1) {
+                const roll = Math.floor(Math.random() * 6) + Math.floor(Math.random() * 6) + 2;
+                if (roll <= 5) {
+                    state.hero.hp--;
+                    log('☠️ 中毒發作，HP-1');
+                    playSound('damage');
+                }
+            }
+
+            state.hero.spd = 2; // 重置速度
+            state.activeEvent = null;
+            checkHeroDeath();
+            updateUI();
+        }
+
+        function gameOver(isWin) {
+            state.screen = GameState.GAME_OVER;
+            log(isWin ? `🌟 勝利！聲望：${state.hero.fame}` : `☠️ 失敗。聲望：${state.hero.fame}`);
+            updateUI();
+        }
+
+        // ================= UI 輔助與 Modal =================
+        function log(msg, animate = false) {
+            const logText = document.getElementById('log-text');
+            if (animate) {
+                logText.innerHTML = '';
+                let i = 0;
+                const interval = setInterval(() => {
+                    if (i < msg.length) {
+                        logText.innerHTML += msg.charAt(i);
+                        i++;
+                    } else { clearInterval(interval); }
+                }, 20);
+            } else {
+                logText.innerHTML = msg;
+            }
+            document.getElementById('log-panel').scrollTop = document.getElementById('log-panel').scrollHeight;
+            state.history.push(msg);
+            updateHistoryUI();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        function updateHistoryUI() {
+            document.getElementById('history-list').innerHTML = state.history.slice(-30).map(h => `<div class="history-item">${h}</div>`).join('');
+        }
+
+        function toggleHistory() {
+            document.getElementById('history-sidebar').classList.toggle('active');
+            playSound('click');
+        }
+
+        function getCoordString(x, y) {
+            return `${['I','II','III','IV','V','VI'][x]}-${y+1}`;
+        }
+
+        function getTerrainName(t) {
+            return { plain: '平原', forest: '森林', mountain: '山地', swamp: '沼澤', village: '村莊' }[t] || t;
+        }
+
+        // ================= 彈窗系統 =================
+        function showModal(type, data = null) {
+            modalType = type;
+            const modal = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            content.innerHTML = '';
+
+            if (type === 'setup') {
+                content.innerHTML = `
+                    <h2>⚔️ 6x6 傳奇</h2>
+                    <p>選擇你的種族：</p>
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <button onclick="selectRace('human')">🧑 人類：獲得 2 金幣</button>
+                        <button onclick="selectRace('dwarf')">🧔 矮人：傷害 +1</button>
+                        <button onclick="selectRace('elf')">🧝 精靈：攻擊 +1</button>
+                        <button onclick="selectRace('hobbit')">🧑‍🌾 霍比特人：獲得餡餅 (+1/-1 骰子)</button>
+                    </div>
+                `;
+            } else if (type === 'help') {
+                content.innerHTML = `
+                    <h2>📖 遊戲說明</h2>
+                    <p><strong>目標：</strong>探索 6x6 島嶼，擊敗怪物，完成任務，最終擊敗混沌騎士！</p>
+                    <p><strong>回合流程：</strong>移動 (消耗速度) ➔ 處理事件 ➔ 結束回合。</p>
+                    <p><strong>戰鬥：</strong>短暫休息可逃跑或交戰。交戰擲 2d6+Atk 對抗怪物 Atk。</p>
+                    <p><strong>提示：</strong>點擊地圖相鄰格移動，城堡與村莊可恢復 HP。</p>
+                    <button onclick="closeModal()" style="width:100%; margin-top:10px;">我準備好了</button>
+                `;
+            } else if (type === 'shop_castle' || type === 'shop_e08' || type === 'shop_e15') {
+                const shopKey = type.split('_')[1];
+                content.innerHTML = `
+                    <h2>🏪 商店</h2>
+                    <p>金幣：💰 ${state.hero.gold}</p>
+                    <div class="inventory-list">
+                        ${Object.keys(ScrollPrices[shopKey]).map(k => {
+                            const price = ScrollPrices[shopKey][k];
+                            if (price === 0) return '';
+                            return `<div class="inv-item">
+                                <span>${ScrollNames[k]} (💰${price})</span>
+                                <div>
+                                    <button onclick="buyScroll('${k}', ${price}, '${shopKey}')">買</button>
+                                    <button onclick="sellScroll('${k}', ${price - (state.hero.race === 'human' ? 0 : 1)})">賣</button>
+                                </div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                    <button onclick="closeModal()" style="width:100%; margin-top:15px;">離開</button>
+                `;
+            } else if (type === 'inventory') {
+                content.innerHTML = `
+                    <h2>🎒 背包</h2>
+                    <p><strong>卷軸：</strong></p>
+                    <div class="inventory-list">
+                        ${Object.keys(state.hero.scrolls).map(k => {
+                            if (state.hero.scrolls[k] > 0) return `<div class="inv-item"><span>${ScrollNames[k]}</span><span>x${state.hero.scrolls[k]}</span></div>`;
+                            return '';
+                        }).join('') || '<p>無</p>'}
+                    </div>
+                    <button onclick="closeModal()" style="width:100%; margin-top:15px;">關閉</button>
+                `;
+            }
+
+            modal.classList.add('active');
+            playSound('click');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('active');
+            modalType = null;
+            if (state.screen === GameState.SETUP && !state.activeEvent) {
+                state.screen = GameState.PLAYING;
+                log('冒險開始！你從城堡出發。');
+                updateUI();
+            }
+            playSound('click');
+        }
+
+        function selectRace(race) {
+            state.hero.race = race;
+            if (race === 'human') state.hero.gold += 2;
+            else if (race === 'dwarf') state.hero.dmg += 1;
+            else if (race === 'elf') state.hero.atk += 1;
+            else if (race === 'hobbit') state.hero.items.pie = 1;
+            
+            closeModal();
+        }
+
+        function buyScroll(key, price, shopKey) {
+            if (state.hero.gold >= price) {
+                state.hero.gold -= price;
+                state.hero.scrolls[key]++;
+                playSound('heal');
+                updateUI();
+                showModal('shop_' + shopKey); // 重繪
+            } else {
+                showToast('金幣不足！');
+            }
+        }
+
+        function sellScroll(key, price) {
+            if (state.hero.scrolls[key] > 0) {
+                if (price < 0) price = 0;
+                state.hero.gold += price;
+                state.hero.scrolls[key]--;
+                playSound('click');
+                updateUI();
+                showModal(modalType); // 重繪
+            } else {
+                showToast('沒有該卷軸！');
+            }
+        }
+
+        // ================= 存讀檔 =================
+        function saveGame() {
+            try {
+                localStorage.setItem('6x6TalesSave', JSON.stringify(state));
+                showToast('遊戲已儲存！');
+            } catch(e) { showToast('儲存失敗。'); }
+        }
+
+        function loadGame() {
+            try {
+                const saved = localStorage.getItem('6x6TalesSave');
+                if (saved) {
+                    state = JSON.parse(saved);
+                    updateUI();
+                    showToast('遊戲已載入！');
+                } else showToast('找不到存檔。');
+            } catch(e) { showToast('讀取失敗。'); }
+        }
+
+        // 啟動
+        window.onload = initGame;
+
+    </script>
+</body>
+</html>
