@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>西部淘金客 (FLIPTOWN) - 復古撲克冒險</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
+
+        :root {
+            --parchment: #f4ecd8;
+            --dark-brown: #3e2723;
+            --wood: #5d4037;
+            --gold: #ffc107;
+            --danger: #b71c1c;
+            --star: #ffd54f;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Serif TC', serif;
+            background-color: #2c1e16;
+            color: var(--dark-brown);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 羊皮紙背景與暗角 */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: 
+                radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.6) 100%),
+                repeating-linear-gradient(45deg, #f4ecd8, #f4ecd8 10px, #efe6d5 10px, #efe6d5 20px);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+
+        /* 頂部狀態列 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(62, 39, 35, 0.9);
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            border: 2px solid var(--gold);
+            font-size: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+            z-index: 10;
+        }
+        .stat { display: flex; align-items: center; gap: 5px; font-weight: bold; }
+        .stat svg { width: 18px; height: 18px; }
+
+        /* 主要遊戲區 */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 卡牌展示區 */
+        #card-area {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            min-height: 120px;
+            align-items: center;
+        }
+        .poker-card {
+            width: 80px;
+            height: 120px;
+            background: #fff;
+            border-radius: 8px;
+            border: 2px solid #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 5px;
+            box-sizing: border-box;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease, opacity 0.3s;
+        }
+        .poker-card.red { color: var(--danger); }
+        .poker-card.black { color: #000; }
+        .poker-card.hidden { 
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="120"><rect width="100%" height="100%" fill="%235d4037"/><path d="M40 20 L60 60 L40 100 L20 60 Z" fill="%23ffc107"/></svg>') center/cover; 
+            border: 2px solid var(--gold); 
+        }
+
+        /* 事件文字框 (打字機效果) */
+        #event-log {
+            width: 90%;
+            max-width: 600px;
+            height: 130px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--wood);
+            border-radius: 5px;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 15px;
+            line-height: 1.6;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* 行動按鈕區 */
+        #action-area {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+            width: 90%;
+            max-width: 400px;
+            min-height: 100px;
+        }
+        .btn {
+            padding: 12px;
+            background: var(--wood);
+            color: #fff;
+            border: 2px solid var(--gold);
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .btn:hover:not(:disabled) { background: #795548; transform: scale(1.05); }
+        .btn:active:not(:disabled) { transform: scale(0.95); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; border-color: #666; background: #888; }
+        .btn.primary { grid-column: span 2; background: var(--danger); border-color: var(--gold); }
+        .btn.primary:hover:not(:disabled) { background: #d32f2f; }
+
+        /* 底部導航 */
+        footer {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(62, 39, 35, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            border: 2px solid var(--gold);
+            z-index: 10;
+        }
+        footer .btn { padding: 8px; font-size: 14px; flex: 1; margin: 0 5px; }
+
+        /* 彈窗 */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--parchment);
+            padding: 20px;
+            border-radius: 10px;
+            border: 4px solid var(--wood);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px; right: 10px;
+            font-size: 24px;
+            cursor: pointer;
+            background: none; border: none;
+            color: var(--dark-brown);
+        }
+
+        /* 歷史紀錄面板 */
+        #history-panel {
+            position: fixed;
+            top: 0; right: -300px;
+            width: 300px; height: 100%;
+            background: rgba(244, 236, 216, 0.95);
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            transition: right 0.3s ease;
+            z-index: 50;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-left: 4px solid var(--wood);
+        }
+        #history-panel.active { right: 0; }
+
+        /* Toast 提示 */
+        #toast {
+            position: fixed;
+            bottom: 80px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 200;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* 手機適配 */
+        @media (max-width: 600px) {
+            .poker-card { width: 60px; height: 90px; font-size: 16px; }
+            #event-log { height: 110px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <header>
+        <div class="stat" title="現金">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 6v2m0 8v2"/></svg>
+            <span id="ui-cash">$3</span>
+        </div>
+        <div class="stat" title="黃金">
+            <svg viewBox="0 0 24 24" fill="#ffc107" stroke="#b8860b" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <span id="ui-gold">0</span>
+        </div>
+        <div class="stat" title="星星">
+            <svg viewBox="0 0 24 24" fill="#ffd54f" stroke="#ffb300" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span id="ui-stars">0</span>
+        </div>
+        <div class="stat" title="通緝度" style="color:#ff8a80">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v6l4 2"/></svg>
+            <span id="ui-wanted">0</span>
+        </div>
+        <div class="stat" title="回合">
+            <span id="ui-turn">1 / 5</span>
+        </div>
+    </header>
+
+    <main>
+        <div id="bounty-display" style="margin-bottom: 10px; text-align: center; font-size: 14px; background: rgba(255,255,255,0.8); padding: 5px 15px; border-radius: 15px; border: 1px solid var(--wood); box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            當前懸賞：<span id="ui-bounty" style="font-weight: bold; color: var(--danger);">載入中...</span>
+        </div>
+
+        <div id="card-area">
+            <div class="poker-card hidden" id="draw-pile"></div>
+            <div class="poker-card hidden" id="current-card" style="display:none;"></div>
+        </div>
+
+        <div id="event-log"></div>
+
+        <div id="action-area">
+            <button class="btn primary" id="btn-draw" onclick="drawCard()">開始遊戲</button>
+            <button class="btn" id="btn-trail" onclick="performAction('trail')" disabled>小路 (Trail)</button>
+            <button class="btn" id="btn-badlands" onclick="performAction('badlands')" disabled>荒野 (Badlands)</button>
+            <button class="btn" id="btn-mine" onclick="performAction('mine')" disabled>礦區 (Mine)</button>
+            <button class="btn" id="btn-town" onclick="performAction('town')" disabled>城鎮 (Town)</button>
+        </div>
+    </main>
+
+    <footer>
+        <button class="btn" onclick="toggleModal('rules-modal')">說明</button>
+        <button class="btn" onclick="saveGame()">存檔</button>
+        <button class="btn" onclick="loadGame()">讀檔</button>
+        <button class="btn" onclick="toggleHistory()">紀錄</button>
+        <button class="btn" onclick="toggleSound()" id="btn-sound">🔊</button>
+    </footer>
+</div>
+
+<div id="history-panel">
+    <h3 style="margin-top:0; border-bottom: 2px solid var(--wood); padding-bottom: 10px;">冒險紀錄</h3>
+    <ul id="history-list" style="padding-left: 20px; font-size: 14px; line-height: 1.8;"></ul>
+</div>
+
+<div class="modal" id="rules-modal">
+    <div class="modal-content">
+        <button class="close-btn" onclick="toggleModal('rules-modal')">×</button>
+        <h2 style="text-align: center;">🤠 FLIPTOWN 西部淘金客</h2>
+        <p><strong>遊戲目標：</strong>在 5 個回合內，透過翻牌探索地圖、收集資源，並在最後結算時獲得最高的分數。</p>
+        <h3>玩法流程</h3>
+        <ul style="line-height: 1.6;">
+            <li><strong>抽牌：</strong>每回合抽一張牌，決定你能獲得的資源量或事件的強度。</li>
+            <li><strong>選擇地點：</strong>
+                <ul>
+                    <li>🛤️ <strong>小路 (Trail)：</strong>獲得星星（最終得分），但可能會增加通緝度。</li>
+                    <li>🏜️ <strong>荒野 (Badlands)：</strong>高風險高回報，可能獲得大量現金，但也可能受傷。</li>
+                    <li>⛏️ <strong>礦區 (Mine)：</strong>穩定獲得黃金，黃金是關鍵資源。</li>
+                    <li>🏘️ <strong>城鎮 (Town)：</strong>花費現金降低通緝度。</li>
+                </ul>
+            </li>
+            <li><strong>警長逮捕：</strong>第 5 回合結束後，警長會進行結算。如果你的通緝度太高，你將被逮捕並沒收一半現金。</li>
+        </ul>
+        <h3>特殊機制</h3>
+        <p>翻開的牌會加入你的「撲克手牌」中。當回合結束時，手牌的牌型（如對子、順子、葫蘆）會提供額外加分！</p>
+        <button class="btn" style="margin-top: 15px; width: 100%;" onclick="toggleModal('rules-modal')">開始遊戲</button>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    let audioCtx;
+    let soundEnabled = true;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playSound(type) {
+        if (!soundEnabled) return;
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        if (type === 'click') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'draw') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        } else if (type === 'success') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(554, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+        } else if (type === 'fail') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        }
+    }
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        document.getElementById('btn-sound').innerText = soundEnabled ? '🔊' : '🔇';
+        if(soundEnabled) playSound('click');
+    }
+
+    const GameState = {
+        phase: 'start', 
+        turn: 1,
+        maxTurns: 5,
+        cash: 3,
+        gold: 0,
+        stars: 0,
+        wanted: 0,
+        pokerHand: [],
+        deck: [],
+        currentCard: null,
+        bounty: null,
+        history: []
+    };
+
+    const Bounties = [
+        { text: "收集至少 9 個黃金", check: (s) => s.gold >= 9, reward: 7 },
+        { text: "擁有至少 $30 現金", check: (s) => s.cash >= 30, reward: 7 },
+        { text: "獲得至少 10 顆星星", check: (s) => s.stars >= 10, reward: 7 },
+        { text: "通緝度保持在 3 以下", check: (s) => s.wanted < 3, reward: 7 }
+    ];
+
+    const Suits = ['♠', '♥', '♦', '♣'];
+    const Values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+
+    function createDeck() {
+        let deck = [];
+        for (let suit of Suits) {
+            for (let i = 0; i < Values.length; i++) {
+                deck.push({ suit, value: Values[i], point: i + 2 });
+            }
+        }
+        for (let i = deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        return deck;
+    }
+
+    function updateUI() {
+        document.getElementById('ui-cash').innerText = `$${GameState.cash}`;
+        document.getElementById('ui-gold').innerText = GameState.gold;
+        document.getElementById('ui-stars').innerText = GameState.stars;
+        document.getElementById('ui-wanted').innerText = GameState.wanted;
+        document.getElementById('ui-turn').innerText = `${GameState.turn} / ${GameState.maxTurns}`;
+        
+        if (GameState.bounty) {
+            document.getElementById('ui-bounty').innerText = GameState.bounty.text;
+        }
+
+        const btnDraw = document.getElementById('btn-draw');
+        const actionBtns = ['trail', 'badlands', 'mine', 'town'].map(id => document.getElementById(`btn-${id}`));
+
+        btnDraw.style.display = 'block';
+        actionBtns.forEach(b => b.style.display = 'block');
+
+        if (GameState.phase === 'start') {
+            btnDraw.disabled = false;
+            btnDraw.innerText = "開始遊戲";
+            actionBtns.forEach(b => {
+                b.disabled = true;
+                b.style.display = 'none'; 
+            });
+        } else if (GameState.phase === 'turn') {
+            if (!GameState.currentCard) {
+                btnDraw.disabled = false;
+                btnDraw.innerText = "抽牌";
+                actionBtns.forEach(b => b.disabled = true);
+            } else {
+                btnDraw.disabled = true;
+                actionBtns.forEach(b => b.disabled = false);
+            }
+        } else if (GameState.phase === 'gameover') {
+            btnDraw.disabled = false;
+            btnDraw.innerText = "重新開始";
+            actionBtns.forEach(b => {
+                b.disabled = true;
+                b.style.display = 'none'; 
+            });
+        }
+    }
+
+    let typewriterTimeout;
+    function typeWriter(text, element, speed = 25) {
+        clearTimeout(typewriterTimeout);
+        element.innerHTML = ''; 
+        
+        if (text.includes('<')) {
+            element.innerHTML = text;
+            return;
+        }
+
+        let i = 0;
+        function type() {
+            if (i < text.length) {
+                element.innerHTML += text.charAt(i);
+                i++;
+                typewriterTimeout = setTimeout(type, speed);
+            }
+        }
+        type();
+        
+        element.onclick = () => {
+            clearTimeout(typewriterTimeout);
+            element.innerHTML = text;
+            element.onclick = null;
+        };
+    }
+
+    function log(msg) {
+        const logEl = document.getElementById('event-log');
+        const formattedMsg = msg.replace(/\n/g, '<br>');
+        typeWriter(formattedMsg, logEl);
+        GameState.history.push(msg);
+        updateHistoryUI();
+    }
+
+    function updateHistoryUI() {
+        const list = document.getElementById('history-list');
+        list.innerHTML = GameState.history.map(h => `<li>${h}</li>`).join('');
+    }
+
+    function toggleHistory() {
+        document.getElementById('history-panel').classList.toggle('active');
+        playSound('click');
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.style.opacity = 1;
+        setTimeout(() => { toast.style.opacity = 0; }, 2000);
+    }
+
+    function startGame() {
+        GameState.phase = 'turn';
+        GameState.turn = 1;
+        GameState.cash = 3;
+        GameState.gold = 0;
+        GameState.stars = 0;
+        GameState.wanted = 0;
+        GameState.pokerHand = [];
+        GameState.deck = createDeck();
+        GameState.currentCard = null;
+        GameState.history = [];
+        
+        GameState.bounty = Bounties[Math.floor(Math.random() * Bounties.length)];
+        
+        document.getElementById('current-card').style.display = 'none';
+        document.getElementById('draw-pile').style.display = 'block';
+        document.getElementById('event-log').innerHTML = '';
+        
+        log(`歡迎來到西部！你的懸賞目標是：\n【${GameState.bounty.text}】\n點擊「抽牌」開始你的回合。`);
+        updateUI();
+    }
+
+    function drawCard() {
+        if (GameState.phase === 'start' || GameState.phase === 'gameover') {
+            playSound('success');
+            startGame();
+            return;
+        }
+
+        if (GameState.phase !== 'turn' || GameState.currentCard) return;
+        
+        playSound('draw');
+        GameState.currentCard = GameState.deck.pop();
+        
+        const cardEl = document.getElementById('current-card');
+        const isRed = GameState.currentCard.suit === '♥' || GameState.currentCard.suit === '♦';
+        
+        cardEl.className = `poker-card ${isRed ? 'red' : 'black'}`;
+        cardEl.innerHTML = `<div>${GameState.currentCard.value}</div><div style="text-align:right">${GameState.currentCard.suit}</div>`;
+        cardEl.style.display = 'flex';
+        
+        log(`你抽到了 【${GameState.currentCard.suit}${GameState.currentCard.value}】。請選擇一個地點進行探索。`);
+        updateUI();
+    }
+
+    function performAction(location) {
+        if (!GameState.currentCard || GameState.phase !== 'turn') return;
+        
+        const card = GameState.currentCard;
+        const val = card.point;
+        let msg = "";
+
+        playSound('click');
+
+        switch(location) {
+            case 'trail':
+                let trailStars = Math.floor(val / 4) + 1;
+                GameState.stars += trailStars;
+                GameState.wanted += 1; 
+                msg = `你沿著小路前進，獲得了 ${trailStars} 顆星星，但通緝度增加了 1。`;
+                break;
+            case 'badlands':
+                if (val >= 10) {
+                    GameState.cash += 5;
+                    msg = `你在荒野中發現了廢棄的馬車！獲得了 $5。`;
+                } else {
+                    let loss = Math.min(GameState.cash, 2);
+                    GameState.cash -= loss;
+                    GameState.wanted += 2;
+                    msg = `你遭到了強盜搶劫！損失了 $${loss}，通緝度增加 2。`;
+                }
+                break;
+            case 'mine':
+                let goldGained = Math.floor(val / 3) + 1;
+                GameState.gold += goldGained;
+                msg = `你在礦區努力挖掘，獲得了 ${goldGained} 個黃金。`;
+                break;
+            case 'town':
+                if (GameState.cash >= 3) {
+                    GameState.cash -= 3;
+                    GameState.wanted = Math.max(0, GameState.wanted - 2);
+                    msg = `你在城鎮的酒館花費 $3 請大家喝酒，通緝度降低了 2。`;
+                } else {
+                    showToast("現金不足！無法在城鎮消費。");
+                    return; 
+                }
+                break;
+        }
+
+        if (GameState.pokerHand.length < 5) {
+            GameState.pokerHand.push(card);
+            msg += ` (卡牌已加入撲克手牌)`;
+        }
+
+        log(msg);
+        GameState.currentCard = null;
+        document.getElementById('current-card').style.display = 'none';
+        
+        GameState.turn++;
+        if (GameState.turn > GameState.maxTurns) {
+            endGame();
+        } else {
+            log(`\n第 ${GameState.turn} 回合開始。請抽牌。`);
+            updateUI();
+        }
+    }
+
+    function evaluatePokerHand(hand) {
+        if (hand.length === 0) return { name: "無牌型", score: 0 };
+        
+        const values = hand.map(c => c.point).sort((a,b) => a-b);
+        const suits = hand.map(c => c.suit);
+        
+        const isFlush = suits.every(s => s === suits[0]);
+        let isStraight = true;
+        for (let i = 1; i < values.length; i++) {
+            if (values[i] !== values[i-1] + 1) { isStraight = false; break; }
+        }
+        if (values.join(',') === '2,3,4,5,14') isStraight = true;
+
+        const counts = {};
+        values.forEach(v => counts[v] = (counts[v] || 0) + 1);
+        const countValues = Object.values(counts).sort((a,b) => b-a);
+
+        if (isFlush && isStraight) return { name: "同花順", score: 9 };
+        if (countValues[0] === 4) return { name: "四條", score: 8 };
+        if (countValues[0] === 3 && countValues[1] === 2) return { name: "葫蘆", score: 7 };
+        if (isFlush) return { name: "同花", score: 6 };
+        if (isStraight) return { name: "順子", score: 5 };
+        if (countValues[0] === 3) return { name: "三條", score: 4 };
+        if (countValues[0] === 2 && countValues[1] === 2) return { name: "兩對", score: 3 };
+        if (countValues[0] === 2) return { name: "一對", score: 2 };
+        return { name: "散牌", score: 1 };
+    }
+
+    function endGame() {
+        GameState.phase = 'gameover';
+        playSound('success');
+        
+        document.getElementById('current-card').style.display = 'none';
+        
+        let summary = `\n=== 遊戲結束 ===\n`;
+        
+        let poker = evaluatePokerHand(GameState.pokerHand);
+        let pokerScore = poker.score * 2; 
+        GameState.stars += pokerScore;
+        summary += `撲克手牌：${poker.name}，獲得 ${pokerScore} 顆星星。\n`;
+        
+        if (GameState.bounty.check(GameState)) {
+            GameState.stars += GameState.bounty.reward;
+            summary += `達成懸賞目標！額外獲得 ${GameState.bounty.reward} 顆星星。\n`;
+        } else {
+            summary += `未達成懸賞目標。\n`;
+        }
+
+        let sheriffCard = GameState.deck.pop();
+        summary += `警長翻開了 ${sheriffCard.suit}${sheriffCard.value} (點數 ${sheriffCard.point})。\n`;
+        
+        if (GameState.wanted >= sheriffCard.point) {
+            summary += `你被警長逮捕了！你必須支付一半的現金 ($${Math.floor(GameState.cash/2)}) 作為罰款。\n`;
+            GameState.cash = Math.floor(GameState.cash / 2);
+            playSound('fail');
+        } else {
+            summary += `你的通緝度 (${GameState.wanted}) 低於警長，安全躲過追捕。\n`;
+        }
+
+        let goldScore = GameState.gold * 2;
+        GameState.stars += goldScore;
+        summary += `黃金結算：${GameState.gold} 個黃金，轉換為 ${goldScore} 顆星星。\n`;
+        
+        let finalScore = GameState.stars + GameState.cash;
+        
+        summary += `\n【最終得分：${finalScore} 分】 (星星: ${GameState.stars} + 現金: $${GameState.cash})\n`;
+        
+        if (finalScore >= 30) summary += `🏆 傳奇的西部英雄！`;
+        else if (finalScore >= 15) summary += `🌟 小有名氣的淘金客。`;
+        else summary += `🤠 也許下次運氣會更好。`;
+
+        log(summary);
+        updateUI();
+    }
+
+    function saveGame() {
+        if (GameState.phase === 'start') {
+            showToast("遊戲尚未開始，無需存檔。");
+            return;
+        }
+        localStorage.setItem('fliptown_save', JSON.stringify(GameState));
+        showToast("遊戲已成功存檔！");
+        playSound('success');
+    }
+
+    function loadGame() {
+        const saved = localStorage.getItem('fliptown_save');
+        if (!saved) {
+            showToast("找不到存檔！");
+            return;
+        }
+        const data = JSON.parse(saved);
+        Object.assign(GameState, data);
+        
+        if (GameState.currentCard) {
+            const cardEl = document.getElementById('current-card');
+            const isRed = GameState.currentCard.suit === '♥' || GameState.currentCard.suit === '♦';
+            cardEl.className = `poker-card ${isRed ? 'red' : 'black'}`;
+            cardEl.innerHTML = `<div>${GameState.currentCard.value}</div><div style="text-align:right">${GameState.currentCard.suit}</div>`;
+            cardEl.style.display = 'flex';
+        } else {
+            document.getElementById('current-card').style.display = 'none';
+        }
+        
+        document.getElementById('draw-pile').style.display = 'block';
+        log(`存檔已讀取。繼續你的冒險吧！`);
+        updateUI();
+        updateHistoryUI();
+        showToast("讀取成功！");
+        playSound('success');
+    }
+
+    function toggleModal(id) {
+        document.getElementById(id).classList.toggle('active');
+        playSound('click');
+    }
+
+    window.onload = () => {
+        updateUI();
+        setTimeout(() => {
+            toggleModal('rules-modal');
+        }, 500);
+    };
+</script>
+</body>
+</html>

@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NONA Roll in Cook - 星級餐廳</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
+
+        :root {
+            --bg-wood: #6d4c41;
+            --bg-tile: #efebe9;
+            --primary: #d84315;
+            --secondary: #ff8f00;
+            --text-dark: #3e2723;
+            --star: #ffca28;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Serif TC', serif;
+            background-color: var(--bg-wood);
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)),
+                repeating-linear-gradient(45deg, #5d4037, #5d4037 10px, #4e342e 10px, #4e342e 20px);
+            color: var(--text-dark);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 餐廳磁磚背景 */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-tile);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            border: 8px solid #3e2723;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* 頂部狀態列 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--primary);
+            color: #fff;
+            padding: 10px 15px;
+            border-bottom: 4px solid var(--text-dark);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        .stat { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 18px; }
+        .stat .icon { font-size: 24px; }
+
+        /* 主要遊戲區 */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        /* 訂單/食譜區 */
+        #recipe-area {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            align-items: center;
+        }
+        .recipe-card {
+            min-width: 120px;
+            background: #fff;
+            border-radius: 8px;
+            border: 2px solid var(--text-dark);
+            padding: 8px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+        .recipe-card .title { font-weight: bold; font-size: 14px; margin-bottom: 5px; border-bottom: 1px dashed #ccc; width: 100%; text-align: center; }
+        .recipe-card .req { display: flex; gap: 5px; font-size: 20px; margin-bottom: 5px; }
+        .recipe-card .btn-cook {
+            background: var(--secondary);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .recipe-card .btn-cook:hover:not(:disabled) { background: #f57c00; }
+        .recipe-card .btn-cook:disabled { background: #bdbdbd; cursor: not-allowed; }
+        .recipe-card .reward { position: absolute; top: -10px; right: -10px; background: var(--star); border-radius: 50%; padding: 5px; font-size: 12px; font-weight: bold; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+
+        /* 抽牌區 (六角形備餐區靈感) */
+        #draw-area {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 10px 0;
+        }
+        .ingredient-deck {
+            width: 80px;
+            height: 100px;
+            background: #fff;
+            border-radius: 8px;
+            border: 3px solid var(--primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            cursor: pointer;
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .ingredient-deck::after {
+            content: '抽食材';
+            position: absolute;
+            bottom: -25px;
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-dark);
+        }
+        .ingredient-deck:hover:not(.disabled) { transform: translateY(-5px); }
+        .ingredient-deck.disabled { opacity: 0.5; cursor: not-allowed; border-color: #999; }
+
+        /* 手牌區 (食材) */
+        #hand-area {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 10px;
+            border: 2px dashed #8d6e63;
+            min-height: 80px;
+            overflow-x: auto;
+            align-items: center;
+        }
+        .ingredient {
+            width: 50px;
+            height: 50px;
+            background: #fff;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+            animation: popIn 0.3s ease-out;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* 行動區 */
+        #action-area {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            background: var(--text-dark);
+            color: #fff;
+            border: 2px solid #fff;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .btn:hover:not(:disabled) { background: #4e342e; transform: scale(1.05); }
+        .btn:active:not(:disabled) { transform: scale(0.95); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* 底部導航列 */
+        footer {
+            display: flex;
+            justify-content: space-around;
+            background: var(--text-dark);
+            padding: 10px;
+            z-index: 10;
+        }
+        footer .btn { padding: 8px 12px; font-size: 14px; flex: 1; margin: 0 5px; background: var(--primary); border: none; }
+
+        /* 歷史紀錄面板 */
+        #history-panel {
+            position: fixed;
+            top: 0; right: -300px;
+            width: 300px; height: 100%;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            transition: right 0.3s ease;
+            z-index: 50;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-left: 4px solid var(--primary);
+        }
+        #history-panel.active { right: 0; }
+
+        /* 彈窗 */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            border: 4px solid var(--primary);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px; right: 10px;
+            font-size: 24px;
+            cursor: pointer;
+            background: none; border: none;
+            color: var(--primary);
+        }
+
+        /* 提示 */
+        #toast {
+            position: fixed;
+            bottom: 80px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 200;
+            font-weight: bold;
+            border: 2px solid var(--star);
+        }
+
+        /* 手機適配 */
+        @media (max-width: 600px) {
+            .recipe-card { min-width: 100px; padding: 5px; }
+            .recipe-card .title { font-size: 12px; }
+            .ingredient-deck { width: 60px; height: 80px; font-size: 30px; }
+            .ingredient { width: 40px; height: 40px; font-size: 22px; }
+            header { padding: 10px; }
+            .stat { font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <header>
+        <div class="stat">
+            <span class="icon">⏰</span>
+            <span id="ui-time">10:00</span>
+        </div>
+        <div class="stat">
+            <span class="icon">⭐</span>
+            <span id="ui-score">0</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- 食譜區 -->
+        <div id="recipe-area">
+            <!-- 食譜由 JS 生成 -->
+        </div>
+
+        <!-- 抽牌區 -->
+        <div id="draw-area">
+            <div class="ingredient-deck" id="deck-btn" onclick="drawIngredients()">
+                🥚
+            </div>
+        </div>
+
+        <!-- 手牌區 (食材) -->
+        <div id="hand-area">
+            <!-- 擁有的食材由 JS 生成 -->
+        </div>
+
+        <!-- 行動區 -->
+        <div id="action-area">
+            <button class="btn" id="btn-end-turn" onclick="endTurn()" disabled>結束營業 (下一小時)</button>
+            <button class="btn" id="btn-restart" onclick="startGame()" style="display:none;">重新開店</button>
+        </div>
+    </main>
+
+    <footer>
+        <button class="btn" onclick="toggleModal('rules-modal')">說明</button>
+        <button class="btn" onclick="saveGame()">存檔</button>
+        <button class="btn" onclick="loadGame()">讀檔</button>
+        <button class="btn" onclick="toggleHistory()">紀錄</button>
+        <button class="btn" onclick="toggleSound()" id="btn-sound">🔊</button>
+    </footer>
+</div>
+
+<!-- 歷史紀錄側邊欄 -->
+<div id="history-panel">
+    <h3 style="margin-top:0; border-bottom: 2px solid var(--primary); padding-bottom: 10px; color: var(--primary);">營業日誌</h3>
+    <ul id="history-list" style="padding-left: 20px; font-size: 14px; line-height: 1.8;"></ul>
+</div>
+
+<!-- 遊戲說明彈窗 -->
+<div class="modal" id="rules-modal">
+    <div class="modal-content">
+        <button class="close-btn" onclick="toggleModal('rules-modal')">×</button>
+        <h2 style="text-align: center; color: var(--primary); margin-top:0;">🍳 NONA Roll in Cook</h2>
+        <p><strong>遊戲目標：</strong>在晚上 9 點 (21:00) 打烊前，收集食材並製作食譜，賺取最多的星星！</p>
+        <h3>營業流程</h3>
+        <ul style="line-height: 1.6;">
+            <li><strong>抽食材：</strong>每小時你可以點擊中間的「抽食材」來隨機獲得 2 種食材。</li>
+            <li><strong>製作料理：</strong>查看上方的食譜，如果你的手牌（食材）滿足條件，對應的按鈕會亮起。點擊即可消耗食材並獲得星星。</li>
+            <li><strong>結束營業：</strong>點擊下方按鈕推進 1 小時。時間到 21:00 即遊戲結束。</li>
+        </ul>
+        <h3>高分秘訣</h3>
+        <p>越複雜的食譜（如燉肉）需要越多食材，但給予的星星也越多。妥善規劃你的手牌空間（最多容納 8 個食材），避免卡牌！</p>
+        <button class="btn" style="margin-top: 15px; width: 100%;" onclick="toggleModal('rules-modal')">開始營業</button>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    // ================= 音效系統 =================
+    let audioCtx;
+    let soundEnabled = true;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playSound(type) {
+        if (!soundEnabled) return;
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        if (type === 'click') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'draw') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        } else if (type === 'cook') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        } else if (type === 'success') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(554, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+        } else if (type === 'error') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        }
+    }
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        document.getElementById('btn-sound').innerText = soundEnabled ? '🔊' : '🔇';
+        if(soundEnabled) playSound('click');
+    }
+
+    // ================= 遊戲資料 =================
+    const ALL_INGREDIENTS = ['🥚', '🥛', '🍅', '🧀', '🥕', '🥩'];
+    
+    const RECIPES = [
+        { id: 'fried_egg', name: '煎蛋', req: { '🥚': 2 }, reward: 2 },
+        { id: 'salad', name: '沙拉', req: { '🍅': 1, '🥕': 1 }, reward: 3 },
+        { id: 'cake', name: '蛋糕', req: { '🥚': 1, '🥛': 1 }, reward: 3 },
+        { id: 'sandwich', name: '三明治', req: { '🧀': 1, '🥩': 1 }, reward: 4 },
+        { id: 'stew', name: '燉肉', req: { '🥩': 2, '🥕': 1 }, reward: 6 },
+        { id: 'cheese_plate', name: '起司拼盤', req: { '🧀': 2, '🥛': 1 }, reward: 5 }
+    ];
+
+    const GameState = {
+        phase: 'start', // start, playing, gameover
+        time: 10, // 10 到 21
+        score: 0,
+        hand: [],
+        maxHand: 8,
+        actionUsedThisTurn: false,
+        history: []
+    };
+
+    // ================= UI 渲染 =================
+
+    function renderRecipes() {
+        const area = document.getElementById('recipe-area');
+        area.innerHTML = '';
+
+        RECIPES.forEach(recipe => {
+            const canCook = checkRecipe(recipe.req);
+            const card = document.createElement('div');
+            card.className = 'recipe-card';
+            
+            let reqHTML = '';
+            for (const [ing, count] of Object.entries(recipe.req)) {
+                reqHTML += `<span title="${ing}x${count}">${ing}<sub style="font-size:10px">${count}</sub></span>`;
+            }
+
+            card.innerHTML = `
+                <div class="reward">⭐${recipe.reward}</div>
+                <div class="title">${recipe.name}</div>
+                <div class="req">${reqHTML}</div>
+                <button class="btn-cook" onclick="cookDish('${recipe.id}')" ${!canCook || GameState.phase !== 'playing' ? 'disabled' : ''}>製作</button>
+            `;
+            area.appendChild(card);
+        });
+    }
+
+    function renderHand() {
+        const area = document.getElementById('hand-area');
+        area.innerHTML = '';
+        GameState.hand.forEach(ing => {
+            const el = document.createElement('div');
+            el.className = 'ingredient';
+            el.innerText = ing;
+            area.appendChild(el);
+        });
+        if (GameState.hand.length === 0) {
+            area.innerHTML = '<span style="color:#aaa; font-size:14px; width:100%; text-align:center;">目前沒有食材</span>';
+        }
+    }
+
+    function updateUI() {
+        // 時間轉換
+        let timeStr = `${GameState.time}:00`;
+        if (GameState.time === 21) timeStr = '21:00 (打烊)';
+        document.getElementById('ui-time').innerText = timeStr;
+        document.getElementById('ui-score').innerText = GameState.score;
+
+        const btnDeck = document.getElementById('deck-btn');
+        const btnEndTurn = document.getElementById('btn-end-turn');
+        const btnRestart = document.getElementById('btn-restart');
+
+        if (GameState.phase === 'start') {
+            btnDeck.classList.add('disabled');
+            btnEndTurn.disabled = true;
+            btnEndTurn.style.display = 'block';
+            btnRestart.style.display = 'none';
+            btnEndTurn.innerText = '尚未開店';
+        } else if (GameState.phase === 'playing') {
+            btnDeck.classList.toggle('disabled', GameState.actionUsedThisTurn);
+            btnEndTurn.style.display = 'block';
+            btnEndTurn.disabled = false;
+            btnEndTurn.innerText = GameState.time >= 20 ? '結束營業 (打烊)' : '結束營業 (下一小時)';
+            btnRestart.style.display = 'none';
+        } else if (GameState.phase === 'gameover') {
+            btnDeck.classList.add('disabled');
+            btnEndTurn.style.display = 'none';
+            btnRestart.style.display = 'block';
+        }
+
+        renderRecipes();
+        renderHand();
+    }
+
+    // ================= 核心邏輯 =================
+
+    function checkRecipe(req) {
+        const handCounts = {};
+        GameState.hand.forEach(ing => handCounts[ing] = (handCounts[ing] || 0) + 1);
+        
+        for (const [ing, count] of Object.entries(req)) {
+            if ((handCounts[ing] || 0) < count) return false;
+        }
+        return true;
+    }
+
+    function startGame() {
+        GameState.phase = 'playing';
+        GameState.time = 10;
+        GameState.score = 0;
+        GameState.hand = [];
+        GameState.actionUsedThisTurn = false;
+        GameState.history = [];
+        
+        playSound('success');
+        log("餐廳開始營業！請收集食材製作料理。");
+        updateUI();
+    }
+
+    function drawIngredients() {
+        if (GameState.phase !== 'playing' || GameState.actionUsedThisTurn) return;
+        
+        if (GameState.hand.length >= GameState.maxHand) {
+            showToast("手牌已滿！請先製作料理騰出空間。");
+            playSound('error');
+            return;
+        }
+
+        playSound('draw');
+        GameState.actionUsedThisTurn = true;
+        
+        // 抽 2 張
+        const drawCount = Math.min(2, GameState.maxHand - GameState.hand.length);
+        for (let i = 0; i < drawCount; i++) {
+            const ing = ALL_INGREDIENTS[Math.floor(Math.random() * ALL_INGREDIENTS.length)];
+            GameState.hand.push(ing);
+        }
+
+        log(`你前往市場採購了食材。`);
+        updateUI();
+    }
+
+    function cookDish(recipeId) {
+        if (GameState.phase !== 'playing') return;
+        
+        const recipe = RECIPES.find(r => r.id === recipeId);
+        if (!recipe || !checkRecipe(recipe.req)) return;
+
+        playSound('cook');
+        
+        // 扣除食材
+        for (const [ing, count] of Object.entries(recipe.req)) {
+            for (let i = 0; i < count; i++) {
+                const idx = GameState.hand.indexOf(ing);
+                if (idx > -1) GameState.hand.splice(idx, 1);
+            }
+        }
+
+        // 加分
+        GameState.score += recipe.reward;
+        log(`製作了【${recipe.name}】，獲得 ${recipe.reward} 顆星星！`);
+        showToast(`製作成功：${recipe.name} ⭐+${recipe.reward}`);
+        
+        updateUI();
+    }
+
+    function endTurn() {
+        if (GameState.phase !== 'playing') return;
+        
+        playSound('click');
+        GameState.time++;
+        GameState.actionUsedThisTurn = false;
+
+        if (GameState.time > 21) {
+            endGame();
+        } else {
+            log(`時間來到 ${GameState.time}:00。`);
+            updateUI();
+        }
+    }
+
+    function endGame() {
+        GameState.phase = 'gameover';
+        playSound('success');
+        
+        let finalMsg = `餐廳打烊！\n今日營業額：${GameState.score} 顆星星。`;
+        if (GameState.score >= 25) finalMsg += "\n🏆 米其林三星！你是傳奇主廚！";
+        else if (GameState.score >= 15) finalMsg += "\n🌟 人氣餐廳，好評如潮。";
+        else finalMsg += "\n😅 乏人問津，明天再加油吧。";
+        
+        log(finalMsg);
+        updateUI();
+    }
+
+    // ================= 輔助與系統功能 =================
+
+    function log(msg) {
+        GameState.history.push(msg);
+        updateHistoryUI();
+    }
+
+    function updateHistoryUI() {
+        const list = document.getElementById('history-list');
+        list.innerHTML = GameState.history.map(h => `<li>${h}</li>`).join('');
+    }
+
+    function toggleHistory() {
+        document.getElementById('history-panel').classList.toggle('active');
+        playSound('click');
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.style.opacity = 1;
+        setTimeout(() => { toast.style.opacity = 0; }, 2000);
+    }
+
+    function saveGame() {
+        if (GameState.phase === 'start') {
+            showToast("尚未開始營業，無需存檔。");
+            return;
+        }
+        localStorage.setItem('cook_save', JSON.stringify(GameState));
+        showToast("營業進度已存檔！");
+        playSound('success');
+    }
+
+    function loadGame() {
+        const saved = localStorage.getItem('cook_save');
+        if (!saved) {
+            showToast("找不到存檔！");
+            playSound('error');
+            return;
+        }
+        try {
+            const data = JSON.parse(saved);
+            Object.assign(GameState, data);
+            updateUI();
+            updateHistoryUI();
+            showToast("存檔讀取成功！");
+            playSound('success');
+        } catch (e) {
+            showToast("存檔損壞！");
+        }
+    }
+
+    function toggleModal(id) {
+        document.getElementById(id).classList.toggle('active');
+        playSound('click');
+    }
+
+    // 初始化
+    window.onload = () => {
+        updateUI();
+        setTimeout(() => {
+            toggleModal('rules-modal');
+        }, 500);
+    };
+</script>
+</body>
+</html>
