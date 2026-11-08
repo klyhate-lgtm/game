@@ -10,7 +10,6 @@
     import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, runTransaction, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     // ★★★ 請替換成你的 Firebase 設定 ★★★
-    // ★★★ 請替換成你的 Firebase 設定 ★★★
     const firebaseConfig = {
         apiKey: "AIzaSyDol20mC72V7cXhF7higYVRYvg3WZZoXRo",
 		authDomain: "klyhate-ad36a.firebaseapp.com",
@@ -69,7 +68,7 @@
 
     /* 地圖 */
     #board-container { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; overflow: auto; padding: 20px; }
-    #mars-board { position: relative; width: 468px; height: 405px; } /* 9x9 基準大小 */
+    #mars-board { position: relative; width: 468px; height: 405px; }
     .hex { 
         position: absolute; width: 52px; height: 60px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
         background-color: #6b4c3e; display: flex; justify-content: center; align-items: center; font-size: 10px; cursor: pointer;
@@ -179,15 +178,13 @@
     let currentRoomId = "";
     let roomData = null;
     let unsubscribeRoom = null;
-    let localSelectedCards = []; // 開發階段選取的卡
+    let localSelectedCards = []; 
 
-    // 地圖矩陣 (61格)
     const mapGrid = [
         [0,0,1,1,1,1,1,0,0], [0,1,1,1,1,1,1,0,0], [0,1,1,1,1,1,1,1,0], [1,1,1,1,1,1,1,1,0], [1,1,1,1,1,1,1,1,1],
         [1,1,1,1,1,1,1,1,0], [0,1,1,1,1,1,1,1,0], [0,1,1,1,1,1,1,0,0], [0,0,1,1,1,1,1,0,0]
     ];
 
-    // --- 初始化與認證 ---
     function initApp() {
         if (!window.FB) { setTimeout(initApp, 500); return; }
         const { auth, signInAnonymously, onAuthStateChanged } = window.FB;
@@ -203,7 +200,6 @@
         });
     }
 
-    // --- 房間邏輯 ---
     window.createRoom = async function() {
         const name = document.getElementById('player-name').value.trim();
         if (!name) return alert("請輸入名字");
@@ -214,9 +210,9 @@
         
         const initialRoomData = {
             hostId: currentUser.uid,
-            status: 'lobby', // lobby, playing, ended
+            status: 'lobby',
             gen: 1,
-            phase: 'lobby', // lobby, research, action, production
+            phase: 'lobby',
             turnIndex: 0,
             oxygen: 0,
             temp: -30,
@@ -279,13 +275,11 @@
         for (let r = 0; r < 9; r++) {
             for (let c = 0; c < 9; c++) {
                 if (mapGrid[r][c] === 1) {
-                    // 隨機產生海洋保留區 (9個)
                     let isReservedOcean = Math.random() < 0.15; 
                     board.push({ id: id++, r, c, type: 'empty', isReservedOcean });
                 }
             }
         }
-        // 確保剛好9個海洋保留區
         let oceans = board.filter(b => b.isReservedOcean);
         while(oceans.length > 9) { oceans.pop().isReservedOcean = false; }
         while(oceans.length < 9) {
@@ -297,12 +291,10 @@
         return board;
     }
 
-    // --- 遊戲核心流程 ---
     window.startGame = async function() {
         if (roomData.hostId !== currentUser.uid) return alert("只有房主能開始遊戲");
         const { db, doc, updateDoc } = window.FB;
         
-        // 發 4 張牌進入開發階段
         let updatedPlayers = roomData.players.map(p => {
             p.draft = [generateCard(), generateCard(), generateCard(), generateCard()];
             p.hand = [];
@@ -310,9 +302,7 @@
         });
 
         await updateDoc(doc(db, "rooms", currentRoomId), {
-            status: 'playing',
-            phase: 'research',
-            players: updatedPlayers
+            status: 'playing', phase: 'research', players: updatedPlayers
         });
     }
 
@@ -323,11 +313,12 @@
         } else {
             localSelectedCards.push(cardIndex);
         }
-        renderGame(); // 重新渲染以顯示選取狀態
+        renderGame(); 
     }
 
     window.keepCards = async function() {
         const me = roomData.players.find(p => p.id === currentUser.uid);
+        if (!me) return; // ★ 防呆檢查
         if (me.mc < localSelectedCards.length * 3) return alert("金錢不足！");
         if (!confirm(`確定花費 ${localSelectedCards.length * 3} M€ 保留這些卡牌嗎？`)) return;
 
@@ -340,14 +331,12 @@
             let players = [...data.players];
             let pIndex = players.findIndex(p => p.id === currentUser.uid);
 
-            // 扣除金錢，移入手牌
             players[pIndex].mc -= localSelectedCards.length * 3;
             localSelectedCards.forEach(idx => {
                 players[pIndex].hand.push(players[pIndex].draft[idx]);
             });
             players[pIndex].draft = [];
 
-            // 檢查是否所有人都保留完卡牌了？
             let allKept = players.every(p => p.draft.length === 0);
             
             if (allKept) {
@@ -361,8 +350,9 @@
 
     window.passTurn = async function() {
         const me = roomData.players.find(p => p.id === currentUser.uid);
+        if (!me) return; // ★ 防呆檢查
         const currentTurnPlayer = roomData.players[roomData.turnIndex];
-        if (me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
+        if (!currentTurnPlayer || me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
 
         const { db, doc, runTransaction } = window.FB;
         const roomRef = doc(db, "rooms", currentRoomId);
@@ -387,7 +377,6 @@
             }
 
             if (allPassed) {
-                // 所有人 Pass，進入生產階段
                 players = players.map(p => {
                     p.mc += p.tr + p.prod.mc;
                     p.steel += p.prod.steel;
@@ -397,7 +386,6 @@
                     p.heat += p.prod.heat;
                     p.passed = false; 
                     
-                    // 抽新牌進入下一回合開發階段
                     p.draft = [generateCard(), generateCard(), generateCard(), generateCard()];
                     return p;
                 });
@@ -417,8 +405,9 @@
 
     window.playCard = async function(handIndex) {
         const me = roomData.players.find(p => p.id === currentUser.uid);
+        if (!me) return; // ★ 防呆檢查
         const currentTurnPlayer = roomData.players[roomData.turnIndex];
-        if (me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
+        if (!currentTurnPlayer || me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
         
         const card = me.hand[handIndex];
         if (me.mc < card.cost) return alert("金錢不足！");
@@ -445,12 +434,10 @@
                 newTemp += card.value || 1; trGain += 1;
             } else if (card.effect === 'ocean') {
                 newOceans += 1; trGain += 1;
-                // 自動找空位放海
                 let emptyOcean = board.find(b => b.type === 'empty' && b.isReservedOcean);
                 if(emptyOcean) emptyOcean.type = 'ocean';
             } else if (card.effect === 'forest') {
                 newOxy += 1; trGain += 1;
-                // 自動找空位放樹
                 let emptyForest = board.find(b => b.type === 'empty' && !b.isReservedOcean);
                 if(emptyForest) emptyForest.type = 'forest';
             } else if (card.effect === 'mcProd') {
@@ -472,8 +459,9 @@
 
     window.buyProject = async function(type, cost) {
         const me = roomData.players.find(p => p.id === currentUser.uid);
+        if (!me) return; // ★ 防呆檢查
         const currentTurnPlayer = roomData.players[roomData.turnIndex];
-        if (me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
+        if (!currentTurnPlayer || me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
         if (me.mc < cost) return alert("金錢不足！");
 
         const { db, doc, runTransaction } = window.FB;
@@ -521,9 +509,12 @@
         return pool[Math.floor(Math.random() * pool.length)];
     }
 
-    // --- UI 渲染 ---
     function renderGame() {
-        if (!roomData) return;
+        if (!roomData || !roomData.players) return;
+
+        // ★ 核心防呆：如果玩家資料還沒同步好，先不要渲染
+        const me = roomData.players.find(p => p.id === currentUser.uid);
+        if (!me) return; 
 
         // 頂部資訊
         document.getElementById('ui-gen').innerText = roomData.gen;
@@ -537,11 +528,13 @@
 
         // 按鈕控制
         const isHost = roomData.hostId === currentUser.uid;
-        const me = roomData.players.find(p => p.id === currentUser.uid);
         const isMyTurn = roomData.players[roomData.turnIndex]?.id === currentUser.uid;
 
         document.getElementById('btn-start').style.display = (roomData.status === 'lobby' && isHost) ? 'inline-block' : 'none';
-        document.getElementById('btn-keep').style.display = (roomData.phase === 'research' && me.draft.length > 0) ? 'inline-block' : 'none';
+        
+        // ★ 防呆：檢查 draft 是否存在
+        const hasDraft = me.draft && me.draft.length > 0;
+        document.getElementById('btn-keep').style.display = (roomData.phase === 'research' && hasDraft) ? 'inline-block' : 'none';
         
         document.getElementById('btn-pass').disabled = !(roomData.phase === 'action' && isMyTurn);
         document.getElementById('btn-project').disabled = !(roomData.phase === 'action' && isMyTurn);
@@ -579,8 +572,7 @@
         const handArea = document.getElementById('hand-cards');
         handArea.innerHTML = '';
         
-        if (roomData.phase === 'research' && me.draft.length > 0) {
-            // 顯示剛抽到的牌
+        if (roomData.phase === 'research' && hasDraft) {
             me.draft.forEach((card, i) => {
                 const el = document.createElement('div');
                 const isSelected = localSelectedCards.includes(i);
@@ -594,7 +586,6 @@
                 handArea.appendChild(el);
             });
         } else if (roomData.phase === 'action' || roomData.phase === 'production') {
-            // 顯示手牌
             me.hand.forEach((card, i) => {
                 const el = document.createElement('div');
                 el.className = 'card';
@@ -619,7 +610,6 @@
         const boardEl = document.getElementById('mars-board');
         
         if (boardEl.children.length === 0) {
-            // 初始化渲染
             const w = 52; const h = 60;
             roomData.board.forEach(cell => {
                 const hex = document.createElement('div');
@@ -632,7 +622,6 @@
             });
         }
 
-        // 更新狀態
         roomData.board.forEach(cell => {
             const hex = document.getElementById(`hex-${cell.id}`);
             if(!hex) return;
