@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dungeon Pages - 地城新章</title>
+    <style>
+        /* 基础与复古风格设置 */
+        :root {
+            --bg-color: #2c2a26;
+            --paper-bg: #e8dcca;
+            --ink-color: #1a1814;
+            --accent-red: #a83232;
+            --accent-blue: #324b6e;
+            --grid-empty: #f4efe6;
+            --grid-wall: #8c877d;
+            --grid-trap: #d1bda6;
+            --text-light: #f4efe6;
+            --gold: #c49a45;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Georgia', 'Times New Roman', serif; }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle, #3a3732 0%, #1a1814 100%);
+            color: var(--ink-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 顶部状态栏 */
+        header {
+            background-color: var(--paper-bg);
+            border-bottom: 3px solid var(--ink-color);
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        .health-bar, .xp-bar {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .health-icon {
+            width: 20px; height: 20px;
+            background-color: var(--accent-red);
+            clip-path: polygon(50% 100%, 0 50%, 0 0, 50% 0, 100% 0, 100% 50%);
+            border: 1px solid #000;
+            transition: all 0.3s;
+        }
+        .health-icon.dead { background-color: #555; opacity: 0.3; }
+
+        .xp-icon {
+            width: 15px; height: 15px;
+            background-color: #ffd700;
+            border-radius: 50%;
+            border: 1px solid #000;
+            transition: all 0.3s;
+        }
+        .xp-icon.filled { background-color: #ffaa00; box-shadow: inset 0 0 5px #000; }
+
+        /* 游戏主区域 */
+        main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            padding: 10px;
+            gap: 10px;
+        }
+
+        /* 左侧角色面板 */
+        .panel-left {
+            width: 250px;
+            background-color: var(--paper-bg);
+            border: 2px solid var(--ink-color);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+        .panel-left h2 { font-size: 1.2rem; border-bottom: 1px solid #ccc; margin-bottom: 10px; }
+        .ability-box { font-size: 0.85rem; margin-bottom: 15px; background: #dcd3c4; padding: 8px; border-radius: 4px; }
+        .weapon-box { font-size: 0.85rem; margin-bottom: 10px; }
+        .weapon-box.active { background-color: var(--gold); padding: 5px; border-radius: 4px; }
+
+        /* 中间地城网格区域 */
+        .center-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: auto;
+            background: var(--paper-bg);
+            border-radius: 8px;
+            border: 2px solid var(--ink-color);
+            padding: 20px;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+        }
+
+        /* 网格布局 */
+        .dungeon-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 60px);
+            grid-template-rows: repeat(6, 60px);
+            gap: 2px;
+            background-color: var(--ink-color);
+            border: 2px solid var(--ink-color);
+            transition: all 0.3s ease;
+        }
+
+        .cell {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .cell:active { transform: scale(0.95); }
+        .cell.empty { background-color: var(--grid-empty); }
+        .cell.wall { background-color: var(--grid-wall); cursor: not-allowed; }
+        .cell.trap { background-color: var(--grid-trap); }
+        .cell.trap::before { content: '💀'; font-size: 1.2rem; opacity: 0.5; }
+        .cell.locked { background-color: #6b6b6b; cursor: not-allowed; }
+        .cell.locked::before { content: '🔒'; font-size: 1.2rem; }
+        .cell.entrance { background-color: #8c6c4b; }
+        .cell.entrance::before { content: '🚪'; font-size: 2rem; }
+        .cell.chest { background-color: #e6c27a; }
+        .cell.chest::before { content: '📦'; font-size: 2rem; }
+        
+        .cell .written-num {
+            position: absolute;
+            font-size: 1.8rem;
+            color: var(--ink-color);
+            z-index: 5;
+            text-shadow: 1px 1px 0px #fff;
+        }
+
+        /* 网格内的物品/怪物图标 */
+        .icon-item { position: absolute; font-size: 1.2rem; z-index: 2; }
+        .icon-monster { position: absolute; font-size: 2rem; z-index: 2; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); }
+        .icon-monster.defeated { opacity: 0.2; filter: grayscale(100%); }
+
+        /* 右侧骰子与操作区 */
+        .panel-right {
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .dice-pool {
+            background-color: var(--paper-bg);
+            border: 2px solid var(--ink-color);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            min-height: 120px;
+        }
+
+        .die {
+            width: 40px; height: 40px;
+            background: #fff;
+            border: 2px solid #333;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+
+        .die.good { background: #fff; color: #333; }
+        .die.evil { background: #222; color: #fff; border-color: #000; }
+        .die.used { opacity: 0.3; pointer-events: none; transform: scale(0.8); }
+        .die.selected { transform: translateY(-5px) scale(1.1); box-shadow: 0 5px 15px rgba(0,0,0,0.5); border-color: var(--gold); border-width: 3px; }
+
+        /* 骰子点数 (伪元素绘制) */
+        .die[data-value="1"]::before { content: '•'; }
+        .die[data-value="2"]::before { content: '••'; letter-spacing: 5px; }
+        .die[data-value="3"]::before { content: '•••'; letter-spacing: 3px; transform: rotate(45deg); }
+        .die[data-value="4"]::before { content: '••\A••'; white-space: pre; letter-spacing: 8px; line-height: 1; text-align: center; }
+        .die[data-value="5"]::before { content: '•••\A • \A•••'; white-space: pre; letter-spacing: 6px; line-height: 0.8; text-align: center; }
+        .die[data-value="6"]::before { content: '•••\A•••'; white-space: pre; letter-spacing: 6px; line-height: 1; }
+
+        /* 操作按钮 */
+        button {
+            background-color: var(--accent-blue);
+            color: var(--text-light);
+            border: 2px solid var(--ink-color);
+            padding: 10px;
+            font-size: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        }
+        button:hover { filter: brightness(1.2); }
+        button:active { transform: translateY(2px); box-shadow: none; }
+        button:disabled { background-color: #666; color: #aaa; cursor: not-allowed; }
+
+        /* 底部导航栏 */
+        footer {
+            background-color: var(--ink-color);
+            color: var(--paper-bg);
+            display: flex;
+            justify-content: space-around;
+            padding: 5px;
+            z-index: 10;
+        }
+        footer button {
+            background: none;
+            border: none;
+            color: var(--paper-bg);
+            font-size: 0.9rem;
+            padding: 5px 10px;
+            box-shadow: none;
+        }
+        footer button:hover { color: var(--gold); }
+
+        /* 模态框 (说明/历史/存档) */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background-color: var(--paper-bg);
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 3px solid var(--ink-color);
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            position: relative;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .modal-content h2 { margin-bottom: 15px; text-align: center; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        .modal-content p, .modal-content li { font-size: 1rem; line-height: 1.6; margin-bottom: 10px; }
+        .modal-content ul { margin-left: 20px; }
+
+        /* Toast 提示 */
+        #toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(0,0,0,0.85);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1rem;
+            transition: transform 0.3s;
+            z-index: 200;
+            border: 1px solid var(--gold);
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* 浮动动画 */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(196, 154, 69, 0.7); }
+            70% { box-shadow: 0 0 10px 10px rgba(196, 154, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(196, 154, 69, 0); }
+        }
+        .targetable { animation: pulse 1.5s infinite; cursor: pointer; }
+
+        /* 手机适配 */
+        @media (max-width: 768px) {
+            main { flex-direction: column; padding: 5px; gap: 5px; }
+            .panel-left { width: 100%; height: 100px; flex-direction: row; overflow-x: auto; }
+            .panel-left > div { flex: 1; min-width: 150px; }
+            .center-area { flex: 1; padding: 5px; }
+            .dungeon-grid { grid-template-columns: repeat(6, 45px); grid-template-rows: repeat(6, 45px); }
+            .cell { width: 45px; height: 45px; }
+            .cell .written-num { font-size: 1.3rem; }
+            .panel-right { width: 100%; height: 120px; flex-direction: row; }
+            .dice-pool { min-height: 60px; flex: 1; }
+            .die { width: 30px; height: 30px; font-size: 1rem; }
+            .actions { display: flex; flex-direction: column; width: 100px; justify-content: center; gap: 5px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部状态栏 -->
+    <header>
+        <div>
+            <span style="font-weight: bold; font-size: 1.1rem;">萨芬</span>
+            <div style="font-size: 0.8rem;">生命值:</div>
+            <div class="health-bar" id="health-bar"></div>
+        </div>
+        <div style="text-align: right;">
+            <div style="font-size: 0.8rem;">经验值 (XP): <span id="xp-count">0</span></div>
+            <div class="xp-bar" id="xp-bar"></div>
+        </div>
+    </header>
+
+    <!-- 游戏主区域 -->
+    <main>
+        <!-- 左侧：角色能力与武器 -->
+        <div class="panel-left">
+            <h2>能力</h2>
+            <div class="ability-box">
+                <strong>能量光束</strong>: 牺牲1个善良骰子，将1个3点或更低的骰子点数加倍。
+            </div>
+            <h2>武器</h2>
+            <div class="weapon-box active" id="weapon-1">
+                <strong>橡木法杖</strong> (射程 1, 十字): 基础武器，可向正方向延伸 1 格。
+            </div>
+            <div class="weapon-box" id="weapon-2">
+                <strong>闪电箭 (6XP)</strong> (射程 2, 直线): 只能沿直线延伸 2 格。
+            </div>
+            <h2>物品栏</h2>
+            <div id="inventory" style="font-size: 1.5rem; display: flex; gap: 5px;">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+
+        <!-- 中间：地城网格 -->
+        <div class="center-area" id="center-area">
+            <div class="dungeon-grid" id="dungeon-grid">
+                <!-- 由 JS 动态生成 -->
+            </div>
+            <div style="margin-top: 10px; font-size: 0.9rem; color: #555;">
+                提示: 点击骰子，然后点击网格中的空格填写点数。找到从大门 (🚪) 到宝箱 (📦) 的连续数字路径即可通过地城。
+            </div>
+        </div>
+
+        <!-- 右侧：骰子池与操作 -->
+        <div class="panel-right">
+            <div class="dice-pool" id="dice-pool">
+                <!-- 骰子由 JS 动态生成 -->
+            </div>
+            <div class="actions">
+                <button id="btn-end-turn" onclick="endTurn()" disabled>结束回合</button>
+                <button id="btn-ability" onclick="useAbility()" disabled>使用能力</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 底部导航栏 -->
+    <footer>
+        <button onclick="showModal('rules-modal')">📖 规则说明</button>
+        <button onclick="showModal('history-modal')">📜 历史记录</button>
+        <button onclick="saveGame()">💾 保存进度</button>
+        <button onclick="loadGame()">📂 读取进度</button>
+    </footer>
+
+    <!-- 模态框：规则说明 -->
+    <div class="modal-overlay" id="rules-modal">
+        <div class="modal-content">
+            <h2>📖 游戏玩法说明</h2>
+            <p><strong>游戏目标：</strong> 在生命值归零前，成功通过 4 个小型地城并击败头目。</p>
+            <p><strong>看懂画面：</strong></p>
+            <ul>
+                <li>🟥 <strong>红色心形</strong> 代表生命值，受到伤害会变灰。</li>
+                <li>⭐ <strong>黄色星星</strong> 代表经验值，用于解锁新能力。</li>
+                <li>🚪 <strong>大门</strong>：地域的起点。</li>
+                <li>📦 <strong>宝箱</strong>：地域的出口，需找到连续数字路径。</li>
+                <li>👾 <strong>怪物</strong>：需要在其相邻格子填写大于等于其防御值的数字来击败它。</li>
+                <li>💀 <strong>陷阱</strong>：填写数字时触发，若数字不够大则受伤。</li>
+            </ul>
+            <p><strong>操作步骤：</strong></p>
+            <ol>
+                <li>点击右侧的骰子选中它。</li>
+                <li>点击地城网格中可用的空白格子，填入点数。</li>
+                <li>如果从大门到宝箱形成连续数字（相邻差值≤1），自动通过地城。</li>
+                <li>回合结束后记得点击“结束回合”重新掷骰。</li>
+            </ol>
+            <button onclick="closeModal('rules-modal')" style="width: 100%; margin-top: 15px;">我准备好了，开始游戏</button>
+        </div>
+    </div>
+
+    <!-- 模态框：历史记录 -->
+    <div class="modal-overlay" id="history-modal">
+        <div class="modal-content">
+            <h2>📜 历史记录</h2>
+            <div id="history-log" style="font-size: 0.9rem; line-height: 1.5;">
+                <!-- 动态生成 -->
+            </div>
+            <button onclick="closeModal('history-modal')" style="width: 100%; margin-top: 15px;">关闭</button>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div id="toast">提示信息</div>
+
+    <script>
+        // --- 游戏数据配置 ---
+        const HERO = {
+            name: '萨芬',
+            maxHealth: 10,
+            maxXP: 20,
+            xpThresholds: [8, 13, 20], // 对应解锁奖励
+            weapons: [
+                { id: 1, name: '橡木法杖', range: 1, pattern: 'cross' }, // 十字
+                { id: 2, name: '闪电箭', range: 2, pattern: 'line' }    // 直线
+            ],
+            currentWeapon: 1,
+            abilities: {
+                energyBeam: true // 是否有能量光束
+            }
+        };
+
+        const DUNGEON_TEMPLATE = {
+            name: '洞穴',
+            evilDice: 3,
+            gridSize: 6,
+            monsters: [
+                { id: 'bat', name: '蝙蝠', hp: 2, def: 3, atk: 1, trigger: 'same', xp: 1, x: 2, y: 2 },
+                { id: 'rat', name: '老鼠', hp: 1, def: 2, atk: 1, trigger: '>=4', xp: 1, x: 4, y: 4 }
+            ],
+            items: [
+                { id: 'potion', name: '生命药水', type: 'heal', x: 1, y: 4 },
+                { id: 'gold', name: '金币', type: 'gold', x: 3, y: 2 },
+                { id: 'key', name: '钥匙', type: 'key', x: 5, y: 1 }
+            ],
+            traps: [
+                { id: 'trap1', name: '毒镖', x: 3, y: 3 }
+            ],
+            walls: [
+                { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }
+            ],
+            entrance: { x: 0, y: 5 },
+            chest: { x: 5, y: 5 }
+        };
+
+        // --- 游戏状态管理 ---
+        const GameState = {
+            MENU: 'MENU',
+            PLAYING: 'PLAYING',
+            GAME_OVER: 'GAME_OVER'
+        };
+
+        const TurnPhase = {
+            ROLL: 'ROLL',
+            MONSTER: 'MONSTER',
+            EXPLORE: 'EXPLORE',
+            END_TURN: 'END_TURN'
+        };
+
+        let game = {
+            state: GameState.MENU,
+            phase: TurnPhase.ROLL,
+            turn: 1,
+            health: HERO.maxHealth,
+            xp: 0,
+            inventory: [],
+            grid: [],
+            dicePool: [],
+            selectedDie: null,
+            defeatedMonsters: [], // 记录已击败的怪物坐标
+            history: [],
+            actionsLeft: 3, // 每回合可操作的骰子数
+            dungeonName: DUNGEON_TEMPLATE.name
+        };
+
+        // --- 初始化与渲染 ---
+        
+        // 初始化游戏网格
+        function initGrid() {
+            game.grid = Array(6).fill().map(() => Array(6).fill().map(() => ({ type: 'empty', value: null, item: null, monster: null, trap: null })));
+
+            // 设置墙体
+            DUNGEON_TEMPLATE.walls.forEach(w => game.grid[w.y][w.x].type = 'wall');
+            
+            // 设置大门与宝箱
+            game.grid[DUNGEON_TEMPLATE.entrance.y][DUNGEON_TEMPLATE.entrance.x].type = 'entrance';
+            game.grid[DUNGEON_TEMPLATE.chest.y][DUNGEON_TEMPLATE.chest.x].type = 'chest';
+
+            // 设置物品
+            DUNGEON_TEMPLATE.items.forEach(item => {
+                game.grid[item.y][item.x].item = item;
+            });
+
+            // 设置陷阱
+            DUNGEON_TEMPLATE.traps.forEach(trap => {
+                game.grid[trap.y][trap.x].type = 'trap';
+                game.grid[trap.y][trap.x].trap = trap;
+            });
+
+            // 设置怪物
+            DUNGEON_TEMPLATE.monsters.forEach(monster => {
+                game.grid[monster.y][monster.x].monster = { ...monster, currentHp: monster.hp, defeated: false };
+            });
+        }
+
+        // 渲染地城网格
+        function renderGrid() {
+            const gridContainer = document.getElementById('dungeon-grid');
+            gridContainer.innerHTML = '';
+            
+            // 为了显示美观，行列可能需要反转，这里直接按 0 为左上角渲染
+            for (let y = 0; y < 6; y++) {
+                for (let x = 0; x < 6; x++) {
+                    const cellData = game.grid[y][x];
+                    const cellEl = document.createElement('div');
+                    cellEl.className = `cell ${cellData.type}`;
+                    cellEl.dataset.x = x;
+                    cellEl.dataset.y = y;
+
+                    // 已填写数字
+                    if (cellData.value !== null) {
+                        const numEl = document.createElement('div');
+                        numEl.className = 'written-num';
+                        numEl.textContent = cellData.value;
+                        cellEl.appendChild(numEl);
+                    }
+
+                    // 物品
+                    if (cellData.item) {
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'icon-item';
+                        if (cellData.item.type === 'heal') itemEl.textContent = '🧪';
+                        else if (cellData.item.type === 'gold') itemEl.textContent = '🟡';
+                        else if (cellData.item.type === 'key') itemEl.textContent = '🔑';
+                        cellEl.appendChild(itemEl);
+                    }
+
+                    // 怪物
+                    if (cellData.monster) {
+                        const monEl = document.createElement('div');
+                        monEl.className = `icon-monster ${cellData.monster.defeated ? 'defeated' : ''}`;
+                        if (cellData.monster.id === 'bat') monEl.textContent = '🦇';
+                        else if (cellData.monster.id === 'rat') monEl.textContent = '🐀';
+                        cellEl.appendChild(monEl);
+                    }
+
+                    // 点击事件
+                    cellEl.onclick = () => handleCellClick(x, y);
+                    
+                    // 添加可点击高亮提示
+                    if (game.phase === TurnPhase.EXPLORE && game.selectedDie && isValidTarget(x, y)) {
+                        cellEl.classList.add('targetable');
+                    }
+
+                    gridContainer.appendChild(cellEl);
+                }
+            }
+        }
+
+        // 渲染 UI 状态（生命、经验、物品）
+        function renderUI() {
+            // 生命值
+            const healthBar = document.getElementById('health-bar');
+            healthBar.innerHTML = '';
+            for (let i = 0; i < HERO.maxHealth; i++) {
+                const icon = document.createElement('div');
+                icon.className = `health-icon ${i >= game.health ? 'dead' : ''}`;
+                healthBar.appendChild(icon);
+            }
+
+            // 经验值
+            const xpBar = document.getElementById('xp-bar');
+            xpBar.innerHTML = '';
+            for (let i = 0; i < HERO.maxXP; i++) {
+                const icon = document.createElement('div');
+                icon.className = `xp-icon ${i < game.xp ? 'filled' : ''}`;
+                xpBar.appendChild(icon);
+            }
+            document.getElementById('xp-count').textContent = game.xp;
+
+            // 物品栏
+            const inv = document.getElementById('inventory');
+            inv.innerHTML = '';
+            game.inventory.forEach(item => {
+                const span = document.createElement('span');
+                if (item === 'heal') span.textContent = '🧪';
+                if (item === 'gold') span.textContent = '🟡';
+                if (item === 'key') span.textContent = '🔑';
+                inv.appendChild(span);
+            });
+
+            // 武器状态
+            document.getElementById('weapon-1').className = `weapon-box ${HERO.currentWeapon === 1 ? 'active' : ''}`;
+            document.getElementById('weapon-2').className = `weapon-box ${HERO.currentWeapon === 2 ? 'active' : ''}`;
+        }
+
+        // 渲染骰子池
+        function renderDice() {
+            const pool = document.getElementById('dice-pool');
+            pool.innerHTML = '';
+            
+            game.dicePool.forEach((die, index) => {
+                const dieEl = document.createElement('div');
+                dieEl.className = `die ${die.type === 'good' ? 'good' : 'evil'} ${die.used ? 'used' : ''} ${game.selectedDie === index ? 'selected' : ''}`;
+                dieEl.dataset.value = die.value;
+                dieEl.onclick = () => selectDie(index);
+                pool.appendChild(dieEl);
+            });
+
+            // 更新按钮状态
+            document.getElementById('btn-end-turn').disabled = !isAllDiceUsed() && game.phase === TurnPhase.EXPLORE;
+            document.getElementById('btn-ability').disabled = !canUseAbility();
+        }
+
+        // --- 游戏逻辑 ---
+
+        // 掷骰阶段
+        function rollDice() {
+            game.dicePool = [];
+            // 善良骰 (基础 2 个，根据经验可能增加，这里默认 2)
+            let goodDiceCount = 2;
+            if (game.xp >= 8) goodDiceCount++; // 经验奖励：增加 1 个善良骰子
+            
+            for (let i = 0; i < goodDiceCount; i++) {
+                game.dicePool.push({ type: 'good', value: Math.floor(Math.random() * 6) + 1, used: false });
+            }
+            // 邪恶骰
+            for (let i = 0; i < DUNGEON_TEMPLATE.evilDice; i++) {
+                game.dicePool.push({ type: 'evil', value: Math.floor(Math.random() * 6) + 1, used: false });
+            }
+            
+            game.phase = TurnPhase.MONSTER;
+            game.selectedDie = null;
+            renderDice();
+            updateHistory(`回合 ${game.turn}：掷骰完毕。`);
+            setTimeout(checkMonsterPhase, 500);
+        }
+
+        // 怪物阶段
+        function checkMonsterPhase() {
+            let damage = 0;
+            let logMsg = [];
+
+            // 游荡怪物检查：邪恶骰是否有对子
+            const evilValues = game.dicePool.filter(d => d.type === 'evil').map(d => d.value);
+            const hasPair = evilValues.some((val, i) => evilValues.indexOf(val) !== i);
+            if (hasPair) {
+                damage += 1;
+                logMsg.push("游荡怪物攻击：邪恶骰出现对子，受到1点伤害！");
+            }
+
+            // 怪物攻击检查
+            DUNGEON_TEMPLATE.monsters.forEach(monster => {
+                if (!game.grid[monster.y][monster.x].monster.defeated) {
+                    let triggered = false;
+                    if (monster.trigger === 'same' && hasPair) triggered = true;
+                    if (monster.trigger === '>=4' && evilValues.some(v => v >= 4)) triggered = true;
+
+                    if (triggered) {
+                        damage += monster.atk;
+                        logMsg.push(`${monster.name}攻击，造成${monster.atk}点伤害！`);
+                    }
+                }
+            });
+
+            if (damage > 0) {
+                takeDamage(damage);
+                logMsg.forEach(msg => updateHistory(msg));
+                showToast(`受到 ${damage} 点伤害！`);
+            } else {
+                updateHistory("没有怪物攻击。");
+            }
+
+            game.phase = TurnPhase.EXPLORE;
+            renderDice();
+            renderGrid();
+        }
+
+        // 探索阶段：选择骰子
+        function selectDie(index) {
+            if (game.phase !== TurnPhase.EXPLORE) return;
+            if (game.dicePool[index].used) return;
+            
+            if (game.selectedDie === index) {
+                game.selectedDie = null; // 取消选中
+            } else {
+                game.selectedDie = index;
+            }
+            renderDice();
+            renderGrid();
+        }
+
+        // 检查格子是否合法
+        function isValidTarget(x, y) {
+            const cell = game.grid[y][x];
+            if (cell.type === 'wall' || cell.type === 'locked') return false;
+            if (cell.value !== null) return false; // 已经被填写过
+            if (cell.monster && !cell.monster.defeated) return false; // 不能写在怪物头上
+
+            // 检查射程（这里简化为相邻或距离1，使用武器的射程）
+            // 找到最近的一个已填写的格子或大门/入口
+            const weapon = HERO.weapons.find(w => w.id === HERO.currentWeapon);
+            const range = weapon.range;
+            
+            // 检查周围是否有源头（已填写格子、大门或入口）
+            let hasSource = false;
+            // 搜索周围 range 范围内是否有已填写的格子或大门
+            for (let dy = -range; dy <= range; dy++) {
+                for (let dx = -range; dx <= range; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (nx >= 0 && nx < 6 && ny >= 0 && ny < 6) {
+                        if (game.grid[ny][nx].type === 'entrance' || game.grid[ny][nx].value !== null) {
+                            // 检查是否是直线或十字路径（简化处理，只要在范围内）
+                            if (weapon.pattern === 'cross') {
+                                if (dx === 0 || dy === 0) hasSource = true;
+                            } else if (weapon.pattern === 'line') {
+                                if (dx === 0 || dy === 0) hasSource = true; // 简化
+                            }
+                        }
+                    }
+                }
+            }
+            return hasSource;
+        }
+
+        // 点击格子
+        function handleCellClick(x, y) {
+            if (game.phase !== TurnPhase.EXPLORE) {
+                showToast("现在不是探索阶段！");
+                return;
+            }
+            if (game.selectedDie === null) {
+                showToast("请先选择一个骰子！");
+                return;
+            }
+            if (!isValidTarget(x, y)) {
+                showToast("无法在此处填写点数！");
+                return;
+            }
+
+            const die = game.dicePool[game.selectedDie];
+            const cell = game.grid[y][x];
+            
+            // 填写数字
+            cell.value = die.value;
+            die.used = true;
+            game.selectedDie = null;
+
+            // 检查陷阱触发
+            if (cell.type === 'trap') {
+                const trap = cell.trap;
+                // 假设毒镖拆除值为 4
+                if (die.value < 4) {
+                    takeDamage(1);
+                    updateHistory(`踩到陷阱 ${trap.name}，受到 1 点伤害！`);
+                    showToast("陷阱触发！");
+                } else {
+                    updateHistory(`成功拆除陷阱 ${trap.name}。`);
+                }
+            }
+
+            // 检查物品获取（相邻是否有两个相同数字）
+            checkItems(x, y);
+
+            // 检查攻击怪物
+            checkMonsters(x, y, die.value);
+
+            renderUI();
+            renderGrid();
+            renderDice();
+
+            // 检查连续路径
+            checkPath();
+
+            // 检查是否所有骰子用完
+            if (isAllDiceUsed()) {
+                document.getElementById('btn-end-turn').disabled = false;
+            }
+        }
+
+        // 检查物品获取
+        function checkItems(x, y) {
+            const neighbors = [
+                { dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }
+            ];
+            
+            neighbors.forEach(n => {
+                const nx = x + n.dx;
+                const ny = y + n.dy;
+                if (nx >= 0 && nx < 6 && ny >= 0 && ny < 6) {
+                    const neighbor = game.grid[ny][nx];
+                    // 检查周围格子的已填写数字
+                    let values = [];
+                    for (let i = 0; i < 6; i++) {
+                        for (let j = 0; j < 6; j++) {
+                            if (game.grid[i][j].value !== null) {
+                                // 如果与物品相邻
+                                const dist = Math.abs(i - ny) + Math.abs(j - nx);
+                                if (dist === 1) values.push(game.grid[i][j].value);
+                            }
+                        }
+                    }
+                    
+                    // 如果有任意两个相同数字，获得物品
+                    const counts = {};
+                    let hasPair = false;
+                    values.forEach(v => {
+                        counts[v] = (counts[v] || 0) + 1;
+                        if (counts[v] >= 2) hasPair = true;
+                    });
+
+                    if (hasPair && neighbor.item) {
+                        game.inventory.push(neighbor.item.type);
+                        updateHistory(`获得物品：${neighbor.item.name}`);
+                        showToast(`获得 ${neighbor.item.name}`);
+                        neighbor.item = null; // 移除物品
+                    }
+                }
+            });
+        }
+
+        // 检查怪物攻击
+        function checkMonsters(x, y, value) {
+            const neighbors = [
+                { dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }
+            ];
+
+            neighbors.forEach(n => {
+                const nx = x + n.dx;
+                const ny = y + n.dy;
+                if (nx >= 0 && nx < 6 && ny >= 0 && ny < 6) {
+                    const neighbor = game.grid[ny][nx];
+                    if (neighbor.monster && !neighbor.monster.defeated) {
+                        if (value >= neighbor.monster.def) {
+                            neighbor.monster.currentHp--;
+                            if (neighbor.monster.currentHp <= 0) {
+                                neighbor.monster.defeated = true;
+                                game.xp += neighbor.monster.xp;
+                                updateHistory(`击败了 ${neighbor.monster.name}！获得 ${neighbor.monster.xp} XP`);
+                                showToast(`击败 ${neighbor.monster.name}！`);
+                            } else {
+                                updateHistory(`攻击了 ${neighbor.monster.name}，剩余生命 ${neighbor.monster.currentHp}`);
+                                showToast(`击中怪物！剩余 ${neighbor.monster.currentHp} 生命。`);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 检查连续路径（简化版：只检查是否连通）
+        function checkPath() {
+            // 使用 BFS 搜索从入口到宝箱是否有路径
+            const start = DUNGEON_TEMPLATE.entrance;
+            const end = DUNGEON_TEMPLATE.chest;
+            
+            if (game.grid[start.y][start.x].value === null) return; // 起点没数字，不行
+            if (game.grid[end.y][end.x].value === null) return; // 终点没数字，不行
+
+            const queue = [{ x: start.x, y: start.y, val: game.grid[start.y][start.x].value }];
+            const visited = new Set();
+            visited.add(`${start.x},${start.y}`);
+
+            while (queue.length > 0) {
+                const curr = queue.shift();
+                if (curr.x === end.x && curr.y === end.y) {
+                    // 找到路径了
+                    finishDungeon();
+                    return;
+                }
+
+                const neighbors = [
+                    { dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }
+                ];
+
+                neighbors.forEach(n => {
+                    const nx = curr.x + n.dx;
+                    const ny = curr.y + n.dy;
+                    const key = `${nx},${ny}`;
+                    if (nx >= 0 && nx < 6 && ny >= 0 && ny < 6 && !visited.has(key)) {
+                        const nextVal = game.grid[ny][nx].value;
+                        if (nextVal !== null && Math.abs(nextVal - curr.val) <= 1) {
+                            visited.add(key);
+                            queue.push({ x: nx, y: ny, val: nextVal });
+                        }
+                    }
+                });
+            }
+        }
+
+        // 通过地城
+        function finishDungeon() {
+            game.phase = TurnPhase.END_TURN;
+            updateHistory("成功通过地城！");
+            showToast("🎉 成功通过地城！");
+            
+            // 简单结算
+            const confirm = window.confirm("恭喜你通过了地城！点击确定获得奖励并结束游戏（演示版）。");
+            if (confirm) {
+                game.state = GameState.GAME_OVER;
+                game.phase = TurnPhase.END_TURN;
+                renderGrid();
+                renderUI();
+                updateHistory("游戏胜利！");
+                showModal('history-modal');
+            }
+        }
+
+        // 结束回合
+        function endTurn() {
+            if (game.phase !== TurnPhase.EXPLORE && game.phase !== TurnPhase.END_TURN) return;
+            
+            game.turn++;
+            game.phase = TurnPhase.ROLL;
+            updateHistory(`--- 第 ${game.turn} 回合 ---`);
+            rollDice();
+        }
+
+        // 使用能力
+        function useAbility() {
+            // 简单实现：如果有善良骰子且值 <= 3，加倍
+            const goodDieIndex = game.dicePool.findIndex(d => d.type === 'good' && !d.used && d.value <= 3);
+            if (goodDieIndex !== -1) {
+                // 牺牲该骰子
+                game.dicePool[goodDieIndex].used = true;
+                // 找一个未使用的邪恶骰子加倍
+                const evilDieIndex = game.dicePool.findIndex(d => d.type === 'evil' && !d.used);
+                if (evilDieIndex !== -1) {
+                    game.dicePool[evilDieIndex].value = Math.min(6, game.dicePool[evilDieIndex].value * 2);
+                    updateHistory("使用了能量光束，邪恶骰子点数翻倍！");
+                    showToast("能力发动！");
+                    renderDice();
+                } else {
+                    showToast("没有可加倍的目标！");
+                }
+            } else {
+                showToast("没有符合条件的善良骰子 (≤3点)！");
+            }
+        }
+
+        // 检查是否可以发动能力
+        function canUseAbility() {
+            return game.phase === TurnPhase.EXPLORE && 
+                   game.dicePool.some(d => d.type === 'good' && !d.used && d.value <= 3) &&
+                   game.dicePool.some(d => d.type === 'evil' && !d.used);
+        }
+
+        // 检查所有骰子是否都已使用
+        function isAllDiceUsed() {
+            return game.dicePool.every(d => d.used);
+        }
+
+        // 扣血
+        function takeDamage(amount) {
+            game.health -= amount;
+            if (game.health <= 0) {
+                game.health = 0;
+                game.state = GameState.GAME_OVER;
+                updateHistory("生命值归零，游戏失败！");
+                showModal('history-modal');
+            }
+            renderUI();
+        }
+
+        // --- 辅助功能 ---
+
+        function updateHistory(msg) {
+            game.history.push(`[回合 ${game.turn}] ${msg}`);
+            const logEl = document.getElementById('history-log');
+            if (logEl) {
+                logEl.innerHTML = game.history.map(h => `<div>${h}</div>`).join('');
+            }
+        }
+
+        let toastTimeout;
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        function showModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            if (id === 'rules-modal' && game.state === GameState.MENU) {
+                startGame();
+            }
+        }
+
+        // 存档功能
+        function saveGame() {
+            const data = {
+                state: game.state,
+                phase: game.phase,
+                turn: game.turn,
+                health: game.health,
+                xp: game.xp,
+                inventory: game.inventory,
+                grid: game.grid,
+                dicePool: game.dicePool,
+                history: game.history
+            };
+            localStorage.setItem('dungeonPagesSave', JSON.stringify(data));
+            showToast("进度已保存！");
+        }
+
+        // 读档功能
+        function loadGame() {
+            const saved = localStorage.getItem('dungeonPagesSave');
+            if (saved) {
+                const data = JSON.parse(saved);
+                game = data;
+                renderUI();
+                renderGrid();
+                renderDice();
+                showToast("进度已读取！");
+            } else {
+                showToast("没有找到存档！");
+            }
+        }
+
+        // 开始游戏
+        function startGame() {
+            game.state = GameState.PLAYING;
+            initGrid();
+            game.health = HERO.maxHealth;
+            game.xp = 0;
+            game.inventory = [];
+            game.history = [];
+            game.turn = 1;
+            updateHistory(`开始冒险，进入地域：${DUNGEON_TEMPLATE.name}`);
+            rollDice();
+            renderUI();
+            renderGrid();
+            showToast("游戏开始！");
+        }
+
+        // 启动逻辑
+        window.onload = () => {
+            // 初始渲染空状态
+            renderUI();
+            initGrid();
+            renderGrid();
+            // 显示规则说明（新手引导）
+            showModal('rules-modal');
+        };
+
+    </script>
+</body>
+</html>
