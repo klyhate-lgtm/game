@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>荒島漂流記 (Friday) - 完整單人網頁版</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
+
+    :root {
+        --parchment: #f4e8d1;
+        --parchment-dark: #e0d0b0;
+        --wood: #5c4033;
+        --wood-dark: #3e2723;
+        --green-stage: #4caf50;
+        --yellow-stage: #ffeb3b;
+        --red-stage: #f44336;
+        --text-dark: #2c1e16;
+        --btn-bg: #8b5a2b;
+        --btn-hover: #a0522d;
+        --card-bg: rgba(255, 255, 255, 0.9);
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Noto Serif TC', serif;
+        background-color: var(--wood-dark);
+        background-image: radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.8) 100%);
+        color: var(--text-dark);
+        overflow: hidden;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        user-select: none;
+    }
+
+    /* 頂部狀態列 */
+    #top-bar {
+        background: var(--parchment-dark);
+        border-bottom: 3px solid var(--wood);
+        padding: 5px 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: bold;
+        font-size: 14px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        z-index: 10;
+    }
+    .stat-group { display: flex; gap: 15px; flex-wrap: wrap; }
+    .stat-item { display: flex; align-items: center; gap: 5px; }
+    .stat-icon { font-size: 18px; }
+
+    /* 遊戲主區域 */
+    #game-board {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        gap: 10px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* 危險/海盜區域 */
+    #hazard-area {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 180px;
+        gap: 20px;
+        flex-wrap: wrap;
+        transition: all 0.3s ease;
+    }
+
+    /* 戰鬥區域 (打出的卡牌) */
+    #played-area {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 10px;
+        padding: 10px;
+        background: rgba(0,0,0,0.2);
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.1);
+        min-height: 160px;
+        align-items: center;
+        scroll-behavior: smooth;
+    }
+    #played-area::-webkit-scrollbar { height: 8px; }
+    #played-area::-webkit-scrollbar-thumb { background: var(--wood); border-radius: 4px; }
+
+    /* 卡牌樣式 */
+    .card {
+        width: 100px;
+        height: 140px;
+        border-radius: 8px;
+        border: 2px solid var(--wood-dark);
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 5px;
+        font-size: 10px;
+        line-height: 1.2;
+        transition: transform 0.2s, box-shadow 0.2s;
+        flex-shrink: 0;
+        background-color: var(--parchment);
+        overflow: hidden;
+    }
+    .card:hover { transform: translateY(-5px); box-shadow: 3px 5px 10px rgba(0,0,0,0.6); }
+    
+    /* 卡牌類型背景 */
+    .card.type-robinson { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
+    .card.type-hazard { background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
+    .card.type-knowledge { background: linear-gradient(135deg, #fff3e0, #ffe0b2); }
+    .card.type-aging { background: linear-gradient(135deg, #eeeeee, #bdbdbd); }
+    .card.type-pirate { background: linear-gradient(135deg, #ffcdd2, #ef9a9a); border-color: #b71c1c; }
+
+    /* 卡牌數值 */
+    .card-value {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        font-size: 18px;
+        font-weight: bold;
+        color: var(--wood-dark);
+        text-shadow: 1px 1px 0px white;
+        z-index: 2;
+    }
+    .card-value.negative { color: #d32f2f; }
+    .card-free-cards {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: white;
+        border: 1px solid var(--wood);
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: bold;
+        font-size: 12px;
+        z-index: 2;
+    }
+
+    /* SVG 插圖區域 */
+    .card-art {
+        width: 100%;
+        height: 60%;
+        margin-top: 15px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0.8;
+    }
+
+    /* 卡牌文字 */
+    .card-name {
+        text-align: center;
+        font-weight: bold;
+        font-size: 11px;
+        background: rgba(255,255,255,0.7);
+        border-radius: 3px;
+        padding: 2px 0;
+        z-index: 2;
+    }
+    .card-ability {
+        text-align: center;
+        font-size: 9px;
+        color: #333;
+        background: rgba(255,255,255,0.8);
+        border-radius: 3px;
+        padding: 2px;
+        z-index: 2;
+        min-height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* 卡牌狀態 */
+    .card.used { opacity: 0.5; transform: scale(0.95); filter: grayscale(50%); }
+    .card.destroyed { filter: grayscale(100%) brightness(0.5); opacity: 0.5; }
+    .card.highlight { box-shadow: 0 0 15px 5px #ffeb3b; transform: scale(1.05); }
+    .card.hidden { background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="140"><rect width="100" height="140" fill="%235c4033"/><text x="50" y="70" font-family="sans-serif" font-size="14" fill="%23f4e8d1" text-anchor="middle">未知</text></svg>'); background-size: cover; color: transparent; }
+
+    /* 控制面板 */
+    #controls {
+        background: var(--parchment-dark);
+        border-top: 3px solid var(--wood);
+        padding: 10px;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        box-shadow: 0 -2px 5px rgba(0,0,0,0.5);
+        z-index: 10;
+    }
+
+    button {
+        padding: 8px 16px;
+        font-family: 'Noto Serif TC', serif;
+        font-size: 14px;
+        font-weight: bold;
+        color: var(--parchment);
+        background-color: var(--btn-bg);
+        border: 2px solid var(--wood-dark);
+        border-radius: 5px;
+        cursor: pointer;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.3);
+        transition: all 0.1s;
+    }
+    button:hover:not(:disabled) { background-color: var(--btn-hover); transform: translateY(-1px); }
+    button:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 1px 3px rgba(0,0,0,0.3); }
+    button:disabled { background-color: #666; color: #aaa; cursor: not-allowed; border-color: #444; box-shadow: none; }
+
+    /* 底部導航列 */
+    #bottom-nav {
+        display: flex;
+        justify-content: space-around;
+        background: var(--wood-dark);
+        padding: 5px 0;
+        border-top: 2px solid #111;
+        z-index: 10;
+    }
+    .nav-btn {
+        background: none;
+        border: none;
+        color: var(--parchment);
+        font-size: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 5px;
+        box-shadow: none;
+        cursor: pointer;
+    }
+    .nav-btn:hover { color: white; background: rgba(255,255,255,0.1); transform: none; }
+    .nav-btn span { font-size: 20px; }
+
+    /* 彈窗系統 */
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-content {
+        background: var(--parchment);
+        padding: 20px;
+        border-radius: 10px;
+        border: 3px solid var(--wood);
+        max-width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+        position: relative;
+    }
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        text-align: center;
+        border-bottom: 2px solid var(--wood);
+        padding-bottom: 5px;
+    }
+    .modal-close {
+        position: absolute;
+        top: 10px; right: 10px;
+        background: var(--red-stage);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 30px; height: 30px;
+        font-size: 18px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        padding: 0;
+    }
+    .modal-body { line-height: 1.6; font-size: 14px; text-align: justify; }
+    .modal-body h3 { color: var(--wood-dark); margin-top: 15px; font-size: 16px; }
+    .modal-body ul { padding-left: 20px; }
+    .modal-body li { margin-bottom: 8px; }
+    .modal-body .highlight { color: #d32f2f; font-weight: bold; }
+
+    /* 特定介面元素 */
+    .hazard-choice-container {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        padding: 20px;
+    }
+    .hazard-choice-container .card { cursor: pointer; transform: scale(1.1); }
+    .hazard-choice-container .card:hover { transform: scale(1.15) translateY(-5px); box-shadow: 0 0 15px rgba(255,255,255,0.5); }
+
+    /* 歷史紀錄時間線 */
+    .timeline { list-style: none; padding: 0; margin: 0; }
+    .timeline li { position: relative; padding-left: 20px; margin-bottom: 10px; font-size: 13px; }
+    .timeline li::before { content: '•'; position: absolute; left: 0; color: var(--wood); font-size: 20px; line-height: 1; }
+
+    /* Toast 提示 */
+    #toast {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+        z-index: 200;
+        text-align: center;
+    }
+    #toast.show { opacity: 1; }
+
+    /* 響應式調整 */
+    @media (max-width: 600px) {
+        .card { width: 80px; height: 112px; padding: 3px; }
+        .card-value { font-size: 14px; top: 3px; left: 3px; }
+        .card-free-cards { width: 16px; height: 16px; font-size: 10px; }
+        .card-name { font-size: 9px; }
+        .card-ability { font-size: 8px; }
+        #top-bar { font-size: 12px; padding: 3px 5px; }
+        .stat-group { gap: 8px; }
+        #controls { padding: 5px; gap: 5px; }
+        button { padding: 6px 10px; font-size: 12px; }
+    }
+</style>
+</head>
+<body>
+
+    <!-- 頂部狀態列 -->
+    <div id="top-bar">
+        <div class="stat-group">
+            <div class="stat-item"><span class="stat-icon">❤️</span> 生命: <span id="stat-life">0</span></div>
+            <div class="stat-item"><span class="stat-icon">💤</span> 預備: <span id="stat-pool">0</span></div>
+        </div>
+        <div class="stat-group">
+            <div class="stat-item"><span class="stat-icon">🏃</span> 牌庫: <span id="stat-deck">0</span></div>
+            <div class="stat-item"><span class="stat-icon">🗑️</span> 棄牌: <span id="stat-discard">0</span></div>
+            <div class="stat-item"><span class="stat-icon">⚠️</span> 危險: <span id="stat-hazard">0</span></div>
+            <div class="stat-item"><span class="stat-icon">🌿</span> 階段: <span id="stat-stage">綠色</span></div>
+        </div>
+    </div>
+
+    <!-- 遊戲主區域 -->
+    <div id="game-board">
+        <!-- 危險卡區域 -->
+        <div id="hazard-area"></div>
+        <!-- 打出的卡牌區域 -->
+        <div id="played-area"></div>
+    </div>
+
+    <!-- 控制面板 -->
+    <div id="controls">
+        <button id="btn-draw" disabled>抽牌</button>
+        <button id="btn-extra-draw" disabled>支付生命抽牌</button>
+        <button id="btn-stop-draw" disabled>停止免費抽牌</button>
+        <button id="btn-end-fight" disabled>結束戰鬥</button>
+        <button id="btn-next" disabled>下一步</button>
+        <button id="btn-restart" style="background-color:#d32f2f;">重新開始</button>
+    </div>
+
+    <!-- 底部導航列 -->
+    <div id="bottom-nav">
+        <button class="nav-btn" onclick="openModal('modal-guide')"><span>📖</span>說明</button>
+        <button class="nav-btn" onclick="openModal('modal-save')"><span>💾</span>存檔</button>
+        <button class="nav-btn" onclick="openModal('modal-load')"><span>📂</span>讀檔</button>
+        <button class="nav-btn" onclick="openModal('modal-history')"><span>⏳</span>紀錄</button>
+        <button class="nav-btn" onclick="toggleSound()"><span id="sound-icon">🔊</span>音效</button>
+    </div>
+
+    <!-- 彈窗: 說明文件 -->
+    <div id="modal-guide" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('modal-guide')">×</button>
+            <div class="modal-title">荒島求生指南</div>
+            <div class="modal-body">
+                <h3>🎯 遊戲目標</h3>
+                <p>幫助魯賓遜在荒島上生存，通過綠色、黃色、紅色三個進度階段，最後擊敗 <span class="highlight">兩名海盜</span>，活著離開荒島！</p>
+                
+                <h3>🖥️ 看懂畫面</h3>
+                <ul>
+                    <li>最上方狀態列：<br>
+                        ❤️ <b>生命</b>：你的總生命值。<br>
+                        💤 <b>預備</b>：可用來支付代價的生命指示物（總和最多 22）。<br>
+                        🏃 <b>牌庫</b>：剩餘的戰鬥卡數量。<br>
+                        🌿 <b>階段</b>：當前進度（綠➔黃➔紅➔海盜）。
+                    </li>
+                    <li>中間區域：上方是 <b>危險卡</b>，下方是你 <b>打出的卡牌</b>。</li>
+                </ul>
+
+                <h3>🕹️ 操作步驟</h3>
+                <ol>
+                    <li><b>抽危險卡</b>：抽 2 張，點擊選擇 1 張挑戰。</li>
+                    <li><b>戰鬥階段</b>：<br>
+                        - 依據白色數字免費抽牌。<br>
+                        - 可「支付生命抽牌」（從生命移到預備區）。<br>
+                        - 點擊打出的卡牌可使用能力（部分需選擇目標）。<br>
+                        - 可隨時點擊「停止免費抽牌」。
+                    </li>
+                    <li><b>結算戰鬥</b>：點擊「結束戰鬥」。<br>
+                        - <b>勝利</b>：獲得該危險卡作為知識卡。<br>
+                        - <b>失敗</b>：支付差值生命，並可花費這些點數摧毀打出的卡牌。
+                    </li>
+                </ol>
+
+                <h3>⚙️ 特殊機制</h3>
+                <ul>
+                    <li><b>衰老卡</b>：牌庫抽完時會洗入，帶來負面效果。</li>
+                    <li><b>海盜戰</b>：最後 BOSS，不能故意輸掉，必須湊齊戰鬥力。</li>
+                </ul>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="closeModal('modal-guide')" style="padding: 10px 20px; font-size: 16px;">我準備好了，開始遊戲</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 彈窗: 存檔/讀檔/歷史紀錄/選擇目標 -->
+    <div id="modal-save" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('modal-save')">×</button>
+            <div class="modal-title">遊戲存檔</div>
+            <div class="modal-body" style="text-align: center;">
+                <p>要將當前進度儲存到瀏覽器中嗎？</p>
+                <button onclick="saveGame()" style="margin-top: 10px;">確認存檔</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-load" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('modal-load')">×</button>
+            <div class="modal-title">讀取存檔</div>
+            <div class="modal-body" style="text-align: center;">
+                <p>讀取上次儲存的進度？當前進度將會丟失。</p>
+                <button onclick="loadGame()" style="margin-top: 10px;">確認讀取</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-history" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('modal-history')">×</button>
+            <div class="modal-title">冒險時間線</div>
+            <div class="modal-body">
+                <ul id="history-list" class="timeline"></ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 選擇目標彈窗 -->
+    <div id="modal-target" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title" id="target-title">選擇目標</div>
+            <div class="modal-body" id="target-body" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+                <!-- 目標卡牌將動態生成 -->
+            </div>
+            <div style="text-align:center; margin-top:15px;">
+                <button onclick="cancelTargetSelection()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+<script>
+    // ==========================================
+    // 資料定義
+    // ==========================================
+    const CARD_TYPES = { ROBINSON: 'robinson', KNOWLEDGE: 'knowledge', AGING: 'aging', HAZARD: 'hazard', PIRATE: 'pirate' };
+    const STATES = { INIT: 'INIT', DRAW_HAZARD: 'DRAW_HAZARD', PLAYING: 'PLAYING', CHOOSING_TARGET: 'CHOOSING_TARGET', DESTROYING: 'DESTROYING', GAME_OVER: 'GAME_OVER' };
+
+    const SVG_ICONS = {
+        robinson: '👤', hazard: '⚠️', aging: '💀', pirate: '🏴‍☠️', knowledge: '📖'
+    };
+
+    // 起始牌庫 (18張)
+    const STARTING_DECK = [
+        { type: CARD_TYPES.ROBINSON, value: 2, name: '力量', ability: null, count: 1 },
+        { type: CARD_TYPES.ROBINSON, value: 1, name: '勇氣', ability: null, count: 3 },
+        { type: CARD_TYPES.ROBINSON, value: 0, name: '專注', ability: null, count: 8 },
+        { type: CARD_TYPES.ROBINSON, value: -1, name: '發呆', ability: null, count: 5 },
+        { type: CARD_TYPES.ROBINSON, value: 0, name: '進食', ability: '+2生命', count: 1 }
+    ];
+
+    // 衰老卡
+    const AGING_NORMAL = [
+        { type: CARD_TYPES.AGING, value: -1, name: '虛弱', ability: '-1生命', count: 1 },
+        { type: CARD_TYPES.AGING, value: -2, name: '痴呆', ability: '-2生命', count: 2 },
+        { type: CARD_TYPES.AGING, value: -3, name: '老年痴呆', ability: '...', count: 1 },
+        { type: CARD_TYPES.AGING, value: 0, name: '驚嚇', ability: '最高值=0', count: 2 },
+        { type: CARD_TYPES.AGING, value: 0, name: '飢餓', ability: '-1生命', count: 1 },
+        { type: CARD_TYPES.AGING, value: 0, name: '極度疲憊', ability: '停止抽牌', count: 1 }
+    ];
+    const AGING_HARD = [
+        { type: CARD_TYPES.AGING, value: -4, name: '低能', ability: '...', count: 1 },
+        { type: CARD_TYPES.AGING, value: -5, name: '自殺', ability: '...', count: 1 },
+        { type: CARD_TYPES.AGING, value: 0, name: '非常飢餓', ability: '-2生命', count: 1 }
+    ];
+    const VERY_STUPID = { type: CARD_TYPES.AGING, value: -2, name: '超越笨', ability: '...', count: 1 };
+
+    // 危險/知識卡 (依階段)
+    const HAZARD_GREEN = [
+        { value: 2, free: 1, name: '乘木筏登破船', ability: '+1生命' },
+        { value: 2, free: 1, name: '探索島嶼', ability: '+2生命' },
+        { value: 3, free: 1, name: '探索島嶼', ability: '1x複製' },
+        { value: 3, free: 1, name: '乘木筏登破船', ability: '1x交換' },
+        { value: 4, free: 2, name: '深入島嶼', ability: '+1卡牌' },
+        { value: 4, free: 2, name: '深入島嶼', ability: '1x交換' },
+        { value: 5, free: 2, name: '野生動物', ability: '1x摧毁' }
+    ];
+    const HAZARD_YELLOW = [
+        { value: 4, free: 1, name: '乘木筏登破船', ability: '+1生命' },
+        { value: 4, free: 1, name: '探索島嶼', ability: '+2生命' },
+        { value: 5, free: 1, name: '探索島嶼', ability: '1x複製' },
+        { value: 5, free: 1, name: '乘木筏登破船', ability: '1x交換' },
+        { value: 6, free: 2, name: '深入島嶼', ability: '+1卡牌' },
+        { value: 6, free: 2, name: '深入島嶼', ability: '1x交換' },
+        { value: 7, free: 2, name: '野生動物', ability: '1x摧毁' },
+        { value: 7, free: 2, name: '食人族', ability: '1x加倍' }
+    ];
+    const HAZARD_RED = [
+        { value: 6, free: 1, name: '乘木筏登破船', ability: '+1生命' },
+        { value: 6, free: 1, name: '探索島嶼', ability: '+2生命' },
+        { value: 7, free: 1, name: '探索島嶼', ability: '1x複製' },
+        { value: 7, free: 1, name: '乘木筏登破船', ability: '1x交換' },
+        { value: 8, free: 2, name: '深入島嶼', ability: '+1卡牌' },
+        { value: 8, free: 2, name: '深入島嶼', ability: '1x交換' },
+        { value: 9, free: 2, name: '野生動物', ability: '1x摧毁' },
+        { value: 9, free: 2, name: '食人族', ability: '1x加倍' },
+        { value: 10, free: 3, name: '野獸', ability: '1x摧毀' }
+    ];
+
+    // 海盜卡 (共10張，此處列出有特殊能力的與普通卡)
+    const PIRATES_POOL = [
+        { value: 20, free: 6, name: '海盜船長', ability: '每張額外抽牌花費2生命' },
+        { value: 25, free: 7, name: '無情海盜', ability: '...' },
+        { value: 30, free: 8, name: '暴虐海盜', ability: '...' },
+        { value: 22, free: 9, name: '狡猾海盜', ability: '只算一半卡牌(含衰老)' },
+        { value: 35, free: 9, name: '深海巨獸', ability: '每張抽出卡牌+1戰鬥力' },
+        { value: 20, free: 5, name: '殘酷海盜', ability: '...' },
+        { value: 25, free: 7, name: '無情海盜', ability: '...' },
+        { value: 30, free: 8, name: '暴虐海盜', ability: '...' },
+        { value: 40, free: 10, name: '海盜王', ability: '與剩餘危險卡戰鬥' },
+        { value: 52, free: 10, name: '幽靈海盜', ability: '每張衰老卡+2危險值' }
+    ];
+
+    // ==========================================
+    // 遊戲狀態
+    // ==========================================
+    let game = {
+        difficulty: 1,
+        life: 20,
+        pool: 2,
+        deck: [],
+        discard: [],
+        hazardDeck: [],
+        hazardDiscard: [],
+        agingNormalDeck: [],
+        agingHardDeck: [],
+        stage: 1,
+        currentHazards: [],
+        currentHazard: null,
+        playedCards: [],
+        freeDrawsLeft: 0,
+        phase: STATES.INIT,
+        history: [],
+        pirates: [],
+        currentPirateIndex: 0,
+        soundEnabled: true,
+        pendingAbilityCard: null,
+        destroyPoints: 0,
+        isPirateFight: false
+    };
+
+    // ==========================================
+    // 音效與 UI 輔助
+    // ==========================================
+    let audioCtx;
+    function playSound(type) {
+        if (!game.soundEnabled) return;
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            if (type === 'click') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'success') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'fail') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(150, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+            }
+        } catch(e) { console.log('Audio error', e); }
+    }
+
+    function toggleSound() {
+        game.soundEnabled = !game.soundEnabled;
+        document.getElementById('sound-icon').textContent = game.soundEnabled ? '🔊' : '🔇';
+        playSound('click');
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    function addHistory(msg) {
+        const time = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+        game.history.push(`[${time}] ${msg}`);
+        updateHistoryUI();
+    }
+
+    function updateHistoryUI() {
+        const list = document.getElementById('history-list');
+        list.innerHTML = game.history.map(h => `<li>${h}</li>`).join('');
+        list.scrollTop = list.scrollHeight;
+    }
+
+    function openModal(id) { playSound('click'); document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { playSound('click'); document.getElementById(id).classList.remove('active'); }
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    // ==========================================
+    // 核心邏輯：初始化
+    // ==========================================
+    function initGame(difficulty = 1) {
+        game = {
+            difficulty: difficulty,
+            life: difficulty === 4 ? 18 : 20,
+            pool: 2,
+            deck: [],
+            discard: [],
+            hazardDeck: [],
+            hazardDiscard: [],
+            agingNormalDeck: [],
+            agingHardDeck: [],
+            stage: 1,
+            currentHazards: [],
+            currentHazard: null,
+            playedCards: [],
+            freeDrawsLeft: 0,
+            phase: STATES.DRAW_HAZARD,
+            history: [],
+            pirates: [],
+            currentPirateIndex: 0,
+            soundEnabled: game.soundEnabled,
+            pendingAbilityCard: null,
+            destroyPoints: 0,
+            isPirateFight: false
+        };
+
+        addHistory(`遊戲開始！難度 ${difficulty}`);
+
+        // 建立起始牌庫
+        STARTING_DECK.forEach(c => {
+            for (let i = 0; i < c.count; i++) {
+                game.deck.push({...c, id: Math.random().toString(36).substr(2, 9), used: false, destroyed: false});
+            }
+        });
+        
+        // 難度 2 以上加入一張衰老卡
+        if (difficulty >= 2) {
+            const aging = { ...AGING_NORMAL[0], id: 'aging_start', used: false, destroyed: false };
+            game.deck.push(aging);
+            addHistory('加入了一張面朝下的衰老卡到起始牌庫。');
+        }
+        shuffle(game.deck);
+
+        // 建立衰老牌庫 (普通在上，困難在下)
+        let normals = [];
+        AGING_NORMAL.forEach(c => { for (let i = 0; i < c.count; i++) normals.push({...c, id: Math.random().toString(36).substr(2, 9)}); });
+        
+        let hards = [];
+        if (difficulty >= 3) hards.push({...VERY_STUPID, id: 'very_stupid'});
+        AGING_HARD.forEach(c => { for (let i = 0; i < c.count; i++) hards.push({...c, id: Math.random().toString(36).substr(2, 9)}); });
+        
+        shuffle(normals);
+        shuffle(hards);
+        // 陣列 pop() 從尾部取，所以我們把普通放尾部，困難放頭部
+        game.agingNormalDeck = [...normals];
+        game.agingHardDeck = [...hards];
+
+        // 建立危險牌庫
+        buildHazardDeck();
+
+        // 抽取海盜卡
+        let piratePool = shuffle([...PIRATES_POOL]);
+        game.pirates = [piratePool[0], piratePool[1]];
+        addHistory(`抽到的海盜對手：${game.pirates[0].name} 與 ${game.pirates[1].name}`);
+
+        updateUI();
+        nextTurn();
+    }
+
+    function buildHazardDeck() {
+        let pool = [];
+        if (game.stage === 1) pool = [...HAZARD_GREEN];
+        else if (game.stage === 2) pool = [...HAZARD_YELLOW];
+        else if (game.stage === 3) pool = [...HAZARD_RED];
+        
+        game.hazardDeck = pool.map(c => ({...c, id: Math.random().toString(36).substr(2, 9)}));
+        shuffle(game.hazardDeck);
+        game.hazardDiscard = [];
+    }
+
+    // ==========================================
+    // 核心邏輯：回合流程
+    // ==========================================
+    function nextTurn() {
+        if (game.stage === 4) {
+            startPirateFight();
+            return;
+        }
+
+        if (game.hazardDeck.length === 0) {
+            if (game.stage === 3) {
+                game.stage = 4;
+                addHistory('進入最終階段：海盜決戰！');
+                nextTurn();
+                return;
+            } else {
+                game.stage++;
+                buildHazardDeck();
+                addHistory(`進入新階段：${game.stage === 2 ? '黃色' : '紅色'}進度`);
+            }
+        }
+
+        game.phase = STATES.DRAW_HAZARD;
+        if (game.hazardDeck.length === 1) {
+            game.currentHazards = [game.hazardDeck.pop()];
+            addHistory(`抽到最後一張危險卡：${game.currentHazards[0].name}`);
+        } else {
+            game.currentHazards = [game.hazardDeck.pop(), game.hazardDeck.pop()];
+            addHistory(`抽到兩張危險卡，請選擇一張挑戰。`);
+        }
+        updateUI();
+    }
+
+    function startPirateFight() {
+        game.isPirateFight = true;
+        game.currentHazard = { ...game.pirates[game.currentPirateIndex], type: CARD_TYPES.PIRATE, id: 'pirate_'+game.currentPirateIndex };
+        
+        // 處理海盜特殊準備規則
+        if (game.currentHazard.name === '海盜王') { // 與剩餘危險卡戰鬥
+            let extraVal = 0;
+            let extraFree = 0;
+            game.hazardDiscard.forEach(h => {
+                if (h.value) {
+                    extraVal += h.value; // 簡化為直接加總，原版可能只加紅色進度，此處全加
+                    extraFree += h.free || 0;
+                }
+            });
+            game.currentHazard.value += extraVal;
+            game.currentHazard.free += extraFree;
+            addHistory(`海盜王吸收了剩餘危險卡：戰鬥值 +${extraVal}，免費抽牌 +${extraFree}`);
+        } else if (game.currentHazard.name === '幽靈海盜') { // 每張衰老卡+2危險
+            let agingCount = game.deck.filter(c => c.type === CARD_TYPES.AGING).length + game.discard.filter(c => c.type === CARD_TYPES.AGING).length;
+            game.currentHazard.value += agingCount * 2;
+            addHistory(`幽靈海盜因衰老卡增強：戰鬥值 +${agingCount * 2}`);
+        }
+
+        game.phase = STATES.PLAYING;
+        game.freeDrawsLeft = game.currentHazard.free;
+        game.playedCards = [];
+        game.pendingAbilityCard = null;
+        addHistory(`遭遇海盜：${game.currentHazard.name} (戰鬥值: ${game.currentHazard.value})`);
+        updateUI();
+    }
+
+    function selectHazard(index) {
+        if (game.phase !== STATES.DRAW_HAZARD) return;
+        playSound('click');
+        
+        const selected = game.currentHazards[index];
+        const discarded = game.currentHazards[1 - index];
+        
+        game.currentHazard = { ...selected, type: CARD_TYPES.HAZARD };
+        game.hazardDiscard.push(discarded);
+        
+        game.phase = STATES.PLAYING;
+        game.freeDrawsLeft = selected.free;
+        game.playedCards = [];
+        game.pendingAbilityCard = null;
+        
+        addHistory(`選擇挑戰：${selected.name} (危險值: ${selected.value})，可免費抽 ${selected.free} 張卡。`);
+        updateUI();
+    }
+
+    // ==========================================
+    // 核心邏輯：抽牌與戰鬥
+    // ==========================================
+    function drawCard(isPaid = false) {
+        if (game.phase !== STATES.PLAYING) return;
+        
+        if (isPaid) {
+            let cost = 1;
+            if (game.isPirateFight && game.currentHazard.name === '海盜船長') cost = 2;
+            
+            if (game.life < cost) {
+                showToast('生命值不足，無法支付！');
+                return;
+            }
+            game.life -= cost;
+            game.pool += cost;
+            addHistory(`支付 ${cost} 點生命額外抽牌。`);
+        } else {
+            if (game.freeDrawsLeft <= 0) return;
+            game.freeDrawsLeft--;
+        }
+
+        // 檢查牌庫並洗牌
+        if (game.deck.length === 0) {
+            if (game.discard.length === 0) {
+                showToast('牌庫與棄牌堆皆已耗盡！');
+                return;
+            }
+            game.deck = [...game.discard];
+            game.discard = [];
+            shuffle(game.deck);
+            
+            // 加入衰老卡 (先抽普通，再抽困難)
+            let agingCard = null;
+            if (game.agingNormalDeck.length > 0) agingCard = game.agingNormalDeck.pop();
+            else if (game.agingHardDeck.length > 0) agingCard = game.agingHardDeck.pop();
+            
+            if (agingCard) {
+                game.deck.push(agingCard);
+                shuffle(game.deck);
+                addHistory(`牌庫耗盡，洗入一張衰老卡。`);
+            }
+        }
+
+        const card = game.deck.pop();
+        card.used = false;
+        card.destroyed = false;
+        card.doubleValue = false; // 用於加倍能力
+        game.playedCards.push(card);
+
+        // 處理停止抽牌 (衰老卡)
+        if (card.ability === '停止抽牌' && !isPaid) {
+            game.freeDrawsLeft = 0;
+            showToast('抽到「極度疲憊」，停止免費抽牌！');
+            addHistory(`抽到衰老卡「${card.name}」，停止免費抽牌。`);
+        }
+
+        playSound('click');
+        updateUI();
+    }
+
+    function stopFreeDraws() {
+        if (game.phase !== STATES.PLAYING) return;
+        game.freeDrawsLeft = 0;
+        addHistory('玩家主動停止免費抽牌。');
+        updateUI();
+    }
+
+    // ==========================================
+    // 卡牌能力處理 (狀態機：選擇目標 -> 結算)
+    // ==========================================
+    function useAbility(cardId) {
+        if (game.phase !== STATES.PLAYING) return;
+        const card = game.playedCards.find(c => c.id === cardId);
+        if (!card || card.used || !card.ability || card.ability === '...') return;
+
+        // 立即生效的能力
+        if (card.ability === '+1生命') {
+            card.used = true;
+            if (game.pool > 0) { game.pool--; game.life++; }
+            addHistory(`使用「${card.name}」：+1生命。`);
+        } else if (card.ability === '+2生命') {
+            card.used = true;
+            for (let i = 0; i < 2; i++) { if (game.pool > 0) { game.pool--; game.life++; } }
+            addHistory(`使用「${card.name}」：+2生命。`);
+        } else if (card.ability === '+1卡牌') {
+            card.used = true;
+            game.freeDrawsLeft += 1;
+            addHistory(`使用「${card.name}」：免費抽 1 張牌。`);
+        } else if (card.ability === '-1生命' || card.ability === '-2生命') {
+            // 衰老卡能力在結算時處理，這裡不允許主動點擊(除非是其他卡複製)
+            showToast('此能力在戰鬥結算時自動生效。');
+            return;
+        } else if (card.ability === '停止抽牌' || card.ability === '最高值=0') {
+            showToast('此能力在抽牌或結算時自動生效。');
+            return;
+        } else if (card.ability === 'step -1') {
+            card.used = true;
+            if (game.stage > 1 && !game.isPirateFight) {
+                game.currentHazard.value -= 2; // 簡化為降低2點
+                addHistory(`使用「${card.name}」：危險值降低。`);
+            } else {
+                showToast('海盜或綠色階段無法使用此能力。');
+                return;
+            }
+        } 
+        // 需要選擇目標的能力
+        else if (['1x摧毁', '1x加倍', '1x複製', '1x交換', '2x交換', '1x放到牌庫底'].includes(card.ability)) {
+            game.pendingAbilityCard = card;
+            game.phase = STATES.CHOOSING_TARGET;
+            showTargetSelection(card);
+            return;
+        }
+
+        playSound('click');
+        updateUI();
+    }
+
+    function showTargetSelection(sourceCard) {
+        const modal = document.getElementById('modal-target');
+        const title = document.getElementById('target-title');
+        const body = document.getElementById('target-body');
+        
+        title.textContent = `使用「${sourceCard.name}」 (${sourceCard.ability})`;
+        body.innerHTML = '';
+        
+        let validTargets = game.playedCards.filter(c => c.id !== sourceCard.id && !c.destroyed);
+        
+        // 過濾目標
+        if (sourceCard.ability === '1x複製' || sourceCard.ability === '1x加倍') {
+            validTargets = validTargets.filter(c => !c.used || sourceCard.ability === '1x加倍'); 
+            if (sourceCard.ability === '1x加倍') {
+                validTargets = validTargets.filter(c => !c.doubled); // 不能疊加
+            }
+        }
+
+        if (validTargets.length === 0) {
+            showToast('沒有合法的目標可以選擇！');
+            cancelTargetSelection();
+            return;
+        }
+
+        validTargets.forEach(t => {
+            const cardEl = createCardElement(t, t.type, () => resolveTargetSelection(sourceCard, t));
+            body.appendChild(cardEl);
+        });
+
+        modal.classList.add('active');
+    }
+
+    function resolveTargetSelection(source, target) {
+        document.getElementById('modal-target').classList.remove('active');
+        source.used = true;
+        playSound('click');
+
+        if (source.ability === '1x摧毁') {
+            target.destroyed = true;
+            addHistory(`「${source.name}」摧毀了「${target.name}」。`);
+        } else if (source.ability === '1x加倍') {
+            target.doubled = true;
+            addHistory(`「${source.name}」使「${target.name}」戰鬥值加倍。`);
+        } else if (source.ability === '1x複製') {
+            addHistory(`「${source.name}」複製了「${target.name}」的能力。`);
+            // 遞迴觸發目標能力 (簡化處理，不消耗目標的 used 狀態)
+            const originalUsed = target.used;
+            target.used = false; 
+            useAbility(target.id);
+            target.used = originalUsed; // 恢復狀態，避免目標被消耗
+        } else if (source.ability === '1x交換' || source.ability === '2x交換') {
+            // 將目標放回牌庫，抽一張新的
+            game.playedCards = game.playedCards.filter(c => c.id !== target.id);
+            game.discard.push(target); // 嚴格來說是放回牌庫，此處簡化為進棄牌堆
+            
+            // 抽新卡
+            if (game.deck.length === 0) {
+                game.deck = [...game.discard];
+                game.discard = [];
+                shuffle(game.deck);
+            }
+            if (game.deck.length > 0) {
+                const newCard = game.deck.pop();
+                newCard.used = false; newCard.destroyed = false; newCard.doubled = false;
+                game.playedCards.push(newCard);
+                addHistory(`交換：${target.name} 換成了 ${newCard.name}。`);
+            } else {
+                addHistory(`交換：${target.name} 移除，但牌庫已空。`);
+            }
+            // 如果是 2x交換，允許再選一次 (簡化：直接結束)
+        } else if (source.ability === '1x放到牌庫底') {
+            game.playedCards = game.playedCards.filter(c => c.id !== target.id);
+            game.deck.unshift(target); // 放到牌庫底 (陣列頭部)
+            addHistory(`將「${target.name}」放到牌庫底。`);
+            if (target.id.includes('free')) { // 若是免費抽的，補抽一張
+                 drawCard(false);
+            }
+        }
+
+        game.pendingAbilityCard = null;
+        game.phase = STATES.PLAYING;
+        updateUI();
+    }
+
+    function cancelTargetSelection() {
+        document.getElementById('modal-target').classList.remove('active');
+        game.pendingAbilityCard = null;
+        game.phase = STATES.PLAYING;
+        updateUI();
+    }
+
+    // ==========================================
+    // 核心邏輯：結算戰鬥
+    // ==========================================
+    function endFight() {
+        if (game.phase !== STATES.PLAYING) return;
+        game.phase = STATES.RESOLVING;
+
+        let totalPower = 0;
+        let highestValue = -99;
+        let highestCard = null;
+        let hasHighestZero = false;
+
+        // 檢查衰老卡的特殊結算效果
+        game.playedCards.forEach(c => {
+            if (c.destroyed) return;
+            if (c.ability === '最高值=0') hasHighestZero = true;
+        });
+
+        // 計算基礎戰鬥力
+        let cardPowers = game.playedCards.map(c => {
+            if (c.destroyed) return 0;
+            let val = c.value;
+            if (c.doubled) val *= 2;
+            if (val > highestValue) { highestValue = val; highestCard = c; }
+            return val;
+        });
+
+        // 處理最高值=0
+        if (hasHighestZero && highestCard && highestCard.value > 0) {
+            const idx = game.playedCards.indexOf(highestCard);
+            cardPowers[idx] = 0;
+            addHistory(`衰老卡生效：最高值卡「${highestCard.name}」戰鬥力歸零。`);
+        }
+
+        totalPower = cardPowers.reduce((a, b) => a + b, 0);
+
+        // 處理海盜特殊規則
+        if (game.isPirateFight) {
+            if (game.currentHazard.name === '狡猾海盜') {
+                // 只算一半卡牌，且必須包含衰老卡
+                const activeCards = game.playedCards.filter(c => !c.destroyed);
+                const halfCount = Math.ceil(activeCards.length / 2);
+                // 排序，確保衰老卡被計算在內
+                activeCards.sort((a, b) => (a.type === CARD_TYPES.AGING ? -1 : 1));
+                totalPower = activeCards.slice(0, halfCount).reduce((sum, c) => sum + (c.doubled ? c.value*2 : c.value), 0);
+                addHistory(`狡猾海盜：只計算一半卡牌，戰鬥力為 ${totalPower}`);
+            } else if (game.currentHazard.name === '深海巨獸') {
+                totalPower += game.playedCards.filter(c => !c.destroyed).length;
+                addHistory(`深海巨獸：每張卡+1，總戰鬥力 ${totalPower}`);
+            }
+        }
+
+        const hazardValue = game.currentHazard.value;
+
+        if (totalPower >= hazardValue) {
+            // 勝利
+            playSound('success');
+            addHistory(`戰鬥勝利！戰鬥力 ${totalPower} ≥ 危險值 ${hazardValue}`);
+            
+            // 處理衰老卡的負面效果 (-1/-2生命)
+            game.playedCards.forEach(c => {
+                if (c.destroyed) return;
+                if (c.ability === '-1生命' || c.ability === '飢餓') {
+                    if (game.life > 0) { game.life--; game.pool++; } else { gameOver(false); return; }
+                }
+                if (c.ability === '-2生命' || c.ability === '非常飢餓') {
+                    for(let i=0;i<2;i++) { if (game.life > 0) { game.life--; game.pool++; } else { gameOver(false); return; } }
+                }
+            });
+
+            if (game.phase === STATES.GAME_OVER) return;
+
+            // 獲得獎勵
+            if (!game.isPirateFight) {
+                const knowledge = {
+                    type: CARD_TYPES.KNOWLEDGE,
+                    value: game.stage * 2, // 簡化：依階段給予
+                    name: game.currentHazard.name,
+                    ability: game.currentHazard.ability,
+                    id: Math.random().toString(36).substr(2, 9),
+                    used: false, destroyed: false, doubled: false
+                };
+                game.discard.push(knowledge);
+                addHistory(`獲得知識卡：${knowledge.name}`);
+            } else {
+                game.currentPirateIndex++;
+                if (game.currentPirateIndex >= 2) {
+                    gameOver(true);
+                    return;
+                }
+            }
+
+            // 清理打出的卡牌 (未摧毀進棄牌堆)
+            game.playedCards.forEach(c => {
+                if (!c.destroyed) game.discard.push(c);
+            });
+            game.playedCards = [];
+            game.currentHazard = null;
+
+            if (!game.isPirateFight || game.currentPirateIndex < 2) {
+                setTimeout(() => {
+                    if (game.isPirateFight) startPirateFight();
+                    else nextTurn();
+                }, 500);
+            }
+
+        } else {
+            // 失敗
+            playSound('fail');
+            const diff = hazardValue - totalPower;
+            addHistory(`戰鬥失敗！戰鬥力 ${totalPower} < 危險值 ${hazardValue}，需支付 ${diff} 點生命。`);
+            
+            if (game.life < diff) {
+                game.life = 0;
+                gameOver(false);
+                return;
+            }
+
+            game.life -= diff;
+            game.pool += diff;
+            
+            // 海盜戰不能摧毀卡牌
+            if (game.isPirateFight) {
+                game.hazardDiscard.push(game.currentHazard);
+                game.currentHazard = null;
+                gameOver(false); // 海盜戰失敗即死
+                return;
+            }
+
+            // 進入摧毀階段
+            game.destroyPoints = diff; // 用於摧毀卡牌
+            game.phase = STATES.DESTROYING;
+            game.hazardDiscard.push(game.currentHazard);
+            game.currentHazard = null;
+            
+            showToast(`請在結算階段點擊要摧毀的卡牌，完成後按下一步。`);
+            updateUI();
+        }
+    }
+
+    function destroyCard(cardId) {
+        if (game.phase !== STATES.DESTROYING) return;
+        const card = game.playedCards.find(c => c.id === cardId);
+        if (!card || card.destroyed) return;
+
+        let cost = 1;
+        if (card.type === CARD_TYPES.AGING) cost = 2;
+
+        if (game.destroyPoints >= cost) {
+            game.destroyPoints -= cost;
+            card.destroyed = true;
+            addHistory(`花費 ${cost} 點代價摧毀了「${card.name}」`);
+            playSound('click');
+            updateUI();
+        } else {
+            showToast(`代價不足，需要 ${cost} 點！`);
+        }
+    }
+
+    function finishDestroying() {
+        if (game.phase !== STATES.DESTROYING) return;
+        
+        // 清理未摧毀的 (進棄牌堆)
+        game.playedCards.forEach(c => {
+            if (!c.destroyed) game.discard.push(c);
+        });
+        game.playedCards = [];
+        
+        game.phase = STATES.DRAW_HAZARD;
+        setTimeout(() => nextTurn(), 500);
+    }
+
+    function gameOver(win = false) {
+        game.phase = STATES.GAME_OVER;
+        let score = 0;
+        
+        if (win) {
+            addHistory(`🎉 恭喜！你成功逃離荒島！`);
+            playSound('success');
+            score += 30; // 海盜分數
+            score += game.life * 5;
+        } else {
+            addHistory(`💀 遊戲結束，魯賓遜命喪荒島...`);
+            playSound('fail');
+        }
+
+        // 計算總分
+        game.deck.concat(game.discard).forEach(c => {
+            score += c.value;
+            if (c.type === CARD_TYPES.AGING) score -= 5;
+        });
+        
+        game.hazardDiscard.forEach(c => {
+            if (c.type !== CARD_TYPES.PIRATE) score -= 3; // 假設海盜不扣分
+        });
+
+        addHistory(`最終得分：${score} 分`);
+        showToast(win ? `勝利！得分：${score}` : `失敗！得分：${score}`);
+        updateUI();
+    }
+
+    // ==========================================
+    // UI 渲染
+    // ==========================================
+    function updateUI() {
+        document.getElementById('stat-life').textContent = game.life;
+        document.getElementById('stat-pool').textContent = game.pool;
+        document.getElementById('stat-deck').textContent = game.deck.length;
+        document.getElementById('stat-discard').textContent = game.discard.length;
+        document.getElementById('stat-hazard').textContent = game.hazardDeck.length;
+        
+        const stageNames = {1:'綠色', 2:'黃色', 3:'紅色', 4:'海盜'};
+        const stageEl = document.getElementById('stat-stage');
+        stageEl.textContent = stageNames[game.stage];
+        stageEl.style.color = ['', 'var(--green-stage)', 'var(--yellow-stage)', 'var(--red-stage)', 'var(--wood-dark)'][game.stage];
+
+        const hazardArea = document.getElementById('hazard-area');
+        hazardArea.innerHTML = '';
+        
+        if (game.phase === STATES.DRAW_HAZARD) {
+            game.currentHazards.forEach((h, i) => {
+                hazardArea.appendChild(createCardElement(h, CARD_TYPES.HAZARD, () => selectHazard(i)));
+            });
+        } else if (game.currentHazard) {
+            hazardArea.appendChild(createCardElement(game.currentHazard, game.currentHazard.type, null, true));
+        }
+
+        const playedArea = document.getElementById('played-area');
+        playedArea.innerHTML = '';
+        game.playedCards.forEach(c => {
+            const el = createCardElement(c, c.type, () => {
+                if (game.phase === STATES.DESTROYING) {
+                    destroyCard(c.id);
+                } else if (game.phase === STATES.PLAYING) {
+                    useAbility(c.id);
+                }
+            });
+            if (c.used) el.classList.add('used');
+            if (c.destroyed) el.classList.add('destroyed');
+            playedArea.appendChild(el);
+        });
+
+        const btnDraw = document.getElementById('btn-draw');
+        const btnExtra = document.getElementById('btn-extra-draw');
+        const btnStop = document.getElementById('btn-stop-draw');
+        const btnEnd = document.getElementById('btn-end-fight');
+        const btnNext = document.getElementById('btn-next');
+
+        btnDraw.disabled = game.phase !== STATES.PLAYING || game.freeDrawsLeft <= 0;
+        btnExtra.disabled = game.phase !== STATES.PLAYING || game.life <= 0;
+        btnStop.disabled = game.phase !== STATES.PLAYING || game.freeDrawsLeft <= 0;
+        btnEnd.disabled = game.phase !== STATES.PLAYING;
+        
+        if (game.phase === STATES.DESTROYING) {
+            btnEnd.disabled = true;
+            btnNext.disabled = false;
+            btnNext.textContent = '完成摧毀';
+            btnNext.onclick = finishDestroying;
+        } else if (game.phase === STATES.GAME_OVER) {
+            btnDraw.disabled = true; btnExtra.disabled = true; btnStop.disabled = true; btnEnd.disabled = true; btnNext.disabled = true;
+        } else {
+            btnNext.disabled = true;
+        }
+    }
+
+    function createCardElement(card, type, onClick = null, isLarge = false) {
+        const div = document.createElement('div');
+        div.className = `card type-${type}`;
+        if (isLarge) { div.style.width = '120px'; div.style.height = '168px'; }
+        
+        const valEl = document.createElement('div');
+        valEl.className = `card-value ${card.value < 0 ? 'negative' : ''}`;
+        valEl.textContent = (card.doubled ? card.value * 2 : card.value);
+        if (card.doubled) valEl.style.color = '#d32f2f';
+        div.appendChild(valEl);
+
+        if (card.free !== undefined) {
+            const freeEl = document.createElement('div');
+            freeEl.className = 'card-free-cards';
+            freeEl.textContent = card.free;
+            div.appendChild(freeEl);
+        }
+
+        const art = document.createElement('div');
+        art.className = 'card-art';
+        art.innerHTML = `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="50" r="40" fill="#ccc" stroke="#3e2723" stroke-width="2"/><text x="50" y="55" font-family="sans-serif" font-size="30" fill="#fff" text-anchor="middle" font-weight="bold">${SVG_ICONS[type] || '❓'}</text></svg>`;
+        div.appendChild(art);
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'card-name';
+        nameEl.textContent = card.name;
+        div.appendChild(nameEl);
+
+        if (card.ability) {
+            const abEl = document.createElement('div');
+            abEl.className = 'card-ability';
+            abEl.textContent = card.ability;
+            div.appendChild(abEl);
+        }
+
+        if (onClick) div.onclick = onClick;
+        return div;
+    }
+
+    // ==========================================
+    // 存讀檔
+    // ==========================================
+    function saveGame() {
+        try {
+            localStorage.setItem('friday_save_v2', JSON.stringify(game));
+            showToast('遊戲已儲存！');
+            closeModal('modal-save');
+        } catch (e) { showToast('儲存失敗：' + e.message); }
+    }
+
+    function loadGame() {
+        const saved = localStorage.getItem('friday_save_v2');
+        if (saved) {
+            try {
+                game = JSON.parse(saved);
+                updateUI();
+                updateHistoryUI();
+                showToast('讀取成功！');
+                closeModal('modal-load');
+                // 確保按鈕狀態正確 (特別是正在 PLAYING 的階段)
+                if (game.phase === STATES.PLAYING) {
+                    document.getElementById('btn-draw').disabled = game.freeDrawsLeft <= 0;
+                    document.getElementById('btn-extra-draw').disabled = game.life <= 0;
+                    document.getElementById('btn-end-fight').disabled = false;
+                }
+            } catch (e) { showToast('讀取失敗：檔案損壞'); }
+        } else { showToast('沒有找到存檔！'); }
+    }
+
+    // ==========================================
+    // 事件綁定與啟動
+    // ==========================================
+    document.getElementById('btn-draw').onclick = () => drawCard(false);
+    document.getElementById('btn-extra-draw').onclick = () => drawCard(true);
+    document.getElementById('btn-stop-draw').onclick = stopFreeDraws;
+    document.getElementById('btn-end-fight').onclick = endFight;
+    document.getElementById('btn-restart').onclick = () => {
+        if (confirm('確定要重新開始嗎？當前進度將丟失。')) initGame(1);
+    };
+
+    window.onload = () => {
+        openModal('modal-guide');
+        initGame(1); 
+    };
+
+</script>
+</body>
+</html>
