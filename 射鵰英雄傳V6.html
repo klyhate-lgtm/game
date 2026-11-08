@@ -320,26 +320,65 @@ textarea.save-code {
 .choice-title { color: var(--gold); font-weight: bold; font-size: 15px; margin-bottom: 4px; }
 .choice-desc { font-size: 12.5px; color: var(--dim); }
 
+/* =========================================================
+   手機端終極修復
+   ========================================================= */
 @media screen and (max-width: 768px) {
-  #game { flex-direction: column; padding: 5px; gap: 5px; }
-  .sidebar { width: 100%; height: auto; max-height: 180px; flex-direction: row; flex-wrap: wrap; padding: 8px; gap: 8px; align-items: center; overflow-y: auto; }
+  #game {
+    flex-direction: column;
+    padding: 5px;
+    gap: 5px;
+    overflow: hidden;
+  }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 140px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 8px;
+    gap: 8px;
+    align-items: center;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
   .sidebar > div { flex: 1 1 40%; min-width: 120px; }
   .panel-title { display: none; }
   .equip-info { font-size: 11px; }
-  header { padding: 5px; justify-content: center; }
+  
+  header { padding: 5px; justify-content: center; flex-shrink: 0; }
   header h1 { font-size: 14px; width: 100%; text-align: center; margin-bottom: 5px; }
   .header-btns { justify-content: center; }
   .btn { padding: 8px; font-size: 14px; }
-  #action-bar { padding: 5px; gap: 5px; }
+  
+  /* 讓中間區域可以滾動 */
+  .main-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
+  
+  /* 操作欄吸底 */
+  #action-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 99;
+    background: var(--bg);
+    border-top: 2px solid var(--gold);
+    border-radius: 0;
+    padding: 8px;
+    margin-top: auto;
+    flex-shrink: 0;
+  }
+  
   .card { width: 110px; height: 160px; }
   .card-art { height: 90px; }
   .card-art svg { width: 60px; height: 60px; }
   .card-name { font-size: 12px; }
   .card-desc { font-size: 9px; }
+  .cards-scroll { min-height: 160px; }
+  
   #combat-board { padding: 10px; gap: 5px; flex-direction: column; }
   .avatar { width: 80px; height: 80px; }
   .huangrong-support { bottom: 2px; padding: 4px 10px; font-size: 11px; }
   .boss-preview { font-size: 11px; }
+  #log-area { height: 80px; flex-shrink: 0; }
 }
 </style>
 </head>
@@ -352,7 +391,6 @@ textarea.save-code {
     <button class="btn" onclick="showModal('achievements')">成就</button>
     <button class="btn" id="btn-difficulty" onclick="cycleDifficulty()">難度：普通</button>
     <button class="btn" onclick="showModal('bag')">行囊與修煉</button>
-    <button class="btn" onclick="showSmith()">鐵匠鋪</button>
     <button class="btn blood" onclick="startEndlessMode()">華山絕頂</button>
     <button class="btn" onclick="showModal('record')">紀錄</button>
     <button class="btn" id="btn-sound" onclick="toggleSound()">🔊 音效</button>
@@ -417,8 +455,8 @@ textarea.save-code {
     <h2>遊戲說明</h2>
     <h3>俠義值與結局</h3>
     <p>在奇遇中做善事（如放過敵人、幫助路人）會增加「俠義值」，搶劫或見死不救則會減少。俠義值會影響最終通關的結局評價！</p>
-    <h3>飾品與流派</h3>
-    <p>新增「飾品」槽位，提供獨特被動（如吸血、回怒、免死等）。可在鐵匠鋪或後期事件中獲得。</p>
+    <h3>鐵匠鋪與商人</h3>
+    <p>探索時若遇到「行腳商人」，不僅能買藥，還能花費金錢請他幫你強化兵刃、洗練詞條。</p>
     <h3>防禦指令</h3>
     <p>戰鬥中可選擇「防禦」，本回合受傷大幅減少，並恢復少量生命，適合用來度過 Boss 的蓄力回合。</p>
     <button class="btn" style="margin-top:16px; width:100%;" onclick="closeModal('rules')">開始</button>
@@ -433,21 +471,19 @@ textarea.save-code {
   </div>
 </div>
 
-<div class="modal" id="modal-smith">
-  <div class="modal-content" style="max-width:560px;">
-    <h2>鐵匠鋪</h2>
-    <p style="text-align:center; color:var(--dim); font-size:12px; margin-bottom:12px;">金錢：<b id="smith-gold" style="color:var(--gold)">0</b> 兩</p>
-    <div id="smith-list"></div>
-    <button class="btn" style="margin-top:16px; width:100%;" onclick="closeModal('smith')">離開</button>
-  </div>
-</div>
-
+<!-- 行腳商人 & 鐵匠鋪 -->
 <div class="modal" id="modal-shop">
-  <div class="modal-content" style="max-width:520px;">
+  <div class="modal-content" style="max-width:560px;">
     <h2>行腳商人</h2>
-    <p style="text-align:center; color:var(--dim); font-size:12px; margin-bottom:10px;">「客官，旅途勞頓，要帶些傷藥嗎？」</p>
+    <p style="text-align:center; color:var(--dim); font-size:12px; margin-bottom:10px;">「客官，旅途勞頓，要帶些傷藥嗎？小人略通些打鐵手藝，也能幫您淬煉兵刃。」</p>
     <p style="text-align:center; margin-bottom:12px;">金錢：<b id="shop-gold" style="color:var(--gold)">0</b> 兩</p>
+    
+    <h3 style="margin-top:10px;">藥鋪</h3>
     <div id="shop-list"></div>
+    
+    <h3 style="margin-top:14px;">鐵匠</h3>
+    <div id="smith-list"></div>
+    
     <button class="btn" style="margin-top:16px; width:100%;" onclick="closeModal('shop')">離開</button>
   </div>
 </div>
@@ -1391,20 +1427,32 @@ function equipDesc(slot, name){
   return parts.length ? '（' + parts.join('　') + '）' : '';
 }
 
-function showSmith() {
-  if (state.phase !== PHASE.STORY && state.phase !== PHASE.EXPLORE) {
-    alert('戰鬥中無法進入鐵匠鋪。');
-    return;
-  }
+function openMerchant(){
   closeAllModals();
-  renderSmith();
-  $('modal-smith').classList.add('active');
+  renderMerchantAndSmith();
+  $('modal-shop').classList.add('active');
+  playSound('click');
 }
 
-function renderSmith() {
-  $('smith-gold').textContent = p.gold;
-  var html = '';
+function renderMerchantAndSmith(){
+  $('shop-gold').textContent = p.gold;
   
+  // 渲染藥鋪
+  var medHtml = '';
+  for(var i=0; i<SHOP_ITEMS.length; i++){
+    var it = SHOP_ITEMS[i];
+    var canBuy = p.gold >= it.price;
+    var desc = ITEMS[it.name] ? ITEMS[it.name].desc : '';
+    var owned = p.inventory[it.name] || 0;
+    medHtml += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#0d0a08;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;gap:8px;">'+
+            '<div style="flex:1;"><b style="color:var(--gold)">'+it.name+'</b> <span style="font-size:11px;color:var(--dim)">（持有 '+owned+'）</span><br><span style="font-size:12px;color:var(--dim)">'+desc+'</span></div>'+
+            '<button class="btn" '+(canBuy?'':'disabled')+' onclick="buyItem(\''+it.name+'\','+it.price+')">'+it.price+' 兩</button>'+
+            '</div>';
+  }
+  $('shop-list').innerHTML = medHtml;
+
+  // 渲染鐵匠
+  var smithHtml = '';
   ['weapon', 'armor'].forEach(function(slot){
     var name = p.equip[slot];
     if (!name) return;
@@ -1421,32 +1469,41 @@ function renderSmith() {
     var upCost = (lv + 1) * 30;
     var upBtn = '';
     if (lv < 5) {
-      upBtn = '<button class="btn" '+(p.gold >= upCost ? '' : 'disabled')+' onclick="upgradeEquip(\''+slot+'\','+upCost+')">強化至 Lv.'+(lv+1)+' (需 '+upCost+' 兩)</button>';
+      upBtn = '<button class="btn" style="font-size:11px; padding:2px 8px;" '+(p.gold >= upCost ? '' : 'disabled')+' onclick="upgradeEquip(\''+slot+'\','+upCost+')">強化至 Lv.'+(lv+1)+' (需 '+upCost+' 兩)</button>';
     } else {
-      upBtn = '<span style="font-size:12px; color:#6fb3a0;">已滿級</span>';
+      upBtn = '<span style="font-size:11px; color:#6fb3a0;">已滿級</span>';
     }
     
     var reforgeCost = 40;
     var reforgeBtn = '';
     if (affixes.length < 2) {
-      reforgeBtn = '<button class="btn" '+(p.gold >= reforgeCost ? '' : 'disabled')+' onclick="reforgeEquip(\''+slot+'\','+reforgeCost+')">洗練詞條 (需 '+reforgeCost+' 兩)</button>';
+      reforgeBtn = '<button class="btn" style="font-size:11px; padding:2px 8px;" '+(p.gold >= reforgeCost ? '' : 'disabled')+' onclick="reforgeEquip(\''+slot+'\','+reforgeCost+')">洗練詞條 (需 '+reforgeCost+' 兩)</button>';
     } else {
-      reforgeBtn = '<span style="font-size:12px; color:#6fb3a0;">詞條已滿</span>';
+      reforgeBtn = '<span style="font-size:11px; color:#6fb3a0;">詞條已滿</span>';
     }
     
-    html += '<div class="smith-row">' +
+    smithHtml += '<div class="smith-row">' +
       '<div class="smith-info" style="flex:1;">' +
         '<b>' + (slot==='weapon'?'兵器':'護甲') + '：' + name + ' Lv.' + lv + '</b><br>' +
         '<span>' + desc + ' ' + equipDesc(slot, name) + '</span>' +
-        '<div style="margin-top:6px;">' + (affixHtml || '<span style="font-size:11px;color:var(--dim);">暫無詞條</span>') + '</div>' +
+        '<div style="margin-top:4px;">' + (affixHtml || '<span style="font-size:11px;color:var(--dim);">暫無詞條</span>') + '</div>' +
       '</div>' +
-      '<div style="display:flex; flex-direction:column; gap:6px;">' +
+      '<div style="display:flex; flex-direction:column; gap:4px;">' +
         upBtn + reforgeBtn +
       '</div>' +
     '</div>';
   });
-  
-  $('smith-list').innerHTML = html;
+  $('smith-list').innerHTML = smithHtml || '<div style="color:var(--dim);font-size:12px;">暫無可強化的裝備。</div>';
+}
+
+function buyItem(name, price){
+  if(p.gold < price){ alert('金錢不足。'); return; }
+  p.gold -= price;
+  addItem(name, 1);
+  playSound('click');
+  renderSidebar();
+  renderMerchantAndSmith();
+  renderLog();
 }
 
 function upgradeEquip(slot, cost) {
@@ -1455,7 +1512,7 @@ function upgradeEquip(slot, cost) {
   p.equipLevels[slot] = (p.equipLevels[slot] || 0) + 1;
   playSound('heal');
   renderSidebar();
-  renderSmith();
+  renderMerchantAndSmith();
   addLog('裝備強化成功！', 'log-sys');
 }
 
@@ -1472,7 +1529,7 @@ function reforgeEquip(slot, cost) {
   
   playSound('win');
   renderSidebar();
-  renderSmith();
+  renderMerchantAndSmith();
   addLog('洗練出詞條【' + AFFIXES[newAffix].name + '】！', 'log-event');
 }
 
@@ -1608,7 +1665,6 @@ function renderSidebar(){
     var chName = state.gameMode === 'endless' ? '華山絕頂' : CHAPTERS[state.chapter].name;
     $('ui-chapter').textContent = chName;
     
-    // 動態角色名稱：第一章為郭嘯天，之後為郭靖
     if (state.chapter === 0 && state.gameMode === 'normal') {
       $('ui-player-name').textContent = '郭嘯天';
     } else {
@@ -2041,6 +2097,8 @@ function render(){
 function startEndlessMode() {
   if (state.gameMode === 'endless') {
     if (!confirm('當前正在無盡模式中，是否要重新開始？')) return;
+  } else if (state.chapter > 0 && state.phase !== PHASE.VICTORY) {
+    if (!confirm('目前正在進行主線冒險，進入華山絕頂將切換為無盡模式（保留當前屬性，但需重頭打無盡），是否確定？')) return;
   }
   
   closeAllModals();
@@ -2113,6 +2171,10 @@ function spawnEndlessEnemy() {
 
   addLog('遭遇【' + fullEnemy.name + '】！', 'log-combat');
   render();
+  
+  if (state.autoCombat) {
+    setTimeout(autoCombatTick, 500);
+  }
 }
 
 function showEndlessBuffModal() {
@@ -2390,39 +2452,6 @@ function restAction(){
   playSound('heal');
 }
 
-function openMerchant(){
-  closeAllModals();
-  renderMerchant();
-  $('modal-shop').classList.add('active');
-  playSound('click');
-}
-
-function renderMerchant(){
-  $('shop-gold').textContent = p.gold;
-  var html = '';
-  for(var i=0; i<SHOP_ITEMS.length; i++){
-    var it = SHOP_ITEMS[i];
-    var canBuy = p.gold >= it.price;
-    var desc = ITEMS[it.name] ? ITEMS[it.name].desc : '';
-    var owned = p.inventory[it.name] || 0;
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#0d0a08;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;gap:8px;">'+
-            '<div style="flex:1;"><b style="color:var(--gold)">'+it.name+'</b> <span style="font-size:11px;color:var(--dim)">（持有 '+owned+'）</span><br><span style="font-size:12px;color:var(--dim)">'+desc+'</span></div>'+
-            '<button class="btn" '+(canBuy?'':'disabled')+' onclick="buyItem(\''+it.name+'\','+it.price+')">'+it.price+' 兩</button>'+
-            '</div>';
-  }
-  $('shop-list').innerHTML = html;
-}
-
-function buyItem(name, price){
-  if(p.gold < price){ alert('金錢不足。'); return; }
-  p.gold -= price;
-  addItem(name, 1);
-  playSound('click');
-  renderSidebar();
-  renderMerchant();
-  renderLog();
-}
-
 function triggerCombat(enemy, isBoss, presetEnemy){
   var fullEnemy = presetEnemy || makeScaledEnemy(enemy, isBoss);
   state.combat = { enemy: fullEnemy, isBoss: !!isBoss };
@@ -2442,6 +2471,10 @@ function triggerCombat(enemy, isBoss, presetEnemy){
                : (isBoss ? '章節 BOSS' : '雜兵');
   addLog('遭遇【'+fullEnemy.name+'】（'+tierName+'／'+ELEM_NAME[fullEnemy.element]+'屬性）：生命 '+fullEnemy.maxHp+'／武 '+fullEnemy.wu+'／防 '+fullEnemy.fang, 'log-combat');
   render();
+  
+  if (state.autoCombat && (state.phase === PHASE.COMBAT_PLAYER || state.phase === PHASE.ENDLESS_COMBAT)) {
+    setTimeout(autoCombatTick, 500);
+  }
 }
 
 function useSkill(skillKey){
@@ -2721,11 +2754,10 @@ function enemyTurn(){
   var dmg = calcDamage(e.wu, getFang());
   addLog(e.name+' 發動攻擊。', 'log-combat');
 
-  // 防禦減傷
   if (p.status.indexOf('防禦') >= 0) {
     dmg = Math.floor(dmg * 0.4);
     addLog('【防禦】架勢減免了大量傷害。', 'log-sys');
-    p.status = p.status.filter(function(s){ return s!=='防禦'; }); // 消耗防禦狀態
+    p.status = p.status.filter(function(s){ return s!=='防禦'; });
   }
 
   var shieldIdx = -1;
@@ -3167,7 +3199,7 @@ function closeAllModals(){
   for(var i=0; i<mods.length; i++) mods[i].classList.remove('active');
 }
 
-var SAVE_KEYS = ['shediao_save_v21_slot1', 'shediao_save_v21_slot2', 'shediao_save_v21_slot3'];
+var SAVE_KEYS = ['shediao_save_v22_slot1', 'shediao_save_v22_slot2', 'shediao_save_v22_slot3'];
 var saveModalMode = 'save';
 
 function showSaveModal(mode){
