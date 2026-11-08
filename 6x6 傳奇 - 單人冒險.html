@@ -115,6 +115,9 @@
         .map-cell.visited { background: #e8d5b5; }
         .map-cell.current { box-shadow: inset 0 0 0 3px var(--gold); z-index: 2; }
         .map-cell.unexplored { background: #8c7b6e; color: rgba(0,0,0,0.3); cursor: default; }
+        
+        /* 可通行相鄰格的高亮提示 */
+        .map-cell.reachable { box-shadow: inset 0 0 0 2px #8bc34a; cursor: pointer; }
 
         /* 道路 SVG 繪製 */
         .road-svg {
@@ -335,10 +338,6 @@
         }
         .inv-item button { min-width: 60px; flex: none; padding: 4px 8px; font-size: 11px; margin-left: 5px; }
 
-        /* 打字機光標 */
-        .cursor { display: inline-block; width: 2px; height: 1em; background: var(--ink); animation: blink 1s step-end infinite; vertical-align: bottom; }
-        @keyframes blink { 50% { opacity: 0; } }
-
         @media (max-width: 480px) {
             #status-bar { font-size: 11px; padding: 5px; }
             .stat { padding: 1px 4px; }
@@ -377,18 +376,16 @@
         </div>
 
         <!-- 操作按鈕 -->
-        <div id="action-bar">
-            <!-- 按鈕由 JS 動態生成 -->
-        </div>
+        <div id="action-bar"></div>
     </div>
 
     <!-- 底部導航 -->
     <div id="bottom-nav">
-        <!-- 修復：將 toggleModal 改為 showModal -->
         <button onclick="showModal('help')"><span>📖</span>說明</button>
         <button onclick="showModal('inventory')"><span>🎒</span>背包</button>
         <button onclick="toggleHistory()"><span>🕒</span>歷史</button>
         <button onclick="saveGame()"><span>💾</span>存檔</button>
+        <button onclick="loadGame()"><span>📂</span>讀檔</button>
         <button onclick="toggleSound()"><span id="sound-icon">🔊</span>音效</button>
     </div>
 
@@ -462,7 +459,6 @@
 
         // ================= 遊戲資料 =================
         const GameState = { SETUP: 'setup', PLAYING: 'playing', COMBAT: 'combat', GAME_OVER: 'game_over' };
-        
         const Terrain = { PLAIN: 'plain', FOREST: 'forest', MOUNTAIN: 'mountain', SWAMP: 'swamp', VILLAGE: 'village' };
 
         const MonsterData = {
@@ -491,7 +487,6 @@
             e08: { antidote: 0, dash: 1, rush: 2, carrot: 0, tomato: 2, pear: 3, spark: 1, blast: 0, kaboom: 3 },
             e15: { antidote: 1, dash: 0, rush: 2, carrot: 1, tomato: 2, pear: 0, spark: 0, blast: 2, kaboom: 3 }
         };
-
         const ScrollNames = { antidote: '解毒劑', dash: '猛衝', rush: '衝刺', carrot: '胡蘿蔔', tomato: '番茄', pear: '梨子', spark: '火花', blast: '衝擊波', kaboom: '爆炸' };
 
         // ================= 遊戲狀態 =================
@@ -515,7 +510,7 @@
 
         let modalType = null;
 
-        // ================= 初始化與渲染 =================
+        // ================= 初始化 =================
         function initGame() {
             state.map = [];
             for (let y = 0; y < 6; y++) {
@@ -549,8 +544,8 @@
             return state.map[y * 6 + x];
         }
 
+        // ================= UI 更新 =================
         function updateUI() {
-            // 更新頂部狀態
             document.getElementById('stat-hp').textContent = `${state.hero.hp}/${state.hero.maxHp}`;
             document.getElementById('stat-atk').textContent = state.hero.atk;
             document.getElementById('stat-dmg').textContent = state.hero.dmg;
@@ -560,12 +555,20 @@
             document.getElementById('stat-poison').innerHTML = `☠️ <span>${state.hero.poison}</span>`;
             document.getElementById('stat-day').textContent = `W${state.week} D${state.day}`;
 
-            // 更新地圖
             const mapContainer = document.getElementById('map-container');
             mapContainer.innerHTML = '';
+            
+            const cur = getCell(state.pos.x, state.pos.y);
+
             state.map.forEach(cell => {
                 const cellDiv = document.createElement('div');
                 cellDiv.className = `map-cell ${cell.explored ? 'visited' : 'unexplored'} ${cell.x === state.pos.x && cell.y === state.pos.y ? 'current' : ''}`;
+                
+                // 若相鄰且可通行，加上綠色高亮
+                if (state.screen === GameState.PLAYING && !state.activeEvent && cell.explored && isAdjacentAndConnected(cur, cell)) {
+                    cellDiv.classList.add('reachable');
+                }
+
                 cellDiv.dataset.x = cell.x;
                 cellDiv.dataset.y = cell.y;
 
@@ -608,16 +611,16 @@
             const bar = document.getElementById('action-bar');
             bar.innerHTML = '';
 
-            if (state.screen === GameState.SETUP) {
-                // 由 Modal 控制
-            } else if (state.screen === GameState.PLAYING) {
+            if (state.screen === GameState.SETUP) return;
+
+            if (state.screen === GameState.PLAYING) {
                 if (state.activeEvent) {
                     addBtn(bar, '處理事件', () => processEvent(state.activeEvent), 'primary');
                 } else {
                     addBtn(bar, '結束回合', () => endTurn());
                     const hint = document.createElement('div');
                     hint.style.cssText = 'width:100%; text-align:center; font-size:12px; color:var(--parchment); margin-top:5px;';
-                    hint.textContent = '👆 點擊地圖上相鄰且有道路連接的格子進行移動';
+                    hint.textContent = '👆 點擊綠框相鄰格移動 (未知區域可探索)';
                     bar.appendChild(hint);
                 }
             } else if (state.screen === GameState.COMBAT) {
@@ -641,7 +644,20 @@
             parent.appendChild(btn);
         }
 
-        // ================= 核心邏輯：移動與探索 (R04) =================
+        // ================= 移動與道路連通邏輯 =================
+        function isAdjacentAndConnected(from, to) {
+            if (Math.abs(from.x - to.x) + Math.abs(from.y - to.y) !== 1) return false;
+            if (from.x === to.x) {
+                if (to.y > from.y) return from.road.s && to.road.n;
+                if (to.y < from.y) return from.road.n && to.road.s;
+            }
+            if (from.y === to.y) {
+                if (to.x > from.x) return from.road.e && to.road.w;
+                if (to.x < from.x) return from.road.w && to.road.e;
+            }
+            return false;
+        }
+
         document.getElementById('map-container').addEventListener('click', (e) => {
             if (state.screen !== GameState.PLAYING || state.activeEvent) return;
             const cellDiv = e.target.closest('.map-cell');
@@ -660,24 +676,22 @@
             const currentCell = getCell(state.pos.x, state.pos.y);
             const targetCell = getCell(tx, ty);
             
-            let canMove = false;
-            if (tx > state.pos.x && currentCell.road.e) canMove = true;
-            if (tx < state.pos.x && currentCell.road.w) canMove = true;
-            if (ty > state.pos.y && currentCell.road.s) canMove = true;
-            if (ty < state.pos.y && currentCell.road.n) canMove = true;
-
-            if (!targetCell.explored) {
-                canMove = true; 
+            if (targetCell.explored) {
+                // 已探索區域，嚴格檢查雙向道路
+                if (!isAdjacentAndConnected(currentCell, targetCell)) {
+                    showToast('該方向沒有道路連接！');
+                    log('🚫 無法通行：前方沒有連通的道路。');
+                    return;
+                }
             }
 
-            if (!canMove) { showToast('沒有道路連接到該方向！'); return; }
-
+            // 扣速度並移動
             state.hero.spd--;
             state.pos = { x: tx, y: ty };
             playSound('click');
 
             if (!targetCell.explored) {
-                exploreCell(targetCell);
+                exploreCell(targetCell, currentCell);
             } else {
                 log(`移動到 ${getCoordString(tx, ty)}。`);
                 checkCellEvent(targetCell);
@@ -685,7 +699,7 @@
             updateUI();
         }
 
-        function exploreCell(cell) {
+        function exploreCell(cell, prevCell) {
             cell.explored = true;
             const roll1 = Math.floor(Math.random() * 6) + 1; 
             const roll2 = Math.floor(Math.random() * 6) + 1; 
@@ -693,32 +707,46 @@
             log(`探索新區域！道路骰:${roll1}, 地形骰:${roll2}`, true);
             playSound('dice');
 
-            const prev = state.pos;
-            cell.road.n = (cell.y > prev.y);
-            cell.road.s = (cell.y < prev.y);
-            cell.road.e = (cell.x < prev.x);
-            cell.road.w = (cell.x > prev.x);
+            // 1. 確定入口方向
+            let entryDir = '';
+            if (cell.y > prevCell.y) entryDir = 'n';
+            else if (cell.y < prevCell.y) entryDir = 's';
+            else if (cell.x > prevCell.x) entryDir = 'w';
+            else if (cell.x < prevCell.x) entryDir = 'e';
 
-            if (roll1 <= 2) { 
-                if (cell.road.n || cell.road.s) { cell.road.n = true; cell.road.s = true; }
-                else { cell.road.e = true; cell.road.w = true; }
-            } else if (roll1 <= 4) { 
-                const dirs = ['n','e','s','w'].filter(d => !cell.road[d]);
-                if (dirs.length > 0) {
-                    const d = dirs[Math.floor(Math.random() * dirs.length)];
-                    cell.road[d] = true;
+            // 2. 根據擲骰決定道路形狀，並強制包含入口
+            cell.road = { n: false, e: false, s: false, w: false };
+            
+            if (roll1 <= 2) { // 直路
+                if (entryDir === 'n' || entryDir === 's') {
+                    cell.road.n = true; cell.road.s = true;
+                } else {
+                    cell.road.e = true; cell.road.w = true;
                 }
-            } else if (roll1 === 5) { 
-                const dirs = ['n','e','s','w'].filter(d => !cell.road[d]);
-                if (dirs.length > 0) cell.road[dirs[Math.floor(Math.random() * dirs.length)]] = true;
-                if (dirs.length > 1) {
-                    const remaining = dirs.filter(d => !cell.road[d]);
-                    if (remaining.length > 0) cell.road[remaining[Math.floor(Math.random() * remaining.length)]] = true;
-                }
-            } else { 
+            } else if (roll1 <= 4) { // 彎路
+                cell.road[entryDir] = true;
+                // 隨機轉向 90 度
+                const dirs = ['n','e','s','w'];
+                const idx = dirs.indexOf(entryDir);
+                const nextDir = dirs[(idx + (Math.random() > 0.5 ? 1 : 3)) % 4];
+                cell.road[nextDir] = true;
+            } else if (roll1 === 5) { // T型
+                cell.road[entryDir] = true;
+                const oppDir = { n:'s', s:'n', e:'w', w:'e' }[entryDir];
+                // 除了正對面，隨機選一個
+                const sideDirs = ['n','e','s','w'].filter(d => d !== entryDir && d !== oppDir);
+                const chosen = sideDirs[Math.floor(Math.random() * sideDirs.length)];
+                cell.road[chosen] = true;
+            } else { // 十字
                 cell.road = { n: true, e: true, s: true, w: true };
             }
 
+            // 3. 強制讓上一個格子與新格子雙向連接
+            const oppDir = { n:'s', s:'n', e:'w', w:'e' }[entryDir];
+            prevCell.road[oppDir] = true;
+            cell.road[entryDir] = true;
+
+            // 4. 同步相鄰已探索格子的道路
             const neighbors = [
                 { x: cell.x, y: cell.y - 1, dir: 's' }, 
                 { x: cell.x + 1, y: cell.y, dir: 'w' }, 
@@ -728,12 +756,18 @@
             neighbors.forEach(n => {
                 const nc = getCell(n.x, n.y);
                 if (nc && nc.explored) {
-                    if (cell.road[n.dir === 'n' ? 's' : n.dir === 's' ? 'n' : n.dir === 'e' ? 'w' : 'e']) {
+                    // 如果新格子有路朝向鄰居，鄰居也要有路朝向新格子
+                    const cellDirToN = { n:'n', e:'e', s:'s', w:'w' }[n.dir === 's' ? 'n' : n.dir === 'w' ? 'e' : n.dir === 'n' ? 's' : 'w'];
+                    if (cell.road[cellDirToN]) {
                         nc.road[n.dir] = true;
+                    } else {
+                        // 如果鄰居有路朝過來，但新格子沒路，則斷開鄰居的路
+                        nc.road[n.dir] = false;
                     }
                 }
             });
 
+            // 5. 地形生成
             if (roll2 <= 2) cell.terrain = Terrain.PLAIN;
             else if (roll2 === 3) cell.terrain = Terrain.MOUNTAIN;
             else if (roll2 === 4) cell.terrain = Terrain.FOREST;
@@ -756,7 +790,7 @@
             updateUI();
         }
 
-        // ================= 核心邏輯：事件 =================
+        // ================= 事件系統 =================
         function processEvent(eventId) {
             if (state.screen !== GameState.PLAYING) return;
             state.activeEvent = null; 
@@ -794,7 +828,7 @@
             updateUI();
         }
 
-        // ================= 核心邏輯：戰鬥 (R09) =================
+        // ================= 戰鬥系統 =================
         function startCombat(monsterType) {
             state.screen = GameState.COMBAT;
             let monster;
@@ -932,7 +966,7 @@
             if (state.hero.hp <= 0) gameOver(false);
         }
 
-        // ================= 核心邏輯：時間與回合 =================
+        // ================= 時間與回合 =================
         function endTurn() {
             if (state.screen !== GameState.PLAYING) return;
             playSound('click');
@@ -967,7 +1001,7 @@
             updateUI();
         }
 
-        // ================= UI 輔助與 Modal =================
+        // ================= UI 輔助 =================
         function log(msg, animate = false) {
             const logText = document.getElementById('log-text');
             if (animate) {
@@ -1032,10 +1066,10 @@
             } else if (type === 'help') {
                 content.innerHTML = `
                     <h2>📖 遊戲說明</h2>
-                    <p><strong>目標：</strong>探索 6x6 島嶼，擊敗怪物，完成任務，最終擊敗混沌騎士！</p>
+                    <p><strong>目標：</strong>探索 6x6 島嶼，擊敗怪物，最終擊敗混沌騎士！</p>
                     <p><strong>回合流程：</strong>移動 (消耗速度) ➔ 處理事件 ➔ 結束回合。</p>
+                    <p><strong>路網規則：</strong>地圖上的道路是有限的，請沿著連通的道路移動。若前方無路，請嘗試探索其他未知區域。</p>
                     <p><strong>戰鬥：</strong>短暫休息可逃跑或交戰。交戰擲 2d6+Atk 對抗怪物 Atk。</p>
-                    <p><strong>提示：</strong>點擊地圖相鄰格移動，城堡與村莊可恢復 HP。</p>
                     <button onclick="closeModal()" style="width:100%; margin-top:10px;">關閉說明</button>
                 `;
             } else if (type === 'shop_castle' || type === 'shop_e08' || type === 'shop_e15') {
@@ -1079,7 +1113,6 @@
         function closeModal() {
             document.getElementById('modal-overlay').classList.remove('active');
             modalType = null;
-            // 如果是初始選擇種族，選完後會由 selectRace 觸發進入遊戲
             playSound('click');
         }
 
@@ -1091,7 +1124,6 @@
             else if (race === 'hobbit') state.hero.items.pie = 1;
             
             closeModal();
-            // 進入遊戲狀態
             state.screen = GameState.PLAYING;
             log('冒險開始！你從城堡出發。');
             updateUI();
@@ -1103,7 +1135,7 @@
                 state.hero.scrolls[key]++;
                 playSound('heal');
                 updateUI();
-                showModal('shop_' + shopKey); // 重繪
+                showModal('shop_' + shopKey); 
             } else {
                 showToast('金幣不足！');
             }
@@ -1116,7 +1148,7 @@
                 state.hero.scrolls[key]--;
                 playSound('click');
                 updateUI();
-                showModal(modalType); // 重繪
+                showModal(modalType); 
             } else {
                 showToast('沒有該卷軸！');
             }
@@ -1141,9 +1173,7 @@
             } catch(e) { showToast('讀取失敗。'); }
         }
 
-        // 啟動
         window.onload = initGame;
-
     </script>
 </body>
 </html>
