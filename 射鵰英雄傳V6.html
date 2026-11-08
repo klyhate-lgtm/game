@@ -321,80 +321,120 @@ textarea.save-code {
 .choice-desc { font-size: 12.5px; color: var(--dim); }
 
 /* =========================================================
-   手機端終極修復
+   手機端終極重構佈局
    ========================================================= */
 @media screen and (max-width: 768px) {
-  #game {
-    flex-direction: column;
-    padding: 5px;
-    gap: 5px;
-    overflow: hidden;
+  header { 
+    padding: 6px; 
+    flex-direction: column; 
+    align-items: flex-start; 
+    gap: 6px;
   }
-  .sidebar {
-    width: 100%;
-    height: auto;
-    max-height: 140px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    padding: 8px;
-    gap: 8px;
-    align-items: center;
-    overflow-y: auto;
-    flex-shrink: 0;
+  header h1 { font-size: 14px; width: 100%; text-align: center; }
+  .header-btns { 
+    width: 100%; 
+    display: grid; 
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 4px; 
   }
-  .sidebar > div { flex: 1 1 40%; min-width: 120px; }
-  .panel-title { display: none; }
-  .equip-info { font-size: 11px; }
-  
-  header { padding: 5px; justify-content: center; flex-shrink: 0; }
-  header h1 { font-size: 14px; width: 100%; text-align: center; margin-bottom: 5px; }
-  .header-btns { justify-content: center; }
-  .btn { padding: 8px; font-size: 14px; }
-  
-  /* 讓中間區域可以滾動 */
-  .main-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
-  
-  /* 操作欄吸底 */
-  #action-bar {
-    position: sticky;
-    bottom: 0;
-    z-index: 99;
-    background: var(--bg);
-    border-top: 2px solid var(--gold);
-    border-radius: 0;
-    padding: 8px;
-    margin-top: auto;
-    flex-shrink: 0;
+  .header-btns .btn { font-size: 11px; padding: 6px 2px; text-align: center; }
+
+  #game { 
+    flex-direction: column; 
+    padding: 5px; 
+    gap: 5px; 
+    height: calc(100vh - 110px); 
+    overflow: hidden; 
   }
   
-  .card { width: 110px; height: 160px; }
-  .card-art { height: 90px; }
-  .card-art svg { width: 60px; height: 60px; }
-  .card-name { font-size: 12px; }
-  .card-desc { font-size: 9px; }
-  .cards-scroll { min-height: 160px; }
-  
-  #combat-board { padding: 10px; gap: 5px; flex-direction: column; }
-  .avatar { width: 80px; height: 80px; }
+  .sidebar { 
+    width: 100%; 
+    height: 70px; 
+    flex-direction: row; 
+    flex-wrap: nowrap; 
+    padding: 5px 10px; 
+    gap: 10px; 
+    align-items: center; 
+    overflow-x: auto; 
+    overflow-y: hidden; 
+    flex-shrink: 0; 
+    border-radius: 6px;
+  }
+  .panel-title, .equip-info { display: none; }
+  .sidebar > div { flex: 0 0 auto; min-width: 80px; margin-right: 10px; }
+  .stat-bar { width: 60px; margin-bottom: 0; }
+  .attr-grid { grid-template-columns: 1fr; gap: 0; font-size: 11px; }
+
+  .main-area { 
+    flex: 1; 
+    overflow-y: auto; 
+    overflow-x: hidden;
+    display: flex; 
+    flex-direction: column; 
+    gap: 5px; 
+    padding-bottom: 5px;
+  }
+
+  /* 確保中間各區塊有足夠高度且不擁擠 */
+  #map-board { min-height: 120px; flex: none; padding: 10px; }
+  #story-board { min-height: 200px; flex: none; padding: 10px; }
+  #story-text { font-size: 14px; padding: 12px; min-height: 100px; }
+  #combat-board { 
+    min-height: 220px; 
+    flex: none; 
+    padding: 10px; 
+    gap: 5px; 
+    flex-direction: row; /* 保持左右對戰 */
+  }
+  .combatant { gap: 4px; font-size: 12px; }
+  .avatar { width: 70px; height: 70px; }
+  .hp-mini { width: 100px; height: 10px; }
+  .enemy-attrs { font-size: 10px; }
   .huangrong-support { bottom: 2px; padding: 4px 10px; font-size: 11px; }
-  .boss-preview { font-size: 11px; }
-  #log-area { height: 80px; flex-shrink: 0; }
+
+  #card-tray { flex: none; padding: 5px; border-radius: 6px; }
+  .cards-scroll { min-height: 150px; padding: 5px; gap: 8px; }
+  .card { width: 105px; height: 145px; }
+  .card-art { height: 75px; }
+  .card-art svg { width: 55px; height: 55px; }
+  .card-cost { width: 22px; height: 22px; font-size: 12px; }
+  .card-name { font-size: 11px; }
+  .card-desc { font-size: 8.5px; }
+
+  #log-area { flex: none; height: 70px; padding: 6px; font-size: 11px; }
+
+  /* 底部按鈕吸底 */
+  #action-bar { 
+    position: sticky; 
+    bottom: 0; 
+    z-index: 50; 
+    background: var(--panel); 
+    border-top: 2px solid var(--gold);
+    flex-shrink: 0; 
+    margin-top: auto; 
+    padding: 8px; 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 6px; 
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.5);
+  }
+  #action-bar .btn { font-size: 12px; padding: 8px 10px; flex: 1 1 45%; }
 }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>射鵰英雄傳 · 俠影闖關（隨機探索版）</h1>
+  <h1>射鵰英雄傳 · 俠影闖關</h1>
   <div class="header-btns">
-    <button class="btn" onclick="showModal('rules')">遊戲說明</button>
+    <button class="btn" onclick="showModal('rules')">說明</button>
     <button class="btn" onclick="showModal('achievements')">成就</button>
-    <button class="btn" id="btn-difficulty" onclick="cycleDifficulty()">難度：普通</button>
-    <button class="btn" onclick="showModal('bag')">行囊與修煉</button>
-    <button class="btn blood" onclick="startEndlessMode()">華山絕頂</button>
+    <button class="btn" id="btn-difficulty" onclick="cycleDifficulty()">難度</button>
+    <button class="btn" onclick="showModal('bag')">行囊</button>
+    <button class="btn blood" onclick="startEndlessMode()">華山</button>
     <button class="btn" onclick="showModal('record')">紀錄</button>
-    <button class="btn" id="btn-sound" onclick="toggleSound()">🔊 音效</button>
-    <button class="btn" id="btn-bgm" onclick="toggleBGM()">🎵 BGM</button>
+    <button class="btn" id="btn-sound" onclick="toggleSound()">音效</button>
+    <button class="btn" id="btn-bgm" onclick="toggleBGM()">BGM</button>
     <button class="btn" id="btn-save" onclick="showSaveModal('save')">存檔</button>
     <button class="btn" onclick="showSaveModal('load')">讀檔</button>
   </div>
@@ -3199,7 +3239,7 @@ function closeAllModals(){
   for(var i=0; i<mods.length; i++) mods[i].classList.remove('active');
 }
 
-var SAVE_KEYS = ['shediao_save_v22_slot1', 'shediao_save_v22_slot2', 'shediao_save_v22_slot3'];
+var SAVE_KEYS = ['shediao_save_v23_slot1', 'shediao_save_v23_slot2', 'shediao_save_v23_slot3'];
 var saveModalMode = 'save';
 
 function showSaveModal(mode){
