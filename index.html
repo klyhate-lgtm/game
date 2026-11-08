@@ -167,6 +167,7 @@
 <script>
   // 使用免費的計數 API (Abacus) 來記錄點擊率
   // 如果 API 掛了或不穩定，會默認顯示 0
+    // 使用免費的計數 API，並加上防卡死機制
   const COUNTER_API = "https://abacus.jasoncameron.dev/hit/klyhate-lgtm-games/";
 
   async function loadGames() {
@@ -196,39 +197,26 @@
         a.href = encodeURI(game.file);
         a.className = 'game-card';
         
-        // 將檔名轉換為唯一 ID 用於計數
         const pageId = encodeURIComponent(game.file);
 
+        // 🟢 這裡移除了原本的「讀取中」，改成靜態的「開始遊戲」文字，介面會更乾淨
         a.innerHTML = `
           <div class="game-info">
             <div class="game-title">🎮 ${game.title}</div>
             <div class="game-time">🕒 ${game.time}</div>
           </div>
-          <div class="game-views" id="views-${pageId}">
-            👁️ 讀取中
+          <div class="game-views">
+            ➤ 開始
           </div>
         `;
         
-        // 點擊時發送計數請求
+        // 點擊時發送計數請求 (靜默在後台執行，不卡頓)
         a.addEventListener('click', () => {
-           fetch(`${COUNTER_API}${pageId}`).catch(() => {});
+           // 使用 keepalive 確保跳轉頁面時請求也能順利送出
+           fetch(`${COUNTER_API}${pageId}`, { keepalive: true }).catch(() => {});
         });
 
         menu.appendChild(a);
-
-        // 異步獲取點擊率並更新 UI
-        fetch(`${COUNTER_API}${pageId}`)
-          .then(res => res.json())
-          .then(data => {
-            const viewEl = document.getElementById(`views-${pageId}`);
-            if (viewEl && data.value !== undefined) {
-              viewEl.innerHTML = `👁️ ${data.value}`;
-            }
-          })
-          .catch(() => {
-            const viewEl = document.getElementById(`views-${pageId}`);
-            if (viewEl) viewEl.innerHTML = `👁️ 0`;
-          });
       });
 
     } catch (error) {
