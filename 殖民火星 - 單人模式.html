@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>殖民火星 - 單人模式 (兒童友善版)</title>
+<title>殖民火星 - 單人模式 (星空版)</title>
 <style>
     :root {
-        --bg-color: #1a1a1a;
+        --bg-color: #0a0a0f; /* 更深的宇宙背景色 */
         --panel-bg: rgba(30, 20, 15, 0.95);
         --text-color: #e0e0e0;
         --mars-red: #c1440e;
@@ -20,14 +20,45 @@
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
 
     body {
-        background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main);
-        overflow: hidden; display: flex; flex-direction: column; height: 100vh;
-        background-image: radial-gradient(circle at center, #2a1a15 0%, #000000 100%);
+        background-color: var(--bg-color); 
+        color: var(--text-color); 
+        font-family: var(--font-main);
+        overflow: hidden; 
+        display: flex; 
+        flex-direction: column; 
+        height: 100vh;
+        position: relative;
     }
 
+    /* ★ 新增：滿天星空背景與微弱閃爍 ★ */
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-image: 
+            radial-gradient(1px 1px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(1px 1px at 40px 70px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(1.5px 1.5px at 90px 40px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(2px 2px at 160px 120px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(1px 1px at 250px 20px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(1.5px 1.5px at 300px 150px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(1px 1px at 350px 80px, #ffffff, rgba(0,0,0,0));
+        background-repeat: repeat;
+        background-size: 400px 200px;
+        opacity: 0.6;
+        z-index: -1;
+        animation: twinkle 5s infinite alternate;
+    }
+
+    @keyframes twinkle {
+        0% { opacity: 0.4; }
+        100% { opacity: 0.8; }
+    }
+
+    /* 暗角效果 */
     body::after {
         content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        box-shadow: inset 0 0 150px rgba(0,0,0,0.9); pointer-events: none; z-index: 1000;
+        box-shadow: inset 0 0 200px rgba(0,0,0,0.95); pointer-events: none; z-index: 1000;
     }
 
     /* 頂部狀態列 */
@@ -60,7 +91,28 @@
 
     /* 主區域 */
     #main-area { flex: 1; display: flex; flex-direction: column; align-items: center; overflow: hidden; position: relative; padding: 10px 0; }
-    #board-container { flex: 1; width: 100%; display: flex; justify-content: center; align-items: center; overflow: auto; padding: 20px; min-height: 300px; }
+    
+    /* ★ 修改：容器加大，並預留給大氣層的空間 ★ */
+    #board-container { 
+        flex: 1; width: 100%; display: flex; justify-content: center; align-items: center; 
+        overflow: auto; padding: 30px; min-height: 350px;
+    }
+    
+    /* ★ 新增：火星大氣層外圈 ★ */
+    #mars-atmosphere {
+        position: relative;
+        padding: 30px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(193,68,14,0.15) 0%, rgba(193,68,14,0.05) 60%, transparent 80%);
+        box-shadow: 
+            0 0 40px rgba(193, 68, 14, 0.3),
+            inset 0 0 30px rgba(193, 68, 14, 0.2);
+        border: 1px solid rgba(214, 122, 58, 0.3);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
     #mars-board { position: relative; }
 
     /* 六邊形 */
@@ -199,7 +251,10 @@
 
 <div id="main-area">
     <div id="board-container">
-        <div id="mars-board"></div>
+        <!-- ★ 新增：大氣層包裹層 ★ -->
+        <div id="mars-atmosphere">
+            <div id="mars-board"></div>
+        </div>
     </div>
     <div id="card-area"></div>
 </div>
@@ -213,7 +268,6 @@
 </div>
 
 <div style="display:flex; justify-content:space-around; background:#111; padding:5px; z-index:10;">
-    <!-- 點擊說明按鈕只會單純開啟/關閉說明，不會重置遊戲 -->
     <button style="flex:1; padding:5px; font-size:12px; background:transparent; border:none; color:#aaa;" onclick="UI.toggleModal('modal-rules')">📖 說明</button>
     <button style="flex:1; padding:5px; font-size:12px; background:transparent; border:none; color:#aaa;" onclick="Game.saveGame()">💾 存檔</button>
     <button style="flex:1; padding:5px; font-size:12px; background:transparent; border:none; color:#aaa;" onclick="Game.loadGame()">📂 讀檔</button>
@@ -391,15 +445,13 @@ const Game = {
         
         this.initBoard();
         this.updateUI();
-        // 初始化後，等待玩家看完說明，按下「開始遊戲」才會觸發 setupNextPhase()
     },
 
-    // 當玩家看完說明並關閉視窗後，決定下一步（選公司或直接開局）
     setupNextPhase() {
         if (this.settings.company) {
             this.showCompanySelect();
         } else {
-            this.m = 14; // 無公司卡的基本資金
+            this.m = 14; 
             this.startResearchPhase();
         }
     },
@@ -521,8 +573,9 @@ const Game = {
         if(!boardEl) return;
         boardEl.innerHTML = '';
         
-        const w = 38; 
-        const h = 43.87;
+        // ★ 修改：地圖稍微放大 (從 38 -> 42)
+        const w = 42; 
+        const h = 48.5;
 
         this.boardData.forEach(data => {
             const hex = document.createElement('div');
@@ -914,20 +967,14 @@ const UI = {
     }
 };
 
-// ★ 處理首次載入流程 ★
 window.onload = () => { 
     try {
         Game.init(); 
-        
-        // 顯示說明文件
         UI.toggleModal('modal-rules');
-        
-        // 綁定說明文件裡的「開始遊戲」按鈕
         document.getElementById('btn-start-game').onclick = () => {
             UI.toggleModal('modal-rules');
-            Game.setupNextPhase(); // 關閉說明後，才進入選公司或開局階段
+            Game.setupNextPhase();
         };
-        
     } catch (e) {
         alert("初始化失敗，請重新整理網頁。錯誤：" + e.message);
         console.error(e);
