@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RESIST! 抵抗 - 西班牙馬基游擊隊</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --card-bg-maquis: #3a1c1c;
+            --card-bg-enemy: #1c2a3a;
+            --card-bg-mission: #2a3a2a;
+            --card-border: #555;
+            --highlight: #e74c3c;
+            --btn-bg: #333;
+            --btn-hover: #555;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* 頂部資訊列 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #222;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stat-group {
+            display: flex;
+            gap: 15px;
+            font-weight: bold;
+        }
+
+        .stat-item span {
+            color: var(--highlight);
+        }
+
+        .phase-indicator {
+            padding: 5px 15px;
+            background: #444;
+            border-radius: 20px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .controls button {
+            padding: 8px 15px;
+            background-color: var(--btn-bg);
+            color: white;
+            border: 1px solid var(--card-border);
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .controls button:hover:not(:disabled) {
+            background-color: var(--btn-hover);
+        }
+
+        .controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 主要遊戲區域 */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow: hidden;
+        }
+
+        /* 任務區域 */
+        .mission-area {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            align-items: center;
+            border-bottom: 2px solid #333;
+        }
+
+        .mission-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #222;
+            padding: 10px;
+            border-radius: 10px;
+            min-width: 220px;
+        }
+
+        .enemy-group {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            height: 150px;
+            align-items: center;
+        }
+
+        /* 玩家場地與手牌 */
+        .player-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .play-zone {
+            display: flex;
+            gap: 20px;
+            height: 150px;
+            align-items: center;
+            background: #111;
+            border-radius: 8px;
+            padding: 10px;
+            overflow-x: auto;
+        }
+
+        .play-zone-half {
+            display: flex;
+            gap: 10px;
+            min-width: 50%;
+            height: 100%;
+            align-items: center;
+        }
+
+        .hand-area {
+            display: flex;
+            gap: 10px;
+            height: 160px;
+            overflow-x: auto;
+            padding: 10px;
+            align-items: center;
+            background: #1e1e1e;
+            border-radius: 8px;
+        }
+
+        /* 卡牌通用樣式 */
+        .card {
+            width: 110px;
+            height: 150px;
+            border-radius: 8px;
+            border: 2px solid var(--card-border);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.6);
+        }
+
+        .card.maquis { background: linear-gradient(135deg, #5c2525, #2a1010); }
+        .card.enemy { background: linear-gradient(135deg, #253a5c, #101a2a); }
+        .card.mission { background: linear-gradient(135deg, #255c25, #102a10); width: 180px; height: 100px; }
+        .card.spy { background: linear-gradient(135deg, #444, #111); }
+        .card.civilian { background: linear-gradient(135deg, #aa8e56, #5c4a2a); }
+
+        /* 卡牌頂部標題 */
+        .card-header {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            padding: 2px 0;
+            font-size: 12px;
+            background: rgba(0,0,0,0.5);
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }
+
+        /* 卡牌數值標籤 */
+        .card-stat {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background: #fff;
+            color: #000;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            border: 1px solid #000;
+        }
+
+        .card-stat-right {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #ffcc00;
+            color: #000;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            border: 1px solid #000;
+        }
+
+        /* 卡牌文字標籤 */
+        .card-text {
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            font-size: 10px;
+            padding: 4px;
+            text-align: center;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 1.2;
+        }
+
+        .card-text .name {
+            font-weight: bold;
+            font-size: 11px;
+            margin-bottom: 2px;
+            color: #ffd700;
+        }
+
+        /* 特殊標記 */
+        .badge {
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        .badge-plan { background: #2ecc71; color: #000; }
+        .badge-attack { background: #e74c3c; color: #fff; }
+        .badge-defend { background: #3498db; color: #fff; }
+
+        /* 按鈕樣式 */
+        .action-btn {
+            margin-top: 5px;
+            padding: 5px 10px;
+            background: var(--btn-bg);
+            color: white;
+            border: 1px solid #666;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .action-btn:hover:not(:disabled) { background: var(--btn-hover); }
+        .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* 彈窗樣式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: #222;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--card-border);
+        }
+        .modal-content h2 { margin-top: 0; color: #ffd700; }
+        .modal-content ul { padding-left: 20px; }
+        .modal-content li { margin-bottom: 10px; line-height: 1.5; }
+        
+        /* 日誌區域 */
+        #game-log {
+            height: 80px;
+            overflow-y: auto;
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 5px;
+            border-radius: 5px;
+            margin-top: 5px;
+            border: 1px solid #333;
+        }
+        .log-entry { margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部狀態列 -->
+    <header>
+        <div class="stat-group">
+            <div class="stat-item">階段: <span id="display-phase">準備中</span></div>
+            <div class="stat-item">攻擊力: <span id="display-attack">0</span></div>
+            <div class="stat-item">平民損失: <span id="display-civilians">0</span> / 5</div>
+            <div class="stat-item">失敗任務: <span id="display-failed">0</span> / 2</div>
+        </div>
+        <div class="controls">
+            <button id="btn-save" onclick="saveGame()">存檔</button>
+            <button id="btn-load" onclick="loadGame()">讀檔</button>
+            <button onclick="toggleRules()">遊戲規則</button>
+            <button id="btn-end-resistance" onclick="endResistance()" style="background: #c0392b; display: none;">結束抵抗</button>
+        </div>
+    </header>
+
+    <!-- 遊戲主區域 -->
+    <main>
+        <!-- 任務與敵人 -->
+        <div class="mission-area" id="mission-area">
+            <!-- 動態生成任務與敵人 -->
+        </div>
+
+        <!-- 玩家場地 -->
+        <div class="player-area">
+            <div class="play-zone">
+                <div class="play-zone-half" id="hidden-played">
+                    <span style="color:#aaa; font-size:12px; margin-right:10px;">隱藏馬基</span>
+                </div>
+                <div class="play-zone-half" id="revealed-played">
+                    <span style="color:#aaa; font-size:12px; margin-right:10px;">揭示馬基</span>
+                </div>
+            </div>
+            
+            <!-- 手牌 -->
+            <div class="hand-area" id="hand-area">
+                <!-- 動態生成手牌 -->
+            </div>
+        </div>
+    </main>
+
+    <!-- 遊戲日誌 -->
+    <div id="game-log"></div>
+
+    <!-- 規則彈窗 -->
+    <div class="modal-overlay" id="rules-modal">
+        <div class="modal-content">
+            <h2>RESIST! 遊戲規則</h2>
+            <p><strong>目標</strong>：扮演西班牙馬基游擊隊，完成任務獲取勝利點數。每輪結束可決定是否見好就收。</p>
+            <p><strong>失敗條件</strong>：</p>
+            <ul>
+                <li>累計失敗 2 個任務。</li>
+                <li>墓地累計達到 5 個平民。</li>
+                <li>恢復階段抽手牌時，手牌全部都是間諜。</li>
+            </ul>
+            <p><strong>回合流程</strong>：</p>
+            <ul>
+                <li><strong>1. 計劃階段 (PLAN)</strong>：打出馬基卡（選隱藏或揭示），執行計劃行動。然後選擇一個任務，並翻開該任務的敵人。</li>
+                <li><strong>2. 攻擊階段 (ATTACK)</strong>：觸發防禦效果。打出剩餘手牌並執行攻擊行動。總和攻擊力，自由分配擊敗任務或敵人（扣除防禦值）。結算擊敗與存活效果。</li>
+                <li><strong>3. 善後階段 (AFTERMATH)</strong>：檢查平民損失。任務成功則抽新任務，失敗則翻面。決定繼續或結束抵抗。</li>
+                <li><strong>4. 恢復階段 (RECOVER)</strong>：清理桌面打出的卡牌。從隱藏牌堆抽 5 張新手牌。檢查是否全是間諜。</li>
+            </ul>
+            <button class="action-btn" onclick="toggleRules()" style="margin-top:20px; padding:10px; font-size:14px;">關閉</button>
+        </div>
+    </div>
+
+    <!-- 選擇馬基型態彈窗 -->
+    <div class="modal-overlay" id="maquis-modal">
+        <div class="modal-content" style="text-align:center;">
+            <h2>打出馬基卡</h2>
+            <p id="maquis-modal-name" style="font-size:20px; font-weight:bold; margin-bottom:20px;"></p>
+            <div style="display:flex; justify-content:center; gap:20px;">
+                <div>
+                    <button class="action-btn" style="padding:15px; width:120px;" onclick="playMaquis('hidden')">隱藏打出</button>
+                    <p style="font-size:12px; color:#aaa; margin-top:5px;">(放置在左側)</p>
+                </div>
+                <div>
+                    <button class="action-btn" style="padding:15px; width:120px;" onclick="playMaquis('revealed')">揭示打出</button>
+                    <p style="font-size:12px; color:#aaa; margin-top:5px;">(放置在右側，回合結束消失)</p>
+                </div>
+            </div>
+            <button class="action-btn" onclick="closeMaquisModal()" style="margin-top:20px; background:#555;">取消</button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 遊戲資料定義 (Card Data)
+        // ==========================================
+        
+        const CARD_TEMPLATES = {
+            maquis: [
+                { id: 'm1', name: '帕基塔 (Paquita)', hidden: { atk: 1, action: 'plan_reveal_enemies', text: '計劃: 翻開一個任務的所有敵人。' }, revealed: { atk: 1, action: 'attack_plus_1', text: '攻擊: 攻擊力+1。' } },
+                { id: 'm2', name: '阿貝爾 (Abel)', hidden: { atk: 1, action: 'attack_per_revealed', text: '攻擊: 每個揭示的馬基+1攻擊力。' }, revealed: { atk: 4, action: 'none', text: '攻擊: 無特殊效果。' } },
+                { id: 'm3', name: '羅伯特 (Roberto)', hidden: { atk: 1, action: 'plan_look_deck', text: '計劃: 查看牌堆頂3張，隨意放回。' }, revealed: { atk: 4, action: 'none', text: '攻擊: 無特殊效果。' } },
+                { id: 'm4', name: '康蘇洛 (Consuelo)', hidden: { atk: 1, action: 'plan_discard', text: '計劃: 棄掉手牌一張，抽一張。' }, revealed: { atk: 1, action: 'attack_discard_enemy', text: '攻擊: 棄掉任務中一張敵人，獲得等同其防禦值的攻擊力。' } },
+                { id: 'm5', name: '安東尼奧 (Antonio)', hidden: { atk: 1, action: 'plan_discard_spy', text: '計劃: 棄掉一張間諜。' }, revealed: { atk: 2, action: 'attack_draw_maquis', text: '攻擊: 從招募牌堆抽一張馬基。' } },
+                { id: 'm6', name: '曼努埃拉 (Manuela)', hidden: { atk: 1, action: 'plan_draw', text: '計劃: 抽一張牌。' }, revealed: { atk: 2, action: 'attack_draw_maquis', text: '攻擊: 從招募牌堆抽一張馬基。' } }
+            ],
+            enemies: [
+                { id: 'e1', name: '士兵 (Grunt)', defense: 1, effect: 'SURVIVE: 棄一張手牌。' },
+                { id: 'e2', name: '守衛 (Guard)', defense: 1, effect: 'DEFEND: 必須先擊敗此敵人才能攻擊任務。' },
+                { id: 'e3', name: '軍人 (Military)', defense: 2, effect: 'SURVIVE: 將一張隱藏馬基移出遊戲。' },
+                { id: 'e4', name: '工程師 (Engineer)', defense: 1, effect: 'DEFEND: 此任務中其他敵人防禦力+1。' },
+                { id: 'e5', name: '獄卒 (Jailor)', defense: 3, effect: 'DEFEAT: 從招募牌堆抽一張馬基加入手牌。' },
+                { id: 'e6', name: '精銳部隊 (Elite)', defense: 3, effect: 'DEFEAT: 棄掉一張手牌。' },
+                { id: 'e7', name: '特工頭目 (Agent)', defense: 2, effect: 'DEFEAT: 將一張間諜加入隱藏牌堆。' }
+            ],
+            missions: [
+                { id: 'miss1', name: '破壞鐵路橋', defense: 3, points: 2, garrison: 2, effect: 'DEFEAT: 從其他任務棄一張敵人。' },
+                { id: 'miss2', name: '攻擊指揮官別墅', defense: 4, points: 3, garrison: 3, effect: 'SURVIVE: 抽一張平民放入墓地。' },
+                { id: 'miss3', name: '攔截補給車隊', defense: 5, points: 2, garrison: 4, effect: 'DEFEAT: 從其他任務棄一張敵人。' },
+                { id: 'miss4', name: '佔領軍械庫', defense: 3, points: 1, garrison: 2, effect: 'DEFEND: 揭示的馬基攻擊力-1。' }
+            ],
+            spies: [
+                { id: 's1', name: '間諜' }, { id: 's2', name: '間諜' }, { id: 's3', name: '間諜' }
+            ],
+            civilians: [
+                { id: 'c0', name: '黑貓', value: 0 }, { id: 'c1', name: '平民', value: 1 }, 
+                { id: 'c2', name: '平民', value: 2 }, { id: 'c3', name: '平民', value: 3 },
+                { id: 'c1b', name: '平民', value: 1 }, { id: 'c2b', name: '平民', value: 2 }, 
+                { id: 'c3b', name: '平民', value: 3 }
+            ]
+        };
+
+        // ==========================================
+        // 2. 遊戲狀態 (Game State)
+        // ==========================================
+        
+        let GameState = {
+            phase: 'SETUP',
+            hiddenDeck: [],
+            hiddenDiscard: [],
+            recruitDeck: [],
+            revealedDiscard: [],
+            hand: [],
+            playedHidden: [],
+            playedRevealed: [],
+            missions: [],
+            missionDeck: [],
+            defeatedMissions: [],
+            enemyDeck: [],
+            enemyDiscard: [],
+            civilianDeck: [],
+            graveyard: [],
+            currentMissionId: null,
+            attackStrength: 0,
+            failedMissionsCount: 0,
+            log: [],
+            selectedCardId: null,
+            gameResult: null
+        };
+
+        // ==========================================
+        // 3. 輔助函式 (Helpers)
+        // ==========================================
+
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function log(message) {
+            GameState.log.push(message);
+            const logDiv = document.getElementById('game-log');
+            logDiv.innerHTML += `<div class="log-entry">> ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function createDeck(templateArray, count, type) {
+            let deck = [];
+            for (let i = 0; i < count; i++) {
+                let template = templateArray[i % templateArray.length];
+                deck.push({ ...template, uid: `${type}-${i}-${Math.random().toString(36).substr(2, 5)}` });
+            }
+            return deck;
+        }
+
+        // ==========================================
+        // 4. 遊戲初始化與流程 (Setup & Flow)
+        // ==========================================
+
+        function initGame() {
+            GameState = {
+                phase: 'PLAN',
+                hiddenDeck: [],
+                hiddenDiscard: [],
+                recruitDeck: [],
+                revealedDiscard: [],
+                hand: [],
+                playedHidden: [],
+                playedRevealed: [],
+                missions: [],
+                missionDeck: [],
+                defeatedMissions: [],
+                enemyDeck: [],
+                enemyDiscard: [],
+                civilianDeck: [],
+                graveyard: [],
+                currentMissionId: null,
+                attackStrength: 0,
+                failedMissionsCount: 0,
+                log: [],
+                selectedCardId: null,
+                gameResult: null
+            };
+            
+            document.getElementById('game-log').innerHTML = '';
+
+            // 建立牌堆
+            let maquisDeck = createDeck(CARD_TEMPLATES.maquis, 12, 'maquis');
+            shuffle(maquisDeck);
+            
+            // 分為 Hidden 和 Recruit
+            GameState.hiddenDeck = maquisDeck.slice(0, 6);
+            GameState.recruitDeck = maquisDeck.slice(6);
+
+            // 加入間諜
+            let spies = createDeck(CARD_TEMPLATES.spies, 3, 'spy');
+            GameState.hiddenDeck.push(...spies);
+            shuffle(GameState.hiddenDeck);
+
+            // 敵人與平民
+            GameState.enemyDeck = shuffle(createDeck(CARD_TEMPLATES.enemies, 15, 'enemy'));
+            GameState.civilianDeck = shuffle(createDeck(CARD_TEMPLATES.civilians, 8, 'civilian'));
+
+            // 任務 (簡化，直接抽 3 個任務出來)
+            let missionPool = createDeck(CARD_TEMPLATES.missions, 6, 'mission');
+            shuffle(missionPool);
+            for (let i = 0; i < 3; i++) {
+                let mission = missionPool.pop();
+                let enemies = [];
+                for (let j = 0; j < mission.garrison; j++) {
+                    enemies.push(GameState.enemyDeck.pop());
+                }
+                GameState.missions.push({ ...mission, enemies: enemies, revealed: false });
+            }
+            GameState.missionDeck = missionPool;
+
+            // 抽初始手牌
+            drawHand(5);
+            log("遊戲開始！抽起 5 張手牌。");
+            renderAll();
+        }
+
+        function drawHand(count) {
+            for (let i = 0; i < count; i++) {
+                if (GameState.hiddenDeck.length === 0) {
+                    if (GameState.hiddenDiscard.length > 0) {
+                        GameState.hiddenDeck = shuffle([...GameState.hiddenDiscard]);
+                        GameState.hiddenDiscard = [];
+                        log("隱藏牌堆耗盡，洗牌。");
+                    } else {
+                        log("隱藏牌堆已空，無法抽牌。");
+                        break;
+                    }
+                }
+                GameState.hand.push(GameState.hiddenDeck.pop());
+            }
+        }
+
+        // ==========================================
+        // 5. 渲染 UI (Rendering)
+        // ==========================================
+
+        function renderAll() {
+            renderHeader();
+            renderMissions();
+            renderPlayedMaquis();
+            renderHand();
+        }
+
+        function renderHeader() {
+            let phaseText = {
+                'PLAN': '計劃階段 (PLAN)',
+                'ATTACK': '攻擊階段 (ATTACK)',
+                'AFTERMATH': '善後階段 (AFTERMATH)',
+                'RECOVER': '恢復階段 (RECOVER)',
+                'GAME_OVER': '遊戲結束'
+            };
+            document.getElementById('display-phase').innerText = phaseText[GameState.phase] || GameState.phase;
+            document.getElementById('display-attack').innerText = GameState.attackStrength;
+            
+            let civilianLoss = GameState.graveyard.reduce((sum, c) => sum + c.value, 0);
+            document.getElementById('display-civilians').innerText = civilianLoss;
+            document.getElementById('display-failed').innerText = GameState.failedMissionsCount;
+
+            document.getElementById('btn-end-resistance').style.display = (GameState.phase === 'AFTERMATH') ? 'block' : 'none';
+        }
+
+        function createCardHTML(card, type, zone) {
+            let html = `<div class="card ${type}" data-id="${card.uid}" data-type="${type}" data-zone="${zone}">`;
+            
+            // 頂部標題
+            html += `<div class="card-header">${card.name}</div>`;
+            
+            // 數值標籤
+            if (type === 'enemy') {
+                html += `<div class="card-stat" title="防禦力">${card.defense}</div>`;
+            } else if (type === 'maquis') {
+                let atk = zone === 'revealed' ? card.revealed.atk : card.hidden.atk;
+                html += `<div class="card-stat" title="攻擊力">${atk}</div>`;
+            } else if (type === 'mission') {
+                html += `<div class="card-stat" title="防禦力">${card.defense}</div>`;
+                html += `<div class="card-stat-right" title="分數">${card.points}</div>`;
+            }
+
+            // 卡牌文字
+            html += `<div class="card-text">`;
+            if (type === 'maquis') {
+                if (zone === 'hand') {
+                    html += `<div class="name">${card.name}</div>`;
+                    html += `<div style="display:flex; justify-content:space-between; margin-top:4px;">`;
+                    html += `<span class="badge badge-plan">計</span> <span class="badge badge-attack">攻</span>`;
+                    html += `</div>`;
+                } else if (zone === 'hidden') {
+                    html += `<div>${card.hidden.text}</div>`;
+                } else if (zone === 'revealed') {
+                    html += `<div>${card.revealed.text}</div>`;
+                }
+            } else if (type === 'enemy') {
+                html += `<div>${card.effect}</div>`;
+            } else if (type === 'mission') {
+                html += `<div style="margin-top:10px; font-size:11px;">${card.effect}</div>`;
+            } else if (type === 'spy') {
+                html += `<div style="font-weight:bold; color:red;">無法使用</div>`;
+            } else if (type === 'civilian') {
+                html += `<div style="font-size:20px; font-weight:bold;">${card.value}</div>`;
+            }
+
+            html += `</div></div>`;
+            return html;
+        }
+
+        function renderMissions() {
+            const container = document.getElementById('mission-area');
+            container.innerHTML = '';
+
+            GameState.missions.forEach(mission => {
+                let missionHTML = `<div class="mission-container">`;
+                
+                // 敵人區
+                missionHTML += `<div class="enemy-group">`;
+                if (mission.revealed) {
+                    mission.enemies.forEach(enemy => {
+                        missionHTML += createCardHTML(enemy, 'enemy', 'mission');
+                    });
+                } else {
+                    // 背面朝上
+                    for(let i=0; i<mission.enemies.length; i++) {
+                        missionHTML += `<div class="card enemy" style="background:#111;"><div class="card-text" style="color:#555;">未知敵人</div></div>`;
+                    }
+                }
+                missionHTML += `</div>`;
+                
+                // 任務卡區
+                missionHTML += createCardHTML(mission, 'mission', 'mission');
+                
+                // 選擇任務按鈕 (僅限 PLAN 階段)
+                if (GameState.phase === 'PLAN' && GameState.currentMissionId === null) {
+                    missionHTML += `<button class="action-btn" onclick="selectMission('${mission.uid}')">選擇此任務</button>`;
+                }
+                
+                missionHTML += `</div>`;
+                container.innerHTML += missionHTML;
+            });
+        }
+
+        function renderPlayedMaquis() {
+            const hiddenZone = document.getElementById('hidden-played');
+            const revealedZone = document.getElementById('revealed-played');
+            
+            hiddenZone.innerHTML = '<span style="color:#aaa; font-size:12px; margin-right:10px;">隱藏馬基</span>';
+            revealedZone.innerHTML = '<span style="color:#aaa; font-size:12px; margin-right:10px;">揭示馬基</span>';
+
+            GameState.playedHidden.forEach(card => {
+                hiddenZone.innerHTML += createCardHTML(card, 'maquis', 'hidden');
+            });
+            GameState.playedRevealed.forEach(card => {
+                revealedZone.innerHTML += createCardHTML(card, 'maquis', 'revealed');
+            });
+        }
+
+        function renderHand() {
+            const container = document.getElementById('hand-area');
+            container.innerHTML = '';
+            
+            GameState.hand.forEach(card => {
+                let type = card.uid.startsWith('spy') ? 'spy' : 'maquis';
+                let cardHTML = createCardHTML(card, type, 'hand');
+                
+                // 根據階段決定手牌點擊行為
+                if (GameState.phase === 'PLAN' || GameState.phase === 'ATTACK') {
+                    // 手牌是可由 JS 點擊的
+                    container.innerHTML += cardHTML;
+                } else {
+                    // 非玩家行動階段，不能點擊
+                    container.innerHTML += cardHTML.replace('cursor: pointer;', 'cursor: default;');
+                }
+            });
+
+            // 綁定手牌點擊事件
+            if (GameState.phase === 'PLAN' || GameState.phase === 'ATTACK') {
+                const cards = container.querySelectorAll('.card');
+                cards.forEach(cardEl => {
+                    cardEl.onclick = () => handleCardClick(cardEl.dataset.id);
+                });
+            }
+        }
+
+        // ==========================================
+        // 6. 互動邏輯 (Interaction Logic)
+        // ==========================================
+
+        function handleCardClick(cardId) {
+            if (GameState.phase !== 'PLAN' && GameState.phase !== 'ATTACK') return;
+            
+            const card = GameState.hand.find(c => c.uid === cardId);
+            if (!card) return;
+
+            if (card.uid.startsWith('spy')) {
+                log("間諜卡無法使用！");
+                return;
+            }
+
+            // 打開選擇 Hidden/Revealed 的彈窗
+            GameState.selectedCardId = cardId;
+            document.getElementById('maquis-modal-name').innerText = card.name;
+            document.getElementById('maquis-modal').style.display = 'flex';
+        }
+
+        function closeMaquisModal() {
+            document.getElementById('maquis-modal').style.display = 'none';
+            GameState.selectedCardId = null;
+        }
+
+        function playMaquis(type) {
+            const cardId = GameState.selectedCardId;
+            if (!cardId) return;
+
+            const cardIndex = GameState.hand.findIndex(c => c.uid === cardId);
+            const card = GameState.hand.splice(cardIndex, 1)[0];
+
+            if (type === 'hidden') {
+                GameState.playedHidden.push(card);
+                log(`打出隱藏馬基: ${card.name} (攻擊力 ${card.hidden.atk})`);
+                executeMaquisAction(card, 'hidden');
+            } else {
+                GameState.playedRevealed.push(card);
+                log(`打出揭示馬基: ${card.name} (攻擊力 ${card.revealed.atk})`);
+                executeMaquisAction(card, 'revealed');
+            }
+
+            closeMaquisModal();
+            updateAttackStrength();
+            renderAll();
+            checkPhaseProgression();
+        }
+
+        function executeMaquisAction(card, side) {
+            let action = side === 'hidden' ? card.hidden.action : card.revealed.action;
+            let phase = GameState.phase;
+
+            // 基本示範行動邏輯
+            if (phase === 'PLAN' && (action === 'plan_reveal_enemies' || action === 'plan_draw' || action === 'plan_discard' || action === 'plan_look_deck' || action === 'plan_discard_spy')) {
+                if (action === 'plan_reveal_enemies') {
+                    GameState.missions.forEach(m => m.revealed = true);
+                    log("效果: 所有任務的敵人被翻開！");
+                } else if (action === 'plan_draw') {
+                    drawHand(1);
+                    log("效果: 抽一張牌。");
+                } else if (action === 'plan_discard') {
+                    log("效果: 觸發棄牌抽牌 (自動忽略，簡化流程)。");
+                }
+            }
+
+            if (phase === 'ATTACK' && (action === 'attack_plus_1' || action === 'attack_discard_enemy' || action === 'attack_per_revealed')) {
+                if (action === 'attack_discard_enemy' && GameState.currentMissionId) {
+                    log("效果: 獲得額外攻擊力並棄敵人 (簡化)。");
+                }
+            }
+        }
+
+        function updateAttackStrength() {
+            let total = 0;
+            GameState.playedHidden.forEach(c => total += c.hidden.atk);
+            GameState.playedRevealed.forEach(c => total += c.revealed.atk);
+            
+            // 簡化處理阿貝爾的揭示加成
+            let revealedCount = GameState.playedRevealed.length;
+            GameState.playedHidden.forEach(c => {
+                if (c.hidden.action === 'attack_per_revealed') {
+                    total += revealedCount;
+                }
+            });
+
+            GameState.attackStrength = total;
+        }
+
+        function checkPhaseProgression() {
+            // 如果 PLAN 階段打完牌了，且沒有選擇任務，提示選擇任務
+            if (GameState.phase === 'PLAN' && GameState.hand.filter(c => !c.uid.startsWith('spy')).length === 0 && GameState.currentMissionId === null) {
+                log("手牌已打完，請選擇一個任務進行攻擊。");
+            }
+        }
+
+        // ==========================================
+        // 7. 階段流轉與核心邏輯
+        // ==========================================
+
+        function selectMission(missionId) {
+            if (GameState.phase !== 'PLAN' || GameState.currentMissionId !== null) return;
+            
+            GameState.currentMissionId = missionId;
+            const mission = GameState.missions.find(m => m.uid === missionId);
+            mission.revealed = true;
+
+            log(`選擇任務: ${mission.name}。敵人已翻開。`);
+            
+            // 進入 ATTACK 階段
+            GameState.phase = 'ATTACK';
+            log("進入攻擊階段！請打出剩餘手牌並分配攻擊力。");
+            
+            // 自動觸發防禦效果 (簡化)
+            mission.enemies.forEach(e => {
+                if (e.effect.includes('DEFEND')) {
+                    log(`敵人 [${e.name}] 觸發防禦效果: ${e.effect}`);
+                }
+            });
+
+            updateAttackStrength();
+            renderAll();
+        }
+
+        // 綁定任務區與玩家區的點擊事件 (處理攻擊目標)
+        document.getElementById('mission-area').addEventListener('click', (e) => {
+            if (GameState.phase !== 'ATTACK') return;
+            
+            const cardEl = e.target.closest('.card');
+            if (!cardEl) return;
+            
+            const type = cardEl.dataset.type;
+            const zone = cardEl.dataset.zone;
+            const uid = cardEl.dataset.id;
+
+            if (type === 'enemy' && zone === 'mission') {
+                attackEnemy(uid);
+            } else if (type === 'mission' && zone === 'mission') {
+                attackMission(uid);
+            }
+        });
+
+        function attackEnemy(uid) {
+            const mission = GameState.missions.find(m => m.uid === GameState.currentMissionId);
+            if (!mission) return;
+
+            const enemyIndex = mission.enemies.findIndex(e => e.uid === uid);
+            if (enemyIndex === -1) return;
+            
+            const enemy = mission.enemies[enemyIndex];
+            
+            if (GameState.attackStrength >= enemy.defense) {
+                GameState.attackStrength -= enemy.defense;
+                mission.enemies.splice(enemyIndex, 1);
+                GameState.enemyDiscard.push(enemy);
+                log(`擊敗敵人: ${enemy.name} (消耗 ${enemy.defense} 攻擊力)`);
+                
+                // 觸發擊敗效果
+                if (enemy.effect.includes('DEFEAT')) {
+                    log(`觸發效果: ${enemy.effect}`);
+                    if (enemy.effect.includes('抽一張馬基')) {
+                        if (GameState.recruitDeck.length > 0) {
+                            let drawn = GameState.recruitDeck.pop();
+                            GameState.hand.push(drawn);
+                            log(`從招募牌堆抽到: ${drawn.name}`);
+                        }
+                    }
+                }
+                
+                renderAll();
+                checkMissionCompletion();
+            } else {
+                log(`攻擊力不足！需要 ${enemy.defense} 點，目前只有 ${GameState.attackStrength} 點。`);
+            }
+        }
+
+        function attackMission(uid) {
+            const mission = GameState.missions.find(m => m.uid === GameState.currentMissionId);
+            if (!mission) return;
+
+            // 檢查是否有守衛限制
+            const hasGuard = mission.enemies.some(e => e.effect.includes('必須先擊敗此敵人'));
+            if (hasGuard) {
+                log("無法攻擊任務！必須先擊敗守衛。");
+                return;
+            }
+
+            if (GameState.attackStrength >= mission.defense) {
+                GameState.attackStrength -= mission.defense;
+                GameState.defeatedMissions.push(mission);
+                GameState.missions = GameState.missions.filter(m => m.uid !== uid);
+                GameState.currentMissionId = null; // 清除當前任務
+                log(`成功擊敗任務: ${mission.name}！獲得 ${mission.points} 分。`);
+                
+                // 觸發擊敗效果
+                if (mission.effect.includes('DEFEAT')) {
+                    log(`觸發效果: ${mission.effect}`);
+                }
+
+                // 立即進入善後階段
+                enterAftermath();
+            } else {
+                log(`攻擊力不足！任務需要 ${mission.defense} 點防禦力。`);
+            }
+        }
+
+        // 玩家點擊結束攻擊 (如果有剩餘未打完的牌或攻擊力)
+        function endAttackPhase() {
+            if (GameState.phase !== 'ATTACK') return;
+            enterAftermath();
+        }
+
+        function enterAftermath() {
+            GameState.phase = 'AFTERMATH';
+            log("進入善後階段。");
+            
+            let currentMission = null;
+            if (GameState.currentMissionId) {
+                currentMission = GameState.missions.find(m => m.uid === GameState.currentMissionId);
+            }
+            
+            // 如果未擊敗任務，則任務失敗
+            if (currentMission) {
+                GameState.failedMissionsCount++;
+                log(`任務失敗！累計失敗任務: ${GameState.failedMissionsCount}`);
+                
+                // 處理 SURVIVE 效果
+                currentMission.enemies.forEach(e => {
+                    if (e.effect.includes('SURVIVE')) {
+                        log(`敵人 [${e.name}] 觸發存活效果: ${e.effect}`);
+                        if (e.effect.includes('平民')) {
+                            if (GameState.civilianDeck.length > 0) {
+                                let civ = GameState.civilianDeck.pop();
+                                GameState.graveyard.push(civ);
+                                log(`平民進入墓地 (價值 ${civ.value})`);
+                            }
+                        }
+                    }
+                });
+                
+                // 任務翻面 (簡化為從列表中移除)
+                GameState.missions = GameState.missions.filter(m => m.uid !== currentMission.uid);
+                GameState.currentMissionId = null;
+            }
+
+            // 檢查平民損失失敗條件
+            let civLoss = GameState.graveyard.reduce((sum, c) => sum + c.value, 0);
+            if (civLoss >= 5) {
+                gameOver("失敗：平民損失達到 5 人！");
+                return;
+            }
+            
+            if (GameState.failedMissionsCount >= 2) {
+                gameOver("失敗：已失敗 2 個任務！");
+                return;
+            }
+
+            renderAll();
+            log("請決定是否繼續抵抗或結束遊戲。");
+        }
+
+        function continueResistance() {
+            if (GameState.phase !== 'AFTERMATH') return;
+            GameState.phase = 'RECOVER';
+            log("進入恢復階段。");
+            
+            // A) 清理桌面
+            GameState.revealedDiscard.push(...GameState.playedRevealed);
+            GameState.playedRevealed = [];
+            
+            GameState.hiddenDiscard.push(...GameState.playedHidden);
+            GameState.playedHidden = [];
+            
+            // 手牌中的間諜也進隱藏棄牌堆
+            let spiesInHand = GameState.hand.filter(c => c.uid.startsWith('spy'));
+            GameState.hiddenDiscard.push(...spiesInHand);
+            GameState.hand = GameState.hand.filter(c => !c.uid.startsWith('spy'));
+
+            // B) 抽新手牌
+            GameState.hand = []; // 清空手牌
+            drawHand(5);
+            log("抽起 5 張新手牌。");
+
+            // C) 檢查間諜失敗條件
+            if (GameState.hand.length > 0 && GameState.hand.every(c => c.uid.startsWith('spy'))) {
+                gameOver("失敗：手牌全部都是間諜！");
+                return;
+            }
+            
+            if (GameState.hand.length === 0 && GameState.hiddenDeck.length === 0) {
+                 log("無法抽牌，可能很快就會失敗。");
+            }
+
+            // 進入下一輪 PLAN 階段
+            GameState.phase = 'PLAN';
+            GameState.attackStrength = 0;
+            GameState.currentMissionId = null;
+            
+            // 補充任務 (簡化版：如果任務少於 3 個，從牌堆補)
+            while (GameState.missions.length < 3 && GameState.missionDeck.length > 0) {
+                let mission = GameState.missionDeck.pop();
+                let enemies = [];
+                for (let j = 0; j < mission.garrison; j++) {
+                    if (GameState.enemyDeck.length === 0) {
+                        GameState.enemyDeck = shuffle([...GameState.enemyDiscard]);
+                        GameState.enemyDiscard = [];
+                    }
+                    if (GameState.enemyDeck.length > 0) {
+                        enemies.push(GameState.enemyDeck.pop());
+                    }
+                }
+                GameState.missions.push({ ...mission, enemies: enemies, revealed: false });
+            }
+
+            log("進入新的計劃階段。");
+            renderAll();
+        }
+
+        function endResistance() {
+            if (GameState.phase !== 'AFTERMATH') return;
+            let score = GameState.defeatedMissions.reduce((sum, m) => sum + m.points, 0);
+            let result = "";
+            if (score >= 22) result = "史詩勝利！";
+            else if (score >= 19) result = "重大勝利！";
+            else if (score >= 15) result = "勝利！";
+            else if (score >= 1) result = "小勝！";
+            else result = "平局。";
+            
+            gameOver(`結束抵抗！總分: ${score} 分。結果: ${result}`);
+        }
+
+        function gameOver(message) {
+            GameState.phase = 'GAME_OVER';
+            log(message);
+            renderAll();
+            
+            // 禁用所有按鈕
+            document.getElementById('btn-end-resistance').style.display = 'none';
+            
+            // 顯示重啟按鈕
+            const header = document.querySelector('.controls');
+            if (!document.getElementById('btn-restart')) {
+                let btn = document.createElement('button');
+                btn.id = 'btn-restart';
+                btn.innerText = '重新開始';
+                btn.style.background = '#e74c3c';
+                btn.onclick = initGame;
+                header.appendChild(btn);
+            }
+        }
+
+        // ==========================================
+        // 8. 存檔與讀檔 (Save/Load)
+        // ==========================================
+
+        function saveGame() {
+            try {
+                const saveData = JSON.stringify(GameState);
+                localStorage.setItem('resist_save', saveData);
+                log("遊戲已存檔！");
+                alert("遊戲已成功存檔！");
+            } catch (e) {
+                console.error("存檔失敗", e);
+                alert("存檔失敗！");
+            }
+        }
+
+        function loadGame() {
+            try {
+                const saveData = localStorage.getItem('resist_save');
+                if (!saveData) {
+                    alert("找不到存檔！");
+                    return;
+                }
+                GameState = JSON.parse(saveData);
+                document.getElementById('game-log').innerHTML = '';
+                GameState.log.forEach(msg => {
+                    document.getElementById('game-log').innerHTML += `<div class="log-entry">> ${msg}</div>`;
+                });
+                log("遊戲已讀取！");
+                renderAll();
+                // 移除重啟按鈕如果存在
+                const restartBtn = document.getElementById('btn-restart');
+                if (restartBtn) restartBtn.remove();
+                
+            } catch (e) {
+                console.error("讀檔失敗", e);
+                alert("讀檔失敗，存檔可能已損壞。");
+            }
+        }
+
+        // 綁定善後階段的「繼續」按鈕
+        const aftermathBtn = document.createElement('button');
+        aftermathBtn.id = 'btn-continue';
+        aftermathBtn.innerText = '繼續抵抗';
+        aftermathBtn.style.cssText = 'position:fixed; bottom:100px; right:20px; padding:15px 30px; font-size:16px; background:#27ae60; color:white; border:none; border-radius:8px; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.3); z-index:50; display:none;';
+        aftermathBtn.onclick = continueResistance;
+        document.body.appendChild(aftermathBtn);
+
+        // 自定義渲染，處理善後按鈕顯示
+        const originalRenderAll = renderAll;
+        renderAll = function() {
+            originalRenderAll();
+            if (GameState.phase === 'AFTERMATH') {
+                aftermathBtn.style.display = 'block';
+            } else {
+                aftermathBtn.style.display = 'none';
+            }
+            if (GameState.phase === 'ATTACK') {
+                // 添加一個結束攻擊的按鈕到任務區尾部
+                const container = document.getElementById('mission-area');
+                if (!document.getElementById('btn-end-attack')) {
+                    container.innerHTML += `<button id="btn-end-attack" onclick="endAttackPhase()" style="padding:10px; height:50px; background:#e67e22; color:white; border:none; border-radius:5px; cursor:pointer; margin-left:auto;">結束攻擊</button>`;
+                }
+            } else {
+                const btn = document.getElementById('btn-end-attack');
+                if (btn) btn.remove();
+            }
+        }
+
+        // 啟動遊戲
+        window.onload = () => {
+            initGame();
+        };
+
+    </script>
+</body>
+</html>

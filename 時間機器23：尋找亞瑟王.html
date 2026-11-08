@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>時間機器23：尋找亞瑟王</title>
+<style>
+    :root {
+        --parchment-bg: radial-gradient(circle at center, #fdf5e6 0%, #e6d5b8 70%, #c9b18c 100%);
+        --text-color: #2c1e12;
+        --accent-color: #8b0000;
+        --btn-bg: #5c3a21;
+        --btn-hover: #7a4e2d;
+        --btn-text: #fdf5e6;
+        --border-color: #8b5a2b;
+        --vignette: inset 0 0 100px rgba(0,0,0,0.5);
+        --font-family: 'Georgia', 'Noto Serif TC', 'Times New Roman', serif;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        font-family: var(--font-family);
+        background: var(--parchment-bg);
+        color: var(--text-color);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* 暗角效果 */
+    body::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        box-shadow: var(--vignette);
+        pointer-events: none;
+        z-index: 10;
+    }
+
+    /* 頂部狀態欄 */
+    #top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        background: rgba(92, 58, 33, 0.9);
+        color: var(--btn-text);
+        font-size: 0.9rem;
+        z-index: 20;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .inventory-slot {
+        display: flex;
+        gap: 10px;
+    }
+    .inv-item {
+        background: #3e2310;
+        padding: 2px 8px;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+        font-size: 0.8rem;
+        opacity: 0.5;
+        transition: all 0.3s;
+    }
+    .inv-item.active {
+        opacity: 1;
+        border-color: gold;
+        box-shadow: 0 0 5px gold;
+    }
+
+    /* 主要內容區域 */
+    #main-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 15px;
+        overflow-y: auto;
+        position: relative;
+        z-index: 5;
+        scroll-behavior: smooth;
+    }
+
+    /* 場景圖片區 */
+    #scene-container {
+        width: 100%;
+        height: 200px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.2);
+        border: 2px solid var(--border-color);
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+        overflow: hidden;
+        position: relative;
+        flex-shrink: 0;
+        transition: opacity 0.5s ease;
+    }
+
+    #scene-container svg {
+        max-height: 100%;
+        max-width: 100%;
+    }
+
+    /* 故事文本區 */
+    #text-area {
+        background: rgba(255, 248, 235, 0.85);
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        line-height: 1.6;
+        font-size: 1.1rem;
+        min-height: 150px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        position: relative;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    #text-area p {
+        margin-bottom: 10px;
+    }
+
+    #text-area .highlight {
+        color: var(--accent-color);
+        font-weight: bold;
+    }
+
+    /* 選項按鈕區 */
+    #options-area {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding-bottom: 20px;
+    }
+
+    .option-btn {
+        background: var(--btn-bg);
+        color: var(--btn-text);
+        border: 1px solid var(--border-color);
+        padding: 15px;
+        font-size: 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.2s;
+        font-family: var(--font-family);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .option-btn:hover {
+        background: var(--btn-hover);
+        transform: translateY(-2px);
+    }
+
+    .option-btn:active {
+        transform: translateY(1px);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .option-btn:disabled {
+        background: #888;
+        cursor: not-allowed;
+        transform: none;
+        opacity: 0.7;
+    }
+
+    .option-btn .hint-icon {
+        float: right;
+        color: gold;
+        font-size: 0.8rem;
+        margin-left: 10px;
+    }
+
+    /* 底部導航欄 */
+    #bottom-nav {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        background: rgba(92, 58, 33, 0.95);
+        padding: 10px 5px;
+        border-top: 1px solid var(--border-color);
+        z-index: 20;
+        padding-bottom: env(safe-area-inset-bottom, 10px);
+    }
+
+    .nav-btn {
+        background: none;
+        border: none;
+        color: var(--btn-text);
+        font-size: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        gap: 3px;
+        font-family: var(--font-family);
+        opacity: 0.8;
+        transition: opacity 0.2s;
+        padding: 5px;
+    }
+
+    .nav-btn:hover, .nav-btn:active {
+        opacity: 1;
+        color: gold;
+    }
+
+    .nav-btn svg {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+    }
+
+    /* 彈窗系統 */
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .modal-content {
+        background: var(--parchment-bg);
+        color: var(--text-color);
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        border: 2px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        transform: scale(0.9);
+        transition: transform 0.3s;
+    }
+
+    .modal-overlay.active .modal-content {
+        transform: scale(1);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: 10px;
+    }
+
+    .modal-header h2 {
+        font-size: 1.2rem;
+        color: var(--accent-color);
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-color);
+    }
+
+    .modal-body {
+        overflow-y: auto;
+        flex: 1;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+
+    .modal-body ul {
+        padding-left: 20px;
+        margin-bottom: 15px;
+    }
+
+    .modal-body li {
+        margin-bottom: 5px;
+    }
+
+    /* 側邊歷史紀錄 */
+    #history-sidebar {
+        position: fixed;
+        top: 0;
+        left: -300px;
+        width: 300px;
+        height: 100%;
+        background: rgba(253, 245, 230, 0.95);
+        border-right: 2px solid var(--border-color);
+        z-index: 50;
+        transition: left 0.3s;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 5px 0 15px rgba(0,0,0,0.3);
+    }
+
+    #history-sidebar.open {
+        left: 0;
+    }
+
+    #history-sidebar .sidebar-header {
+        padding: 15px;
+        background: var(--btn-bg);
+        color: var(--btn-text);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    #history-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+        list-style: none;
+    }
+
+    #history-list li {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px dashed var(--border-color);
+        font-size: 0.85rem;
+        color: #555;
+    }
+
+    /* Toast 提示 */
+    #toast-container {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        pointer-events: none;
+    }
+
+    .toast {
+        background: rgba(44, 30, 18, 0.9);
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s;
+        border: 1px solid var(--border-color);
+    }
+
+    .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* 打字機光標 */
+    .cursor {
+        display: inline-block;
+        width: 2px;
+        height: 1.1em;
+        background: var(--text-color);
+        animation: blink 0.8s infinite;
+        vertical-align: middle;
+        margin-left: 2px;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+    }
+
+    /* 響應式調整 */
+    @media (min-width: 768px) {
+        #main-container {
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        #scene-container {
+            height: 300px;
+        }
+        .option-btn {
+            padding: 20px;
+            font-size: 1.1rem;
+        }
+    }
+
+    /* 場景淡入淡出 */
+    .fade-out {
+        opacity: 0 !important;
+    }
+    .fade-in {
+        animation: fadeIn 0.5s forwards;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+</style>
+</head>
+<body>
+
+<!-- 頂部狀態欄 -->
+<div id="top-bar">
+    <div>尋找亞瑟王</div>
+    <div class="inventory-slot">
+        <div id="inv-matches" class="inv-item">🔥 火柴</div>
+        <div id="inv-sugar" class="inv-item">🍬 糖</div>
+    </div>
+</div>
+
+<!-- 主要內容 -->
+<div id="main-container">
+    <!-- 場景圖 -->
+    <div id="scene-container">
+        <!-- SVG 將由 JS 動態生成 -->
+    </div>
+
+    <!-- 故事文本 -->
+    <div id="text-area" onclick="skipTyping()">
+        <div id="text-content"></div>
+    </div>
+
+    <!-- 選項 -->
+    <div id="options-area">
+        <!-- 按鈕由 JS 生成 -->
+    </div>
+</div>
+
+<!-- 底部導航 -->
+<div id="bottom-nav">
+    <button class="nav-btn" onclick="openModal('modal-help')">
+        <svg viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
+        <span>說明</span>
+    </button>
+    <button class="nav-btn" onclick="toggleHistory()">
+        <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+        <span>歷史</span>
+    </button>
+    <button class="nav-btn" onclick="saveGame()">
+        <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+        <span>存檔</span>
+    </button>
+    <button class="nav-btn" onclick="loadGame()">
+        <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
+        <span>讀檔</span>
+    </button>
+    <button class="nav-btn" onclick="toggleSound()">
+        <svg id="sound-icon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+        <span>音效</span>
+    </button>
+    <button class="nav-btn" onclick="resetGame()">
+        <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+        <span>重新</span>
+    </button>
+</div>
+
+<!-- 歷史紀錄側邊欄 -->
+<div id="history-sidebar">
+    <div class="sidebar-header">
+        <h3>時間線 (歷史紀錄)</h3>
+        <button class="close-btn" onclick="toggleHistory()">&times;</button>
+    </div>
+    <ul id="history-list">
+        <!-- 歷史項目由 JS 生成 -->
+    </ul>
+</div>
+
+<!-- 彈窗：說明 -->
+<div id="modal-help" class="modal-overlay" onclick="closeModal(event, 'modal-help')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2>遊戲說明</h2>
+            <button class="close-btn" onclick="closeModal(event, 'modal-help')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p><strong>故事背景：</strong><br>你是一名時間旅行者，你的任務是回到過去，找出「真正的亞瑟王」（Artorius），並揭開傳說背後的真相。</p>
+            <p><strong>遊戲規則：</strong></p>
+            <ul>
+                <li>這是一本互動式冒險書，請勿從頭讀到尾，而是根據你的選擇跳轉頁面。</li>
+                <li>點擊故事文本可以跳過打字機效果。</li>
+                <li>點擊選項按鈕來做出決定。</li>
+                <li>你只能攜帶一件初始物品：<strong>火柴</strong>或<strong>糖</strong>，或<strong>什麼都不帶</strong>。請明智地選擇！</li>
+                <li>在旅途中，你可能會遇到需要特定物品的選項。如果沒有該物品，你可能會陷入危險。</li>
+                <li>你的目標是找到亞瑟王並完成任務。共有數個結局，包含成功與失敗。</li>
+            </ul>
+            <p><strong>操作提示：</strong></p>
+            <ul>
+                <li><strong>歷史：</strong>查看你走過的時間線。</li>
+                <li><strong>存檔/讀檔：</strong>記錄你的冒險進度（使用瀏覽器本地儲存）。</li>
+                <li><strong>音效：</strong>開啟或關閉點擊音效。</li>
+                <li><strong>重新：</strong>重新開始遊戲。</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗：成就 (可選) -->
+<div id="modal-achievements" class="modal-overlay" onclick="closeModal(event, 'modal-achievements')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2>成就與結局</h2>
+            <button class="close-btn" onclick="closeModal(event, 'modal-achievements')">&times;</button>
+        </div>
+        <div class="modal-body" id="achievements-list">
+            <!-- 成就列表由 JS 生成 -->
+        </div>
+    </div>
+</div>
+
+<!-- Toast 容器 -->
+<div id="toast-container"></div>
+
+<script>
+    // --- 音效系統 (Web Audio API) ---
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playClickSound() {
+        if (!soundEnabled || !audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        const icon = document.getElementById('sound-icon');
+        if (soundEnabled) {
+            icon.style.fill = 'currentColor';
+            showToast('音效已開啟');
+        } else {
+            icon.style.fill = '#555';
+            showToast('音效已關閉');
+        }
+    }
+
+    // --- 遊戲狀態機 ---
+    const State = {
+        START: 'start',
+        PLAYING: 'playing',
+        ENDED: 'ended'
+    };
+
+    let currentState = State.START;
+    let currentPage = 'start';
+    let inventory = { matches: false, sugar: false };
+    let history = [];
+    let unlockedAchievements = new Set();
+
+    // --- 故事資料 ---
+    // 基於 PDF 的頁碼與邏輯
+    const storyData = {
+        'start': {
+            image: 'book',
+            text: "這本書是你的時光機。你將回到 1,500 年前，尋找真正的亞瑟王。<br><br>在你的旅程中，你將穿著普通不列顛人的服裝：寬鬆的束腰外衣、皮革鞋子，以及一件溫暖的羊毛斗篷。你的斗篷用一個圓形的金屬胸針固定。<br><br>此外，你可以選擇以下其中一件物品隨身攜帶：",
+            options: [
+                { text: "🔥 攜帶火柴", action: () => { inventory.matches = true; updateInventoryUI(); changePage('page16'); unlockAchievement('prepared'); } },
+                { text: "🍬 攜帶方糖", action: () => { inventory.sugar = true; updateInventoryUI(); changePage('page16'); unlockAchievement('prepared'); } },
+                { text: "🎒 什麼都不帶", action: () => { changePage('page16'); } }
+            ]
+        },
+        'page16': {
+            image: 'market',
+            text: "1<br><br>你豎起耳朵，突然跳了起來，撞到了一個穿著棕色長袍的光頭修士。<br><br>「喂，看著點路，老兄。」他惱怒地說。<br><br>「抱歉。」你嘟囔著，修士大步走開了。真是個易怒的傢伙。<br><br>你環顧四周。你身處在一大群打扮得花枝招展的人群中。女人們穿著長天鵝絨禮服，戴著高高的尖頂帽，面紗拖在地上。男人們穿著盔甲，腰間閃爍著長劍。<br><br>在高高的山上，矗立著一座城堡，旗幟在微風中飄揚。<br><br>你一定是回到了亞瑟王和他的騎士們的時代！<br><br>「請問，」你對一個戴著紅、黃、綠三色帽子、帽尖掛著鈴鐺的弄臣說，「那是亞瑟王的城堡嗎？」<br><br>那人愣了一下，然後咧嘴大笑。「這個嘛，也許是，也許不是，小朋友。看情況。」<br><br>「看情況？」你困惑地重複。<br><br>「當然是看誰問了。」他把手指放在鼻子旁邊，睿智地看著你，翻了個觔斗，消失在人群中。<br><br>你意識到，這個弄臣只是在說廢話。也許別人能給你一個直接的答案。",
+            options: [
+                { text: "繼續", next: 'page17' }
+            ]
+        },
+        'page17': {
+            image: 'orange',
+            text: "2<br><br>你正想找個人問問，突然「啪！」的一聲，一個飛來的物體砸在了你的臉頰上。<br><br>「哎喲！」你大叫。低頭一看，你撿起腳邊的橘子。<br><br>「那是我的，老闆。」一個穿著短束腰外衣和緊身褲的男孩說。他跑過來，從你手裡搶走橘子。「我本來想讓你留著的，但比賽還沒開始，我的橘子就快用完了。我就是掌握不了同時拋四個橘子的訣竅。」<br><br>「那一定是個了不起的雜技。」你同情地說。「不過，這是什麼比賽？」<br><br>「當然是埃格林頓錦標賽。」男孩奇怪地看了你一眼。「你不知道怎麼會在這裡？我家人從薩福克那麼遠的地方聽說了這件事。有騎馬、馬上長矛比武、加冕美麗女王，還有大量的美食和舞蹈。勳爵大人向所有想來的人開放了場地。」<br><br>男孩上下打量你。「反正你打扮好了，雖然衣服有點怪。如果下雨，你會需要那件斗篷的。」<br><br>你抬頭看天空，看到大塊的烏雲正在城堡上空聚集。<br><br>「亞瑟王住在那裡嗎？」你剛想問那個雜耍者，但他已經不見了。<br><br>如果亞瑟王在這裡，他一定在城堡裡，你心想。你爬上山坡，經過修士、侍從和裝飾著彩色緞帶的馬匹。當你走近城堡時，你低頭看到下面平原上有一大片空地。周圍是小條紋帳篷和擠滿成千上萬人的露天看台。比賽一定在那裡舉行。<br><br>當你終於到達城堡時，你已經有點累了——但多麼壯觀的景象啊！一隊騎馬的騎士繞著城堡排成一排。他們手持長矛，直指天空，盔甲閃閃發亮，看起來就像新的一樣。在隊伍的最前面，一位美麗的女士正準備騎上一匹白馬——在她旁邊，一個穿著金色盔甲的男人騎著馬。他一定是亞瑟王！<br><br>「陛下！」你大喊。你跑上前，跪在亞瑟王的馬前。<br><br>「搞什麼鬼——」國王開口道。但他的話被一聲巨響打斷。轟！天空裂開了，傾盆大雨開始落下。<br><br>嘶——！金色騎士的馬被雷聲嚇得前腿騰空。它的蹄子就在你上方，準備重重落下。",
+            options: [
+                { text: "跳開以躲避馬蹄", next: 'page23' }
+            ]
+        },
+        'page23': {
+            image: 'victorian',
+            text: "8<br><br>你跳開躲避馬蹄。金色騎士緊緊抓住馬脖子，試圖留在馬上。<br><br>你跑過去抓住韁繩。你們一起讓馬平靜下來。<br><br>「謝謝你。」金色騎士說。一個僕人拿著傘跑向他。<br><br>騎士啪的一聲打開傘。數百把其他的傘同時出現——在山下，它們像黑色蘑菇花園一樣綻放。<br><br>你從未聽說過騎士撐傘。這是怎麼回事？<br><br>金色騎士把他的傘遞給你。你在他下馬並向僕人發號施令時為他撐傘。<br><br>「把馬帶回馬廄！」他在暴風雨中大喊。「護送女士們進大廳，給她們一些熱飲！」<br><br>他停頓了一下。你終於有機會問他：「你是亞瑟王嗎？」<br><br>「你書讀得太多了。」他笑著說。「十九世紀沒有亞瑟王。我敢打賭，在任何其他世紀也沒有。」<br><br>「但你是誰？」<br><br>「當然是埃格林頓城堡的埃格林頓勳爵。」他揮手指了指身後的城垛。「像你一樣，我一直對亞瑟的故事很著迷。在我像你這麼大的時候，我讀了法國浪漫故事和托馬斯·馬洛里爵士的故事——騎士、英雄事蹟、遇難少女，非常棒的東西。所以我決定舉辦一場真正的比賽，有真正的騎士穿著真正的盔甲。我邀請了全英格蘭——」<br><br>他頭盔的面罩掉了下來，遮住了他的臉，金色騎士拉了拉它。它紋絲不動。<br><br>你聽到一聲悶悶的：「該死的雨！」埃格林頓勳爵轉身，僵硬地走回城堡。<br><br>一個僕人從你手中搶過傘，追著他的主人跑去。你被留在傾盆大雨中。<br><br>你不會在這個維多利亞時代的化裝舞會上遇到亞瑟王。你想想埃格林頓勳爵說的話。也許你應該問問托馬斯·馬洛里爵士關於亞瑟的事——他可能知道去哪裡找他。或者你可以去法國問問亞瑟王傳奇。",
+            options: [
+                { text: "去法國", next: 'page19' },
+                { text: "尋找托馬斯·馬洛里爵士", next: 'page20' }
+            ]
+        },
+        'page19': {
+            image: 'france',
+            text: "4<br><br>鏘！你看著兩名騎士從場地兩端疾馳而來，猛烈地撞在一起。紅羽騎士被對手擊落馬下，重重地摔在地上，一動不動。<br><br>你旁邊的人驚呼：「啊，看那位騎士的女士為他哭泣！」你看到一個女人正用手帕輕輕擦拭眼睛。當紅羽騎士被扶起來走開時，她繼續哭泣。<br><br>「他看起來沒受傷啊。」你說。<br><br>「但他讓他的女士蒙羞了。」那人解釋道。「就像亞瑟的圓桌騎士一樣，法國這裡的騎士應該為他們的女士做偉大的事——殺龍、打擊異教徒、贏得比賽。」<br><br>「亞瑟的騎士真的殺過龍嗎？」你懷疑地問。<br><br>「誰知道呢？」那人回答。「現在是 1280 年，很難知道亞瑟時代到底發生了什麼。不過，這是個好故事。」<br><br>顯然你在這裡學不到多少關於真正亞瑟王的事。也許托馬斯·馬洛里爵士知道得更多。你告辭離開。",
+            options: [
+                { text: "點擊這裡", next: 'page20' }
+            ]
+        },
+        'page20': {
+            image: 'prison',
+            text: "5<br><br>現在是 1470 年。你身處一個黑暗的石室裡，只有一扇帶鐵欄的小窗。一個老人坐在桌子後面打呼嚕，手裡掉著一支羽毛筆。<br><br>當你踮著腳尖走上前看他寫了什麼時，你濕漉漉的鞋子發出咯吱咯吱的聲音。那人猛地驚醒。<br><br>「你是誰？」他瞪著你問。<br><br>「請問是托馬斯·馬洛里爵士嗎？」你問道，希望名字沒說錯。「我想問問關於亞瑟王的事。」<br><br>「亞瑟王？你是說，這該死的監獄外面有人聽說我在寫一本關於亞瑟王的書？」馬洛里整理了一下桌上的紙張。「我今天下午剛寫完亞瑟的死。」他繼續說道，舉起一疊紙。「讓我讀給你聽——我的訪客太少了。」<br><br>馬洛里清了清嗓子，開始朗讀。你坐在角落粗糙的床上，聽得入迷。<br><br>你聽到了亞瑟和他的圓桌騎士的衰落。騎士們從四面八方來到圓桌，圓桌的建立是為了維護真理和正義，擊敗不列顛的敵人。根據馬洛里的說法，騎士們曾在亞瑟的領導下團結一致，和平統治著這片土地。但嫉妒和野心給亞瑟的宮廷帶來了分裂。他的王后桂妮薇兒和他最好的騎士蘭斯洛特背叛了他。騎士反目成仇，亞瑟的圓桌被摧毀了。<br><br>在最後的戰鬥中，亞瑟和他的死敵莫德雷德相遇，互相致命一擊。亞瑟被三位美麗的女士從戰場上抬走，划船渡過湖，前往格拉斯頓伯里島。<br><br>馬洛里讀完了他的故事：<br><br>「在不列顛的許多地方，人們相信亞瑟王沒有死，他會回到我們身邊，贏得新的榮耀……但就我而言，我不相信這一點，我寧願讓他安息在格拉斯頓伯里的墳墓裡……據說他的墓碑上刻著這樣的傳說：這裡躺著亞瑟，永恆之王。」<br><br>馬洛里放下論文，你們倆沉默地坐了一會兒。「好了，」馬洛里生硬地說。「你可以告訴紐蓋特外面的世界，我寫了一部傑作。現在走吧。我要睡個午覺。」<br><br>你猶豫了一下，然後問了最後一個問題。「你的故事是真的嗎？」<br><br>「誰知道呢？」馬洛里聳聳肩回答。「我從中世紀的法國浪漫故事中得到了我的故事。真正的亞瑟可能生活在五世紀——或者根本不存在。」<br><br>他靠在椅子上，閉上了眼睛。你以為馬洛里已經睡著了，卻聽到他低聲說：「但如果亞瑟沒活過，他也應該活過。」片刻之後，他打起了呼嚕。<br><br>馬洛里說真正的亞瑟可能生活在五世紀。也許你應該去那裡找他。",
+            options: [
+                { text: "跳回五世紀", next: 'page28' }
+            ]
+        },
+        'page28': {
+            image: 'fire',
+            text: "13<br><br>現在是公元 446 年，你在不列顛鄉下某處一座寬敞的石砌別墅庭院裡——而別墅正在你周圍燃燒！<br><br>驚恐的男人和女人跑過，緊緊抓住家用物品，拖著哭泣的孩子。被煙霧和混亂弄得頭暈目眩，你站在那裡猶豫不決，試圖弄清楚該怎麼辦。<br><br>「撒克遜魔鬼來了！快逃命！」一個聲音喊道。撒克遜魔鬼？你轉過身，看到一群金髮巨人從別墅的大門湧入。他們揮舞著斧頭和短而寬的劍——其中一個巨人剛剛看到了你！<br><br>你僵在原地，嚇得不敢動。當你轉身要跑時，你感覺有一隻手抓住了你的手。一個聲音低語道：「跟我來。」<br><br>一個年輕女孩用另一隻手提起她的白色長裙，拉著你跟在她後面。你們倆逃過庭院，沿著一條長長的走廊跑去。你們跑過馬賽克地板，經過高大的白色柱子，以及通向安靜庭院的敞開的門口。<br><br>腳步聲在你們身後響起。女孩把你拉進一個黑暗的小前廳。你們倆氣喘吁吁地等著，腳步聲越來越近，然後又漸漸消失。<br><br>「我有一條逃生路線。」她低聲說。現在你們停了下來，你可以看出她和你年齡相仿，長長的深色頭髮捲曲在臉頰兩側。她踮著腳走過房間，拉開牆上的掛毯。掛毯下面有一扇門。她用力打開門，走了進去，消失了。<br><br>「快來。」你聽到裡面有聲音迴盪。<br><br>你走了進去。門在你身後關上，你跌下一小段樓梯，陷入一片漆黑。",
+            options: [
+                { text: "跟隨她", next: 'page30' }
+            ]
+        },
+        'page30': {
+            image: 'tunnel',
+            text: "15<br><br>一片漆黑。你伸出手，摸到兩邊濕冷的牆壁。你感到一陣恐慌。<br><br>「別怕。」女孩試圖安慰你。「我家挖這條隧道就是以防撒克遜人襲擊我們的別墅。它直直地朝一個方向延伸，直到露出地面。」<br><br>「謝謝你救了我。」你說，你們倆手牽手，開始摸索著沿隧道前進。「我不知道剛才在那裡我會怎麼辦。」<br><br>「是啊，你看起來很迷茫。你是誰？你在特雷波尼烏斯家族的別墅裡做什麼？」<br><br>「我——我在找人。」你含糊地回答。你告訴她你的名字，並問她的名字。<br><br>「德魯西拉·特雷波尼烏斯。」她回答。<br><br>「你怎麼知道撒克遜人要來？」你問，轉移了話題。<br><br>「你沒聽說過撒克遜僱傭兵嗎？」德魯西拉難以置信地問。<br><br>「我聽到過一些傳聞。」你謹慎地回答。「我刚到不列顛的這個地區。我真的不知道發生了什麼。」<br><br>「那我從頭說起。三十多年前羅馬被洗劫後，羅馬人撤出了不列顛。他們再也負擔不起在這裡駐軍了。所以我們不列顛人成了來自西方和北方的野蠻人的獵物。<br><br>「最後，我們的至高王沃蒂根決定僱用撒克遜僱傭兵來幫助我們趕走皮克特人和愛爾蘭人。但現在撒克遜人已經變得如此眾多，以至於他們轉而反對我們。他們一直在鄉間肆虐，燒殺搶掠。」<br><br>「你自己不是羅馬人嗎？」你問，想到德魯西拉那拉丁化的名字。<br><br>「不，我們是不列顛人，但在占領之後，所有不列顛人都成了羅馬公民。」她回答。「我們的城鎮、別墅和道路都是羅馬式的。羅馬人把文明帶到了我們的島上——現在那個文明可能被摧毀了！」<br><br>隧道突然轉彎，你差點撞到牆上。在前方，你看到一個光點。<br><br>「我們一定快到盡頭了。」德魯西拉說。你們倆開始跑。光線越來越亮。最後，你們爬出洞口的盡頭，推開遮蓋洞口的荊棘叢，走到空地上。<br><br>「我們在這裡等到晚上。」德魯西拉說。「我們會在懸石那裡和我的家人會合。」你們倆安靜地交談著，躲在灌木叢下，直到黃昏降臨。然後你們開始朝石頭走去，同時小心地始終待在陰影中。<br><br>你們走了好幾英里。最後，在遠處，你看到巨大的黑色輪廓在明亮的夜空下映襯出來。它們巨大而莊嚴，看起來就像是被巨人的手放在地球上。<br><br>「懸石。」德魯西拉說。<br><br>「巨石陣。」你喃喃自語。「是誰建造的？」<br><br>「我不知道——它們很古老。羅馬人第一次到達不列顛海岸時，它們就在那裡了。」<br><br>在巨大石頭的陰影下，有兩個人在等待——德魯西拉的父母。他們高興地迎接德魯西拉，但你聽到他們聲音中有一絲擔憂。她的兄弟還沒到，他們不知道他是否逃過了撒克遜人的劍。<br><br>德魯西拉介紹你是這個地區的新來者。儘管他們很焦慮，但她的父母還是親切地迎接你，並問你怎麼會離家這麼遠。",
+            options: [
+                { text: "繼續", next: 'page38' }
+            ]
+        },
+        'page38': {
+            image: 'stonehenge',
+            text: "23<br><br>「我在尋找亞瑟王。」你回答。「我聽說他會把野蠻人趕出不列顛。」<br><br>「我從未聽說過這個亞瑟。」德魯西拉的父親說，「儘管在這個動盪的時代，這樣的人是迫切需要的。但 Artorius 是一個古老的羅馬名字。甚至有可能一個叫 Artorius 的人跟隨尤利烏斯·凱撒來到了不列顛。」<br><br>一家人又回到了他們自己的煩惱中，你意識到是時候繼續你的任務了。你現在幫不了他們。<br><br>「再見，謝謝你們。」你對德魯西拉說。「希望我們能在更好的情況下再見。」<br><br>「願你在探索中成功。」她回答。你離開時，一家人仍在黑暗中焦急地尋找他們的兒子。<br><br>在他們看不見的地方，你坐在一塊光滑的水平石頭上，思考你的選擇。從德魯西拉父親告訴你的話來看，你似乎應該跳回尤利烏斯·凱撒的時代去尋找 Artorius。但你應該跳回多久以前呢？",
+            options: [
+                { text: "跳回 500 年前", next: 'page41' },
+                { text: "跳回 1,000 年前", next: 'page41' },
+                { text: "跳回 2,000 年前", next: 'page41' }
+            ]
+        },
+        'page41': {
+            image: 'time_jump',
+            text: "26<br><br>你坐在一塊光滑的水平石頭上，思考你的選擇。從德魯西拉父親告訴你的話來看，你似乎應該跳回尤利烏斯·凱撒的時代去尋找 Artorius。但你應該跳回多久以前呢？",
+            options: [
+                { text: "跳回 500 年前", next: 'page31' },
+                { text: "跳回 1,000 年前", next: 'page34' },
+                { text: "跳回 2,000 年前", next: 'page42' }
+            ]
+        },
+        'page31': {
+            image: 'druid',
+            text: "16<br><br>月光柔和地照在一片樹林中。你聽到附近小溪的潺潺流水聲。現在是公元前 554 年，你在史前不列顛的荒野某處。<br><br>你慢慢轉過身來辨別方向。月光下，一張奇怪的、扭曲的臉正不懷好意地看著你！<br><br>是森林精靈嗎？還是出來覓食的野獸？<br><br>你的心怦怦直跳，慢慢地從它身邊退開。它連眼睛都不眨一下。然後你注意到黑暗中還有其他怪異的面孔盯著你。微風吹過，樹葉沙沙作響——但林間空地的其他一切都很安靜。<br><br>呼。畢竟你一定是這裡唯一活著的人。果然，當你仔細看那些面孔時，你發現它們是男人和女人的粗糙木雕。也許你在一個史前藝術博物館裡。或者這可能是某種戶外神廟。<br><br>嗡——嗯——嗡。<br><br>你聽到遠處傳來低沉、嗡嗡的聲音。聲音越來越大；一群人正在吟唱，他們朝你的方向走來。你很好奇發生了什麼事，但這個地方很詭異。你最好保持隱身。<br><br>你希望躲在灌木叢下，於是跑進空地一側的樹林裡。但灌木叢已被清除，空地周圍環繞著高高的土堆。沒有地方可以躲藏！<br><br>被火把照亮，一隊人馬進入空地。為首的是一個穿著白袍的身影，手裡拿著一根帶葉的樹枝。<br><br>嗡——嗯——嗡。<br><br>你低低地蹲在灌木叢中。咔嚓！你踩到了一根樹枝，它在你的重量下斷了。<br><br>一個女人從隊伍末尾衝出來，抓住你，把你拖進隊伍中。你跌跌撞撞地排在一個衣衫襤褸、看起來很可憐的男人旁邊。<br><br>你身處在一排緩慢而沉重地移動的雙人隊伍中，彷彿被下了藥。他們由頭戴橡樹葉花環的男人和女人看守著。<br><br>吟唱繼續。隊伍接近空地的盡頭，在火把閃爍的光線下，你可以看到一個石壇和它後面一個巨大的兩層樓高的稻草人。它看起來像一個形狀像人的柳條鳥籠。<br><br>「怎麼了？」你低聲問旁邊的男人。<br><br>他呻吟著，用遲鈍、獃滯的眼神看著你。「我們是戰俘——我們的敵人把我們交給了他們的德魯伊。現在我們將被獻祭給永恆的神。」<br><br>一個穿白袍的男人——你斷定他一定是首席德魯伊——舉起他的帶葉魔杖指向天空，開始吟誦：「大自然之靈，守護我們的女神，請接受我們的祭品。」<br><br>其他祭司和女祭司齊聲吟唱。讚美詩繼續，音量升高，第一個囚犯被帶到柳條人面前。一些德魯伊開始收集樹枝，放在柳條人下面。<br><br>他們要把囚犯活活燒死！<br><br>其他俘虜似乎已經認命了。但你沒有！<br><br>出其不意可能是你最好的策略。你撞到旁邊的德魯伊女祭司，把她手中的火把撞掉。你衝過驚愕的女人，跑進樹林。<br><br>你潛入你能找到的最深的陰影中——然後跳躍！",
+            options: [
+                { text: "向前跳 1,000 年", next: 'page34' },
+                { text: "向前跳 1,500 年", next: 'page42' }
+            ]
+        },
+        'page34': {
+            image: 'stonehenge',
+            text: "19<br><br>「嘿——喲！嘿——喲！」你使出全力，拉著一艘巨大的木駁船。在你前後，數百名其他工人以同樣單調的節奏拉著。一英寸一英寸地，駁船在乾燥的陸地上緩慢前進。<br><br>「嘿——喲！」你工頭的聲音再次響起。你又用力拉了一下繩子。你感覺你的背要斷成兩半了。<br><br>就在你準備徹底放棄這個時代時，領導喊道：「停！」<br><br>你放下繩子，揉著酸痛的手臂。最後，你抬起頭。你旁邊的人正在伸展肌肉。<br><br>「我很高興今天結束了。」你試探性地說。你想知道到底是什麼結束了。<br><br>「我很高興這一年結束了。」那人笑著說。「我們走了很長一段路。但這將是一次美好的返鄉。」<br><br>他望向遠方，你順著他的目光看去。<br><br>在那裡，從平原上雄偉地升起的是懸石！這些石頭的排列方式與德魯西拉時代略有不同。但它們看起來同樣壯觀。<br><br>你回頭看駁船，看到那塊巨大的棕灰色石頭躺在上面。你跳回了公元前 1554 年，你幫助把這些巨大的石頭拖到了巨石陣！<br><br>你的同伴又用一種更審視的目光看了你一眼。「這漫長的幾個月裡你都不在我們身邊。我已經認識了這趟旅程中的每一個男人、女人和孩子。」<br><br>「不，我沒有。」你隨機應變。「我今天剛加入這個團隊。我想能夠告訴我的孫子們，我拖運了最後一塊石頭。」<br><br>「是的，我們的努力將被長久銘記。」那人同意。「總有一天，我孩子的孩子會講述他們祖父溫的故事，他幫助拖運了最偉大的神聖石頭。以及他如何遇到」溫向你鞠躬，你告訴他你的名字——「在旅程的最後一天，以及他們如何回到神聖圓環，在那裡歡欣鼓舞。」<br><br>「我已經六個漫長的月沒見到我的家人了。」溫繼續說。「你想跟我來嗎？」<br><br>你點點頭，你們倆出發穿過索爾茲伯里平原前往巨石陣。<br><br>「建造神聖圓環花了多長時間？」你問溫，使用了他對巨石陣的稱呼。<br><br>「無盡的世代。」溫回答。「我的祖先，以及我祖先的祖先，都在它的輝煌陰影下長大。但現在我們讓它比以往任何時候都更加壯麗。我們帶來的石頭將顯示太陽升起和落下的地方。它將講述月亮的故事，並預測地球被黑暗覆蓋的日子。」<br><br>一個日曆！原來這堆巨大的石頭就是為這個設計的。在你自己的時代，巨石陣被認為是史前不列顛最偉大的紀念碑。你現在意識到它是為了非常實際的目的而建造的。<br><br>巨石陣的建造者們在它周圍至少一英里的土地上定居下來。你經過粗糙的草皮和木屋、花園和耕地。<br><br>當你進入營地時，一股刺鼻的氣味迎面而來。女人們彎著腰，用長木棍攪拌著熱氣騰騰的大鍋。赤裸的孩子們跑來跑去，玩著抓人或用小圓石頭玩接球。雞和豬在腳下亂竄，你差點被一隻在你兩腿之間來回跑的癩皮狗絆倒。<br><br>一個跑過去的孩子撞到了溫。她抬起頭喊道：「父親！」溫把女兒抱在懷裡，朝你的方向揮了揮手，然後走進了人群。<br><br>不知不覺中，你走進了石圈，仰著脖子凝視。最大的石頭看起來有二十多英尺高。而你從拖運一塊石頭需要數百人這一點知道，每塊石頭一定重達三四十噸。難怪成千上萬的人同時在巨石陣工作。<br><br>有些人用你認出是鹿角的鋒利骨頭工具在地上挖洞。其他人用石錘敲打巨大的石頭。<br><br>在圓圈的中心，一塊水平石頭幾乎準備好橫跨在兩塊垂直的石頭上。它通過一系列原木台階被提升到正確的高度。一隊隊的人在原木上上下翹動石頭。<br><br>搖晃……搖晃……搖晃。巨大的水平石頭從原木棲息處滑到兩塊直立石頭的頂部。壓頂石就位了。<br><br>人群安靜下來，所有的目光都轉向新拱門的頂部。「一切榮耀歸於上帝！」一個男人唱道。他向壓頂石伸出雙手，彷彿在祝福它。<br><br>你見證了世界奇蹟之一的誕生。但現在是時候回到你的任務上了。你跳回的時間太靠前了，找不到尤利烏斯·凱撒。<br><br>你離開營地，再試一次。",
+            options: [
+                { text: "向前跳 1,000 年", next: 'page41' },
+                { text: "向前跳 1,500 年", next: 'page42' }
+            ]
+        },
+        'page42': {
+            image: 'feast',
+            text: "27<br><br>「亨吉斯特萬歲！」<br><br>巨大的木製大廳的椽子迴盪著數百人的歡呼聲。魁梧的撒克遜人和較矮小的、皮膚較黑的不列顛人舉起高腳杯和飲酒角，互相敬酒，用拳頭捶打著長桌。如果這就是沃蒂根的會議，那你來的正是時候，可以看到和平的宣告。<br><br>「別站在那裡發呆。」一個矮小、大驚小怪的男人注意到你在打量現場。「把這杯蜂蜜酒拿去給戰士們。」他把一個裝滿棕紅色葡萄酒的大銀杯塞給你。你驚訝地接過。這人太擔心了，顯然沒意識到他從未見過你。「別灑了。」他補充道。<br><br>你被高腳杯的重量壓得彎下腰，開始在長桌的一端倒蜂蜜酒。不列顛和撒克遜戰士在長凳上交替而坐。你裝滿彎曲的象牙飲酒角，聽著閒聊。<br><br>「我們會永遠是朋友，是吧，埃德弗里斯？」一個不列顛人碰了碰他高大的金髮同伴，笑了起來。他又喝了一大口蜂蜜酒。<br><br>「永遠是很長的時間，格威迪恩。」撒克遜人嚴肅地回答。「確實是很長很長的時間。」<br><br>格威迪恩大笑起來，彷彿埃德弗里斯剛剛說了什麼非常有趣的話。<br><br>你在過道裡走來走去，繞過中央的火堆，濃煙從天花板的洞裡冒出來，跨過等著施捨的狗。你觀察到戰士們都沒有武器。即使他們大多數人語言不通，他們也通過友好的手勢和大量的敬酒來交流。<br><br>但奇怪的是，你給不列顛人倒的酒遠遠多於撒克遜人。不列顛人一定比他們的客人喝得多。<br><br>「戰友們！」主桌一位頭髮花白的高個子男人站起來，環視人群。他戴著一頂簡單的金冠，披著一件長長的紅色斗篷。你意識到這一定是沃蒂根。「聽我說！」<br><br>大廳安靜下來。沃蒂根繼續說。<br><br>「我們今天聚集在這裡，慶祝戰爭的結束和這片土地和平的到來。作為這個島上羅馬-不列顛軍隊的指揮官，我在此與撒克遜人的領袖亨吉斯特簽署這項條約。為我們兩國人民之間的良好感情乾杯——願它比我們這一代人更長久，並再次為我們的土地帶來繁榮。」<br><br>沃蒂根雙手舉起一個大銀杯，送到唇邊。他長長地、有分寸地喝了一口，然後遞給他右邊那個身材魁梧的男人。<br><br>沃蒂根坐下，然後轉向另一邊的女人低聲說話。亨吉斯特——你猜想是他——放下高腳杯，不耐煩地推開。然後他站起來。<br><br>「撒克遜人，拔出你們的刀！」<br><br>坐在你前面的撒克遜人伸手到靴子裡，抽出一把邪惡的匕首。他把它刺進旁邊不列顛人的背部。<br><br>「殺死不列顛豬！」<br><br>大廳裡爆發了暴力。長桌上下，撒克遜人轉向手無寸鐵、毫無防備的不列顛人。<br><br>這是一場大屠殺！<br><br>你驚呆了，讓高腳杯從手中滑落。當一個受傷的不列顛人從長凳上摔下來，壓在你的腳上時，你踉蹌著後退。沃蒂根仍然站在主桌後面，看起來嚇得癱瘓了。沒有人對他動手。<br><br>但幾分鐘內，大廳裡似乎每隔一個不列顛戰士或長者都死了或正在死去。<br><br>撒克遜人通過背叛和詭計殺死了不列顛最優秀的人。<br><br>你被眼前的景象嚇壞了，以至於沒想到自己的處境。但亨吉斯特從主桌的位置上發現了你。「別讓那個小傢伙跑了！」他指著你的方向喊道。<br><br>一個聽話的撒克遜人，匕首滴著血，朝你走來。<br><br>哦不！你逃不出大廳——撒克遜人包圍了你。<br><br>你只有一個選擇。絕望中，你潛入最近的桌子底下。<br><br>然後你跳——任何地方！",
+            options: [
+                { text: "點擊這裡", next: 'page46' }
+            ]
+        },
+        'page46': {
+            image: 'horse',
+            text: "31<br><br>現在是公元 254 年。你在一個平緩起伏、樹木稀疏的鄉村。眼前沒有人——也沒有任何東西。<br><br>為了尋找生命的跡象，你決定爬上一棵樹。誰知道下一個山丘後面會是什麼呢？<br><br>當你盪上一根樹枝時，你聽到遠處傳來隆隆聲。你透過樹葉窺視。有一匹馬朝你的方向奔馳，有人緊緊抓住它的脖子。是一匹脫韁的馬！<br><br>你的肚子沿著粗糙的樹皮刮擦，你爬到最低的樹枝上。馬還在靠近。然後你意識到，如果馬不改變方向，它會直接從你的樹枝下經過！<br><br>「小心！」你大喊。但騎手聽不到你的聲音。你有個主意。為了盡可能讓自己安全，你把腳勾在躺著的樹枝分叉處。你打算在騎手從你下方經過時抓住他。<br><br>「抓住！」你又喊道。疾馳的騎手抬起頭，看到你的手，伸手抓住。馬從他身下奔馳而出。一瞬間，他懸在半空中。然後他的重量讓你失去平衡。你開始從樹枝上滑落，失去立足點——你們倆亂七八糟地摔在地上。<br><br>幸運的是，騎手沒有摔多遠，你落在他身上。<br><br>暫時暈眩，你滾開，躺在堅硬的地上。",
+            options: [
+                { text: "向北跳", next: 'page56' },
+                { text: "向南跳", next: 'page90' }
+            ]
+        },
+        'page48': {
+            image: 'villa',
+            text: "33<br><br>「你沒事吧？」男孩問，站起來拍掉身上的灰塵。你看他和你年齡相仿，面容和善，留著深色短捲髮。他穿著一件羅馬風格的長袍。<br><br>「當然。讓我喘口氣。」你深吸了幾口氣，戳了戳胳膊和腿，確保沒有骨折。然後你站起來。<br><br>「你的馬真不錯。」你說。「它經常耍這種把戲嗎？」<br><br>「哦，雅努斯很聰明。」男孩咯咯笑。「他像他名字的羅馬神一樣有兩副面孔。前一秒他溫順如羔羊，下一秒就凶猛如獅子。但我跟我父親打賭我會馴服他。」<br><br>「如果他沒先馴服你的話！」<br><br>「哦，很快我就會像他一樣狡猾了。」男孩大笑。「不管怎樣，謝謝你救我。我叫盧修斯·特雷波尼烏斯。」<br><br>特雷波尼烏斯？你想知道這個男孩會不會是德魯西拉的遠祖。<br><br>「我相信我父親會想親自感謝你今天下午的幫助。」盧修斯繼續說。「你住在附近嗎？」<br><br>「不，我只是路過。」你回答。<br><br>「那你為什麼不跟我回我家別墅呢？」<br><br>你接受了盧修斯的邀請，你們倆出發去找雅努斯。他正在附近的田野裡無辜地嚼著蘋果。<br><br>盧修斯牽著馬的韁繩帶他回家。把雅努斯送到馬廄後，你進入盧修斯別墅的庭院。那裡，在入口上方畫著一個咧嘴笑的薩堤爾，和你撒克遜人襲擊那天透過火看到的薩堤爾一樣。這次拜訪讓你感覺受歡迎多了。<br><br>「我們一小時後吃晚飯。」盧修斯告訴你。「你到時候可以見我父親。也許，長途跋涉之後，你想在浴室裡梳洗一下。我們剛建好。」他帶你從後門出去，走進一棟與主樓相連的瓦頂建築。「這是我們的新浴室。」盧修斯自豪地說，遞給你一條毛巾。「晚飯時會有人來叫你。」他說完就走了。",
+            options: [
+                { text: "去北方", next: 'page56' },
+                { text: "去五世紀", next: 'page67' }
+            ]
+        },
+        'page56': {
+            image: 'wall',
+            text: "41<br><br>一條巨大的石牆像絲帶一樣蜿蜒在丘陵和山谷之間，一直延伸到視線盡頭。你一定找到了哈德良長城。<br><br>你周圍的鄉村很平靜。山丘上覆蓋著紫色的小花，你聽到蜜蜂的嗡嗡聲和偶爾遠處鳥兒的啼叫。<br><br>你在羅馬浴場泡得濕透，也許你最好在繼續前進之前先擦乾。<br><br>你把羊毛斗篷鋪在溫暖的草地上，打開背包。很好，裡面的東西還是乾的。然後你也躺在陽光下。<br><br>「今天辛苦了，小伙子？」一個聲音從霧中傳來，你懶洋洋地睜開眼睛。<br><br>一個羅馬士兵站在你上方，他的盔甲在陽光下閃閃發光。你嚇了一跳，坐了起來。<br><br>「放輕鬆。」士兵說。他鋪開斗篷，坐在你旁邊。「如果我不值班，我也會睡在石楠叢裡。太陽總是讓我懶洋洋的。」<br><br>他拔掉皮革水壺的塞子，請你喝一口。<br><br>「你最近和野蠻人有過很多麻煩嗎？」你喝了一口水後問。<br><br>「很久沒聽到他們的動靜了。自從哈德良兩百多年前建造這堵牆以來，它就幫助我們遏制了皮克特人。」<br><br>「它有多長？」你問。<br><br>「八十羅馬英里長——從日耳曼海一直延伸到愛爾蘭海。而且它還有十英尺寬。皮克特人再也過不來了。」<br><br>他站起來，重新整理斗篷。「我得回崗位了。你現在可以繼續睡了。替我打個盹。」他咧嘴一笑，舉手行了個告別禮。<br><br>你揮手回應。士兵走後，你考慮下一步去哪裡。你最好在你知道有野蠻人襲擊的時代尋找 Artorius。",
+            options: [
+                { text: "向前跳到五世紀", next: 'page67' }
+            ]
+        },
+        'page67': {
+            image: 'cadbury',
+            text: "52<br><br>你裹緊羊毛斗篷抵禦刺骨的寒風和嚴寒，抬頭看著星星。在黑夜中，它們看起來確實很遙遠。遠處山頂上，一盞孤燈閃爍。除了那盞燈，你可能會是黑暗時代不列顛唯一的人。<br><br>嗒嗒嗒！你聽到馬蹄踏在堅硬地面上的聲音。畢竟你不是一個人。<br><br>「嘿！這邊！」你揮舞著手臂喊道。<br><br>黑暗如此深不可測，直到馬匹在你旁邊刨地，你才看到它們。<br><br>「你在卡德伯里城堡鬼鬼祟祟地幹什麼？」一個無形的聲音問道。<br><br>「我沒有鬼鬼祟祟。」你回答。「我來向凱烏斯·奧雷利安努斯報到。我想加入 Artorius 的軍隊。」<br><br>其中一個騎手下馬，抓住你的肩膀。<br><br>「我是凱烏斯·奧雷利安努斯。」那人回答。「你能為 Artorius 提供什麼服務？」<br><br>「我能駕馭任何馬——受過訓練的或未受訓練的。」你誇口道。<br><br>「是嗎？那我們就看看吧。」凱烏斯回答。「我們即將發起一場新戰役，我們的騎兵需要盡可能多的人手。」<br><br>他重新上馬。「跳到我後面來。」他命令道。<br><br>你騎在凱烏斯後面，一路上一座陡峭、樹木茂密的山丘。你之前看到的光實際上來自凱烏斯稱之為卡德伯里的城堡。<br><br>不過，當你第二天早上看到它時，你覺得它算不上什麼城堡。山頂堡壘由一個長長的木製大廳組成，周圍是木頭或石頭建成的小屋。大廳比你之前看到的撒克遜大廳要小。<br><br>但堡壘受到一系列圍繞山丘平行排列的城牆和土壩的保護。還有一個帶有瞭望塔的木製門樓。敵人永遠無法計劃偷襲。<br><br>在你花了幾天證明你確實懂得如何駕馭馬之後，凱烏斯把你分配到他自己的部隊。<br><br>「看來你關於自己馭馬天賦的說法並沒有誇大。」他對你微笑著說。「歡迎加入 Artorius 的軍隊。你會發現他是一個勇敢而公正的人。他是唯一一個足夠強大、能夠團結不列顛部落對抗入侵者的領袖。<br><br>「但既然你還在適應軍旅生活，我會在你的第一次戰役中給你一個選擇。你想跟我去西部與愛爾蘭入侵者作戰，還是留在卡德伯里與家鄉衛隊一起？Artorius 本人可能很快就會到這裡，如果他目前的偵察成功的話。」<br><br>你終於可能見到 Artorius 了！但他可能不會出現，你也不想讓凱烏斯覺得你在真正的戰役中靠不住。<br><br>你該說什麼？",
+            options: [
+                { text: "告訴凱烏斯你會跟他去西方", next: 'page84' },
+                { text: "告訴凱烏斯你會留在卡德伯里", next: 'page92' }
+            ]
+        },
+        'page84': {
+            image: 'irish',
+            text: "69<br><br>寒冷而堅硬，愛爾蘭海的波浪拍打著不列顛西部的海灘。你和凱烏斯以及他的其他部隊一起，在月光下的夜晚等待愛爾蘭人自己到來。<br><br>「愛爾蘭掠奪者依賴突襲，所以我們要突襲他們。」凱烏斯告訴他的部隊。「他們將乘坐輕便木船登陸，那是一種覆蓋著獸皮的小木船。你們中的一些人將偽裝成農民，把愛爾蘭人越引越深地引入樹林。另一支隊伍將埋伏起來。同時，我們其餘的人將燒毀他們的輕便木船，然後從後方逼近。」<br><br>你將成為誘餌之一。樹林裡會有一匹馬等著把你帶到後方防線。<br><br>愛爾蘭人越過波濤洶湧的海面而來。當他們靠近時，你可以看到他們是長髮在風中飄揚的兇猛男人。他們粗糙的長矛和棍棒看起來根本不是不列顛弓箭的對手。<br><br>哇呼！愛爾蘭首領發現了你們這群偽裝的士兵，大聲吹響了他的號角。「他們在那裡！」<br><br>你轉身和其他人一起逃跑。你跑個不停，越過石頭，穿過灌木叢，跨過溪流。你越來越疲憊——當你回頭看時，一個愛爾蘭人緊隨其後。<br><br>你的馬在那裡！你鼓起最後的力氣。但馬一定也嚇壞了。它驚恐地嘶鳴一聲，掙斷繩子，朝樹林裡跑去。<br><br>你太累了，再也跑不動了。你滾進一個溝壑——然後跳躍！",
+            options: [
+                { text: "向北跳", next: 'page86' },
+                { text: "向南跳", next: 'page90' }
+            ]
+        },
+        'page86': {
+            image: 'snow',
+            text: "71<br><br>雪花在你周圍盤旋。它刺痛你的臉，蒙蔽你的雙眼。你跳到了北方，去尋找與皮克特人作戰的不列顛軍隊。但你只找到了一場暴風雪。軍隊在哪裡？<br><br>你正跺著腳取暖，突然透過白茫茫的雪霧隱約看到兩個身影。<br><br>「這裡！」你揮舞著手臂喊道。<br><br>那兩個人走近了。現在你可以看出他們只穿著毛皮，胳膊和腿裸露在外。你把手放在眼睛上方看得更清楚——他們身上有紋身！你遇到了皮克特人！<br><br>他們開始在雪堆中跳躍，你也同時開始跳躍。但你有個更好的主意。如果你讓自己像風景一樣白，他們就永遠找不到你。<br><br>你潛入一個雪堆。你用手在頭周圍清出一個小空間，並將一隻手臂伸進雪中，直到有一個呼吸孔。<br><br>現在你被偽裝起來了——而且幾乎很舒適。你被雪包裹著比在外面更暖和。慢慢地，你睡著了。<br><br>當你醒來時，你似乎已經在你的臨時冰屋裡待了好幾個小時。你最好找到不列顛人，否則你會凍死。<br><br>你從避難所裡跳出來。雪已經停了，但已經是黃昏了。你打著冷顫，想知道該去哪裡。<br><br>然後你看到了它們——在漸暗的夜色中，小小的光點。它們看起來太小了，不可能是營火。而且，它們似乎是成對出現的。<br><br>一聲令人毛骨悚然的嚎叫劃破夜空。一百個聲音回應著它。<br><br>你被狼群包圍了！<br><br>火一定能使野生動物害怕。你帶火柴了嗎？",
+            options: [
+                { text: "如果你帶了火柴", next: 'page87', requireItem: 'matches', failNext: 'page94' },
+                { text: "如果你沒帶火柴", next: 'page94', requireItem: null }
+            ]
+        },
+        'page87': {
+            image: 'fire',
+            text: "72<br><br>尋找你的火柴。是的，它們還在那裡——而且還是乾的。<br><br>現在找些火絨。你伸手到一堆樹枝下，拖出那些被風暴保護的樹枝。然後你點燃乾樹枝。<br><br>紅色的眼睛現在更亮了。狼群爬得更近了，準備進行殺戮。<br><br>最好快點。你可以看到狼群在白雪襯托下的黑色身影。至少必須有十隻。<br><br>你的手顫抖著，用小火柴點燃一根更大的樹枝。你把火把舉在面前，慢慢地轉圈。<br><br>從眼角餘光中，你看到一隻狼準備跳躍——它跳了起來！你把火把刺向它的臉。它嚎叫著跑開了。另一隻試圖這樣做——你設法燒焦了它的皮毛。<br><br>幾秒鐘後，眼睛消失了。呼！狼群一定決定去尋找更容易的獵物了。<br><br>你已經受夠了冰凍的北方。你要去不列顛南部尋找 Artorius。",
+            options: [
+                { text: "點擊這裡", next: 'page97' }
+            ]
+        },
+        'page94': {
+            image: 'wolves',
+            text: "79<br><br>該死！你忘了帶火柴。你現在沒有任何東西可以抵禦狼群了。<br><br>它們的紅眼睛越來越亮。狼群繼續偷偷地向你逼近。<br><br>你現在能看到它們了，在白雪的襯托下呈現出黑色的輪廓。它們流著口水的下顎張開著，準備進行殺戮。至少必須有十隻……<br><br>其中一隻正準備跳躍！<br><br>快跳——任何地方！",
+            options: [
+                { text: "點擊這裡", next: 'page97' }
+            ]
+        },
+        'page97': {
+            image: 'wolves',
+            text: "82<br><br>它們看起來太小了，不可能是營火。而且，它們似乎是成對出現的。<br><br>一聲令人毛骨悚然的嚎叫劃破夜空。一百個聲音回應著它。<br><br>你被狼群包圍了！<br><br>火一定能使野生動物害怕。你帶火柴了嗎？",
+            options: [
+                { text: "如果你帶了火柴", next: 'page87' },
+                { text: "如果你沒帶火柴", next: 'page94' }
+            ]
+        },
+        'page90': {
+            image: 'marsh',
+            text: "75<br><br>你身處一片非常泥濘的沼澤地。每走一步，你的腳就陷得更深。離你不遠處，一座風景如畫的茅草屋從煙囪裡冒出一縷煙。它一定在更堅實的地面上。你決定最好朝它的方向走。<br><br>突然你聽到馬蹄聲。一群兇猛的戰士，頭盔上有尖角，騎馬來到小屋門口。<br><br>你蹲在沼澤裡，一動也不敢動，以防他們看到你。這些野蠻人是誰？他們看起來不像你在 Artorius 時代看到的任何入侵者。<br><br>入侵者衝進屋裡，把一個可憐的農婦拖了出來。在她有機會逃跑之前，他們掐住了她的喉嚨。你聽不到他們在說什麼，但他們似乎在試圖從她那裡逼問出什麼信息。最後他們把她推到一邊，她倒在地上，不省人事。<br><br>入侵者放火燒了小屋，跳上馬，騎走了。<br><br>當你在想現在是否安全時，你聽到身後有動靜。<br><br>「嘶！」<br><br>你轉過身，看到一個奇怪的生物從沼澤的水中升起。它看起來像某種奇妙的海洋怪物，滴著水草和泥漿。<br><br>「維京人走了嗎？」怪物低聲問。為什麼這只是一個普通的、濕透了的男人！",
+            options: [
+                { text: "繼續", next: 'page96' }
+            ]
+        },
+        'page96': {
+            image: 'alfred',
+            text: "81<br><br>所以那些兇猛的人是維京人，你想，意識到現在一定是公元 850 年左右。他們在找這個男人。<br><br>「走了。」你回答。「你躲在哪裡？我沒看到你。」<br><br>「我在水下，用這根蘆葦呼吸。」那人咧嘴一笑，拿出一根細細的管子。「小時候的老把戲。」<br><br>他笨拙地涉水穿過沼澤走向你。「但玩遊戲的時間已經過去了。現在我需要一個更永久的偽裝。我將躲在鄉下，直到我能集結我的軍隊。自從維京人乘坐他們的龍首船登陸英格蘭以來，他們所到之處都造成了死亡和破壞。我會阻止他們——但我需要時間。」<br><br>你更仔細地看著這個逃亡者。在污垢之下，這個令人愉快的金髮男人的衣服色彩鮮豔，鑲著金邊。他一定是個貴族。他很難在農民中隱藏。<br><br>然後你有個主意。你的任務幾乎結束了——這個被圍困的年輕人比你更需要你的斗篷。<br><br>「給你，拿著。」你說，解開喉嚨處的胸針，脫下你的斗篷。「這將是完美的偽裝。」<br><br>「但我不能讓你凍僵在即將到來的冬天裡。」那人抗議道。<br><br>「我家裡還有一件。」你撒謊說。<br><br>「既然這樣，我感激不盡地接受你的禮物。」那人莊嚴地說，接過斗篷。「你剛剛從無情的維京人的魔爪中拯救了阿爾弗雷德國王，也許還有整個英格蘭。正是因為有像你這樣忠誠的平民，我才能躲過敵對的維京人，並努力拯救整個英格蘭免遭這些野蠻人征服。你擁有君主最衷心的感謝。」<br><br>阿爾弗雷德國王把斗篷披在肩上，向你微微鞠躬，然後朝燃燒的小屋方向走去。<br><br>阿爾弗雷德大帝！你做夢也沒想到你會遇到一個躲在沼澤裡的國王！你希望他能從維京人手中拯救英格蘭。",
+            options: [
+                { text: "跳到未來", next: 'page98' },
+                { text: "跳回尋找 Artorius", next: 'page99' }
+            ]
+        },
+        'page92': {
+            image: 'cadbury',
+            text: "77<br><br>「我想我會在這裡等 Artorius。」你告訴凱烏斯。<br><br>他簡短地點了點頭，然後去集合他的部隊。你希望自己做出了正確的決定。<br><br>部隊離開後，你不知道該做什麼。你先給剩下的馬刷毛。然後你把馬廄從上到下打掃乾淨。與愛爾蘭人作戰可能不會更有趣——但肯定不會這麼髒！<br><br>最後你爬上木製瞭望塔，悶悶不樂地等待 Artorius 的到來。你等啊等……<br><br>「有信使！」看守你的衛兵驚呼。果然，你可以看到平原下方有一個螞蟻般的身影在移動。<br><br>幾個小時後他到了。「皮克特人又越過了哈德良長城！」他騎馬進門時宣布。「撒克遜人在南方起義了！」<br><br>假期結束了。是時候繼續前進了。<br><br>你爬下塔梯，在馬廄裡找到一個廢棄的隔間。你想去哪裡？",
+            options: [
+                { text: "加入凱烏斯在西方的部隊", next: 'page84' },
+                { text: "加入北方哈德良長城的部隊", next: 'page86' },
+                { text: "加入南方的部隊", next: 'page90' }
+            ]
+        },
+        'page98': {
+            image: 'lecture',
+            text: "83<br><br>「在整個亞瑟王探索中，沒有什麼比十二世紀在格拉斯頓伯里的挖掘更神秘的了。」一位女士正在說。<br><br>你身處一個大演講廳的後排，講師正在認真地對一屋子學生講話。<br><br>「起初學者們傾向於將所謂發現亞瑟遺骨視為贗品而不予理會。」這位女士繼續說。「畢竟，格拉斯頓伯里修道院剛剛被燒毀，修士們需要錢來重建它。但二十世紀的挖掘已經證明，修士們所說的地方確實有一座墳墓，而且即使在十二世紀，它也非常古老。不幸的是，遺骨後來失蹤了。」<br><br>一個學生舉手。「那鐵十字架呢？」他問。<br><br>「另一個謎。」女士回答。「但在十字架也丟失之前，有人複製了它。學者們能夠證明十字架上的拉丁字母是六世紀或七世紀的風格，而不是十一世紀的。<br><br>「但即使墳墓不是完全的贗品，我們仍然無法證明這些是亞瑟王的遺骨。」<br><br>所以沒有人知道你在格拉斯頓伯里看到被挖出的墳墓裡埋的是誰，你離開演講廳時想。也許你應該跳回格拉斯頓伯里，就在 Artorius 受傷之後，親自去看看。",
+            options: [
+                { text: "點擊這裡", next: 'page100' }
+            ]
+        },
+        'page100': {
+            image: 'viking',
+            text: "85<br><br>你身處一片非常泥濘的沼澤地。每走一步，你的腳就陷得更深。離你不遠處，一座風景如畫的茅草屋從煙囪裡冒出一縷煙。它一定在更堅實的地面上。你決定最好朝它的方向走。<br><br>突然你聽到馬蹄聲。一群兇猛的戰士，頭盔上有尖角，騎馬來到小屋門口。<br><br>你蹲在沼澤裡，一動也不敢動，以防他們看到你。這些野蠻人是誰？他們看起來不像你在 Artorius 時代看到的任何入侵者。<br><br>入侵者衝進屋裡，把一個可憐的農婦拖了出來。在她有機會逃跑之前，他們掐住了她的喉嚨。你聽不到他們在說什麼，但他們似乎在試圖從她那裡逼問出什麼信息。最後他們把她推到一邊，她倒在地上，不省人事。<br><br>入侵者放火燒了小屋，跳上馬，騎走了。<br><br>當你在想現在是否安全時，你聽到身後有動靜。<br><br>「嘶！」<br><br>你轉過身，看到一個奇怪的生物從沼澤的水中升起。它看起來像某種奇妙的海洋怪物，滴著水草和泥漿。<br><br>「維京人走了嗎？」怪物低聲問。為什麼這只是一個普通的、濕透了的男人！",
+            options: [
+                { text: "跳入未來", next: 'page111' },
+                { text: "跳回尋找 Artorius", next: 'page99' }
+            ]
+        },
+        'page111': {
+            image: 'crown',
+            text: "96<br><br>噹！噹！倫敦大教堂的鐘聲響起。現在是 1066 年的聖誕節。你伸長脖子，越過排隊站在通往大教堂道路兩旁的人群的頭頂看去。<br><br>「他來了！」你旁邊的女人喊道。「征服者威廉來奪取英格蘭的王位了！」<br><br>「他應該留在諾曼底的家裡，那裡才是他該待的地方。」另一個男人抱怨道。「我們不想要英格蘭有法國宮廷。」<br><br>「我們已經受夠了外國入侵。」另一個人同意道。<br><br>隊伍從你面前經過。一個驕傲的男人，穿著盔甲和長長的貂皮斗篷，莊嚴地走在一排牧師後面。這一定是英格蘭最新的征服者，即將加冕為國王威廉一世。<br><br>Artorius 死後，英格蘭被一波又一波的入侵浪潮席捲——撒克遜人、維京人、諾曼人。難怪亞瑟王傳奇一直流傳著一個能夠在短時間內擊退外國人的故事。<br><br>你準備跳回 Artorius 統治的最後一年。",
+            options: [
+                { text: "點擊這裡", next: 'page112' }
+            ]
+        },
+        'page112': {
+            image: 'roman_road',
+            text: "97<br><br>沉重的馬蹄聲提醒你有人從後面靠近。你迅速環顧四周，意識到你正走在從卡萊瓦到倫迪尼姆的古老羅馬道路上。<br><br>「你好，年輕的陌生人！」一個健壯的農夫趕著牛車停在你旁邊。「你想搭車嗎？」<br><br>「謝謝。」你說，跳上他旁邊搖搖晃晃的木製座位。「你要去倫迪尼姆嗎？」<br><br>「去倫迪尼姆，然後回來。」他愉快地回答。「這些古老的羅馬道路真是奇蹟。自從 Artorius 被宣布為所有不列顛人的至高王以來的二十年裡，他一直試圖修補撒克遜入侵者留下的廢墟。你知道，為了保持部落之間的通信和貿易暢通。」<br><br>「所以最近和撒克遜人沒有麻煩了？」<br><br>「他們一直像風暴後的海面一樣平靜。他們知道，只要我們的好 Artorius 是國王，他就能團結所有部落支持他。所以他們打理自己的花園，讓我們打理我們的。」他咧嘴一笑。「今年不列顛種植了很多獲獎蔬菜。」<br><br>你注意到前方有一座古老的羅馬休息屋。<br><br>「我在這裡下車。」你告訴農夫。「謝謝你載我一程！」<br><br>「隨時。」他回答。你跳下車。<br><br>所以 Artorius 確實為不列顛帶來了和平。但為什麼他死後會被記住？當 Artorius 不再維持和平時，不列顛會發生什麼？<br><br>你已經知道，Artorius 死後，撒克遜人將最終戰勝不列顛人。但在那之後的幾個世紀裡發生了什麼？不列顛最終和平了嗎？",
+            options: [
+                { text: "跳到亞瑟王統治的最後一年", next: 'page114' },
+                { text: "向前跳 450 年", next: 'page111' }
+            ]
+        },
+        'page114': {
+            image: 'battle_camp',
+            text: "99<br><br>不列顛南部的軍營裡充滿了活動。站在喧囂中間，你試圖不妨礙士兵們。皮革帳篷和粗糙的小屋突然在開闊的平原上湧現。在遠處，你看到一座陡峭的山丘，上面似乎有一座搖搖欲墜的堡壘。<br><br>兩個男人站在軍營中央，手裡拿著頭盔。其中一個人大幅度揮舞手臂，指向山丘。當他轉向你這個方向時，你可以看出那是凱烏斯。<br><br>「我們可以堅守巴頓山，在那裡等待塞爾迪克的軍隊。」凱烏斯說。「這樣我們就能控制周圍地區的最高點。」<br><br>「但那樣塞爾迪克的步兵在戰鬥中就會佔優勢。」另一個人指出。「我們的騎兵在山坡上將毫無用處。」<br><br>「那我們什麼都不做，Artorius？」<br><br>「我們將在開闊的平原上等待撒克遜人。」凱烏斯的同伴堅定地回答。「我們將等待那群烏合之眾進攻——然後把他們掃倒。」<br><br>這一定就是 Artorius 本人了！他看起來和你見過的任何其他不列顛軍官沒什麼兩樣——黑髮，留著鬍子，雖然比大多數人高一點。他說話帶著權威，彷彿習慣於發號施令。<br><br>但這會是傳說中的亞瑟嗎？<br><br>「凱烏斯！」你驚呼，引起他的注意。<br><br>「你來了。」凱烏斯說。「去看看馬。我們預計塞爾迪克和他的撒克遜人隨時會進攻。」他<br><br>繼續與 Artorius 討論，Artorius 只是路過看了你一眼。<br><br>你很失望。顯然凱烏斯現在太忙了，沒時間把你介紹給 Artorius。你一定是在一場真正的危機中到達的。<br><br>當你去找馬時，你想知道你終於找到了正確的亞瑟嗎。到現在為止，你已經不再尋找中世紀的城堡和身穿閃亮盔甲的騎士了。但這個亞瑟做了什麼讓他被人記住？<br><br>即將到來的戰鬥可能是關鍵。",
+            options: [
+                { text: "點擊這裡", next: 'page104' }
+            ]
+        },
+        'page104': {
+            image: 'battle',
+            text: "89<br><br>軍隊挖掘壕溝，等待塞爾迪克的撒克遜軍隊進攻。在漫長的夜晚，霧氣爬下山丘，覆蓋了平原和山谷。它像毯子一樣覆蓋在 Artorius 的營地上。你再也看不到你崗位上的巴頓山。你幾乎看不到眼前的手。<br><br>不遠處，營火的柔和橙色光芒讓你確信 Artorius 在漫長的夜晚也醒著。他的影子在火光前來回踱步，不耐煩地等待撒克遜人的到來。<br><br>「嘶！」一個人突然從黑霧中出現，你的心猛地一跳。「Artorius 需要他的馬！快！」<br><br>你迅速給 Artorius 的大白馬備好鞍，把它牽出圍欄。當你把它牽上來時，Artorius 正在和凱烏斯商議。<br><br>「偵察兵剛剛發現塞爾迪克的烏合之眾離這裡大約五英里。」Artorius 說。「他們正盡可能輕手輕腳地前進。毫無疑問，他們想在霧中突襲我們。但我們會準備好的。」你可以聽出他聲音中的鋼鐵意志。<br><br>「我去通知部隊。」凱烏斯宣布。<br><br>「我將親自鼓勵部落首領。」Artorius 回答。「帶著我的馬跟著我。」他對你說。「我想在撒克遜人進攻的那一刻就準備好。」<br><br>你抓住不安分馬的韁繩，跟著 Artorius 從一個首領走到另一個首領。從中部地區乾淨俐落的騎手到威爾士留鬍子的步兵，所有人都尊敬地聽著 Artorius 講話。現在你第一次看到所有不列顛部落聚集在一起，你可以看出他們是多麼的不同。<br><br>但 Artorius 對每個人都有同樣鼓舞人心的話：「戰鬥吧，讓我們永遠擺脫撒克遜人的威脅。戰鬥吧，不是為了卡圖維勞尼人或特里諾文特人或伊塞尼人，而是為了不列顛——為了整個不列顛——我們就會贏！」<br><br>「為了不列顛。」首領們回應道。<br><br>Artorius 甚至抽出時間和你說話。「這是你第一次上戰場嗎？」他問。<br><br>「是的。」你承認。<br><br>「你舉止像個堅定的士兵。」他說。「我要讓你做我的掌旗手。你要做的就是待在我附近——遠離撒克遜人。你覺得你能做到嗎？」<br><br>「是的，長官。」你興奮地回答。現在你將親眼目睹這位 Artorius 是如何戰鬥的。<br><br>早在撒克遜人真正出現之前，不列顛騎兵就已經列好陣型。你在前線 Artorius 旁邊等待，和其餘人一起透過霧氣凝視。<br><br>就在黎明破曉時，你辨認出前進的撒克遜人的第一批模糊身影。「衝鋒！」亞瑟怒吼道。馬匹衝進霧中。<br><br>你跑著跟上。起初你在灰塵和混亂中什麼也看不清。然後你看到亞瑟騎著他的白馬，帶領不列顛人衝進敵人的行列。他的劍在他周圍揮舞，在步兵的海洋中開闢出一條道路。你跟隨在他的身後。<br><br>啊啊啊啊！伴隨著一聲巨大的咆哮，一個撒克遜農奴揮舞著闊斧向你劈來。你用你的旗杆橫掃他，把他打飛。<br><br>然後你注意到一件可怕的事。地上的撒克遜人沒有試圖把不列顛騎手從馬上打下來，而是在傷害馬匹！他們正在割斷馬腿後部的肌腱——挑斷馬筋——讓它們瘸腿！<br><br>你衝向第一個這樣做的撒克遜人，用你的旗杆打掉了他手中的劍。<br><br>然後你看到一個撒克遜人偷偷摸摸地接近 Artorius 的馬後面！",
+            options: [
+                { text: "繼續", next: 'page116' }
+            ]
+        },
+        'page116': {
+            image: 'camlann',
+            text: "101<br><br>「小心！」你大喊，試圖進入位置揮擊那個撒克遜人的劍。<br><br>Artorius 聽到了你的話，調轉馬頭，將劍刺穿了那個撒克遜人的心臟。<br><br>「謝謝你，我的小朋友。」他在喧囂中對你喊道。<br><br>最終，撒克遜人根本不是騎馬的不列顛人的對手。失去了突襲的優勢，他們被 Artorius 訓練有素的部隊紀律嚴明的騎兵衝鋒擊潰。Artorius 贏得了這一天——塞爾迪克的人民再次退回到他們在不列顛南部建立的小家園。<br><br>你已經看到 Artorius 團結所有不列顛部落贏得了巴頓山戰役。你也看到他在不列顛的主要敵人。<br><br>但你不禁想知道和平能否持久。你可以通過跳躍到二十年後找到答案。",
+            options: [
+                { text: "點擊這裡", next: 'page120' }
+            ]
+        },
+        'page120': {
+            image: 'avalon',
+            text: "105<br><br>你回到了格拉斯頓伯里——但它看起來多麼不同！現在托爾山和周圍的山丘被水環繞，像一條寬闊的護城河。在水邊，凱烏斯跪著，望向托爾山。<br><br>你走到他旁邊。「Artorius 在哪裡？」你問。<br><br>「在那裡。」他說。他站起來，指向閃閃發光的遠方。<br><br>你的目光追隨他的手指。你看到一個黑色的形狀，像一艘船，在水面上移動。霧太濃了，你看不清誰在船上，誰在划船。<br><br>「Artorius 要求不要任何人跟隨。」凱烏斯說。「不過，那個試圖救他命的人應該看到他離開，這是合適的！」<br><br>「但是——但是我還留著他的斗篷。」你說。<br><br>「他想讓你留著它。希望你的未來，以及不列顛的未來，能夠免受戰爭的威脅——他不是這麼說的嗎？」凱烏斯對你微笑。然後，最後一次久久地望向他離去的領袖，他轉過身，慢慢走開了。<br><br>當你凝視著遠去的船時，你什麼也沒說。<br><br>Artorius 可能或可能沒有埋在格拉斯頓伯里修道院。但你現在知道，這位來自半個被遺忘時代的無名領袖的記憶，在亞瑟王傳奇中流傳了幾個世紀。如果曾經有一位明智而公正的統治者給一片戰火紛飛的土地帶來了和平，那麼它可以在任何土地、任何時間再次發生。<br><br>你想起馬洛里手稿的最後一句話：",
+            options: [
+                { text: "任務完成", action: () => { unlockAchievement('victory'); changePage('end'); } }
+            ]
+        },
+        'page83': {
+            image: 'pig',
+            text: "68<br><br>「你需要什麼東西來引誘這匹馬。如果你帶了糖，也許你能靠近馬並抓住它。」",
+            options: [
+                { text: "你帶了糖", next: 'page61', requireItem: 'sugar' },
+                { text: "你沒帶糖", next: 'page69' }
+            ]
+        },
+        'page61': {
+            image: 'sugar',
+            text: "46<br><br>你伸手到背包裡拿出帶來的方糖。你打賭這匹馬從來沒吃過精製糖——你讓它從你手裡吃東西應該沒問題。<br><br>你衝進田野追趕脫韁的馬。「回來！」希爾達喊道。你沒理她。<br><br>在離馬大約十英尺的地方停下來，你拿著糖朝它伸去。它緊張地嘶鳴著，側身跳開。西格伯特臉上露出難以置信的表情，只是看著你。<br><br>「好馬，」你輕聲說，「好馬。」你慢慢地向前走，手伸在外面。<br><br>馬似乎在聞空氣。<br><br>然後它伸出長脖子，你感覺到它柔軟的鼻子在你的手上。當它吃的時候，你抓住了搭在它背上的韁繩。<br><br>「所以我們中間有個馴馬師！」西格伯特吼道。他走過來，把一隻大手放在你的肩膀上。「讓你當豬倌太浪費了。我要讓你做我的新私人隨從。這樣你就可以照顧我和我的馬了。」<br><br>嗯，總比和豬睡在一起好。<br><br>唯一的問題是希爾達似乎比西格伯特給你找了更多活幹。儘管如此，你想留在這個時代，直到你弄清楚撒克遜人是否知道任何關於 Artorius 的事。<br><br>不幸的是，儘管他讓你幹活很辛苦，西格伯特對每個問題都只是咕噥一聲。最後，在你跟他至少一個星期後，他宣布了一件事。<br><br>「我們最尊貴的贈環者，雷德瓦爾德國王去世了。我們的人民將用歌聲和禮物來哀悼他的逝去。準備旅行。」<br><br>「他是你們撒克遜部落的國王嗎？」你問。<br><br>「我們現在是盎格魯-撒克遜人。」西格伯特糾正你。「我們的一些人與北方的盎格魯人通婚了。作為一個不列顛人，你應該知道盎格魯-撒克遜人一起在兩個多世紀前佔領了盎格魯人的土地。」<br><br>現在你知道亞瑟——或 Artorius——無法永遠把入侵者拒之門外。你一定是在七世紀。<br><br>第二天一早，你和家裡其他人一起出發前往海邊，葬禮將在那裡舉行。馬匹上裝滿了貴重物品，都是給死去的國王的。<br><br>「給贈禮者的禮物。」西格伯特莊嚴地說。他戴著儀式頭盔，上面有一隻蹲伏的野豬雕像。在馬背上，他巨大的身軀看起來確實令人印象深刻。<br><br>你走在他旁邊，帶著委託給你的禮物——一個裝飾著複雜螺旋圖案的小銀盤。你意識到，儘管他們的村莊很原始，但盎格魯-撒克遜人尊重美麗的物品。<br><br>當你們到達墓地時，你看到一艘大船被從海裡拖出來，拖到俯瞰河流的山丘上。現在它平衡在圓木上，圓木架在山丘中央挖出的坑上。<br><br>「那艘船就是墓室。」西格伯特解釋道。「我們會在船被放入地下之前把我們的禮物放在裡面。」<br><br>「和屍體一起？」你問。<br><br>「國王的遺體將舉行基督教葬禮，因為他最近受洗加入了信仰。但他的王后希望古老的異教傳統也能得到維護。」<br><br>數百名國王的隨從聚集在一起，獻上最後的敬意。隊伍的最前面是王后，後面跟著穿著禮服頭盔和胸甲的驕傲戰士。每個人都帶來了一些祭品。<br><br>當王后把第一件禮物放在船上時，人群安靜下來。你聽到豎琴第一聲撥弦，詩人憂鬱的歌聲打破了寂靜：",
+            options: [
+                { text: "繼續", next: 'page50' }
+            ]
+        },
+        'page69': {
+            image: 'pig',
+            text: "54<br><br>希爾達不耐煩地喊道。<br><br>你身上沒有方糖，所以無論如何你也幫不上什麼忙來抓馬。你打開豬圈的門，小心翼翼地走進去。希爾達搖搖擺擺地走去幫她丈夫。<br><br>立刻所有的豬都圍了過來，互相推擠，用鼻子撞你。氣味令人窒息。<br><br>你退到柵欄邊以避開它們。它們對你的好奇遠大於你對它們的好奇。<br><br>不過，你最好熟悉一下你的新家。看來你會和豬待在一起，直到你找到一種不讓希爾達或西格伯特注意到的方法跳躍時間。你決定參觀一下這個地方。<br><br>你踮著腳尖穿過泥濘和稻草，繞過豬圈的邊緣，來到母豬羅西側躺的地方。粉紅色的小豬在她身邊蠕動，每一隻都決心佔據最好的餵食位置。<br><br>為什麼，這些還有點可愛，你想。你撿起一隻無毛的小傢伙，把它舉到臉前。它驚訝地對你眨眼。<br><br>「你覺得叫威爾伯怎麼樣？」你大聲問。<br><br>小豬尖叫起來，你希望那是高興的叫聲。<br><br>「你這個沒用的、懶惰的奴隸！」希爾達在你身後咆哮。<br><br>你嚇了一跳，轉過身——正好看到最後一隻豬的捲尾巴從豬圈裡抽出來。你忘了關門，所有的豬都跑了！",
+            options: [
+                { text: "繼續", next: 'page70' }
+            ]
+        },
+        'page70': {
+            image: 'pig',
+            text: "55<br><br>希爾達在泥地院子裡跳來跳去，用長棍打豬。<br><br>「出來幫我，你這個小混蛋！」<br><br>你把小豬還給它的母親，幫希爾達把所有的豬趕回豬圈。除了，有一隻。一隻胖母豬逃進了森林，再也沒回來。<br><br>「我會教你怎麼對待寶貴的財產這麼粗心。」希爾達陰沉地說。她抓住你的一隻耳朵，把你押過村莊，來到鐵匠鋪。<br><br>「給這個奴隸打上烙印。」她命令那個髒兮兮的鐵匠。<br><br>當希爾達把你銬在鐵匠鋪中央的木樁上時，鐵匠加熱了一根燒紅的烙鐵，準備烙進你的皮膚。<br><br>「試試左臉頰。」希爾達說，然後離開了。<br><br>你不想要一個在撒克遜人中間生活的終身紀念。鐵匠一轉身——你就跳！",
+            options: [
+                { text: "點擊這裡", next: 'page71' }
+            ]
+        },
+        'page71': {
+            image: 'fort',
+            text: "56<br><br>你站在一座小山上一個粗糙的石頭堡壘外面。崎嶇的地形充滿了岩石，當你靠近入口時，你在岩石間穿行。<br><br>你走進低矮的門口，沿著一條潮濕的石頭走廊走下去。在盡頭的一個小房間裡，一個灰白頭髮的女人坐在凳子上紡紗。<br><br>「我能為你做什麼？」她親切地問。<br><br>「我的家人曾經在索爾茲伯里的特雷波尼烏斯家族工作。」你隨機應變。「我希望找出他們後來怎麼樣了。」<br><br>「我是德魯西拉·特雷波尼烏斯。」她說，你意識到自從你在巨石陣離開她以來，一定已經過去了將近四十年。這就是為什麼她不記得你的臉。德魯西拉的手指繼續在紡錘上扭動線，節奏從不變化。<br><br>「雖然我擔心你會發現我們和以前大不相同了。我的父親和丈夫都在大屠殺中被亨吉斯特殺害，我的兒子在戰爭中喪生；我們的別墅被撒克遜人夷為平地，現在已成廢墟。」<br><br>「你兄弟呢？」你問，想起在巨石陣那個焦慮的夜晚。<br><br>「他沒能在第一次撒克遜人襲擊中倖存下來。」她回答。「我是我家最後一個人了——我和我的孫子。我丈夫的威爾士親戚安布羅修斯·奧雷利安努斯供養我們。在迪納斯埃姆里斯這裡，我們很安全。」<br><br>德魯西拉的不幸和不列顛四十年的戰爭讓你非常不安。<br><br>「這片土地會有和平嗎？」你問。",
+            options: [
+                { text: "尋找成為國王前的亞瑟", next: 'page99' },
+                { text: "尋找成為國王的亞瑟", next: 'page77' },
+                { text: "尋找加入 Artorius 後的凱烏斯", next: 'page76' }
+            ]
+        },
+        'page76': {
+            image: 'medieval_arthur',
+            text: "60<br><br>這不是你要找的亞瑟。也許你應該嘗試在圓桌騎士中找到他。或者也許年長的凱烏斯可以帶你去找他。",
+            options: [
+                { text: "在騎士中找到亞瑟", next: 'page77' },
+                { text: "找到年長的凱烏斯", next: 'page79' }
+            ]
+        },
+        'page77': {
+            image: 'round_table',
+            text: "61<br><br>亞瑟王從一張巨大的圓桌中央的王座上盯著你。他的臉被畫過，桌子掛在中世紀大廳的牆上。<br><br>你退後一步想看得更清楚。然後你聽到有人朝你走來。<br><br>「……溫徹斯特城堡收藏中最偉大的珍寶。」一個聲音說。一個穿制服的導遊走進大廳。後面跟著一群散漫的遊客。他們都穿著短褲和運動鞋——你一定回到了二十世紀。<br><br>「這張桌子是由——」導遊繼續說。當他看到你時，他停了下來。<br><br>「所以受託人決定這張桌子值得有一個特別的講解員，是嗎？」他厲聲對你說。「他們甚至給你找了套服裝——雖然我得說，你看起來更像農民而不是貴族。那麼，你想告訴我們關於亞瑟王和他的圓桌的什麼呢？」這個男人的鬍子因憤怒而顫抖。<br><br>導遊似乎認為你打算接管他的工作。他太好鬥了，你決定接受他的問題作為挑戰。<br><br>「亞瑟在五世紀是所有不列顛人的國王。」你開始說。「他建造了這張圓桌——我是說他讓人建造了這張圓桌——」<br><br>「打住。」導遊打斷道。「你該回學校重新學習了。顯然沒有人認為有必要告訴你基本常識。」<br><br>導遊轉向他的遊客。「首先，這張桌子是十三世紀建造的，模仿了傳說中亞瑟王的圓桌。中世紀的騎士和他們的女士們對古老的故事著迷，他們用這張桌子舉行模擬的亞瑟王宴會。注意桌子周圍的每個座位都留給了不同的騎士。」<br><br>一個戴角質眼鏡的女人舉手。「真正的亞瑟王有這樣的桌子嗎？」<br><br>導遊居高臨下地笑了。「沒有權威人士證實過有亞瑟王這個人。整個亞瑟王傳奇都是威爾士吟遊詩人和中世紀遊吟詩人編造出來的。任何現實生活中的原型可能只是黑暗時代在樹林裡鬼鬼祟祟的半裸野蠻人！」<br><br>導遊又瞪了你一眼。然後他帶著他的團隊去了下一個房間。<br><br>當他們走後，你抬頭看桌子，試圖辨認邊緣寫的名字。「蘭斯洛特·杜·萊克。」你讀道。「高文、莫德雷德、加拉哈德……還有亞瑟王。」<br><br>亞瑟幾個世紀以來確實對人們的想像力產生了影響。但許多人仍然很難相信他真的存在。你知道導遊關於最初的亞瑟是個野蠻人的說法是錯的——但他到底是什麼？<br><br>你現在明白，你唯一的希望是尋找 Artorius，而不是亞瑟。你必須跳回五世紀找到凱烏斯——他可能能帶你去找他！",
+            options: [
+                { text: "點擊這裡", next: 'page99' }
+            ]
+        },
+        'page79': {
+            image: 'history',
+            text: "62<br><br>「在整個亞瑟王探索中，沒有什麼比十二世紀在格拉斯頓伯里的挖掘更神秘的了。」一位女士正在說。<br><br>你身處一個大演講廳的後排，講師正在認真地對一屋子學生講話。<br><br>「起初學者們傾向於將所謂發現亞瑟遺骨視為贗品而不予理會。」這位女士繼續說。「畢竟，格拉斯頓伯里修道院剛剛被燒毀，修士們需要錢來重建它。但二十世紀的挖掘已經證明，修士們所說的地方確實有一座墳墓，而且即使在十二世紀，它也非常古老。不幸的是，遺骨後來失蹤了。」<br><br>一個學生舉手。「那鐵十字架呢？」他問。<br><br>「另一個謎。」女士回答。「但在十字架也丟失之前，有人複製了它。學者們能夠證明十字架上的拉丁字母是六世紀或七世紀的風格，而不是十一世紀的。<br><br>「但即使墳墓不是完全的贗品，我們仍然無法證明這些是亞瑟王的遺骨。」<br><br>所以沒有人知道你在格拉斯頓伯里看到被挖出的墳墓裡埋的是誰，你離開演講廳時想。也許你應該跳回格拉斯頓伯里，就在 Artorius 受傷之後，親自去看看。",
+            options: [
+                { text: "點擊這裡", next: 'page100' }
+            ]
+        },
+        'page99': {
+            image: 'army_camp',
+            text: "100<br><br>不列顛南部的軍營裡充滿了活動。站在喧囂中間，你試圖不妨礙士兵們。皮革帳篷和粗糙的小屋突然在開闊的平原上湧現。在遠處，你看到一座陡峭的山丘，上面似乎有一座搖搖欲墜的堡壘。<br><br>兩個男人站在軍營中央，手裡拿著頭盔。其中一個人大幅度揮舞手臂，指向山丘。當他轉向你這個方向時，你可以看出那是凱烏斯。<br><br>「我們可以堅守巴頓山，在那裡等待塞爾迪克的軍隊。」凱烏斯說。「這樣我們就能控制周圍地區的最高點。」<br><br>「但那樣塞爾迪克的步兵在戰鬥中就會佔優勢。」另一個人指出。「我們的騎兵在山坡上將毫無用處。」<br><br>「那我們什麼都不做，Artorius？」<br><br>「我們將在開闊的平原上等待撒克遜人。」凱烏斯的同伴堅定地回答。「我們將等待那群烏合之眾進攻——然後把他們掃倒。」<br><br>這一定就是 Artorius 本人了！他看起來和你見過的任何其他不列顛軍官沒什麼兩樣——黑髮，留著鬍子，雖然比大多數人高一點。他說話帶著權威，彷彿習慣於發號施令。<br><br>但這會是傳說中的亞瑟嗎？<br><br>「凱烏斯！」你驚呼，引起他的注意。<br><br>「你來了。」凱烏斯說。「去看看馬。我們預計塞爾迪克和他的撒克遜人隨時會進攻。」他<br><br>繼續與 Artorius 討論，Artorius 只是路過看了你一眼。<br><br>你很失望。顯然凱烏斯現在太忙了，沒時間把你介紹給 Artorius。你一定是在一場真正的危機中到達的。<br><br>當你去找馬時，你想知道你終於找到了正確的亞瑟嗎。到現在為止，你已經不再尋找中世紀的城堡和身穿閃亮盔甲的騎士了。但這個亞瑟做了什麼讓他被人記住？<br><br>即將到來的戰鬥可能是關鍵。",
+            options: [
+                { text: "點擊這裡", next: 'page104' }
+            ]
+        },
+        'end': {
+            image: 'end',
+            text: "# 任務完成<br><br>亞瑟，永恆之王。<br><br>你緊緊裹住斗篷抵禦寒冷。你的任務已經成功——現在是時候回家了。",
+            options: [
+                { text: "重新開始", action: () => resetGame() }
+            ]
+        }
+    };
+
+    // --- SVG 圖像生成器 ---
+    function getSVGImage(type) {
+        switch(type) {
+            case 'book':
+                return `<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="#5c3a21" rx="5"/><rect x="25" y="25" width="50" height="50" fill="#fdf5e6"/><path d="M50 25 v50" stroke="#5c3a21" stroke-width="2"/><circle cx="50" cy="50" r="10" fill="none" stroke="#8b0000" stroke-width="2"/></svg>`;
+            case 'market':
+                return `<svg viewBox="0 0 100 100"><rect x="20" y="60" width="10" height="30" fill="#8b5a2b"/><rect x="40" y="50" width="10" height="40" fill="#8b5a2b"/><polygon points="10,40 30,20 50,40" fill="#d2b48c"/><polygon points="30,30 50,10 70,30" fill="#d2b48c"/><circle cx="50" cy="70" r="5" fill="#ffd700"/></svg>`;
+            case 'orange':
+                return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="#ff8c00"/><path d="M50 20 Q60 10 70 20" stroke="#228b22" stroke-width="3" fill="none"/></svg>`;
+            case 'victorian':
+                return `<svg viewBox="0 0 100 100"><rect x="20" y="50" width="60" height="40" fill="#696969"/><polygon points="20,50 50,20 80,50" fill="#a9a9a9"/><rect x="40" y="70" width="20" height="20" fill="#8b0000"/><line x1="50" y1="20" x2="50" y2="5" stroke="#ccc" stroke-width="2"/><path d="M50 5 L65 10 L50 15" fill="#8b0000"/></svg>`;
+            case 'france':
+                return `<svg viewBox="0 0 100 100"><rect x="30" y="30" width="40" height="40" fill="#4169e1"/><rect x="30" y="30" width="15" height="40" fill="#ff0000"/><rect x="55" y="30" width="15" height="40" fill="#ff0000"/></svg>`;
+            case 'prison':
+                return `<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="#333"/><line x1="40" y1="20" x2="40" y2="80" stroke="#888" stroke-width="3"/><line x1="60" y1="20" x2="60" y2="80" stroke="#888" stroke-width="3"/><rect x="45" y="40" width="10" height="15" fill="#fdf5e6"/></svg>`;
+            case 'fire':
+                return `<svg viewBox="0 0 100 100"><path d="M50 80 Q20 80 20 50 Q20 30 40 20 Q35 40 50 45 Q65 40 60 20 Q80 30 80 50 Q80 80 50 80Z" fill="#ff4500"/><path d="M50 75 Q35 75 35 55 Q35 45 45 35 Q45 50 55 50 Q65 45 65 35 Q75 45 65 55 Q65 75 50 75Z" fill="#ffd700"/></svg>`;
+            case 'tunnel':
+                return `<svg viewBox="0 0 100 100"><rect x="30" y="20" width="40" height="60" fill="#333"/><circle cx="50" cy="80" r="15" fill="#000"/><circle cx="50" cy="20" r="10" fill="#555"/></svg>`;
+            case 'stonehenge':
+                return `<svg viewBox="0 0 100 100"><rect x="20" y="40" width="10" height="40" fill="#808080" rx="2"/><rect x="70" y="40" width="10" height="40" fill="#808080" rx="2"/><rect x="20" y="30" width="60" height="10" fill="#696969" rx="2"/><rect x="40" y="50" width="10" height="30" fill="#808080" rx="2"/><rect x="60" y="60" width="10" height="20" fill="#808080" rx="2"/></svg>`;
+            case 'time_jump':
+                return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="#8b5a2b" stroke-width="4" stroke-dasharray="10 5"/><path d="M50 50 L70 30" stroke="#8b5a2b" stroke-width="4"/><circle cx="50" cy="50" r="5" fill="#8b5a2b"/></svg>`;
+            case 'druid':
+                return `<svg viewBox="0 0 100 100"><path d="M50 20 L60 40 L80 50 L60 60 L50 80 L40 60 L20 50 L40 40 Z" fill="#228b22"/><circle cx="50" cy="50" r="10" fill="#fdf5e6"/></svg>`;
+            case 'feast':
+                return `<svg viewBox="0 0 100 100"><rect x="20" y="60" width="60" height="20" fill="#8b5a2b"/><path d="M30 60 L40 40 L50 60 Z" fill="#ccc"/><circle cx="70" cy="50" r="10" fill="#ffd700"/></svg>`;
+            case 'horse':
+                return `<svg viewBox="0 0 100 100"><path d="M30 80 L40 50 L60 50 L70 80" fill="#8b4513" stroke="#5c3a21" stroke-width="3"/><path d="M40 50 Q30 30 50 20 Q70 30 60 50" fill="#8b4513"/><circle cx="55" cy="35" r="3" fill="#000"/></svg>`;
+            case 'villa':
+                return `<svg viewBox="0 0 100 100"><rect x="20" y="50" width="60" height="30" fill="#fdf5e6" stroke="#8b5a2b" stroke-width="2"/><polygon points="15,50 50,25 85,50" fill="#cd853f"/><rect x="45" y="60" width="10" height="20" fill="#5c3a21"/></svg>`;
+            case 'wall':
+                return `<svg viewBox="0 0 100 100"><rect x="0" y="40" width="100" height="20" fill="#808080"/><rect x="0" y="20" width="100" height="20" fill="#696969"/><rect x="10" y="60" width="80" height="20" fill="#808080"/></svg>`;
+            case 'cadbury':
+                return `<svg viewBox="0 0 100 100"><path d="M20 80 L50 20 L80 80 Z" fill="#228b22"/><rect x="40" y="60" width="20" height="20" fill="#8b5a2b"/><rect x="45" y="40" width="10" height="20" fill="#8b5a2b"/></svg>`;
+            case 'irish':
+                return `<svg viewBox="0 0 100 100"><path d="M20 80 Q50 10 80 80" fill="none" stroke="#4169e1" stroke-width="5"/><path d="M30 70 Q50 40 70 70" fill="none" stroke="#87ceeb" stroke-width="3"/><circle cx="50" cy="50" r="5" fill="#ffd700"/></svg>`;
+            case 'snow':
+                return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#f0f8ff"/><path d="M30 40 L40 50 L30 60" stroke="#fff" stroke-width="3" fill="none"/><path d="M70 40 L60 50 L70 60" stroke="#fff" stroke-width="3" fill="none"/></svg>`;
+            case 'wolves':
+                return `<svg viewBox="0 0 100 100"><circle cx="30" cy="40" r="5" fill="#ff0000"/><circle cx="70" cy="40" r="5" fill="#ff0000"/><circle cx="30" cy="70" r="5" fill="#ff0000"/><circle cx="70" cy="70" r="5" fill="#ff0000"/><path d="M20 20 L30 30 L40 20" fill="#333"/></svg>`;
+            case 'marsh':
+                return `<svg viewBox="0 0 100 100"><path d="M0 70 Q25 60 50 70 Q75 80 100 70 L100 100 L0 100 Z" fill="#556b2f"/><path d="M20 50 Q30 30 40 50" fill="none" stroke="#8b4513" stroke-width="3"/><rect x="60" y="40" width="10" height="30" fill="#8b5a2b"/></svg>`;
+            case 'alfred':
+                return `<svg viewBox="0 0 100 100"><rect x="40" y="20" width="20" height="30" fill="#fdf5e6" rx="10"/><rect x="30" y="50" width="40" height="30" fill="#8b4513" rx="5"/><circle cx="50" cy="35" r="3" fill="#000"/></svg>`;
+            case 'lecture':
+                return `<svg viewBox="0 0 100 100"><rect x="20" y="60" width="60" height="20" fill="#8b5a2b"/><rect x="25" y="30" width="10" height="30" fill="#fdf5e6"/><rect x="45" y="30" width="10" height="30" fill="#fdf5e6"/><rect x="65" y="30" width="10" height="30" fill="#fdf5e6"/></svg>`;
+            case 'viking':
+                return `<svg viewBox="0 0 100 100"><path d="M30 30 L70 30 L50 10 Z" fill="#808080"/><path d="M35 30 L65 30 L50 70 Z" fill="#8b4513"/><rect x="40" y="70" width="20" height="20" fill="#000"/></svg>`;
+            case 'crown':
+                return `<svg viewBox="0 0 100 100"><path d="M20 70 L30 40 L50 60 L70 40 L80 70 Z" fill="#ffd700"/><circle cx="30" cy="40" r="5" fill="#ff0000"/><circle cx="50" cy="60" r="5" fill="#0000ff"/><circle cx="70" cy="40" r="5" fill="#00ff00"/></svg>`;
+            case 'roman_road':
+                return `<svg viewBox="0 0 100 100"><path d="M20 80 L50 20 L80 80" fill="none" stroke="#808080" stroke-width="15"/><circle cx="50" cy="50" r="20" fill="none" stroke="#8b5a2b" stroke-width="2" stroke-dasharray="5 5"/></svg>`;
+            case 'battle_camp':
+                return `<svg viewBox="0 0 100 100"><polygon points="20,80 40,40 60,80" fill="#556b2f"/><polygon points="60,80 80,50 100,80" fill="#556b2f"/><rect x="45" y="60" width="10" height="20" fill="#8b5a2b"/></svg>`;
+            case 'battle':
+                return `<svg viewBox="0 0 100 100"><path d="M20 80 L50 20 L80 80" fill="#556b2f"/><path d="M30 50 L50 30 L70 50" fill="none" stroke="#ffd700" stroke-width="3"/><line x1="50" y1="20" x2="50" y2="10" stroke="#ccc" stroke-width="3"/></svg>`;
+            case 'camlann':
+                return `<svg viewBox="0 0 100 100"><path d="M20 80 L50 20 L80 80" fill="#333"/><circle cx="50" cy="50" r="10" fill="#ff0000"/><path d="M40 40 L60 60 M60 40 L40 60" stroke="#fff" stroke-width="3"/></svg>`;
+            case 'avalon':
+                return `<svg viewBox="0 0 100 100"><path d="M0 70 Q25 80 50 70 Q75 60 100 70 L100 100 L0 100 Z" fill="#4169e1"/><circle cx="50" cy="40" r="20" fill="#fdf5e6"/><path d="M40 40 Q50 20 60 40" fill="none" stroke="#228b22" stroke-width="3"/></svg>`;
+            case 'pig':
+                return `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="60" rx="30" ry="20" fill="#ffb6c1"/><circle cx="40" cy="50" r="5" fill="#000"/><circle cx="60" cy="50" r="5" fill="#000"/><ellipse cx="50" cy="65" rx="10" ry="5" fill="#ff69b4"/></svg>`;
+            case 'sugar':
+                return `<svg viewBox="0 0 100 100"><rect x="40" y="40" width="20" height="20" fill="#fff" rx="2"/><rect x="30" y="60" width="20" height="20" fill="#fff" rx="2"/><rect x="50" y="60" width="20" height="20" fill="#fff" rx="2"/></svg>`;
+            case 'fort':
+                return `<svg viewBox="0 0 100 100"><rect x="20" y="40" width="60" height="40" fill="#696969"/><rect x="30" y="20" width="10" height="20" fill="#696969"/><rect x="60" y="20" width="10" height="20" fill="#696969"/><rect x="45" y="60" width="10" height="20" fill="#333"/></svg>`;
+            case 'medieval_arthur':
+                return `<svg viewBox="0 0 100 100"><circle cx="50" cy="40" r="20" fill="#fdf5e6"/><path d="M30 60 L70 60 L80 80 L20 80 Z" fill="#8b0000"/><path d="M40 30 L50 15 L60 30" fill="#ffd700"/><circle cx="45" cy="40" r="3" fill="#000"/><circle cx="55" cy="40" r="3" fill="#000"/></svg>`;
+            case 'round_table':
+                return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="#8b5a2b" stroke-width="10"/><circle cx="50" cy="50" r="30" fill="#fdf5e6"/><text x="50" y="55" font-size="10" text-anchor="middle" fill="#8b0000">Arthur</text></svg>`;
+            case 'history':
+                return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="#8b5a2b" stroke-width="5"/><path d="M50 50 L70 50" stroke="#8b5a2b" stroke-width="5"/><path d="M50 50 L50 30" stroke="#8b5a2b" stroke-width="5"/></svg>`;
+            case 'army_camp':
+                return `<svg viewBox="0 0 100 100"><polygon points="20,80 40,40 60,80" fill="#556b2f"/><polygon points="60,80 80,50 100,80" fill="#556b2f"/><rect x="45" y="60" width="10" height="20" fill="#8b5a2b"/></svg>`;
+            case 'end':
+                return `<svg viewBox="0 0 100 100"><path d="M20 80 L50 20 L80 80" fill="#556b2f"/><circle cx="50" cy="40" r="15" fill="#ffd700"/><path d="M30 60 L70 60" stroke="#ffd700" stroke-width="3"/></svg>`;
+            default:
+                return `<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="#ccc"/><text x="50" y="55" font-size="20" text-anchor="middle" fill="#333">?</text></svg>`;
+        }
+    }
+
+    // --- 渲染系統 ---
+    let typingTimer = null;
+    let fullText = "";
+    let isTyping = false;
+
+    function changePage(pageId) {
+        if (typingTimer) clearInterval(typingTimer);
+        isTyping = false;
+        currentPage = pageId;
+        const page = storyData[pageId];
+        if (!page) return;
+
+        // 記錄歷史
+        if (pageId !== 'start' && pageId !== 'end') {
+            history.push({ id: pageId, title: getPageTitle(pageId) });
+            updateHistoryUI();
+        }
+
+        // 更新場景圖 (淡入淡出)
+        const sceneContainer = document.getElementById('scene-container');
+        sceneContainer.classList.add('fade-out');
+        setTimeout(() => {
+            sceneContainer.innerHTML = getSVGImage(page.image);
+            sceneContainer.classList.remove('fade-out');
+            sceneContainer.classList.add('fade-in');
+            setTimeout(() => sceneContainer.classList.remove('fade-in'), 500);
+        }, 300);
+
+        // 打字機效果
+        const textContent = document.getElementById('text-content');
+        fullText = page.text;
+        textContent.innerHTML = "";
+        let i = 0;
+        
+        // 清除選項，等打字完成後再顯示
+        const optionsArea = document.getElementById('options-area');
+        optionsArea.innerHTML = '';
+        
+        isTyping = true;
+        typingTimer = setInterval(() => {
+            if (i < fullText.length) {
+                // 處理 HTML 標籤
+                if (fullText[i] === '<') {
+                    const closingBracket = fullText.indexOf('>', i);
+                    textContent.innerHTML += fullText.substring(i, closingBracket + 1);
+                    i = closingBracket + 1;
+                } else {
+                    textContent.innerHTML += fullText[i];
+                    i++;
+                }
+                // 自動滾動到底部
+                const container = document.getElementById('main-container');
+                container.scrollTop = container.scrollHeight;
+            } else {
+                clearInterval(typingTimer);
+                isTyping = false;
+                renderOptions(page.options);
+            }
+        }, 20);
+    }
+
+    function skipTyping() {
+        if (!isTyping) return;
+        clearInterval(typingTimer);
+        isTyping = false;
+        document.getElementById('text-content').innerHTML = fullText;
+        const container = document.getElementById('main-container');
+        container.scrollTop = container.scrollHeight;
+        renderOptions(storyData[currentPage].options);
+    }
+
+    function renderOptions(options) {
+        const optionsArea = document.getElementById('options-area');
+        optionsArea.innerHTML = '';
+        
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerHTML = opt.text;
+            
+            // 處理需要物品的選項
+            if (opt.requireItem) {
+                const hasItem = inventory[opt.requireItem];
+                if (!hasItem) {
+                    // 不要禁用，而是給出提示，並引導到失敗頁面
+                    btn.classList.add('disabled-option');
+                    btn.style.opacity = '0.7';
+                    btn.style.borderColor = '#ff0000';
+                    btn.onclick = () => {
+                        playClickSound();
+                        showToast(`你沒有攜帶【${opt.requireItem === 'matches' ? '火柴' : '糖'}】！這可能不是個好主意...`);
+                        if (opt.failNext) {
+                            changePage(opt.failNext);
+                        } else {
+                            changePage(opt.next);
+                        }
+                    };
+                    optionsArea.appendChild(btn);
+                    return;
+                }
+            }
+
+            btn.onclick = () => {
+                playClickSound();
+                if (opt.action) {
+                    opt.action();
+                } else if (opt.next) {
+                    changePage(opt.next);
+                }
+            };
+            optionsArea.appendChild(btn);
+        });
+    }
+
+    function updateInventoryUI() {
+        document.getElementById('inv-matches').classList.toggle('active', inventory.matches);
+        document.getElementById('inv-sugar').classList.toggle('active', inventory.sugar);
+    }
+
+    function getPageTitle(pageId) {
+        const page = storyData[pageId];
+        if (!page) return '';
+        // 提取第一行作為標題
+        const lines = page.text.split('<br>');
+        return lines[0].replace(/[0-9]/g, '').trim() || `場景 ${pageId}`;
+    }
+
+    function updateHistoryUI() {
+        const list = document.getElementById('history-list');
+        list.innerHTML = '';
+        history.forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item.title;
+            list.appendChild(li);
+        });
+        // 自動滾動到底部
+        const sidebar = document.getElementById('history-sidebar');
+        sidebar.scrollTop = sidebar.scrollHeight;
+    }
+
+    // --- UI 互動 ---
+    function toggleHistory() {
+        const sidebar = document.getElementById('history-sidebar');
+        sidebar.classList.toggle('open');
+        playClickSound();
+    }
+
+    function openModal(id) {
+        document.getElementById(id).classList.add('active');
+        playClickSound();
+        if (id === 'modal-achievements') {
+            renderAchievements();
+        }
+    }
+
+    function closeModal(event, id) {
+        if (event.target.id === id || event.target.className === 'close-btn') {
+            document.getElementById(id).classList.remove('active');
+            playClickSound();
+        }
+    }
+
+    function showToast(msg) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = msg;
+        container.appendChild(toast);
+        
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // --- 存讀檔 ---
+    function saveGame() {
+        const data = {
+            page: currentPage,
+            inventory: inventory,
+            history: history,
+            achievements: Array.from(unlockedAchievements)
+        };
+        localStorage.setItem('arthur_save', JSON.stringify(data));
+        showToast('遊戲已存檔！');
+        playClickSound();
+    }
+
+    function loadGame() {
+        const data = localStorage.getItem('arthur_save');
+        if (!data) {
+            showToast('沒有找到存檔！');
+            return;
+        }
+        try {
+            const parsed = JSON.parse(data);
+            currentPage = parsed.page;
+            inventory = parsed.inventory || { matches: false, sugar: false };
+            history = parsed.history || [];
+            unlockedAchievements = new Set(parsed.achievements || []);
+            
+            updateInventoryUI();
+            updateHistoryUI();
+            changePage(currentPage);
+            showToast('讀檔成功！');
+            playClickSound();
+        } catch (e) {
+            showToast('存檔損壞！');
+        }
+    }
+
+    // --- 成就系統 ---
+    const allAchievements = {
+        'prepared': '有備而來：攜帶了初始物品',
+        'victory': '永恆之王：完成了任務',
+        'fail_wolves': '狼的晚餐：成為了狼群的獵物',
+        'fail_pig': '豬倌的烙印：被困在撒克遜村莊'
+    };
+
+    function unlockAchievement(id) {
+        if (!unlockedAchievements.has(id)) {
+            unlockedAchievements.add(id);
+            showToast(`解鎖成就：${allAchievements[id]}`);
+        }
+    }
+
+    function renderAchievements() {
+        const list = document.getElementById('achievements-list');
+        list.innerHTML = '';
+        for (const [id, name] of Object.entries(allAchievements)) {
+            const div = document.createElement('div');
+            div.style.marginBottom = '10px';
+            div.style.padding = '10px';
+            div.style.borderRadius = '5px';
+            div.style.background = unlockedAchievements.has(id) ? 'rgba(0,128,0,0.2)' : 'rgba(0,0,0,0.1)';
+            div.style.color = unlockedAchievements.has(id) ? '#006400' : '#888';
+            div.innerHTML = unlockedAchievements.has(id) ? `🏆 ${name}` : `🔒 ???`;
+            list.appendChild(div);
+        }
+    }
+
+    // --- 初始化 ---
+    function resetGame() {
+        if (confirm('確定要重新開始嗎？當前進度將會丟失。')) {
+            currentPage = 'start';
+            inventory = { matches: false, sugar: false };
+            history = [];
+            unlockedAchievements.clear();
+            updateInventoryUI();
+            updateHistoryUI();
+            changePage('start');
+            playClickSound();
+        }
+    }
+
+    function initGame() {
+        // 初始化音效上下文
+        document.body.addEventListener('click', initAudio, { once: true });
+        
+        // 載入初始頁面
+        changePage('start');
+        updateInventoryUI();
+        
+        // 點擊背景關閉側邊欄
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('history-sidebar');
+            if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !e.target.closest('.nav-btn')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    }
+
+    // 啟動遊戲
+    window.onload = initGame;
+
+</script>
+</body>
+</html>

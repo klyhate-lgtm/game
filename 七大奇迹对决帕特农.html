@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>七大奇蹟：對決 - 帕特農 (完美單人版)</title>
+    <style>
+        :root {
+            --bg: #0f111a;
+            --panel: #1a1d2d;
+            --text: #e0e0e0;
+            --gold: #fca311;
+            --p-color: #3498db;
+            --ai-color: #e74c3c;
+            --c-w: 105px;
+            --c-h: 150px;
+        }
+        * { box-sizing: border-box; user-select: none; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg); color: var(--text); margin: 0; padding: 0;
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+        }
+        
+        /* 頂部資訊列 */
+        #topbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 15px; background: rgba(0,0,0,0.7); border-bottom: 2px solid var(--gold);
+            z-index: 10; flex-wrap: wrap; gap: 10px; font-size: 13px;
+        }
+        .stat-group { display: flex; gap: 12px; align-items: center; background: #222; padding: 5px 10px; border-radius: 6px; border: 1px solid #333;}
+        .stat { display: flex; align-items: center; gap: 4px; font-weight: bold; }
+        .stat span { color: var(--gold); }
+        
+        /* 按鈕 */
+        button {
+            padding: 6px 12px; background: var(--gold); color: #000;
+            border: none; border-radius: 4px; cursor: pointer; font-weight: bold;
+            transition: 0.2s; font-size: 12px;
+        }
+        button:hover:not(:disabled) { background: #ffd166; transform: translateY(-1px); }
+        button:disabled { background: #444; color: #777; cursor: not-allowed; border: 1px solid #555; }
+
+        /* 主遊戲區 */
+        #game-area {
+            flex: 1; display: flex; flex-direction: column; justify-content: space-between;
+            padding: 10px; overflow-y: hidden;
+        }
+
+        /* 萬神殿與奇蹟區 */
+        #top-boards { display: flex; gap: 15px; justify-content: center; height: 130px; }
+        .board-box {
+            background: var(--panel); border-radius: 8px; padding: 8px; flex: 1;
+            max-width: 600px; border: 1px solid #333; display: flex; flex-direction: column;
+        }
+        .box-title { font-size: 12px; color: #aaa; text-align: center; margin-bottom: 5px; font-weight: bold;}
+        .card-slots { display: flex; gap: 8px; justify-content: center; flex: 1; align-items: center; overflow-x: auto;}
+        
+        /* 小卡牌 (神靈/奇蹟) */
+        .mini-card {
+            width: 75px; height: 95px; background: #252a40; border: 1px solid var(--gold);
+            border-radius: 6px; display: flex; flex-direction: column; justify-content: center;
+            align-items: center; font-size: 10px; text-align: center; padding: 4px; cursor: pointer;
+            transition: 0.2s; flex-shrink: 0;
+        }
+        .mini-card:hover { background: #303858; border-color: #fff; }
+        .mini-card.disabled { border-color: #555; opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+
+        /* 卡牌列 */
+        #card-row {
+            display: flex; flex-wrap: nowrap; gap: 12px; overflow-x: auto;
+            padding: 15px 10px; width: 100%; justify-content: center; align-items: center;
+            min-height: 180px;
+        }
+        #card-row::-webkit-scrollbar { height: 6px; }
+        #card-row::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+
+        /* 主卡牌樣式 */
+        .card {
+            width: var(--c-w); height: var(--c-h); background: #1f2233;
+            border-radius: 6px; position: relative; cursor: pointer; transition: 0.2s;
+            border: 2px solid transparent; flex-shrink: 0; display: flex; flex-direction: column;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.6); overflow: hidden;
+        }
+        .card:hover { transform: translateY(-8px); border-color: var(--gold); }
+        .card.disabled { filter: grayscale(80%); cursor: not-allowed; transform: none; opacity: 0.5; border-color: transparent;}
+        
+        .c-head { padding: 4px; background: rgba(0,0,0,0.5); text-align: center; font-weight: bold; font-size: 12px; border-bottom: 1px solid #333;}
+        .c-body { flex: 1; padding: 5px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; font-size: 11px; position: relative;}
+        .c-tag { background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 4px; font-size: 10px; border: 1px solid #555; position: absolute;}
+        .c-cost { top: 5px; left: 5px; color: #f1c40f; font-weight: bold;}
+        .c-chain { top: 5px; right: 5px; color: #2ecc71; font-weight: bold; font-size: 9px;}
+        
+        /* 類型顏色 */
+        .t-wood { border-top: 4px solid #8B4513; }
+        .t-stone { border-top: 4px solid #808080; }
+        .t-clay { border-top: 4px solid #D2691E; }
+        .t-glass { border-top: 4px solid #00CED1; }
+        .t-papyrus { border-top: 4px solid #F5DEB3; }
+        .t-mil { border-top: 4px solid #e74c3c; }
+        .t-sci { border-top: 4px solid #2ecc71; }
+        .t-com { border-top: 4px solid #f1c40f; }
+        .t-civ { border-top: 4px solid #3498db; }
+        .t-guild { border-top: 4px solid #9b59b6; }
+
+        /* 底部面板 */
+        .bottom-panels { display: flex; gap: 10px; width: 100%; height: 160px; }
+        .player-panel {
+            flex: 1; background: var(--panel); padding: 8px; border-radius: 8px;
+            border-top: 3px solid var(--p-color); display: flex; flex-direction: column;
+        }
+        .player-panel.ai { border-top-color: var(--ai-color); }
+        .panel-title { font-weight: bold; text-align: center; font-size: 13px; margin-bottom: 5px; color: #ccc;}
+        .built-area { display: flex; flex-wrap: wrap; gap: 4px; overflow-y: auto; align-content: flex-start; flex: 1;}
+        .built-item { width: 50px; height: 65px; background: #2a2e45; border-radius: 3px; font-size: 9px; display: flex; justify-content: center; align-items: center; text-align: center; border: 1px solid #444; padding: 2px;}
+
+        /* 軍事軌 */
+        #military-track {
+            display: flex; align-items: center; justify-content: center; gap: 2px;
+            margin: 5px 0; font-size: 12px; font-weight: bold;
+        }
+        .mil-box { width: 22px; height: 20px; background: #222; border: 1px solid #444; border-radius: 3px; display: flex; justify-content: center; align-items: center;}
+        .mil-box.p { background: rgba(52,152,219,0.3); border-color: var(--p-color); color: var(--p-color);}
+        .mil-box.a { background: rgba(231,76,60,0.3); border-color: var(--ai-color); color: var(--ai-color);}
+
+        /* 科技軌 */
+        #science-track { display: flex; gap: 5px; justify-content: center; margin-top: 5px;}
+        .sci-slot { width: 24px; height: 24px; border: 1px dashed #555; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; opacity: 0.3;}
+        .sci-slot.active { opacity: 1; border: 1px solid #2ecc71; background: rgba(46, 204, 113, 0.2);}
+
+        /* 日誌與操作列 */
+        #log-area { height: 30px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fca311; font-weight: bold; background: #000; border-radius: 4px; margin: 5px 0; border: 1px solid #333;}
+        #action-bar { display: flex; justify-content: center; gap: 10px; height: 35px;}
+
+        /* 彈窗 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: var(--panel); padding: 25px; border-radius: 10px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto; border: 2px solid var(--gold); text-align: center;}
+        .modal h2 { color: var(--gold); margin-top: 0; }
+        .modal ul { text-align: left; line-height: 1.6; font-size: 14px;}
+        .modal p { text-align: left; font-size: 14px;}
+    </style>
+</head>
+<body>
+
+    <!-- 頂部資訊 -->
+    <div id="topbar">
+        <div class="stat-group">
+            <div class="stat">時代 <span id="ui-age">I</span></div>
+            <div class="stat">回合 <span id="ui-turn">玩家</span></div>
+        </div>
+        <div class="stat-group" id="ui-res-container" style="font-size:12px;">
+            <!-- 資源動態生成 -->
+        </div>
+        <div class="stat-group">
+            <div class="stat">💰 <span id="ui-gold">7</span></div>
+            <div class="stat">⭐ <span id="ui-score">0</span></div>
+        </div>
+        <div>
+            <button onclick="openModal('rules-modal')">📖 規則</button>
+            <button onclick="initGame()">🔄 重新開始</button>
+        </div>
+    </div>
+
+    <!-- 主遊戲區 -->
+    <div id="game-area">
+        
+        <!-- 奇蹟與萬神殿 -->
+        <div id="top-boards">
+            <div class="board-box">
+                <div class="box-title">🏛️ 你的奇蹟</div>
+                <div class="card-slots" id="wonder-area"></div>
+            </div>
+            <div class="board-box">
+                <div class="box-title">⛩️ 帕特農神殿 (花費 4 金幣啟動)</div>
+                <div class="card-slots" id="pantheon-area"></div>
+            </div>
+        </div>
+
+        <!-- 卡牌列 -->
+        <div id="card-row"></div>
+
+        <!-- 操作與日誌 -->
+        <div id="log-area">歡迎！請點擊卡牌開始。</div>
+        <div id="action-bar"></div>
+
+        <!-- 玩家與 AI 面板 -->
+        <div class="bottom-panels">
+            <div class="player-panel">
+                <div class="panel-title">🛡️ 你的王國</div>
+                <div class="built-area" id="p-board"></div>
+                <div id="military-track"></div>
+                <div id="science-track"></div>
+            </div>
+            <div class="player-panel ai">
+                <div class="panel-title">🤖 AI 對手</div>
+                <div class="built-area" id="a-board"></div>
+                <div style="text-align:center; font-size:11px; color:#666; margin-top:5px;" id="ai-info"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 規則彈窗 -->
+    <div class="modal" id="rules-modal">
+        <div class="modal-content">
+            <h2>📖 遊戲規則簡介</h2>
+            <p><strong>核心玩法：</strong>與 AI 輪流從場上選擇一張卡牌。點擊卡牌後可選擇「建造」、「棄牌換錢(2金)」或「建造奇蹟」。</p>
+            <p><strong>資源與購買：</strong>建造需要對應資源。若你沒有，系統會自動以每單位 <strong>2 金幣</strong> 向銀行購買。若擁有前置卡牌（綠色標記），則可免費建造！</p>
+            <p><strong>軍事與科技：</strong>時代結束時比較軍事，贏家加分。科技收集 6 種不同符號直接獲勝。</p>
+            <p><strong>萬神殿擴充：</strong>時代 I 結束時會獲得神靈。進入時代 II/III，可花費金幣啟動神殿中的神靈，獲得強大效果（不消耗手牌）。</p>
+            <button onclick="closeModal('rules-modal')" style="margin-top:15px;">關閉</button>
+        </div>
+    </div>
+
+    <!-- 選擇神靈彈窗 -->
+    <div class="modal" id="choose-god-modal">
+        <div class="modal-content">
+            <h2>時代 I 結束 - 選擇神話標記</h2>
+            <p>你獲得了神話標記！請選擇一位神靈放入神殿：</p>
+            <div id="god-choices" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:20px;"></div>
+        </div>
+    </div>
+
+    <!-- 遊戲結束彈窗 -->
+    <div class="modal" id="gameover-modal">
+        <div class="modal-content">
+            <h2 id="go-title">遊戲結束</h2>
+            <div id="go-details"></div>
+            <button onclick="closeModal('gameover-modal'); initGame();" style="margin-top:15px;">再來一局</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 資料庫 ---
+        const CARD_DB = [
+            // 時代 I (7張)
+            { id: 'w1', age: 1, name: '伐木場', type: 'wood', cost: { gold: 0 }, effect: { res: 'wood', amt: 1 }, desc: '🪵+1' },
+            { id: 's1', age: 1, name: '採石場', type: 'stone', cost: { gold: 0 }, effect: { res: 'stone', amt: 1 }, desc: '🪨+1' },
+            { id: 'm1', age: 1, name: '軍營', type: 'mil', cost: { clay: 1, wood: 1 }, effect: { mil: 1 }, desc: '⚔️+1' },
+            { id: 'com1', age: 1, name: '酒館', type: 'com', cost: { gold: 0 }, effect: { gold: 4 }, desc: '💰+4' },
+            { id: 'sci1', age: 1, name: '藥房', type: 'sci', cost: { clay: 1 }, effect: { sci: 'wheel' }, desc: '🔬輪子' },
+            { id: 'c1', age: 1, name: '泥磚廠', type: 'clay', cost: { gold: 1 }, effect: { res: 'clay', amt: 1 }, desc: '🧱+1' },
+            { id: 'p1', age: 1, name: '造紙廠', type: 'papyrus', cost: { gold: 1 }, effect: { res: 'papyrus', amt: 1 }, desc: '📜+1' },
+
+            // 時代 II (7張)
+            { id: 'w2', age: 2, name: '鋸木廠', type: 'wood', cost: { gold: 2 }, chain: 'w1', effect: { res: 'wood', amt: 2 }, desc: '🪵+2' },
+            { id: 'm2', age: 2, name: '馬廄', type: 'mil', cost: { wood: 1, clay: 1 }, effect: { mil: 2 }, desc: '⚔️+2' },
+            { id: 'com2', age: 2, name: '集市', type: 'com', cost: { wood: 1 }, effect: { gold: 3 }, desc: '💰+3' },
+            { id: 'sci2', age: 2, name: '圖書館', type: 'sci', cost: { wood: 1, glass: 1 }, effect: { sci: 'book' }, desc: '🔬書本' },
+            { id: 'civ2', age: 2, name: '法院', type: 'civ', cost: { clay: 1, glass: 1 }, effect: { points: 5 }, desc: '⭐5分' },
+            { id: 'g2', age: 2, name: '玻璃廠', type: 'glass', cost: { gold: 2 }, effect: { res: 'glass', amt: 1 }, desc: '💎+1' },
+            { id: 'st2', age: 2, name: '城牆', type: 'mil', cost: { stone: 2 }, effect: { mil: 2 }, desc: '⚔️+2' },
+
+            // 時代 III (7張，含聖殿)
+            { id: 'm3', age: 3, name: '競技場', type: 'mil', cost: { stone: 2, wood: 1 }, effect: { mil: 3, gold: 3 }, desc: '⚔️+3 💰+3' },
+            { id: 'sci3', age: 3, name: '天文台', type: 'sci', cost: { stone: 2, glass: 1 }, effect: { sci: 'sun' }, desc: '🔬太陽' },
+            { id: 'civ3', age: 3, name: '花園', type: 'civ', cost: { clay: 2, wood: 2 }, effect: { points: 6 }, desc: '⭐6分' },
+            { id: 'sci4', age: 3, name: '發明家公會', type: 'sci', cost: { clay: 2, papyrus: 1 }, effect: { sci: 'law' }, desc: '🔬法律' },
+            { id: 'temple1', age: 3, name: '蘇美聖殿', type: 'guild', cost: { stone: 2, gold: 4 }, isTemple: true, god: 'god_sum', effect: { points: 5 }, desc: '⭐5分(神殿)' },
+            { id: 'temple2', age: 3, name: '希臘聖殿', type: 'guild', cost: { stone: 2, gold: 4 }, isTemple: true, god: 'god_greek', effect: { points: 5 }, desc: '⭐5分(神殿)' },
+            { id: 'g3', age: 3, name: '商人行會', type: 'guild', cost: { clay: 2, stone: 2 }, effect: { points: 8 }, desc: '⭐8分' }
+        ];
+
+        const GOD_DB = [
+            { id: 'god_zeus', name: '宙斯', myth: '希臘', effect: '棄掉場上一張卡牌', type: 'greek' },
+            { id: 'god_anubis', name: '阿努比斯', myth: '埃及', effect: '棄掉奇蹟建造卡', type: 'egypt' },
+            { id: 'god_minerva', name: '密涅瓦', myth: '羅馬', effect: '軍事阻擋標記', type: 'roman' },
+            { id: 'god_ishtar', name: '伊什塔爾', myth: '蘇美', effect: '獲得 1 科技符號', type: 'sum' },
+            { id: 'god_baal', name: '巴爾', myth: '迦南', effect: '偷對手一張卡', type: 'canaan' }
+        ];
+
+        const WONDER_DB = [
+            { id: 'w_temple', name: '聖堂', cost: 4, desc: '啟動神靈 -2 金幣' },
+            { id: 'w_theater', name: '通神大劇場', cost: 6, desc: '時代結束額外 2 分' }
+        ];
+
+        // --- 遊戲狀態 ---
+        const state = {
+            age: 1,
+            turn: 'PLAYER',
+            phase: 'PLAYING', 
+            player: { 
+                gold: 7, mil: 0, sci: [], buildings: [], gods: [], 
+                res: { wood: 0, stone: 0, clay: 0, glass: 0, papyrus: 0 },
+                wonders: [...WONDER_DB]
+            },
+            ai: { 
+                gold: 7, mil: 0, sci: [], buildings: [], gods: [], 
+                res: { wood: 0, stone: 0, clay: 0, glass: 0, papyrus: 0 },
+                wonders: [...WONDER_DB]
+            },
+            cardRow: [],
+            pantheon: [],
+            selectedCard: null
+        };
+
+        const RES_ICON = { wood: '🪵', stone: '🪨', clay: '🧱', glass: '💎', papyrus: '📜', gold: '💰' };
+
+        // --- 初始化 ---
+        function initGame() {
+            state.age = 1; state.turn = 'PLAYER'; state.phase = 'PLAYING';
+            state.player = { gold: 7, mil: 0, sci: [], buildings: [], gods: [], res: { wood: 0, stone: 0, clay: 0, glass: 0, papyrus: 0 }, wonders: [...WONDER_DB] };
+            state.ai = { gold: 7, mil: 0, sci: [], buildings: [], gods: [], res: { wood: 0, stone: 0, clay: 0, glass: 0, papyrus: 0 }, wonders: [...WONDER_DB] };
+            state.pantheon = []; state.selectedCard = null;
+            
+            // 抽牌
+            const age1 = CARD_DB.filter(c => c.age === 1);
+            state.cardRow = age1.sort(() => 0.5 - Math.random()).slice(0, 7); // 抽7張
+            
+            updateUI();
+            log('遊戲開始！時代 I。請點擊卡牌。');
+        }
+
+        // --- UI 更新 ---
+        function updateUI() {
+            document.getElementById('ui-age').innerText = ['', 'I', 'II', 'III'][state.age];
+            document.getElementById('ui-turn').innerText = state.turn === 'PLAYER' ? '玩家' : 'AI 思考中...';
+            document.getElementById('ui-gold').innerText = state.player.gold;
+            
+            let score = state.player.buildings.reduce((sum, c) => sum + (c.effect?.points || 0), 0) + (state.player.buildings.some(b=>b.name==='通神大劇場')?2:0);
+            document.getElementById('ui-score').innerText = score;
+
+            // 資源列
+            let resHtml = '';
+            for (const [k, v] of Object.entries(state.player.res)) {
+                resHtml += `<div class="stat">${RES_ICON[k]} <span>${v}</span></div>`;
+            }
+            document.getElementById('ui-res-container').innerHTML = resHtml;
+
+            renderCards();
+            renderBoards();
+            renderPantheon();
+            renderWonders();
+            renderMilitary();
+            renderScience();
+            renderActions();
+        }
+
+        function renderCards() {
+            const row = document.getElementById('card-row');
+            row.innerHTML = '';
+            state.cardRow.forEach(c => {
+                const d = document.createElement('div');
+                d.className = `card t-${c.type}`;
+                if (state.turn !== 'PLAYER' || state.phase !== 'PLAYING' || state.selectedCard) d.classList.add('disabled');
+                if (state.selectedCard && state.selectedCard.id === c.id) d.style.borderColor = 'var(--gold)';
+                
+                let costStr = '';
+                for (const [k, v] of Object.entries(c.cost)) {
+                    if (v > 0) costStr += `${RES_ICON[k]}${v} `;
+                }
+                if (!costStr) costStr = '免費';
+
+                // 鏈式檢查
+                let chainHtml = '';
+                if (c.chain && state.player.buildings.some(b => b.id === c.chain)) {
+                    chainHtml = '<div class="c-tag c-chain">🔗 免費</div>';
+                }
+
+                d.innerHTML = `
+                    <div class="c-head">${c.name}</div>
+                    <div class="c-body">
+                        <div class="c-tag c-cost">${costStr}</div>
+                        ${chainHtml}
+                        <div style="margin-top: 20px; font-weight:bold; font-size:13px;">${c.desc}</div>
+                    </div>
+                `;
+                d.onclick = () => selectCard(c);
+                row.appendChild(d);
+            });
+        }
+
+        function renderBoards() {
+            document.getElementById('p-board').innerHTML = state.player.buildings.map(b => `<div class="built-item" title="${b.desc}">${b.name}</div>`).join('');
+            document.getElementById('a-board').innerHTML = state.ai.buildings.map(b => `<div class="built-item">${b.name}</div>`).join('');
+        }
+
+        function renderPantheon() {
+            const area = document.getElementById('pantheon-area');
+            area.innerHTML = state.pantheon.length === 0 ? '<div style="color:#555; font-size:12px;">等待神靈降臨...</div>' : '';
+            state.pantheon.forEach((g, i) => {
+                const d = document.createElement('div');
+                d.className = 'mini-card';
+                d.innerHTML = `<div style="color:var(--gold); font-weight:bold;">${g.name}</div><div style="font-size:9px;">${g.effect}</div><div style="margin-top:5px; font-weight:bold;">💰4</div>`;
+                if (state.turn === 'PLAYER' && state.age >= 2) {
+                    d.onclick = () => activateGod(i);
+                } else {
+                    d.classList.add('disabled');
+                }
+                area.appendChild(d);
+            });
+        }
+
+        function renderWonders() {
+            const area = document.getElementById('wonder-area');
+            area.innerHTML = '';
+            state.player.wonders.forEach(w => {
+                const d = document.createElement('div');
+                d.className = 'mini-card';
+                d.innerHTML = `<div style="font-weight:bold;">${w.name}</div><div style="font-size:9px; color:#aaa; margin-top:3px;">${w.desc}</div><div style="margin-top:5px; font-weight:bold;">💰${w.cost}</div>`;
+                if (state.turn === 'PLAYER' && state.selectedCard) {
+                    d.onclick = () => buildWonder(w);
+                } else {
+                    d.classList.add('disabled');
+                }
+                area.appendChild(d);
+            });
+            if (state.player.wonders.length === 0) area.innerHTML = '<div style="color:#555; font-size:12px;">已全數建造</div>';
+        }
+
+        function renderMilitary() {
+            const track = document.getElementById('military-track');
+            let html = '';
+            // -4 到 +4 的軍事軌
+            for (let i = -4; i <= 4; i++) {
+                let isP = (state.player.mil >= (i + 4)) && i > 0;
+                let isA = (state.ai.mil >= (4 - i)) && i < 0;
+                html += `<div class="mil-box ${isP?'p':''} ${isA?'a':''}">${i}</div>`;
+            }
+            track.innerHTML = html;
+        }
+
+        function renderScience() {
+            const track = document.getElementById('science-track');
+            const allSci = ['wheel', 'book', 'sun', 'law', 'ishtar'];
+            track.innerHTML = allSci.map(s => `<div class="sci-slot ${state.player.sci.includes(s)?'active':''}">🔬</div>`).join('');
+        }
+
+        function renderActions() {
+            const bar = document.getElementById('action-bar');
+            bar.innerHTML = '';
+            if (state.phase === 'GAME_OVER') return;
+            if (state.turn !== 'PLAYER') return;
+
+            if (state.selectedCard) {
+                const cost = calcCost(state.player, state.selectedCard);
+                bar.innerHTML = `
+                    <button onclick="execAction('build')" ${state.player.gold >= cost.gold ? '' : 'disabled'}>🏗️ 建造 (${cost.gold} 金 ${cost.bought>0?'含購買':''})</button>
+                    <button onclick="execAction('discard')">🗑️ 棄牌換錢 (+2金)</button>
+                    <button onclick="cancelSelect()">❌ 取消</button>
+                `;
+            }
+        }
+
+        // --- 邏輯運算 ---
+        function calcCost(player, card) {
+            if (card.chain && player.buildings.some(b => b.id === card.chain)) return { gold: 0, bought: 0 };
+            // 聖殿免費檢查
+            if (card.isTemple && player.gods.some(g => g.type === card.god.replace('god_', ''))) return { gold: 0, bought: 0 };
+            
+            let gold = card.cost.gold || 0;
+            let bought = 0;
+            for (const [res, amt] of Object.entries(card.cost)) {
+                if (res === 'gold') continue;
+                if (player.res[res] < amt) {
+                    const need = amt - player.res[res];
+                    gold += need * 2; bought += need;
+                }
+            }
+            return { gold, bought };
+        }
+
+        function selectCard(card) {
+            if (state.turn !== 'PLAYER' || state.phase !== 'PLAYING') return;
+            state.selectedCard = card;
+            log(`選擇了：${card.name}`);
+            updateUI();
+        }
+
+        function cancelSelect() {
+            state.selectedCard = null;
+            updateUI();
+        }
+
+        function execAction(action) {
+            if (!state.selectedCard) return;
+            const c = state.selectedCard;
+            const cost = calcCost(state.player, c);
+
+            if (action === 'build') {
+                if (state.player.gold >= cost.gold) {
+                    state.player.gold -= cost.gold;
+                    // 扣除資源
+                    for (const [res, amt] of Object.entries(c.cost)) {
+                        if (res === 'gold') continue;
+                        state.player.res[res] = Math.max(0, state.player.res[res] - amt);
+                    }
+                    // 獲得效果
+                    if (c.effect.res) state.player.res[c.effect.res] += c.effect.amt;
+                    if (c.effect.mil) state.player.mil += c.effect.mil;
+                    if (c.effect.gold) state.player.gold += c.effect.gold;
+                    if (c.effect.sci && !state.player.sci.includes(c.effect.sci)) state.player.sci.push(c.effect.sci);
+                    
+                    state.player.buildings.push(c);
+                    log(`建造了 ${c.name}！`);
+                    removeCard(c);
+                    endTurn();
+                }
+            } else if (action === 'discard') {
+                state.player.gold += 2;
+                log(`棄掉 ${c.name}，獲得 2 金幣。`);
+                removeCard(c);
+                endTurn();
+            }
+        }
+
+        function buildWonder(w) {
+            if (!state.selectedCard || state.player.gold < w.cost) return;
+            state.player.gold -= w.cost;
+            state.player.wonders = state.player.wonders.filter(x => x.id !== w.id);
+            state.player.buildings.push({ name: w.name, desc: w.desc, effect: {} }); // 用建築欄位記錄奇蹟
+            log(`使用 ${state.selectedCard.name} 建造奇蹟 ${w.name}！`);
+            removeCard(state.selectedCard);
+            endTurn();
+        }
+
+        function activateGod(index) {
+            if (state.turn !== 'PLAYER' || state.age < 2) return;
+            const g = state.pantheon[index];
+            let cost = state.player.buildings.some(b => b.name === '聖堂') ? 2 : 4;
+            if (state.player.gold >= cost) {
+                state.player.gold -= cost;
+                state.player.gods.push(g);
+                state.pantheon.splice(index, 1);
+                log(`啟動神靈 ${g.name}：${g.effect}`);
+                
+                if (g.id === 'god_ishtar' && !state.player.sci.includes('ishtar')) state.player.sci.push('ishtar');
+                if (g.id === 'god_baal' && state.ai.buildings.length > 0) {
+                    const st = state.ai.buildings.pop();
+                    state.player.buildings.push(st);
+                    log(`巴爾偷走了 AI 的 ${st.name}`);
+                }
+                updateUI();
+            } else {
+                log('金幣不足！');
+            }
+        }
+
+        function removeCard(c) {
+            state.cardRow = state.cardRow.filter(x => x.id !== c.id);
+            state.selectedCard = null;
+        }
+
+        function endTurn() {
+            state.turn = 'AI';
+            updateUI();
+            setTimeout(aiTurn, 1200);
+        }
+
+        // --- AI 決策 ---
+        function aiTurn() {
+            if (state.cardRow.length === 0) { checkAgeEnd(); return; }
+            
+            let best = state.cardRow[0], maxScore = -999;
+            state.cardRow.forEach(c => {
+                let s = 0;
+                if (c.type === 'mil') s += 15;
+                if (c.type === 'sci') s += 12;
+                if (c.effect.points) s += c.effect.points;
+                if (c.effect.gold) s += c.effect.gold * 0.6;
+                if (c.effect.res) s += 4;
+                s += Math.random() * 5;
+                if (s > maxScore) { maxScore = s; best = c; }
+            });
+
+            const cost = calcCost(state.ai, best);
+            if (state.ai.gold >= cost.gold) {
+                state.ai.gold -= cost.gold;
+                for (const [r, a] of Object.entries(best.cost)) {
+                    if (r !== 'gold') state.ai.res[r] = Math.max(0, state.ai.res[r] - a);
+                }
+                if (best.effect.res) state.ai.res[best.effect.res] += best.effect.amt;
+                if (best.effect.mil) state.ai.mil += best.effect.mil;
+                if (best.effect.gold) state.ai.gold += best.effect.gold;
+                if (best.effect.sci && !state.ai.sci.includes(best.effect.sci)) state.ai.sci.push(best.effect.sci);
+                state.ai.buildings.push(best);
+                log(`AI 建造了 ${best.name}。`);
+            } else {
+                state.ai.gold += 2;
+                log(`AI 棄牌換錢。`);
+            }
+
+            removeCard(best);
+            if (state.ai.mil >= 4) { endGame('AI 軍事勝利！'); return; }
+            if (state.ai.sci.length >= 5) { endGame('AI 科技勝利！'); return; }
+
+            state.turn = 'PLAYER';
+            updateUI();
+            checkAgeEnd();
+        }
+
+        // --- 時代切換 ---
+        function checkAgeEnd() {
+            if (state.cardRow.length > 0) return;
+            
+            // 軍事結算
+            const diff = state.player.mil - state.ai.mil;
+            if (diff > 0) { state.player.gold += diff * 2; log(`時代軍事結算：你贏了，獲得 ${diff*2} 金幣！`); }
+            else if (diff < 0) { state.ai.gold += Math.abs(diff) * 2; log(`時代軍事結算：AI 贏了。`); }
+
+            if (state.age === 1) {
+                state.phase = 'CHOOSE_GOD';
+                showGodSelect();
+            } else if (state.age === 2) {
+                state.age = 3;
+                state.cardRow = CARD_DB.filter(c => c.age === 3).sort(() => 0.5 - Math.random()).slice(0, 7);
+                state.turn = 'PLAYER'; state.player.mil = 0; state.ai.mil = 0;
+                updateUI(); log('進入時代 III！');
+            } else {
+                endGame();
+            }
+        }
+
+        function showGodSelect() {
+            log('時代 I 結束，請選擇神話標記。');
+            const div = document.getElementById('god-choices');
+            div.innerHTML = '';
+            const shuffled = [...GOD_DB].sort(() => 0.5 - Math.random()).slice(0, 3);
+            shuffled.forEach(g => {
+                const b = document.createElement('button');
+                b.innerHTML = `<strong>${g.name}</strong><br>${g.myth}<br>${g.effect}`;
+                b.style.padding = '15px'; b.style.width = '130px'; b.style.height = '100px';
+                b.onclick = () => {
+                    state.pantheon.push(g);
+                    state.pantheon.push(GOD_DB[Math.floor(Math.random()*GOD_DB.length)]);
+                    closeModal('choose-god-modal');
+                    state.age = 2; state.phase = 'PLAYING';
+                    state.cardRow = CARD_DB.filter(c => c.age === 2).sort(() => 0.5 - Math.random()).slice(0, 7);
+                    state.turn = 'PLAYER'; state.player.mil = 0; state.ai.mil = 0;
+                    updateUI(); log('進入時代 II！神靈已進駐神殿。');
+                };
+                div.appendChild(b);
+            });
+            openModal('choose-god-modal');
+        }
+
+        function endGame(reason = '') {
+            state.phase = 'GAME_OVER';
+            let pScore = state.player.buildings.reduce((s, c) => s + (c.effect?.points || 0), 0) + (state.player.buildings.some(b=>b.name==='通神大劇場')?2:0) + state.player.gold;
+            let aScore = state.ai.buildings.reduce((s, c) => s + (c.effect?.points || 0), 0) + state.ai.gold;
+            
+            document.getElementById('go-title').innerText = reason || '時代 III 結束';
+            document.getElementById('go-details').innerHTML = `
+                <p>你的總分：<strong style="color:var(--gold); font-size:20px;">${pScore}</strong> (含建築與金幣)</p>
+                <p>AI 總分：<strong style="color:var(--ai-color); font-size:20px;">${aScore}</strong></p>
+                <h3>${reason ? reason : (pScore > aScore ? '🎉 恭喜你獲得勝利！' : pScore < aScore ? '💀 你輸了...' : '🤝 平手！')}</h3>
+            `;
+            updateUI();
+            openModal('gameover-modal');
+        }
+
+        // --- 輔助 ---
+        function log(msg) { document.getElementById('log-area').innerText = msg; }
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>

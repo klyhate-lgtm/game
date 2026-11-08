@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Simple Life - 簡單生活 (1-2人輪流版)</title>
+<style>
+  :root {
+    --wood: #5c3a21;
+    --paper: #fdf5e6;
+    --ink: #2c1e16;
+    --line: #8b6b4a;
+    --red: #b03a2e;
+    --blue: #2980b9;
+    --green: #27ae60;
+    --gold: #d4af37;
+    --p1: #e67e22;
+    --p2: #2980b9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; }
+  body {
+    background-color: var(--wood);
+    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 2px, transparent 2px, transparent 4px);
+    color: var(--ink);
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 10px;
+    overflow-x: auto;
+  }
+
+  /* 主遊戲面板 */
+  .game-board {
+    background-color: var(--paper);
+    width: 1100px;
+    min-height: 800px;
+    border: 8px solid #3e2723;
+    border-radius: 4px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.6), inset 0 0 60px rgba(139,107,74,0.2);
+    position: relative;
+    padding: 15px;
+    display: grid;
+    grid-template-columns: 250px 1fr 220px;
+    grid-template-rows: 60px 1fr 180px; /* 加高底部以容納雙人資訊 */
+    gap: 15px;
+  }
+
+  /* 頂部區域 */
+  .header {
+    grid-column: 1 / 4;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 3px double var(--line);
+    padding-bottom: 10px;
+  }
+  .title-area h1 { font-size: 26px; font-family: "Georgia", serif; color: var(--red); text-shadow: 1px 1px 0 #fff; }
+  .title-area p { font-size: 12px; color: var(--line); font-weight: bold; }
+  
+  .calendar {
+    display: flex; gap: 4px; background: #fff; padding: 6px 10px; border: 2px solid var(--ink); border-radius: 8px;
+  }
+  .calendar .day-box {
+    width: 24px; height: 24px; display: flex; justify-content: center; align-items: center;
+    border: 1px solid #ccc; border-radius: 4px; font-weight: bold; font-size: 13px; background: #eee;
+  }
+  .calendar .day-box.active { background: var(--gold); color: #fff; border-color: var(--ink); transform: scale(1.1); box-shadow: 0 0 8px var(--gold); }
+  .calendar .day-box.past { background: var(--ink); color: #fff; }
+
+  .top-scoring {
+    display: flex; flex-direction: column; gap: 4px; font-size: 13px; border: 2px solid var(--ink); padding: 5px 10px; border-radius: 8px; background: #fff;
+    min-width: 200px;
+  }
+  .top-scoring div { display: flex; justify-content: space-between; gap: 10px; }
+  .top-scoring .highlight { color: var(--red); font-weight: bold; }
+
+  .header-btns {
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .btn-small {
+    padding: 4px 8px; font-size: 12px; border-radius: 4px; cursor: pointer;
+    background: #fff; border: 1px solid var(--ink); transition: 0.2s;
+  }
+  .btn-small:hover { background: var(--gold); color: #fff; }
+
+  /* 左側區域：小鎮 */
+  .town-area { grid-column: 1 / 2; display: flex; flex-direction: column; gap: 10px; }
+  .loc-box {
+    border: 2px solid var(--line); border-radius: 6px; background: rgba(255,255,255,0.6);
+    padding: 8px; position: relative;
+  }
+  .loc-title { font-weight: bold; font-size: 14px; border-bottom: 1px solid var(--line); padding-bottom: 2px; margin-bottom: 6px; text-align: center; background: var(--ink); color: var(--paper); margin: -8px -8px 6px -8px; border-radius: 4px 4px 0 0; }
+  
+  .town-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .town-item { border: 1px solid #ccc; border-radius: 4px; padding: 6px; text-align: center; font-size: 12px; background: #fff; cursor: pointer; transition: 0.1s; }
+  .town-item:active { transform: scale(0.95); }
+  .town-item.disabled { opacity: 0.4; pointer-events: none; }
+
+  /* 中間區域：農場與礦山 */
+  .center-area { grid-column: 2 / 3; display: flex; flex-direction: column; gap: 15px; }
+  
+  .grid-container { display: grid; gap: 4px; }
+  .farm-grid { grid-template-columns: repeat(4, 1fr); }
+  .mines-grid { grid-template-columns: repeat(5, 1fr); }
+
+  .cell {
+    background: #e8d5b7; border: 1px solid var(--line); border-radius: 4px; height: 40px;
+    display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; transition: 0.2s;
+    position: relative;
+  }
+  .cell:hover { background: #f5e6d3; }
+  .cell.checked-p1 { background: var(--p1); color: #fff; }
+  .cell.checked-p2 { background: var(--p2); color: #fff; }
+  .cell .owner-badge {
+    position: absolute; top: 2px; right: 2px; font-size: 9px; background: #fff; color: #000; border-radius: 50%; width: 14px; height: 14px; display: flex; justify-content: center; align-items: center; font-weight: bold; border: 1px solid #000;
+  }
+
+  /* 右側區域 */
+  .right-area { grid-column: 3 / 4; display: flex; flex-direction: column; gap: 10px; }
+  
+  .lake-row { display: flex; gap: 5px; align-items: center; margin-bottom: 5px; }
+  .lake-label { width: 25px; font-weight: bold; font-size: 13px; }
+  .lake-cells { display: flex; gap: 4px; flex: 1; }
+  .lake-cell { flex: 1; height: 28px; border: 1px solid var(--line); border-radius: 4px; background: #fff; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 14px; }
+  .lake-cell.checked-p1 { background: var(--p1); color: #fff; }
+  .lake-cell.checked-p2 { background: var(--p2); color: #fff; }
+
+  /* 底部區域：骰子與雙人面板 */
+  .bottom-area {
+    grid-column: 1 / 4;
+    display: flex; gap: 15px; border-top: 3px double var(--line); padding-top: 10px;
+  }
+  
+  .dice-pool-container {
+    width: 320px; flex-shrink: 0;
+    border: 2px dashed var(--line); border-radius: 8px; padding: 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px; background: rgba(255,255,255,0.4);
+  }
+  .dice-row { display: flex; gap: 10px; min-height: 50px; }
+  .dice {
+    width: 44px; height: 44px; background: #fff; border-radius: 8px; border: 2px solid var(--ink);
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 5px; cursor: pointer;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2); transition: transform 0.2s;
+  }
+  .dice:hover { transform: translateY(-4px); }
+  .dice.selected { border-color: var(--red); box-shadow: 0 0 15px var(--red); transform: translateY(-4px) scale(1.1); }
+  .dice.used { opacity: 0.2; pointer-events: none; filter: grayscale(1); }
+  .dot { background: var(--ink); border-radius: 50%; width: 100%; height: 100%; transform: scale(0.6); }
+
+  .action-btns { display: flex; gap: 10px; width: 100%; }
+  .action-btn {
+    flex: 1; background: var(--ink); color: #fff; border: none; padding: 8px; border-radius: 6px;
+    cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s;
+  }
+  .action-btn:hover { background: var(--red); }
+
+  .players-container {
+    flex: 1; display: flex; gap: 10px;
+  }
+  .player-card {
+    flex: 1; border: 2px solid #ccc; border-radius: 8px; padding: 8px; background: #fff;
+    display: flex; flex-direction: column; gap: 6px; transition: 0.3s;
+    opacity: 0.6;
+  }
+  .player-card.active { border-color: var(--gold); opacity: 1; box-shadow: 0 0 15px rgba(212,175,55,0.4); transform: scale(1.02); }
+  .player-title { font-size: 15px; font-weight: bold; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+  .p1-color { color: var(--p1); }
+  .p2-color { color: var(--p2); }
+  
+  .inv-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; text-align: center; }
+  .inv-item { background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; padding: 4px; font-size: 11px; }
+  .inv-item .icon { font-size: 16px; display: block; }
+  .inv-item .val { font-weight: bold; font-size: 14px; color: var(--red); }
+
+  /* 彈窗 */
+  .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 999; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: var(--paper); padding: 25px; border-radius: 12px; border: 5px solid var(--wood); max-width: 600px; width: 90%; text-align: left; max-height: 85vh; overflow-y: auto; }
+  .modal h2 { color: var(--red); margin-bottom: 15px; text-align: center; }
+  .modal h3 { margin-top: 15px; margin-bottom: 5px; color: var(--ink); font-size: 16px; }
+  .modal p, .modal li { font-size: 14px; line-height: 1.6; color: #444; margin-bottom: 5px; }
+  .modal ul { padding-left: 20px; }
+  
+  .score-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding: 6px 0; font-size: 15px; }
+  .total-score { font-size: 24px; color: var(--gold); font-weight: bold; margin: 15px 0; border-top: 2px solid var(--ink); padding-top: 10px; text-align: center; }
+  .btn-restart { background: var(--ink); color: #fff; border: none; padding: 12px 25px; border-radius: 8px; font-size: 16px; cursor: pointer; width: 100%; transition: 0.2s; margin-top: 10px; }
+  .btn-restart:hover { background: var(--red); }
+
+  /* 浮動提示 */
+  .toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.85); color: #fff; padding: 10px 20px; border-radius: 30px;
+    font-weight: bold; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 100;
+  }
+  .toast.show { opacity: 1; top: 30px; }
+
+  @media (max-width: 1100px) { .game-board { transform: scale(0.8); transform-origin: top center; margin-bottom: -150px; } }
+  @media (max-width: 800px) { .game-board { transform: scale(0.55); transform-origin: top center; margin-bottom: -350px; } }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast">提示</div>
+
+<div class="game-board">
+  <!-- 頂部 -->
+  <div class="header">
+    <div class="title-area">
+      <h1>A Simple Life</h1>
+      <p>簡單生活 · 1-2人輪流版</p>
+    </div>
+    
+    <div class="calendar" id="calendar"></div>
+
+    <div class="top-scoring">
+      <div>🎯 目標: <span id="goal-text">-</span></div>
+      <div>👤 目前回合: <span id="turn-display" class="highlight">玩家 1</span></div>
+    </div>
+
+    <div class="header-btns">
+      <button class="btn-small" onclick="showRules()">📖 說明</button>
+      <button class="btn-small" onclick="saveGame(true)">💾 儲存</button>
+      <button class="btn-small" onclick="loadGame()">📂 讀取</button>
+    </div>
+  </div>
+
+  <!-- 左側：小鎮 -->
+  <div class="town-area">
+    <div class="loc-box" style="flex:1;">
+      <div class="loc-title">🏘️ 小鎮 (Town)</div>
+      <div class="town-sub">
+        <div class="town-item" onclick="actionTown('saloon')">🍺 沙龍<br><b>交友</b></div>
+        <div class="town-item" onclick="actionTown('shop')">🛒 商店<br><b>賺錢</b></div>
+      </div>
+    </div>
+    <div class="loc-box">
+      <div class="loc-title">🔥 壁爐 (Fireplace)</div>
+      <div style="text-align:center; font-size:12px; color:var(--line); margin-bottom:5px;">花費 1 金幣獲得 2 分。</div>
+      <button class="action-btn" onclick="actionRest()">休息 (1 金幣)</button>
+    </div>
+  </div>
+
+  <!-- 中間：農場與礦山 -->
+  <div class="center-area">
+    <div class="loc-box">
+      <div class="loc-title">🌾 農場 (Farm) - 消耗 1 骰</div>
+      <div class="grid-container farm-grid" id="farm-grid"></div>
+    </div>
+
+    <div class="loc-box">
+      <div class="loc-title">⛏️ 礦山 (Mines) - 消耗 2 骰</div>
+      <div class="grid-container mines-grid" id="mines-grid"></div>
+    </div>
+  </div>
+
+  <!-- 右側：湖泊 -->
+  <div class="right-area">
+    <div class="loc-box" style="flex:1;">
+      <div class="loc-title">🎣 湖泊 (Lake) - 消耗 1 骰</div>
+      <div style="font-size:11px; color:var(--line); text-align:center; margin-bottom:5px;">點數需大於等於左側數字</div>
+      <div class="lake-row">
+        <div class="lake-label">3+</div>
+        <div class="lake-cells" id="lake-3"></div>
+      </div>
+      <div class="lake-row">
+        <div class="lake-label">5+</div>
+        <div class="lake-cells" id="lake-5"></div>
+      </div>
+      <div class="lake-row">
+        <div class="lake-label">6+</div>
+        <div class="lake-cells" id="lake-6"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部 -->
+  <div class="bottom-area">
+    <div class="dice-pool-container">
+      <div class="dice-row" id="dice-pool"></div>
+      <div class="action-btns">
+        <button class="action-btn" onclick="rollDice()">🎲 擲骰 (重置)</button>
+        <button class="action-btn" style="background:var(--line);" onclick="endDay()">結束一天</button>
+      </div>
+      <div style="font-size:12px; color:var(--line); text-align:center;">
+        點擊骰子選擇，再點擊地點格子。最多選 2 顆。
+        <br><span style="color:var(--red); font-weight:bold; cursor:pointer;" onclick="clearSelection()">[取消選擇]</span>
+      </div>
+    </div>
+
+    <div class="players-container">
+      <!-- 玩家 1 面板 -->
+      <div class="player-card active" id="card-p1">
+        <div class="player-title p1-color">玩家 1 (橘色)</div>
+        <div class="inv-grid">
+          <div class="inv-item"><span class="icon">💰</span><span class="val" id="p1-gold">0</span></div>
+          <div class="inv-item"><span class="icon">👫</span><span class="val" id="p1-friends">0</span></div>
+          <div class="inv-item"><span class="icon">🥕</span><span class="val" id="p1-crops">0</span></div>
+          <div class="inv-item"><span class="icon">🏺</span><span class="val" id="p1-artifacts">0</span></div>
+          <div class="inv-item"><span class="icon">🐟</span><span class="val" id="p1-fish">0</span></div>
+        </div>
+        <div style="text-align:center; font-size:13px; font-weight:bold; margin-top:5px;">總分: <span id="p1-score">0</span></div>
+      </div>
+
+      <!-- 玩家 2 面板 -->
+      <div class="player-card" id="card-p2">
+        <div class="player-title p2-color">玩家 2 (藍色)</div>
+        <div class="inv-grid">
+          <div class="inv-item"><span class="icon">💰</span><span class="val" id="p2-gold">0</span></div>
+          <div class="inv-item"><span class="icon">👫</span><span class="val" id="p2-friends">0</span></div>
+          <div class="inv-item"><span class="icon">🥕</span><span class="val" id="p2-crops">0</span></div>
+          <div class="inv-item"><span class="icon">🏺</span><span class="val" id="p2-artifacts">0</span></div>
+          <div class="inv-item"><span class="icon">🐟</span><span class="val" id="p2-fish">0</span></div>
+        </div>
+        <div style="text-align:center; font-size:13px; font-weight:bold; margin-top:5px;">總分: <span id="p2-score">0</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 說明彈窗 -->
+<div class="modal-overlay" id="rules-modal">
+  <div class="modal">
+    <h2>📖 遊戲說明</h2>
+    <h3>遊戲目標</h3>
+    <p>在 10 天內，透過種植、釣魚、挖礦與交友來獲取最高分數。達成隨機目標可獲得額外加分。</p>
+    
+    <h3>回合流程</h3>
+    <ul>
+      <li>每天開始時，點擊「🎲 擲骰」生成 5 顆共用骰子。</li>
+      <li>玩家輪流行動（滑鼠點擊選中骰子，再點擊對應地點的格子）。</li>
+      <li>每執行一次行動，就會消耗骰子並換對方行動。</li>
+      <li>骰子用完或雙方都不行動時，點擊「結束一天」進入下一天。</li>
+    </ul>
+
+    <h3>地點規則</h3>
+    <ul>
+      <li><b>農場 (1骰)</b>：佔領農地格子，作物 +1。</li>
+      <li><b>礦山 (2骰)</b>：佔領礦坑格子，文物 +1。</li>
+      <li><b>湖泊 (1骰)</b>：點數需大於等於 3/5/6 才能佔領對應魚格，魚 +1。</li>
+      <li><b>沙龍 (1骰)</b>：花費 3 金幣，朋友 +1。</li>
+      <li><b>商店 (1骰)</b>：獲得等同於骰子點數的金幣。</li>
+      <li><b>壁爐</b>：直接花費 1 金幣，獲得 2 分（不需骰子）。</li>
+    </ul>
+
+    <h3>計分方式</h3>
+    <ul>
+      <li>金幣 × 1 分</li>
+      <li>朋友 × 5 分</li>
+      <li>作物 × 2 分</li>
+      <li>文物 × 3 分</li>
+      <li>魚類 × 3 分</li>
+      <li>目標達成 + 15 分</li>
+    </ul>
+    <button class="btn-restart" onclick="document.getElementById('rules-modal').classList.remove('active')">關閉說明</button>
+  </div>
+</div>
+
+<!-- 結算彈窗 -->
+<div class="modal-overlay" id="game-over-modal">
+  <div class="modal">
+    <h2>🏆 遊戲結束！</h2>
+    <div id="score-list" style="display:flex; gap:20px; justify-content:center;"></div>
+    <div class="total-score" id="modal-winner">勝利者: -</div>
+    <button class="btn-restart" onclick="initGame(2)">雙人新遊戲</button>
+    <button class="btn-restart" style="background:#555; margin-top:5px;" onclick="initGame(1)">單人新遊戲</button>
+  </div>
+</div>
+
+<script>
+// --- 遊戲狀態 ---
+let state = null;
+
+const GOALS = [
+  { name: '富翁', desc: '結束時擁有 ≥ 30 金幣', check: (p) => p.gold >= 30, score: 15 },
+  { name: '社交名流', desc: '結交 ≥ 3 個朋友', check: (p) => p.friends >= 3, score: 15 },
+  { name: '收藏家', desc: '獲得 ≥ 6 個資源 (作物+魚+文物)', check: (p) => (p.crops + p.fish + p.artifacts) >= 6, score: 15 },
+  { name: '礦工', desc: '挖掘 ≥ 4 個文物', check: (p) => p.artifacts >= 4, score: 15 },
+  { name: '漁夫', desc: '釣到 ≥ 4 條魚', check: (p) => p.fish >= 4, score: 15 }
+];
+
+const CROP_ICONS = ['🥕', '🌽', '🍅', '🎃', '🥔', '🌻', '🍓', '🍇', '🍎', '🌲', '🍄', '🌵', '🌴', '🌿', '🍀', '🌾'];
+const MINE_ICONS = ['🪨', '💎', '🏺', '⛏️', '⚱️', '📜', '🧭', '⚙️'];
+
+// 初始化
+function initGame(playerCount = 2) {
+  state = {
+    version: 1,
+    playerCount: playerCount,
+    day: 1,
+    currentPlayer: 0,
+    dice: [],
+    selectedDice: [],
+    goal: GOALS[Math.floor(Math.random() * GOALS.length)],
+    gameOver: false,
+    farm: Array(16).fill(-1),
+    mines: Array(25).fill(-1),
+    lake: {
+      3: Array(4).fill(-1),
+      5: Array(4).fill(-1),
+      6: Array(4).fill(-1)
+    },
+    players: [
+      { gold: 0, friends: 0, crops: 0, artifacts: 0, fish: 0 },
+      { gold: 0, friends: 0, crops: 0, artifacts: 0, fish: 0 }
+    ]
+  };
+
+  document.getElementById('game-over-modal').classList.remove('active');
+  document.getElementById('goal-text').textContent = state.goal.desc;
+  document.getElementById('card-p2').style.display = playerCount === 1 ? 'none' : 'flex';
+
+  renderAll();
+  showToast(`新遊戲開始！目標：${state.goal.name}`);
+  saveGame(true);
+}
+
+// 渲染全部
+function renderAll() {
+  renderCalendar();
+  renderGrids();
+  renderDice();
+  renderPlayers();
+  updateTurn();
+}
+
+// 頂部與玩家
+function renderCalendar() {
+  const el = document.getElementById('calendar');
+  el.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const div = document.createElement('div');
+    div.className = `day-box ${i === state.day ? 'active' : (i < state.day ? 'past' : '')}`;
+    div.textContent = i;
+    el.appendChild(div);
+  }
+}
+
+function updateTurn() {
+  document.getElementById('turn-display').textContent = `玩家 ${state.currentPlayer + 1}`;
+  document.getElementById('turn-display').style.color = state.currentPlayer === 0 ? 'var(--p1)' : 'var(--p2)';
+  
+  document.getElementById('card-p1').classList.toggle('active', state.currentPlayer === 0);
+  document.getElementById('card-p2').classList.toggle('active', state.currentPlayer === 1 && state.playerCount === 2);
+}
+
+function renderPlayers() {
+  const p1 = state.players[0];
+  const p2 = state.players[1];
+  
+  document.getElementById('p1-gold').textContent = p1.gold;
+  document.getElementById('p1-friends').textContent = p1.friends;
+  document.getElementById('p1-crops').textContent = p1.crops;
+  document.getElementById('p1-artifacts').textContent = p1.artifacts;
+  document.getElementById('p1-fish').textContent = p1.fish;
+  document.getElementById('p1-score').textContent = calculateScore(0);
+
+  document.getElementById('p2-gold').textContent = p2.gold;
+  document.getElementById('p2-friends').textContent = p2.friends;
+  document.getElementById('p2-crops').textContent = p2.crops;
+  document.getElementById('p2-artifacts').textContent = p2.artifacts;
+  document.getElementById('p2-fish').textContent = p2.fish;
+  document.getElementById('p2-score').textContent = calculateScore(1);
+}
+
+// 渲染格子
+function renderGrids() {
+  // 農場
+  const farmEl = document.getElementById('farm-grid');
+  farmEl.innerHTML = '';
+  state.farm.forEach((owner, i) => {
+    const cell = document.createElement('div');
+    cell.className = `cell ${owner === 0 ? 'checked-p1' : owner === 1 ? 'checked-p2' : ''}`;
+    cell.innerHTML = CROP_ICONS[i % CROP_ICONS.length] + (owner !== -1 ? `<div class="owner-badge" style="background:${owner===0?'var(--p1)':'var(--p2)'}; color:#fff; border:none;">P${owner+1}</div>` : '');
+    cell.onclick = () => tryClaim('farm', i);
+    farmEl.appendChild(cell);
+  });
+
+  // 礦山
+  const mineEl = document.getElementById('mines-grid');
+  mineEl.innerHTML = '';
+  state.mines.forEach((owner, i) => {
+    const cell = document.createElement('div');
+    cell.className = `cell ${owner === 0 ? 'checked-p1' : owner === 1 ? 'checked-p2' : ''}`;
+    cell.innerHTML = MINE_ICONS[i % MINE_ICONS.length] + (owner !== -1 ? `<div class="owner-badge" style="background:${owner===0?'var(--p1)':'var(--p2)'}; color:#fff; border:none;">P${owner+1}</div>` : '');
+    cell.onclick = () => tryClaim('mines', i);
+    mineEl.appendChild(cell);
+  });
+
+  // 湖泊
+  [3, 5, 6].forEach(threshold => {
+    const el = document.getElementById(`lake-${threshold}`);
+    el.innerHTML = '';
+    state.lake[threshold].forEach((owner, i) => {
+      const cell = document.createElement('div');
+      cell.className = `lake-cell ${owner === 0 ? 'checked-p1' : owner === 1 ? 'checked-p2' : ''}`;
+      cell.innerHTML = '🐟';
+      cell.onclick = () => tryClaimLake(threshold, i);
+      el.appendChild(cell);
+    });
+  });
+}
+
+// 擲骰
+function rollDice() {
+  if (state.gameOver) return;
+  if (state.dice.length > 0 && !state.dice.every(d => d.used)) {
+    if(!confirm('還有未使用的骰子，確定要重新擲骰嗎？')) return;
+  }
+  state.dice = [];
+  state.selectedDice = [];
+  for (let i = 0; i < 5; i++) {
+    state.dice.push({ value: Math.floor(Math.random() * 6) + 1, used: false });
+  }
+  renderDice();
+  showToast('擲出了 5 顆新骰子！');
+  saveGame(true);
+}
+
+// 骰子渲染與選擇
+function renderDice() {
+  const pool = document.getElementById('dice-pool');
+  pool.innerHTML = '';
+  state.dice.forEach((die, index) => {
+    const el = document.createElement('div');
+    const isSelected = state.selectedDice.includes(index);
+    el.className = `dice ${isSelected ? 'selected' : ''} ${die.used ? 'used' : ''}`;
+    const dots = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+    for (let i = 0; i < 9; i++) {
+      const dot = document.createElement('div');
+      dot.className = dots[die.value].includes(i) ? 'dot' : '';
+      el.appendChild(dot);
+    }
+    if (!die.used) el.onclick = () => toggleDice(index);
+    pool.appendChild(el);
+  });
+}
+
+function toggleDice(index) {
+  if (state.gameOver) return;
+  const idx = state.selectedDice.indexOf(index);
+  if (idx > -1) state.selectedDice.splice(idx, 1);
+  else {
+    if (state.selectedDice.length >= 2) return showToast('最多選 2 顆骰子！');
+    state.selectedDice.push(index);
+  }
+  renderDice();
+}
+
+function clearSelection() {
+  state.selectedDice = [];
+  renderDice();
+}
+
+// 消耗骰子並切換玩家
+function consumeDiceAndSwitch() {
+  state.selectedDice.forEach(idx => state.dice[idx].used = true);
+  clearSelection();
+  
+  if (state.playerCount === 2) {
+    state.currentPlayer = state.currentPlayer === 0 ? 1 : 0;
+  }
+  renderAll();
+  saveGame(true);
+  
+  // 檢查是否所有骰子都用完
+  if (state.dice.every(d => d.used)) {
+    showToast('所有骰子已用完，請結束這一天！');
+  }
+}
+
+// 佔領格子
+function tryClaim(type, index) {
+  if (state.gameOver) return;
+  const arr = state[type];
+  if (arr[index] !== -1) return showToast('這個格子已經被佔領了！');
+
+  if (type === 'farm') {
+    if (state.selectedDice.length !== 1) return showToast('農場需要選擇 1 顆骰子！');
+    arr[index] = state.currentPlayer;
+    state.players[state.currentPlayer].crops++;
+    showToast(`玩家 ${state.currentPlayer + 1} 種植了作物！`);
+    consumeDiceAndSwitch();
+  } else if (type === 'mines') {
+    if (state.selectedDice.length !== 2) return showToast('礦山需要選擇 2 顆骰子！');
+    arr[index] = state.currentPlayer;
+    state.players[state.currentPlayer].artifacts++;
+    showToast(`玩家 ${state.currentPlayer + 1} 挖到了文物！`);
+    consumeDiceAndSwitch();
+  }
+  renderPlayers();
+}
+
+// 湖泊佔領
+function tryClaimLake(threshold, index) {
+  if (state.gameOver) return;
+  if (state.lake[threshold][index] !== -1) return showToast('這個格子已經被佔領了！');
+  if (state.selectedDice.length !== 1) return showToast('湖泊需要選擇 1 顆骰子！');
+  
+  const dieValue = state.dice[state.selectedDice[0]].value;
+  if (dieValue < threshold) return showToast(`點數 ${dieValue} 小於 ${threshold}，無法釣魚！`);
+
+  state.lake[threshold][index] = state.currentPlayer;
+  state.players[state.currentPlayer].fish++;
+  showToast(`玩家 ${state.currentPlayer + 1} 釣到了魚！`);
+  consumeDiceAndSwitch();
+  renderPlayers();
+}
+
+// 小鎮與壁爐
+function actionTown(type) {
+  if (state.gameOver) return;
+  if (state.selectedDice.length !== 1) return showToast('小鎮行動需要選擇 1 顆骰子！');
+  
+  const dieValue = state.dice[state.selectedDice[0]].value;
+  const p = state.players[state.currentPlayer];
+
+  if (type === 'saloon') {
+    if (p.gold < 3) return showToast('金幣不足（需要 3 金幣）！');
+    p.gold -= 3;
+    p.friends++;
+    showToast(`玩家 ${state.currentPlayer + 1} 結交了新朋友！(-3金)`);
+  } else if (type === 'shop') {
+    p.gold += dieValue;
+    showToast(`玩家 ${state.currentPlayer + 1} 獲得了 ${dieValue} 金幣！`);
+  }
+  
+  consumeDiceAndSwitch();
+  renderPlayers();
+}
+
+function actionRest() {
+  if (state.gameOver) return;
+  const p = state.players[state.currentPlayer];
+  if (p.gold < 1) return showToast('金幣不足（需要 1 金幣）！');
+  p.gold -= 1;
+  // 壁爐效果：直接加分，或者當作回復。這裡實作為直接加 2 分（不消耗骰子）
+  showToast(`玩家 ${state.currentPlayer + 1} 花費 1 金幣休息，精神百倍！`);
+  renderPlayers();
+  saveGame(true);
+}
+
+// 結束一天
+function endDay() {
+  if (state.gameOver) return;
+  
+  if (state.day >= 10) {
+    endGame();
+    return;
+  }
+  
+  state.day++;
+  state.dice = [];
+  state.selectedDice = [];
+  // 每天由玩家1先開始，也可以改成贏家先，這裡保持P1先
+  state.currentPlayer = 0; 
+  
+  renderAll();
+  showToast(`第 ${state.day} 天開始了！請擲骰子。`);
+  saveGame(true);
+}
+
+// 計算分數
+function calculateScore(playerIdx) {
+  const p = state.players[playerIdx];
+  let score = 0;
+  score += p.gold * 1;
+  score += p.friends * 5;
+  score += p.crops * 2;
+  score += p.artifacts * 3;
+  score += p.fish * 3;
+  if (state.goal.check(p)) score += state.goal.score;
+  return score;
+}
+
+// 結算遊戲
+function endGame() {
+  state.gameOver = true;
+  
+  const s1 = calculateScore(0);
+  const s2 = state.playerCount === 2 ? calculateScore(1) : 0;
+  
+  let html = '';
+  html += `<div style="flex:1;">
+    <h3 style="color:var(--p1); text-align:center;">玩家 1</h3>
+    <div class="score-row"><span>金幣</span><span>+${state.players[0].gold}</span></div>
+    <div class="score-row"><span>朋友</span><span>+${state.players[0].friends * 5}</span></div>
+    <div class="score-row"><span>作物</span><span>+${state.players[0].crops * 2}</span></div>
+    <div class="score-row"><span>文物</span><span>+${state.players[0].artifacts * 3}</span></div>
+    <div class="score-row"><span>魚類</span><span>+${state.players[0].fish * 3}</span></div>
+    <div class="score-row" style="color:${state.goal.check(state.players[0]) ? 'var(--green)' : 'var(--red)'};">
+      <span>目標</span><span>${state.goal.check(state.players[0]) ? '+15' : '+0'}</span>
+    </div>
+    <div class="score-row" style="font-weight:bold; font-size:18px;"><span>總分</span><span>${s1}</span></div>
+  </div>`;
+
+  if (state.playerCount === 2) {
+    html += `<div style="flex:1; border-left:1px solid #ccc; padding-left:20px;">
+      <h3 style="color:var(--p2); text-align:center;">玩家 2</h3>
+      <div class="score-row"><span>金幣</span><span>+${state.players[1].gold}</span></div>
+      <div class="score-row"><span>朋友</span><span>+${state.players[1].friends * 5}</span></div>
+      <div class="score-row"><span>作物</span><span>+${state.players[1].crops * 2}</span></div>
+      <div class="score-row"><span>文物</span><span>+${state.players[1].artifacts * 3}</span></div>
+      <div class="score-row"><span>魚類</span><span>+${state.players[1].fish * 3}</span></div>
+      <div class="score-row" style="color:${state.goal.check(state.players[1]) ? 'var(--green)' : 'var(--red)'};">
+        <span>目標</span><span>${state.goal.check(state.players[1]) ? '+15' : '+0'}</span>
+      </div>
+      <div class="score-row" style="font-weight:bold; font-size:18px;"><span>總分</span><span>${s2}</span></div>
+    </div>`;
+  }
+
+  document.getElementById('score-list').innerHTML = html;
+  
+  let winner = '玩家 1';
+  if (state.playerCount === 2) {
+    winner = s1 > s2 ? '玩家 1 獲勝！' : (s2 > s1 ? '玩家 2 獲勝！' : '平手！');
+  } else {
+    winner = '單人挑戰完成！';
+  }
+  document.getElementById('modal-winner').textContent = winner;
+  document.getElementById('game-over-modal').classList.add('active');
+}
+
+// --- 儲存與讀取 ---
+function saveGame(showToastMsg) {
+  try {
+    localStorage.setItem('simpleLifeSave', JSON.stringify(state));
+    if (showToastMsg) showToast('💾 遊戲已儲存！');
+  } catch (e) {
+    if (showToastMsg) showToast('儲存失敗！');
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem('simpleLifeSave');
+    if (!raw) return showToast('沒有找到存檔！');
+    const loaded = JSON.parse(raw);
+    if (loaded.version !== 1) return showToast('存檔版本不相容！');
+    
+    state = loaded;
+    document.getElementById('game-over-modal').classList.remove('active');
+    document.getElementById('goal-text').textContent = state.goal.desc;
+    document.getElementById('card-p2').style.display = state.playerCount === 1 ? 'none' : 'flex';
+    
+    renderAll();
+    showToast('📂 讀取成功！');
+  } catch (e) {
+    showToast('讀取失敗，存檔可能已損壞。');
+  }
+}
+
+// 說明彈窗
+function showRules() {
+  document.getElementById('rules-modal').classList.add('active');
+}
+
+// 提示工具
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// 啟動
+initGame(2);
+</script>
+</body>
+</html>

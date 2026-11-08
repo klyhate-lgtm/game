@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>偵探俱樂部4：神秘島</title>
+    <style>
+        :root {
+            --bg-color: #1a1a24;
+            --text-color: #e0e0e0;
+            --primary-color: #00bcd4;
+            --secondary-color: #2c2c3e;
+            --accent-color: #ffeb3b;
+            --card-bg: #232333;
+            --border-color: #444455;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--secondary-color);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--primary-color);
+            flex-shrink: 0;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .controls button {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            margin-left: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .controls button:hover {
+            background-color: var(--border-color);
+            color: var(--primary-color);
+        }
+
+        /* Main Game Area */
+        #game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        #story-text {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            line-height: 1.7;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+
+        #story-text strong {
+            color: var(--primary-color);
+        }
+
+        #story-text .penalty {
+            color: #ff5252;
+            font-weight: bold;
+        }
+
+        #story-text .success {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        #choices-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .choice-btn {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 15px 20px;
+            text-align: left;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .choice-btn:hover:not(:disabled) {
+            background-color: #3e3e5e;
+            border-color: var(--primary-color);
+            transform: translateX(5px);
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: #1a1a24;
+            border-color: #333;
+        }
+
+        /* Evidence / Inventory Bar */
+        #evidence-bar {
+            background-color: var(--secondary-color);
+            border-top: 2px solid var(--primary-color);
+            padding: 10px 0;
+            flex-shrink: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            height: 170px;
+        }
+
+        #evidence-bar::-webkit-scrollbar {
+            height: 8px;
+        }
+        #evidence-bar::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .evidence-container {
+            display: flex;
+            gap: 15px;
+            padding: 0 20px;
+            margin: 0 auto;
+            height: 100%;
+            align-items: center;
+        }
+
+        .evidence-card {
+            width: 130px;
+            height: 140px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .evidence-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,188,212,0.3);
+            border-color: var(--primary-color);
+        }
+
+        .evidence-card .svg-icon {
+            position: absolute;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+        }
+
+        .evidence-label {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 6px 4px;
+            text-align: center;
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border-color);
+            z-index: 2;
+            white-space: normal;
+            line-height: 1.2;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--bg-color);
+            padding: 30px;
+            border-radius: 12px;
+            border: 2px solid var(--primary-color);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .modal-content h2 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .modal-content p {
+            margin-bottom: 12px;
+            line-height: 1.6;
+            color: #ccc;
+        }
+
+        .modal-content button {
+            margin-top: 20px;
+            padding: 10px 25px;
+            background-color: var(--primary-color);
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .modal-content button:hover {
+            background-color: #008ba3;
+        }
+
+        /* Score */
+        .score-display {
+            font-weight: bold;
+            color: var(--accent-color);
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>偵探俱樂部4：神秘島</h1>
+        <div class="controls">
+            <span class="score-display">分數: <span id="score">0</span></span>
+            <button onclick="openModal('help')">遊戲說明</button>
+            <button onclick="saveGame()">存檔</button>
+            <button onclick="loadGame()">讀檔</button>
+        </div>
+    </header>
+
+    <main id="game-container">
+        <div id="story-text"></div>
+        <div id="choices-container"></div>
+    </main>
+
+    <div id="evidence-bar">
+        <div class="evidence-container" id="evidence-list"></div>
+    </div>
+
+    <!-- 彈窗 -->
+    <div class="modal-overlay" id="modal-help">
+        <div class="modal-content">
+            <h2>遊戲說明</h2>
+            <p>歡迎加入偵探俱樂部！你將扮演年輕的偵探 Bodger Pancetta。</p>
+            <p>閱讀故事，做出選擇，並收集關鍵證物來解開謎題。</p>
+            <p><strong>請注意：</strong>選錯答案會遭到「砸派」懲罰，並扣除分數！</p>
+            <p>點擊下方的證物欄可查看已收集的證物。</p>
+            <button onclick="closeModal('help')">開始遊戲</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-evidence">
+        <div class="modal-content">
+            <h2 id="ev-title">證物</h2>
+            <p id="ev-desc"></p>
+            <button onclick="closeModal('evidence')">關閉</button>
+        </div>
+    </div>
+
+    <script>
+        // 遊戲狀態
+        let state = {
+            currentNode: 'start',
+            score: 0,
+            inventory: [],
+            maxScore: 25
+        };
+
+        // 劇情節點
+        const nodes = {
+            'start': {
+                text: "我們正在紅灣（Red Bay）度假，但 Caseys 的父親（警察局長）突然失蹤了。我們回到房車，發現裡面異常整潔，但桌上卻留著<b>破損的煙斗</b>和<b>摔壞的手錶</b>。<br><br>這看起來像是發生過激烈的搏鬥！",
+                choices: [
+                    { text: "檢查現場留下的證據（前往段落 47）", next: 'node_47', type: 'normal' },
+                    { text: "認為他只是去買新煙斗了，決定去海灘玩（前往段落 49）", next: 'fail_1', type: 'fail', penalty: 2 },
+                    { text: "立刻去報警（前往段落 2）", next: 'fail_2', type: 'fail', penalty: 1 }
+                ]
+            },
+            'node_47': {
+                text: "你仔細觀察現場，發現煙斗碎成了好幾塊，手錶也停了。這絕對不是單純的意外，局長一定是遇到了危險。<br><br>此時，一個肥胖的男人 Latruffe（潛水俱樂部成員）靠在門口抽著雪茄說：「局長去城裡了，他收到電報說家裡有事。他讓我轉告你們。」",
+                choices: [
+                    { text: "相信他的話，繼續度假", next: 'fail_3', type: 'fail', penalty: 2 },
+                    { text: "指出他在說謊（Casey 的母親早已過世）", next: 'node_14', type: 'success', score: 3 },
+                    { text: "問他有沒有看到局長往哪走", next: 'fail_4', type: 'fail', penalty: 1 }
+                ]
+            },
+            'node_14': {
+                text: "<span class='success'>完美推理！</span> Caseys 的母親已經去世了，根本不可能發電報。Latruffe 在說謊，局長絕對是被綁架了！<br><br>我們偷偷潛入房車，發現了一張局長留下的筆記殘頁。",
+                choices: [
+                    { text: "查看筆記殘頁（前往段落 26）", next: 'node_26', type: 'success', score: 3 }
+                ]
+            },
+            'node_26': {
+                text: "筆記上寫著：<b>「S.A. Lingotti? L.J. l'uccello? Isola T!」</b><br><br>James 思考了一下：「Lingotti 是金條，L.J. l'uccello 應該是指《金銀島》裡的長約翰·西爾弗（Long John Silver）。Isola T 就是金銀島（Treasure Island）！」<br><br>這暗示了營地的管理員 Silver 有問題，而且他們在尋找某種寶藏！",
+                choices: [
+                    { text: "前往神秘島（Isola del Sibilo）調查（前往段落 71）", next: 'node_71', type: 'normal' }
+                ]
+            },
+            'node_71': {
+                text: "我們跟著 Silver 的指引來到神秘島。我們發現了潛水員的營地，並在地上找到了一個<b>雪茄煙蒂</b>。<br><br>Casey 說：「因為早上的露水，這煙蒂沒有變濕，證明 Latruffe 今天還來過這裡！」<br><br>我們還發現了他們的潛水裝備，上面標著 <b>CO2（二氧化碳）</b>，真正的潛水員絕對不會用這個！",
+                choices: [
+                    { text: "揭穿他們的假潛水裝備（前往段落 72）", next: 'node_72', type: 'success', score: 4 },
+                    { text: "直接去搶他們的船", next: 'fail_5', type: 'fail', penalty: 2 }
+                ]
+            },
+            'node_72': {
+                text: "這群人是假潛水員，實際上是在走私南非金條！<br><br>我們偷走了一艘名為「晨星號（Rosa del Mattino）」的船準備逃走，但船開得太快，觸礁了！原來金條被藏在船底的漁網裡，拖慢了速度。<br><br>我們在海上發出求救信號（旗語），終於引來了警察，成功救出局長並逮捕了壞人！",
+                choices: [
+                    { text: "查看最終結果", next: 'finale', type: 'normal' }
+                ]
+            },
+            'finale': {
+                text: "局長獲救了，Latruffe 和 Silver 也被逮捕。雖然我們弄壞了一艘船，但這次我們可是立了大功！<br><br>任務完成！你總共獲得了 <b>" + state.score + " 分</b>。",
+                choices: [
+                    { text: "重新開始", next: 'start', type: 'reset' }
+                ]
+            },
+            // 失敗節點
+            'fail_1': { text: "<span class='penalty'>你選錯了！</span>忽視證據去海灘玩，錯過了拯救局長的黃金時間。你被扣了 2 分。", choices: [{ text: "重試", next: 'start', type: 'normal' }] },
+            'fail_2': { text: "<span class='penalty'>你選錯了！</span>沒有證據就報警，只會被當作惡作劇。你被扣了 1 分。", choices: [{ text: "重試", next: 'start', type: 'normal' }] },
+            'fail_3': { text: "<span class='penalty'>你被騙了！</span>Latruffe 是壞人，如果你相信他，局長就危險了。你被扣了 2 分。", choices: [{ text: "重試", next: 'node_47', type: 'normal' }] },
+            'fail_4': { text: "<span class='penalty'>你選錯了！</span>壞人不會告訴你實話。你被扣了 1 分。", choices: [{ text: "重試", next: 'node_47', type: 'normal' }] },
+            'fail_5': { text: "<span class='penalty'>太魯莽了！</span>你們被發現了，差點被抓住。你被扣了 2 分。", choices: [{ text: "重試", next: 'node_71', type: 'normal' }] }
+        };
+
+        // 證物資料
+        const evidenceData = {
+            'pipe': { 
+                name: '破損的煙斗', 
+                desc: '局長心愛的煙斗碎成了好幾塊，證明現場發生過激烈的搏鬥。', 
+                svg: `<svg viewBox="0 0 100 100"><path d="M 20 70 Q 30 40 50 50 Q 60 55 60 70 Q 50 80 30 75 Z" fill="#8B4513"/><rect x="55" y="50" width="25" height="6" fill="#5C2E0B" rx="2"/><line x1="30" y1="70" x2="45" y2="80" stroke="#000" stroke-width="2"/></svg>` 
+            },
+            'notebook': { 
+                name: '筆記殘頁', 
+                desc: '寫著「S.A. Lingotti? L.J. l\'uccello? Isola T!」，暗示了金條與金銀島的線索。', 
+                svg: `<svg viewBox="0 0 100 100"><rect x="25" y="15" width="50" height="70" fill="#F5F5DC" rx="2" transform="rotate(-5 50 50)"/><line x1="35" y1="30" x2="65" y2="30" stroke="#333" stroke-width="2" transform="rotate(-5 50 50)"/><line x1="35" y1="45" x2="65" y2="45" stroke="#333" stroke-width="2" transform="rotate(-5 50 50)"/><line x1="35" y1="60" x2="55" y2="60" stroke="#333" stroke-width="2" transform="rotate(-5 50 50)"/></svg>` 
+            },
+            'cigar': { 
+                name: '雪茄煙蒂', 
+                desc: 'Latruffe 留下的雪茄煙蒂，沒有被早晨的露水弄濕，證明他今天還在島上。', 
+                svg: `<svg viewBox="0 0 100 100"><rect x="30" y="45" width="40" height="15" fill="#8B4513" rx="3"/><rect x="70" y="45" width="10" height="15" fill="#333" rx="2"/><ellipse cx="30" cy="52.5" rx="5" ry="7.5" fill="#A0522D"/><path d="M 20 45 Q 15 30 25 20" fill="none" stroke="#ccc" stroke-width="2"/></svg>` 
+            },
+            'co2': { 
+                name: '假潛水鋼瓶', 
+                desc: '上面標著 CO2（二氧化碳），真正的潛水員絕對不會用這個。證明他們是假潛水員。', 
+                svg: `<svg viewBox="0 0 100 100"><rect x="35" y="20" width="30" height="60" fill="#777" rx="10"/><rect x="40" y="10" width="20" height="15" fill="#999" rx="3"/><text x="50" y="55" font-size="14" fill="#fff" text-anchor="middle" font-family="Arial" font-weight="bold">CO2</text></svg>` 
+            },
+            'net': { 
+                name: '船底漁網', 
+                desc: '綁在「晨星號」船底的漁網，裡面裝著走私的南非金條。', 
+                svg: `<svg viewBox="0 0 100 100"><path d="M 20 50 Q 50 30 80 50 Q 50 70 20 50 Z" fill="none" stroke="#aaa" stroke-width="2"/><line x1="30" y1="40" x2="70" y2="60" stroke="#aaa" stroke-width="2"/><line x1="30" y1="60" x2="70" y2="40" stroke="#aaa" stroke-width="2"/><rect x="45" y="45" width="10" height="10" fill="#FFD700"/><rect x="60" y="42" width="10" height="10" fill="#FFD700"/><rect x="35" y="55" width="10" height="10" fill="#FFD700"/></svg>` 
+            }
+        };
+
+        // DOM 元素
+        const storyTextEl = document.getElementById('story-text');
+        const choicesEl = document.getElementById('choices-container');
+        const scoreEl = document.getElementById('score');
+        const evidenceListEl = document.getElementById('evidence-list');
+
+        // 初始化
+        function init() {
+            renderNode(state.currentNode);
+            updateScoreUI();
+            renderEvidence();
+			state.currentNode = 'start';
+        }
+
+        // 渲染節點
+        function renderNode(nodeId) {
+            const node = nodes[nodeId];
+            if (!node) return;
+
+            let text = node.text;
+            if (nodeId === 'finale') {
+                text = text.replace(state.score, state.score + " 分");
+            }
+            storyTextEl.innerHTML = text;
+
+            choicesEl.innerHTML = '';
+            if (node.choices) {
+                node.choices.forEach(choice => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.innerHTML = `<span>${choice.text}</span>`;
+                    btn.onclick = () => handleChoice(choice);
+                    choicesEl.appendChild(btn);
+                });
+            }
+
+            state.currentNode = nodeId;
+        }
+
+        // 處理選項（已移除 setTimeout，改為同步渲染，保證不卡死）
+        function handleChoice(choice) {
+            // 禁用所有按鈕防止重複點擊
+            document.querySelectorAll('.choice-btn').forEach(btn => btn.disabled = true);
+
+            if (choice.type === 'success') {
+                state.score += choice.score || 0;
+            } else if (choice.type === 'fail') {
+                state.score = Math.max(0, state.score - choice.penalty);
+            } else if (choice.type === 'reset') {
+                state = { currentNode: 'start', score: 0, inventory: [], maxScore: 25 };
+            }
+
+            // 加入證物邏輯
+            if (choice.next === 'node_47') addEvidence('pipe');
+            if (choice.next === 'node_26') addEvidence('notebook');
+            if (choice.next === 'node_71') addEvidence('cigar');
+            if (choice.next === 'node_72') { addEvidence('co2'); addEvidence('net'); }
+
+            updateScoreUI();
+            renderEvidence();
+            
+            // 直接同步執行，避免異步造成的卡死
+            if (choice.next === 'start') {
+                init();
+            } else {
+                renderNode(choice.next);
+            }
+        }
+
+        function addEvidence(id) {
+            if (!state.inventory.includes(id)) {
+                state.inventory.push(id);
+            }
+        }
+
+        function renderEvidence() {
+            evidenceListEl.innerHTML = '';
+            if (state.inventory.length === 0) {
+                evidenceListEl.innerHTML = '<div style="color:#777; padding: 20px; font-style: italic;">尚未收集到任何證物</div>';
+                return;
+            }
+
+            state.inventory.forEach(id => {
+                const ev = evidenceData[id];
+                const card = document.createElement('div');
+                card.className = 'evidence-card';
+                card.innerHTML = `
+                    <div class="svg-icon">${ev.svg}</div>
+                    <div class="evidence-label">${ev.name}</div>
+                `;
+                card.onclick = () => showEvidenceDetail(id);
+                evidenceListEl.appendChild(card);
+            });
+        }
+
+        function showEvidenceDetail(id) {
+            const ev = evidenceData[id];
+            document.getElementById('ev-title').innerText = ev.name;
+            document.getElementById('ev-desc').innerText = ev.desc;
+            openModal('evidence');
+        }
+
+        function updateScoreUI() {
+            scoreEl.innerText = state.score;
+        }
+
+        function openModal(id) {
+            document.getElementById(`modal-${id}`).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(`modal-${id}`).classList.remove('active');
+        }
+
+        function saveGame() {
+            localStorage.setItem('detective4Save', JSON.stringify(state));
+            alert('遊戲進度已成功存檔！');
+        }
+
+        function loadGame() {
+            const saved = localStorage.getItem('detective4Save');
+            if (saved) {
+                state = JSON.parse(saved);
+                updateScoreUI();
+                renderEvidence();
+                renderNode(state.currentNode);
+                alert('遊戲進度已成功讀取！');
+            } else {
+                alert('目前沒有找到任何存檔。');
+            }
+        }
+
+        // 啟動遊戲
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A4 Quest - 多重宇宙探索 (完全版)</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: #2c2c2c;
+            --text-color: #e0e0e0;
+            --accent: #e63946;
+            --gold: #f4a261;
+            --green: #2a9d8f;
+            --blue: #457b9d;
+            --dice-white: #f8f9fa;
+            --dice-black: #212529;
+            --border-radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0; padding: 10px;
+            display: flex; flex-direction: column; align-items: center;
+            height: 100vh; box-sizing: border-box; overflow: hidden;
+        }
+
+        h1, h2, h3, h4 { margin: 0 0 10px 0; text-align: center; }
+        
+        .top-bar {
+            width: 100%; max-width: 1400px; display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 10px; background: var(--panel-bg);
+            padding: 10px 20px; border-radius: var(--border-radius); box-sizing: border-box;
+        }
+        
+        .top-bar div { display: flex; gap: 10px; }
+
+        .game-layout {
+            display: grid; grid-template-columns: 300px 1fr 320px; gap: 15px;
+            width: 100%; max-width: 1400px; flex-grow: 1; height: calc(100vh - 100px);
+        }
+
+        .panel {
+            background-color: var(--panel-bg); border-radius: var(--border-radius);
+            padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; overflow-y: auto; border: 1px solid #444;
+        }
+
+        .stat-row {
+            display: flex; justify-content: space-between; margin-bottom: 8px;
+            background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;
+            align-items: center; font-size: 15px;
+        }
+        .stat-value { color: var(--gold); font-weight: bold; font-size: 1.2em; }
+        .log-box {
+            background: #111; padding: 10px; border-radius: 4px; flex-grow: 1;
+            overflow-y: auto; font-size: 12px; margin-top: 10px; border: 1px solid #333;
+            display: flex; flex-direction: column;
+        }
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #222; padding-bottom: 4px; }
+
+        .map-panel {
+            background: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="%23222"/><path d="M0 100 L100 0" stroke="%23333" stroke-width="1"/></svg>') repeat;
+            display: flex; flex-direction: column; justify-content: center; position: relative;
+        }
+        .board-wrapper {
+            width: 100%; overflow-x: auto; padding: 40px 10px;
+            box-sizing: border-box; display: flex; align-items: center;
+        }
+        .board { display: flex; gap: 0; margin: 0 auto; align-items: center;}
+
+        .region {
+            display: flex; border: 2px solid #555; background: #333;
+            border-radius: var(--border-radius); position: relative;
+            margin-right: 25px; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        .region:not(:last-child)::after {
+            content: '➤'; position: absolute; right: -22px; top: 50%;
+            transform: translateY(-50%); color: #666; font-size: 20px; z-index: 1;
+        }
+
+        .tile {
+            width: 120px; height: 180px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; position: relative; transition: all 0.3s ease;
+        }
+        .tile:not(:last-child) { border-right: 2px solid #fff; }
+        
+        .tile.current { background: rgba(244, 162, 97, 0.2); }
+        .tile.current::before { content: '📍'; position: absolute; top: -25px; font-size: 20px; }
+        .tile-passed { opacity: 0.3; filter: grayscale(100%); }
+        
+        .tile-desc { font-size: 12px; text-align: center; font-weight: bold; position: absolute; top: 10px; width: 100%; }
+        
+        .tile-actions { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 10px; width: 100%;}
+        .action-icon { font-size: 18px; background: #222; border-radius: 4px; padding: 2px 5px; border: 1px solid #555; }
+        
+        .tricky-passage {
+            position: absolute; top: -10px; right: 5px; background: var(--accent); color: white;
+            padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;
+        }
+        .enemy-info {
+            position: absolute; bottom: 10px; background: var(--accent); color: white;
+            padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;
+        }
+        .boss-hp-bar {
+            position: absolute; bottom: -15px; background: #111; width: 90%;
+            height: 10px; border: 1px solid var(--accent); border-radius: 5px; overflow: hidden;
+        }
+        .boss-hp-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+
+        .dice-area {
+            background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #444;
+        }
+        .dice-pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 40px; }
+        .die {
+            width: 40px; height: 40px; background-color: var(--dice-white); color: var(--dice-black);
+            border-radius: 6px; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            transition: transform 0.1s; user-select: none;
+        }
+        .die.used { background-color: #555; color: #888; cursor: not-allowed; box-shadow: none; }
+        .die.selected { border: 3px solid var(--gold); transform: translateY(-5px); }
+        .die.adventure { background-color: var(--dice-black); color: var(--gold); border: 2px solid var(--gold); cursor: default; }
+
+        button {
+            background-color: var(--blue); color: white; border: none; padding: 12px;
+            border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold;
+            margin-bottom: 10px; width: 100%; transition: 0.2s; line-height: 1.4;
+        }
+        button:hover:not(:disabled) { background-color: #33658a; }
+        button:disabled { background-color: #333; color: #666; cursor: not-allowed; border: 1px solid #444; }
+        button.primary { background-color: var(--accent); }
+        button.primary:hover:not(:disabled) { background-color: #ba2836; }
+        button.action-btn { background-color: var(--green); text-align: left; padding: 10px 15px; font-size: 14px;}
+        button.action-btn:hover:not(:disabled) { background-color: #21867a; }
+        button.rest-btn { background-color: #6c757d; }
+        button.rest-btn:hover:not(:disabled) { background-color: #5a6268; }
+        
+        .top-btn { margin: 0; padding: 8px 15px; width: auto; font-size: 14px; }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--panel-bg); padding: 25px; border-radius: var(--border-radius);
+            max-width: 550px; width: 90%; text-align: center; border: 2px solid var(--gold);
+            box-shadow: 0 0 30px rgba(244, 162, 97, 0.3);
+        }
+        
+        .combat-log { text-align: left; background: #111; padding: 10px; border-radius: 4px; margin: 15px 0; font-family: monospace; font-size: 14px; line-height: 1.5; max-height: 200px; overflow-y: auto; }
+        
+        .upgrade-options { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+        .upgrade-card { background: #333; border: 2px solid #555; padding: 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; flex: 1;}
+        .upgrade-card:hover { border-color: var(--gold); background: #444; transform: translateY(-3px); }
+        .upgrade-icon { font-size: 24px; margin-bottom: 5px; }
+
+        .combat-dice-pool { display: flex; gap: 10px; justify-content: center; margin: 15px 0; flex-wrap: wrap; }
+
+        #start-menu {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #111; z-index: 200; overflow-y: auto;
+        }
+        .menu-title { font-size: 40px; color: var(--gold); margin-bottom: 20px; margin-top: 20px; text-shadow: 0 0 10px rgba(244,162,97,0.5); }
+        .menu-section { margin-bottom: 20px; text-align: center; width: 100%; max-width: 1000px;}
+        .menu-section h3 { color: #ccc; margin-bottom: 15px; }
+        .card-grid { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+        .select-card {
+            width: 180px; background: #222; border: 2px solid #444; border-radius: 10px;
+            padding: 15px; cursor: pointer; transition: 0.2s; text-align: center;
+        }
+        .select-card:hover { border-color: var(--gold); background: #2a2a2a; }
+        .select-card.selected { border-color: var(--green); box-shadow: 0 0 15px var(--green); background: #1e2e2a; }
+        .select-card h4 { margin: 0 0 10px 0; color: var(--gold); font-size: 16px;}
+        .select-card p { font-size: 12px; color: #aaa; margin: 5px 0; }
+    </style>
+</head>
+<body>
+
+    <div id="start-menu">
+        <h1 class="menu-title">A4 Quest: 多重宇宙</h1>
+        
+        <div class="menu-section">
+            <h3>1. 選擇你的英雄</h3>
+            <div class="card-grid" id="hero-selector"></div>
+        </div>
+
+        <div class="menu-section">
+            <h3>2. 選擇冒險地圖</h3>
+            <div class="card-grid" id="map-selector"></div>
+        </div>
+
+        <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+            <button id="btn-start-game" style="width: 250px; font-size: 18px; padding: 15px;" onclick="startSelectedGame()" disabled>開始冒險</button>
+            <button style="width: 250px; font-size: 18px; padding: 15px; background-color: var(--gold); color: #111;" onclick="startRandomGame()">🎲 隨機冒險</button>
+        </div>
+    </div>
+
+    <div class="top-bar" style="display: none;" id="game-top-bar">
+        <h1 style="margin: 0; color: var(--gold);" id="current-map-name">-</h1>
+        <div>
+            <button class="top-btn" onclick="saveGame()" style="background-color: var(--green);">💾 存檔</button>
+            <button class="top-btn" onclick="loadGame()">📂 讀檔</button>
+            <button class="top-btn" onclick="location.reload()" style="background-color: var(--accent);">🔄 重新開始</button>
+        </div>
+    </div>
+
+    <div class="game-layout" id="game-board" style="display: none;">
+        <div class="panel">
+            <h2 id="hero-name">-</h2>
+            <div class="stat-row"><span>❤️ 生命 (HP)</span> <span class="stat-value" id="stat-hp">0/10</span></div>
+            <div class="stat-row"><span>🍗 食物 (Food)</span> <span class="stat-value" id="stat-food">0/5</span></div>
+            <div class="stat-row"><span>⚔️ 攻擊 (ATK)</span> <span class="stat-value" id="stat-atk">0</span></div>
+            <div class="stat-row"><span>🛡️ 防禦 (DEF)</span> <span class="stat-value" id="stat-def">0</span></div>
+            <div class="stat-row" style="border: 1px solid var(--gold);"><span>⭐ 經驗 (XP)</span> <span class="stat-value" id="stat-xp">0/3</span></div>
+            <div class="stat-row"><span>💎 水晶 (Crystal)</span> <span class="stat-value" id="stat-crystal">0/5</span></div>
+            <div class="stat-row" id="special-stat-row" style="display: none; border: 1px solid #4cc9f0;"><span>🎁 禮物 (Gifts)</span> <span class="stat-value" id="stat-gifts">0</span></div>
+            
+            <div style="font-size: 13px; color: #ccc; background: #222; padding: 10px; border-radius: 4px; margin-top: 10px;" id="hero-skill"></div>
+            
+            <div style="display: flex; gap: 5px; margin-top: 10px;">
+                <button onclick="exertHero()" style="background-color: #6c757d; font-size: 12px; padding: 8px;">💔 消耗英雄 (扣1血換骰)</button>
+                <button onclick="useCrystal()" id="btn-crystal" style="background-color: #457b9d; font-size: 12px; padding: 8px;">💎 使用水晶</button>
+            </div>
+
+            <div class="log-box" id="game-log"></div>
+        </div>
+
+        <div class="panel map-panel">
+            <div style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; font-weight: bold; color: var(--gold); z-index: 20;" id="phase-display">
+                階段：行動
+            </div>
+            <div class="board-wrapper">
+                <div class="board" id="board-container"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>骰子與行動</h2>
+            
+            <div class="dice-area">
+                <h4>準備區 (可用)</h4>
+                <div class="dice-pool" id="prepared-dice"></div>
+            </div>
+            <div class="dice-area">
+                <h4>使用區 (已消耗)</h4>
+                <div class="dice-pool" id="used-dice"></div>
+            </div>
+            
+            <div class="dice-area" style="display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0;">冒險骰</h4>
+                <div class="die adventure" id="adventure-die">-</div>
+            </div>
+
+            <div id="action-controls" style="margin-top: 10px;">
+                <button id="btn-move" class="primary" onclick="attemptMove()" disabled>移動</button>
+                
+                <div id="location-actions" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
+                
+                <button id="btn-rest" class="rest-btn" onclick="attemptRest()" disabled style="margin-top: 10px;">休息 (花費 1 食物)</button>
+                <button id="btn-skip" class="rest-btn" onclick="skipAction()" disabled style="margin-top: 5px; font-size: 12px;">跳過行動 (無事可做)</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content" id="modal-content"></div>
+    </div>
+
+    <script>
+        const STATE = { MOVEMENT: 'MOVEMENT', AMBUSH: 'AMBUSH', ACTION: 'ACTION', GAMEOVER: 'GAMEOVER' };
+        let currentState = STATE.MOVEMENT;
+
+        // --- 角色資料庫 ---
+        const heroesDB = {
+            archer: {
+                id: 'archer', name: '弓箭手 (Corsys)',
+                hp: 3, maxHp: 10, atk: 1, def: 2, xp: 0, crystal: 0, food: 1,
+                skill: '遠程閃避：戰鬥時，可消耗一顆點數為 6 的準備骰，直接跳過該次戰鬥。',
+                skillType: 'archer'
+            },
+            paladin: {
+                id: 'paladin', name: '聖騎士 (Adoeak)',
+                hp: 4, maxHp: 10, atk: 2, def: 1, xp: 0, crystal: 0, food: 1,
+                skill: '神聖重擲：戰鬥時（步驟二之前），可消耗 1 生命，重擲一顆準備骰並使其點數 +1。',
+                skillType: 'paladin'
+            },
+            soldier: {
+                id: 'soldier', name: '士兵 (Cris)',
+                hp: 4, maxHp: 10, atk: 2, def: 2, xp: 0, crystal: 0, food: 1,
+                skill: '等離子槍：戰鬥前，可消耗兩顆總和 ≥8 的骰子，直接擊敗敵人並獲得經驗。',
+                skillType: 'soldier'
+            }
+        };
+
+        // --- 冒險地圖資料庫 (完全版) ---
+        const mapsDB = {
+            abyss: {
+                name: '深淵探索 (Into the Abyss)',
+                specialStat: null,
+                locations: [
+                    { regionId: 1, desc: '起點', trickyPassage: 0, isEnemy: false, actions: [{ type: 'HUNT', name: '狩獵', icon: '🍗', mod: 0 }, { type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }, { type: 'SEARCH', name: '探索', icon: '🎁', mod: -2 }] },
+                    { regionId: 2, desc: '左側', trickyPassage: 0, isEnemy: false, actions: [{ type: 'HUNT', name: '狩獵', icon: '🍗', mod: 0 }, { type: 'SEARCH', name: '探索', icon: '📦', mod: -1 }] },
+                    { regionId: 2, desc: '中間', trickyPassage: 0, isEnemy: true, enemyMod: 0, actions: [{ type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }] },
+                    { regionId: 2, desc: '右側', trickyPassage: 2, isEnemy: false, actions: [{ type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }] },
+                    { regionId: 3, desc: '左側', trickyPassage: 0, isEnemy: true, enemyMod: 2, actions: [] },
+                    { regionId: 3, desc: '右側', trickyPassage: 0, isEnemy: false, actions: [{ type: 'HUNT', name: '狩獵', icon: '🍗', mod: 0 }] },
+                    { regionId: 4, desc: '複雜通道', trickyPassage: 2, isEnemy: false, actions: [{ type: 'HUNT', name: '狩獵', icon: '🍗', mod: 0 }, { type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }, { type: 'SEARCH', name: '探索', icon: '🎁', mod: 1 }] },
+                    { regionId: 5, desc: '哥布林', trickyPassage: 0, isEnemy: true, enemyMod: 3, actions: [] },
+                    { regionId: 5, desc: '哥布林', trickyPassage: 0, isEnemy: true, enemyMod: 3, actions: [] },
+                    { regionId: 6, desc: '通道', trickyPassage: 3, isEnemy: false, actions: [{ type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }] },
+                    { regionId: 6, desc: '骷髏兵', trickyPassage: 0, isEnemy: true, enemyMod: 4, actions: [{ type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }] },
+                    { regionId: 7, desc: '狼群', trickyPassage: 0, isEnemy: true, enemyMod: 3, actions: [{ type: 'HUNT', name: '狩獵', icon: '🍗', mod: 0 }] },
+                    { regionId: 7, desc: '通道', trickyPassage: 3, isEnemy: false, actions: [{ type: 'HUNT', name: '狩獵', icon: '🍗', mod: 0 }] },
+                    { regionId: 8, desc: '深淵領主', trickyPassage: 0, isEnemy: true, isBoss: true, bossHp: 6, maxBossHp: 6, enemyMod: 0, actions: [] }
+                ]
+            },
+            deep_space: {
+                name: '深空孤航 (Deep Space)',
+                specialStat: null,
+                locations: [
+                    { regionId: 1, desc: '登艦', trickyPassage: 0, isEnemy: false, actions: [{ type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }, { type: 'HUNT', name: '搜刮', icon: '🍗', mod: 0 }] },
+                    { regionId: 2, desc: '異形', trickyPassage: 0, isEnemy: true, enemyMod: 4, actions: [{ type: 'HUNT', name: '搜刮', icon: '🍗', mod: 0 }] },
+                    { regionId: 2, desc: '機艙', trickyPassage: 2, isEnemy: false, actions: [{ type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }, { type: 'SEARCH', name: '裝甲艙', icon: '🗄️', mod: 0, cost: 2 }] },
+                    { regionId: 3, desc: '異形巢', trickyPassage: 0, isEnemy: true, enemyMod: 5, actions: [] },
+                    { regionId: 3, desc: '醫療室', trickyPassage: 0, isEnemy: false, actions: [{ type: 'SEARCH', name: '醫療包', icon: '💉', mod: 0, heal: 1 }] },
+                    { regionId: 4, desc: '通道', trickyPassage: 0, isEnemy: false, actions: [{ type: 'QUEST', name: '終端機', icon: '💻', mod: 0 }] },
+                    { regionId: 4, desc: '異形', trickyPassage: 3, isEnemy: true, enemyMod: 6, actions: [] },
+                    { regionId: 5, desc: '異形守衛', trickyPassage: 0, isEnemy: true, enemyMod: 8, actions: [] },
+                    { regionId: 5, desc: '逃生艙', trickyPassage: 2, isEnemy: false, actions: [{ type: 'HUNT', name: '搜刮', icon: '🍗', mod: 0 }, { type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }] },
+                    { regionId: 6, desc: '異形首領', trickyPassage: 0, isEnemy: true, isBoss: true, bossHp: 8, maxBossHp: 8, enemyMod: 0, actions: [] }
+                ]
+            },
+            swamp: {
+                name: '險惡沼澤 (Treacherous Swamp)',
+                specialStat: null,
+                locations: [
+                    { regionId: 1, desc: '沼澤邊緣', trickyPassage: 0, isEnemy: false, actions: [{ type: 'HUNT', name: '採集', icon: '🍗', mod: 0 }, { type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }] },
+                    { regionId: 2, desc: '毒氣區', trickyPassage: 2, isEnemy: false, actions: [{ type: 'SEARCH', name: '探索', icon: '📦', mod: -1 }] },
+                    { regionId: 2, desc: '觸手(左)', trickyPassage: 0, isEnemy: true, isTentacle: true, enemyMod: 2, actions: [] },
+                    { regionId: 3, desc: '泥沼', trickyPassage: 0, isEnemy: false, actions: [{ type: 'HUNT', name: '採集', icon: '🍗', mod: 0 }, { type: 'QUEST', name: '任務', icon: '🔮', mod: 0 }] },
+                    { regionId: 3, desc: '觸手(右)', trickyPassage: 2, isEnemy: true, isTentacle: true, enemyMod: 4, actions: [] },
+                    { regionId: 4, desc: '深水區', trickyPassage: 0, isEnemy: false, actions: [{ type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }] },
+                    { regionId: 4, desc: '觸手(前)', trickyPassage: 3, isEnemy: true, isTentacle: true, enemyMod: 6, actions: [] },
+                    { regionId: 5, desc: '沼澤核心', trickyPassage: 0, isEnemy: true, isBoss: true, bossHp: 6, maxBossHp: 6, enemyMod: 0, actions: [] }
+                ]
+            },
+            spring: {
+                name: '生命之泉 (Spring of Life)',
+                specialStat: null,
+                locations: [
+                    { regionId: 1, desc: '森林入口', trickyPassage: 0, isEnemy: false, actions: [{ type: 'HUNT', name: '狩獵', icon: '🍗', mod: 0 }, { type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }] },
+                    { regionId: 2, desc: '野狼', trickyPassage: 2, isEnemy: true, enemyMod: 2, actions: [] },
+                    { regionId: 2, desc: '泉水', trickyPassage: 0, isEnemy: false, actions: [{ type: 'SPRING', name: '泉水', icon: '💧', mod: 0 }, { type: 'HUNT', name: '狩獵', icon: '🍗', mod: 0 }] },
+                    { regionId: 3, desc: '巨蛛', trickyPassage: 3, isEnemy: true, enemyMod: 4, actions: [] },
+                    { regionId: 3, desc: '營地', trickyPassage: 0, isEnemy: false, actions: [{ type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }, { type: 'QUEST', name: '任務', icon: '🔮', mod: 0 }] },
+                    { regionId: 4, desc: '守衛', trickyPassage: 3, isEnemy: true, enemyMod: 5, actions: [] },
+                    { regionId: 4, desc: '古樹', trickyPassage: 0, isEnemy: false, actions: [{ type: 'HUNT', name: '狩獵', icon: '🍗', mod: 0 }] },
+                    { regionId: 5, desc: '生命之泉', trickyPassage: 0, isEnemy: true, isBoss: true, isSpringBoss: true, bossHp: 8, maxBossHp: 8, enemyMod: 0, actions: [] }
+                ]
+            },
+            christmas: {
+                name: '聖誕任務 (A Very Merry Quest)',
+                specialStat: 'gifts',
+                locations: [
+                    { regionId: 1, desc: '雪地', trickyPassage: 0, isEnemy: false, actions: [{ type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }, { type: 'SOCK', name: '翻襪子', icon: '🧦', mod: 0 }] },
+                    { regionId: 2, desc: '雪人', trickyPassage: 0, isEnemy: true, isSnowman: true, enemyMod: 2, actions: [] },
+                    { regionId: 2, desc: '小木屋', trickyPassage: 2, isEnemy: false, actions: [{ type: 'HUNT', name: '找食物', icon: '🍗', mod: 0 }, { type: 'SOCK', name: '翻襪子', icon: '🧦', mod: 0 }] },
+                    { regionId: 3, desc: '哭泣小孩', trickyPassage: 0, isEnemy: false, actions: [{ type: 'CRYING_CHILD', name: '安撫小孩', icon: '😭', mod: 0 }] },
+                    { regionId: 3, desc: '雪人', trickyPassage: 3, isEnemy: true, isSnowman: true, enemyMod: 4, actions: [] },
+                    { regionId: 4, desc: '聖誕樹', trickyPassage: 0, isEnemy: false, actions: [{ type: 'SOCK', name: '翻襪子', icon: '🧦', mod: 0 }, { type: 'SEARCH', name: '探索', icon: '📦', mod: 0 }] },
+                    { regionId: 5, desc: '大風雪', trickyPassage: 3, isEnemy: false, actions: [{ type: 'HUNT', name: '找食物', icon: '🍗', mod: -1 }] },
+                    { regionId: 6, desc: '雪橇', trickyPassage: 0, isEnemy: false, actions: [] }
+                ]
+            }
+        };
+
+        // 通用查表
+        const huntTable = { 2: {f:0,h:0}, 3: {f:1,h:0}, 4: {f:2,h:0}, 5: {f:1,h:1}, 6: {f:2,h:1} };
+        const searchTable = { 1: {hp:-1}, 2: {xp:1}, 3: {f:1}, 4: {atk:1}, 5: {def:1}, 6: {crystal:1} };
+        const questTable = { 2: {hp:-1}, 3: {crystal:1}, 4: {xp:1}, 5: {atk:1}, 6: {def:1, hp:1} };
+        const enemyTable = { 
+            1: {atk: 1, def: 1, xp: 1}, 2: {atk: 1, def: 1, xp: 1}, 3: {atk: 2, def: 2, xp: 1},
+            4: {atk: 3, def: 2, xp: 2}, 5: {atk: 3, def: 3, xp: 2}, 6: {atk: 4, def: 4, xp: 2},
+            7: {atk: 5, def: 4, xp: 3}, 8: {atk: 5, def: 5, xp: 3}, 9: {atk: 6, def: 6, xp: 4},
+            10: {atk: 7, def: 7, xp: 5}
+        };
+
+        // --- 遊戲狀態 ---
+        let hero = null;
+        let mapLocations = [];
+        let currentMapData = null;
+        let preparedDice = [];
+        let usedDice = [];
+        let adventureDie = 0;
+        let currentPosition = 0; 
+        let usedActions = {};
+        let crystalUsedThisRound = false;
+        let pendingLevelUps = 0;
+        let levelUpCallback = null;
+        
+        // 特殊計數器
+        let specialStatValue = 0;
+
+        // --- 選單邏輯 ---
+        let selectedHeroKey = null;
+        let selectedMapKey = null;
+
+        window.onload = () => {
+            if (localStorage.getItem('a4quest_save')) {
+                if (confirm("發現存檔，是否繼續上次的冒險？\n(點擊取消將重新開始)")) {
+                    document.getElementById('start-menu').style.display = 'none';
+                    document.getElementById('game-top-bar').style.display = 'flex';
+                    document.getElementById('game-board').style.display = 'grid';
+                    loadGame();
+                    return;
+                }
+            }
+            renderStartMenu();
+        };
+
+        function renderStartMenu() {
+            const heroContainer = document.getElementById('hero-selector');
+            heroContainer.innerHTML = '';
+            Object.keys(heroesDB).forEach(key => {
+                const h = heroesDB[key];
+                const card = document.createElement('div');
+                card.className = 'select-card';
+                if (selectedHeroKey === key) card.classList.add('selected');
+                card.innerHTML = `<h4>${h.name}</h4><p>HP: ${h.hp} / 攻: ${h.atk} / 防: ${h.def}</p><p style="color:#f4a261;">${h.skill}</p>`;
+                card.onclick = () => { selectedHeroKey = key; renderStartMenu(); checkStartBtn(); };
+                heroContainer.appendChild(card);
+            });
+
+            const mapContainer = document.getElementById('map-selector');
+            mapContainer.innerHTML = '';
+            Object.keys(mapsDB).forEach(key => {
+                const m = mapsDB[key];
+                const card = document.createElement('div');
+                card.className = 'select-card';
+                if (selectedMapKey === key) card.classList.add('selected');
+                card.innerHTML = `<h4>${m.name}</h4><p>探索未知的區域。</p>`;
+                card.onclick = () => { selectedMapKey = key; renderStartMenu(); checkStartBtn(); };
+                mapContainer.appendChild(card);
+            });
+        }
+
+        function checkStartBtn() {
+            document.getElementById('btn-start-game').disabled = !(selectedHeroKey && selectedMapKey);
+        }
+
+        function startSelectedGame() {
+            if (!selectedHeroKey || !selectedMapKey) return;
+            document.getElementById('start-menu').style.display = 'none';
+            document.getElementById('game-top-bar').style.display = 'flex';
+            document.getElementById('game-board').style.display = 'grid';
+            initGame(selectedHeroKey, selectedMapKey);
+        }
+
+        function startRandomGame() {
+            const heroKeys = Object.keys(heroesDB);
+            const mapKeys = Object.keys(mapsDB);
+            selectedHeroKey = heroKeys[Math.floor(Math.random() * heroKeys.length)];
+            selectedMapKey = mapKeys[Math.floor(Math.random() * mapKeys.length)];
+            startSelectedGame();
+        }
+
+        // --- 初始化遊戲 ---
+        function initGame(heroKey, mapKey) {
+            hero = JSON.parse(JSON.stringify(heroesDB[heroKey]));
+            currentMapData = JSON.parse(JSON.stringify(mapsDB[mapKey]));
+            mapLocations = currentMapData.locations;
+            document.getElementById('current-map-name').innerText = currentMapData.name;
+
+            if (currentMapData.specialStat === 'gifts') {
+                document.getElementById('special-stat-row').style.display = 'flex';
+                specialStatValue = 0;
+            } else {
+                document.getElementById('special-stat-row').style.display = 'none';
+            }
+
+            showModal(`
+                <h3>選擇初始裝備</h3>
+                <p>根據你的角色卡，選擇一項起始加成：</p>
+                <div class="upgrade-options">
+                    <div class="upgrade-card" onclick="applyEquip('def')"><div class="upgrade-icon">🛡️</div>防禦 +1</div>
+                    <div class="upgrade-card" onclick="applyEquip('atk')"><div class="upgrade-icon">⚔️</div>攻擊 +1</div>
+                    <div class="upgrade-card" onclick="applyEquip('food')"><div class="upgrade-icon">🍗</div>食物 +1</div>
+                </div>
+            `, true);
+
+            preparedDice = [];
+            usedDice = [];
+            for (let i = 0; i < 4; i++) {
+                preparedDice.push({ id: i, value: Math.floor(Math.random() * 6) + 1 });
+            }
+            
+            currentPosition = 0;
+            usedActions = {};
+            crystalUsedThisRound = false;
+            currentState = STATE.ACTION; 
+        }
+
+        function applyEquip(type) {
+            if (type === 'def') hero.def += 1;
+            if (type === 'atk') hero.atk += 1;
+            if (type === 'food') hero.food += 1;
+            closeModal();
+            log(`遊戲開始！英雄：${hero.name}，地圖：${currentMapData.name}`);
+            log(`第 1 回合：英雄抵達起點，直接進入行動階段。`);
+            updateUI();
+            autoSave();
+        }
+
+        // --- 存檔與讀檔邏輯 ---
+        function saveGame() {
+            if (!hero) return;
+            const saveData = {
+                hero, mapLocations, currentMapData, preparedDice, usedDice, adventureDie, currentPosition,
+                usedActions, crystalUsedThisRound, pendingLevelUps, currentState, specialStatValue
+            };
+            localStorage.setItem('a4quest_save', JSON.stringify(saveData));
+            log("💾 遊戲已儲存！");
+            alert("遊戲已儲存！");
+        }
+
+        function autoSave() {
+            if (!hero) return;
+            const saveData = {
+                hero, mapLocations, currentMapData, preparedDice, usedDice, adventureDie, currentPosition,
+                usedActions, crystalUsedThisRound, pendingLevelUps, currentState, specialStatValue
+            };
+            localStorage.setItem('a4quest_save', JSON.stringify(saveData));
+        }
+
+        function loadGame() {
+            const saved = localStorage.getItem('a4quest_save');
+            if (!saved) { alert('沒有找到存檔！'); return; }
+            
+            const data = JSON.parse(saved);
+            hero = data.hero;
+            mapLocations = data.mapLocations;
+            currentMapData = data.currentMapData;
+            preparedDice = data.preparedDice;
+            usedDice = data.usedDice;
+            adventureDie = data.adventureDie;
+            currentPosition = data.currentPosition;
+            usedActions = data.usedActions;
+            crystalUsedThisRound = data.crystalUsedThisRound;
+            pendingLevelUps = data.pendingLevelUps || 0;
+            currentState = data.currentState;
+            specialStatValue = data.specialStatValue || 0;
+            
+            document.getElementById('current-map-name').innerText = currentMapData.name;
+            if (currentMapData.specialStat === 'gifts') {
+                document.getElementById('special-stat-row').style.display = 'flex';
+            } else {
+                document.getElementById('special-stat-row').style.display = 'none';
+            }
+
+            closeModal();
+            updateUI();
+            log("📂 遊戲已讀取！");
+            alert("遊戲已讀取！");
+        }
+
+        // --- 遊戲流程 ---
+        function startRound() {
+            crystalUsedThisRound = false;
+            currentState = STATE.MOVEMENT;
+            log(`--- 新回合開始 ---`);
+            promptMovement();
+            updateUI();
+            autoSave();
+        }
+
+        function promptMovement() {
+            const currentTile = mapLocations[currentPosition];
+            if (currentTile.trickyPassage > 0) {
+                log(`當前地點有複雜通道 (需點數 ${currentTile.trickyPassage})，請消耗一顆準備骰移動。`);
+            } else {
+                log(`請直接移動到下一個地點 (免費)。`);
+            }
+        }
+
+        function attemptMove() {
+            if (currentState !== STATE.MOVEMENT) return;
+            
+            const req = mapLocations[currentPosition].trickyPassage;
+            const selected = getSelectedDice();
+
+            if (req > 0) {
+                if (selected.length !== 1) { alert('此通道需要消耗骰子！請選擇 1 顆準備骰。'); return; }
+                const die = selected[0];
+                if (die.value < req) {
+                    alert(`點數不足！需要 ≥ ${req}，你選擇了 ${die.value}。請重擲或使用「消耗英雄」。`);
+                    return;
+                }
+                consumeDie(die);
+            } else {
+                if (selected.length === 1) toggleDie(selected[0].id);
+            }
+
+            currentPosition++;
+            const nextTile = mapLocations[currentPosition];
+            log(`移動到了 [區域 ${nextTile.regionId} 的 ${nextTile.desc}]。`);
+            
+            // 檢查是否到達終點
+            if (currentPosition === mapLocations.length - 1) {
+                if (currentMapData.specialStat === 'gifts') {
+                    if (specialStatValue >= 3) {
+                        showModal(`<h3>🎉 勝利！</h3><p>你收集了足夠的禮物，成功抵達雪橇！</p><button onclick="location.reload()">重新開始</button>`, true, true);
+                        return;
+                    } else {
+                        log('抵達終點，但禮物不足 3 個，無法獲得勝利！');
+                        alert('抵達終點，但禮物不足 3 個！你需要繼續收集(但目前無路可走，請重啟遊戲)。');
+                    }
+                }
+            }
+
+            if (nextTile.isEnemy) {
+                currentState = STATE.AMBUSH;
+                startCombat();
+            } else {
+                currentState = STATE.ACTION;
+                log('安全抵達，進入行動階段。');
+                updateUI();
+                autoSave();
+            }
+        }
+
+        // --- 戰鬥系統 ---
+        let combatState = {};
+        function startCombat() {
+            const tile = mapLocations[currentPosition];
+            log(`遭遇敵人！`);
+            
+            // 觸手特殊處理
+            if (tile.isTentacle) {
+                rollAdventureDie((roll) => {
+                    let mod = tile.enemyMod || 0;
+                    let finalRoll = Math.max(1, Math.min(10, roll + mod));
+                    let enemyBase = enemyTable[finalRoll] || enemyTable[10];
+                    
+                    let damage = enemyBase.atk - hero.def;
+                    if (damage > 0) {
+                        hero.hp -= damage;
+                        log(`觸手攻擊！你受到 ${damage} 點傷害。`);
+                    } else {
+                        log(`你成功防禦了觸手的攻擊。`);
+                    }
+                    
+                    if (hero.hp <= 0) { gameOver(); return; }
+                    
+                    showModal(`
+                        <h3>觸手戰</h3>
+                        <div class="combat-log">
+                            冒險骰擲出：${roll} + ${mod} = ${finalRoll}<br>
+                            觸手攻擊力：${enemyBase.atk}<br>
+                            ${damage > 0 ? `你受到 ${damage} 點傷害。` : '你成功防禦。'}<br>
+                        </div>
+                        <p>你可以消耗一顆骰子來攻擊本體 (需特定點數)。</p>
+                        <button onclick="finishCombat()">繼續</button>
+                    `, true);
+                });
+                return;
+            }
+
+            rollAdventureDie((roll) => {
+                let mod = tile.enemyMod || 0;
+                let finalRoll = Math.max(1, Math.min(10, roll + mod));
+                let enemyBase = enemyTable[finalRoll] || enemyTable[10];
+                
+                combatState = { step: 1, enemyBase: enemyBase, heroDice: null, finalEnemy: null };
+
+                let skillBtnHtml = '';
+                if (hero.skillType === 'archer') {
+                    const hasSix = preparedDice.some(d => d.value === 6);
+                    skillBtnHtml = `<button onclick="useArcherSkill()" ${hasSix ? '' : 'disabled'} style="background:#8b5cf6; margin-top:10px;">🏹 遠程閃避 (消耗點數6的骰子跳過戰鬥)</button>`;
+                } else if (hero.skillType === 'paladin') {
+                    skillBtnHtml = `<button onclick="usePaladinSkill()" style="background:#f59e0b; margin-top:10px;">✨ 神聖重擲 (扣1血，重擲一顆準備骰並+1)</button>`;
+                } else if (hero.skillType === 'soldier') {
+                    skillBtnHtml = `<button onclick="useSoldierSkill()" style="background:#e63946; margin-top:10px;">🔫 等離子槍 (消耗總和≥8的兩顆骰子秒殺)</button>`;
+                }
+
+                showModal(`
+                    <h3>戰鬥階段 1：分析敵人</h3>
+                    <div class="combat-log">
+                        冒險骰擲出：${roll}<br>
+                        修正值：${mod >= 0 ? '+' + mod : mod}<br>
+                        最終查表值：${finalRoll}<br>
+                        敵人基礎屬性：攻擊 ${enemyBase.atk}，防禦 ${enemyBase.def}，經驗獎勵 ${enemyBase.xp}。
+                    </div>
+                    ${skillBtnHtml}
+                    <button onclick="combatStep2()" style="margin-top:10px;">準備戰鬥</button>
+                `, true);
+            });
+        }
+
+        function useArcherSkill() {
+            const sixDieIdx = preparedDice.findIndex(d => d.value === 6);
+            if (sixDieIdx !== -1) {
+                consumeDie(preparedDice[sixDieIdx]);
+                log('發動【遠程閃避】，成功避開戰鬥！');
+                closeModal();
+                currentState = STATE.ACTION;
+                updateUI();
+                autoSave();
+            }
+        }
+
+        function usePaladinSkill() {
+            if (hero.hp <= 1) { alert('生命太低，無法使用神聖重擲！'); return; }
+            if (preparedDice.length === 0) { alert('沒有準備骰可以重擲！'); return; }
+            
+            hero.hp -= 1;
+            preparedDice[0].value = Math.min(6, Math.floor(Math.random() * 6) + 2);
+            log(`發動【神聖重擲】，扣除 1 生命，準備骰變為 ${preparedDice[0].value}。`);
+            updateUI();
+            autoSave();
+        }
+
+        function useSoldierSkill() {
+            if (preparedDice.length < 2) { alert('需要至少兩顆準備骰！'); return; }
+            let sorted = [...preparedDice].sort((a,b) => b.value - a.value);
+            if (sorted[0].value + sorted[1].value >= 8) {
+                consumeDie(sorted[0]);
+                consumeDie(sorted[1]);
+                log(`發動【等離子槍】，直接消滅了敵人！獲得 ${combatState.enemyBase.xp} 經驗。`);
+                gainXP(combatState.enemyBase.xp);
+                
+                if (!checkAndShowLevelUp(() => {
+                    closeModal();
+                    currentState = STATE.ACTION;
+                    updateUI();
+                    autoSave();
+                })) {
+                    closeModal();
+                    currentState = STATE.ACTION;
+                    updateUI();
+                    autoSave();
+                }
+            } else {
+                alert('準備區中沒有總和 ≥8 的兩顆骰子！');
+            }
+        }
+
+        function combatStep2() {
+            let diceHtml = `<div class="combat-dice-pool">`;
+            let extraButtons = '';
+
+            if (preparedDice.length === 0) {
+                diceHtml += `<p style="color:var(--accent); width: 100%; margin: 0 0 10px 0;">沒有可用的準備骰！請使用以下方式獲取：</p>`;
+                extraButtons = `
+                    <button onclick="modalExertHero()" style="background:#6c757d; margin-bottom: 5px;">💔 消耗英雄 (扣1血換骰)</button>
+                    <button onclick="modalUseCrystal()" style="background:#457b9d; margin-bottom: 10px;">💎 使用水晶</button>
+                `;
+            } else {
+                preparedDice.forEach(d => {
+                    diceHtml += `<div class="die" id="modal-die-${d.id}" onclick="selectModalDie(${d.id})">${d.value}</div>`;
+                });
+            }
+            diceHtml += `</div>`;
+
+            let enemyBase = combatState.enemyBase;
+            showModal(`
+                <h3>戰鬥階段 2：準備戰鬥</h3>
+                <div style="background: #222; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                    <span style="color:#ccc;">敵方基礎屬性：</span> 
+                    <span style="color:var(--accent); font-weight:bold;">攻擊 ${enemyBase.atk} / 防禦 ${enemyBase.def}</span>
+                </div>
+                <p>請選擇一顆骰子作為戰鬥骰，其點數將臨時加到你的攻防上。</p>
+                ${diceHtml}
+                ${extraButtons}
+                
+                <div id="selected-combat-info" style="margin-top:15px; min-height: 50px;">
+                    <p style="color: #aaa;">目前未選擇骰子...</p>
+                </div>
+                <button onclick="combatStep3()" id="btn-combat-next" disabled>確認出戰 (擲骰決勝負)</button>
+            `, true);
+            
+            window.modalSelectedDieId = null;
+        }
+
+        function modalExertHero() {
+            hero.hp -= 1;
+            log('消耗英雄：扣除 1 生命。');
+            if (hero.hp <= 0) { closeModal(); gameOver(); return; }
+            if (usedDice.length > 0) {
+                let die = usedDice.pop();
+                die.value = Math.floor(Math.random() * 6) + 1;
+                preparedDice.push(die);
+                log(`從使用區取回骰子並重擲為 ${die.value}。`);
+            }
+            updateUI();
+            combatStep2(); 
+        }
+
+        function modalUseCrystal() {
+            if (crystalUsedThisRound) { alert('本回合已經使用過水晶了！'); return; }
+            if (hero.crystal <= 0) { alert('沒有水晶可用！'); return; }
+            
+            showModal(`
+                <h3>💎 使用水晶</h3>
+                <p>消耗 1 顆水晶，選擇一項效果：</p>
+                <div class="upgrade-options">
+                    <div class="upgrade-card" onclick="modalApplyCrystal('hp')"><div class="upgrade-icon">❤️❤️</div>恢復 2 生命</div>
+                    <div class="upgrade-card" onclick="modalApplyCrystal('dice')"><div class="upgrade-icon">🎲🎲🎲</div>準備 3 顆骰子</div>
+                    <div class="upgrade-card" onclick="modalApplyCrystal('combat')"><div class="upgrade-icon">⚔️🛡️</div>本回合攻防 +2</div>
+                </div>
+            `);
+        }
+
+        function modalApplyCrystal(type) {
+            hero.crystal--;
+            crystalUsedThisRound = true;
+            
+            if (type === 'hp') {
+                hero.hp = Math.min(hero.maxHp, hero.hp + 2);
+                log('水晶：恢復 2 生命。');
+            } else if (type === 'dice') {
+                let count = 0;
+                for (let i = 0; i < 3; i++) {
+                    if (usedDice.length > 0) {
+                        let d = usedDice.pop();
+                        d.value = Math.floor(Math.random() * 6) + 1;
+                        preparedDice.push(d);
+                        count++;
+                    }
+                }
+                log('水晶：準備了 3 顆骰子。');
+            } else if (type === 'combat') {
+                hero.atk += 2;
+                hero.def += 2;
+                log('水晶：本回合攻防 +2。');
+            }
+            updateUI();
+            combatStep2(); 
+        }
+
+        window.selectModalDie = function(id) {
+            document.querySelectorAll('.combat-dice-pool .die').forEach(el => el.classList.remove('selected'));
+            const el = document.getElementById(`modal-die-${id}`);
+            if (el) el.classList.add('selected');
+            
+            window.modalSelectedDieId = id;
+            
+            const die = preparedDice.find(d => d.id === id);
+            if (die) {
+                let myFinalAtk = hero.atk + die.value;
+                let myFinalDef = hero.def + die.value;
+                
+                document.getElementById('selected-combat-info').innerHTML = `
+                    <div style="background: #111; padding: 10px; border-radius: 4px; border: 1px solid #4cc9f0;">
+                        <div style="color: var(--gold); font-weight: bold; margin-bottom: 5px;">已選擇骰子：${die.value}</div>
+                        <div style="color: #4cc9f0; font-weight: bold; font-size: 16px;">你的最終屬性：攻擊 ${myFinalAtk} / 防禦 ${myFinalDef}</div>
+                    </div>
+                `;
+                document.getElementById('btn-combat-next').disabled = false;
+            }
+        };
+
+        function combatStep3() {
+            if (window.modalSelectedDieId === null) return;
+            const die = preparedDice.find(d => d.id === window.modalSelectedDieId);
+            if (!die) return;
+
+            consumeDie(die);
+            const heroDiceVal = die.value;
+            
+            rollAdventureDie((roll) => {
+                let finalAtk = combatState.enemyBase.atk + roll;
+                let finalDef = combatState.enemyBase.def + roll;
+                combatState.finalEnemy = { atk: finalAtk, def: finalDef };
+                
+                showModal(`
+                    <h3>戰鬥階段 3：戰鬥結果</h3>
+                    <div class="combat-log">
+                        你消耗了點數為 ${heroDiceVal} 的骰子。<br>
+                        <strong>你的最終屬性：</strong> 攻擊 ${hero.atk + heroDiceVal} / 防禦 ${hero.def + heroDiceVal}<br><br>
+                        重擲冒險骰：${roll}<br>
+                        <strong>敵人的最終屬性：</strong> 攻擊 ${finalAtk} / 防禦 ${finalDef}
+                    </div>
+                    <button onclick="resolveCombat(${heroDiceVal})">結算傷害</button>
+                `, true);
+            });
+        }
+
+        function resolveCombat(heroDiceVal) {
+            let myAtk = hero.atk + heroDiceVal;
+            let myDef = hero.def + heroDiceVal;
+            let eAtk = combatState.finalEnemy.atk;
+            let eDef = combatState.finalEnemy.def;
+            
+            let logHtml = `<h3>戰鬥階段 4：結算</h3><div class="combat-log">`;
+            
+            let damage = eAtk - myDef;
+            if (damage > 0) {
+                hero.hp -= damage;
+                logHtml += `敵人攻擊 (${eAtk}) > 你的防禦 (${myDef})。<br>你受到 ${damage} 點傷害。<br>`;
+            } else {
+                logHtml += `你成功格擋了敵人的攻擊。<br>`;
+            }
+
+            if (hero.hp <= 0) {
+                logHtml += `</div><h3 style="color: red;">你陣亡了...</h3><button onclick="gameOver()">結束</button>`;
+                showModal(logHtml, true);
+                return;
+            }
+
+            if (myAtk >= eDef) {
+                let damageDealt = myAtk - eDef;
+                logHtml += `你的攻擊 (${myAtk}) ≥ 敵人防禦 (${eDef})。<br>`;
+                
+                if (mapLocations[currentPosition].isBoss) {
+                    mapLocations[currentPosition].bossHp -= damageDealt;
+                    logHtml += `你對首領造成了 ${damageDealt} 點傷害！<br>首領剩餘生命：${Math.max(0, mapLocations[currentPosition].bossHp)}<br>`;
+                    
+                    if (mapLocations[currentPosition].bossHp <= 0) {
+                        logHtml += `</div><h3 style="color: gold;">🎉 恭喜擊敗首領！遊戲勝利！</h3><button onclick="gameOver()">結束</button>`;
+                        showModal(logHtml, true);
+                        return;
+                    } else {
+                        logHtml += `首領尚未倒下，繼續戰鬥！<br>`;
+                    }
+                } else if (mapLocations[currentPosition].isSnowman) {
+                    logHtml += `你擊敗了雪人！<br>`;
+                    gainXP(combatState.enemyBase.xp);
+                } else {
+                    logHtml += `你擊敗了敵人！<br>`;
+                    gainXP(combatState.enemyBase.xp);
+                    logHtml += `獲得 ${combatState.enemyBase.xp} 經驗。<br>`;
+                }
+            } else {
+                logHtml += `你的攻擊 (${myAtk}) < 敵人防禦 (${eDef})。<br>`;
+                if (mapLocations[currentPosition].isSnowman) {
+                    if (specialStatValue > 0) {
+                        specialStatValue--;
+                        logHtml += `雪人搶走了你 1 個禮物！ (剩餘禮物：${specialStatValue})<br>`;
+                    } else {
+                        logHtml += `雪人沒有搶到禮物。<br>`;
+                    }
+                } else {
+                    logHtml += `敵人逃跑了，你沒有獲得任何經驗。<br>`;
+                }
+                if (mapLocations[currentPosition].isBoss) logHtml += `首領退回了黑暗中，但你必須繼續前進！<br>`;
+            }
+
+            logHtml += `</div><button onclick="finishCombat()">繼續</button>`;
+            showModal(logHtml, true);
+            updateUI();
+        }
+
+        function finishCombat() {
+            closeModal();
+            if (!checkAndShowLevelUp(() => {
+                if (mapLocations[currentPosition].isBoss && mapLocations[currentPosition].bossHp > 0) {
+                    log('首領還在場上！你必須重整旗鼓。');
+                    startRound(); 
+                } else {
+                    currentState = STATE.ACTION;
+                    log('戰鬥結束，進入行動階段。');
+                    updateUI();
+                    autoSave();
+                }
+            })) {
+                if (mapLocations[currentPosition].isBoss && mapLocations[currentPosition].bossHp > 0) {
+                    log('首領還在場上！你必須重整旗鼓。');
+                    startRound(); 
+                } else {
+                    currentState = STATE.ACTION;
+                    log('戰鬥結束，進入行動階段。');
+                    updateUI();
+                    autoSave();
+                }
+            }
+        }
+
+        // --- 經驗值與升級系統 ---
+        function gainXP(amount) {
+            hero.xp += amount;
+            while (hero.xp >= 3) {
+                hero.xp -= 3;
+                pendingLevelUps++;
+            }
+        }
+
+        function checkAndShowLevelUp(callback) {
+            if (pendingLevelUps > 0) {
+                pendingLevelUps--;
+                levelUpCallback = callback;
+                showModal(`
+                    <h3>⭐ 英雄升級！</h3>
+                    <p>請選擇一項升級獎勵：</p>
+                    <div class="upgrade-options">
+                        <div class="upgrade-card" onclick="applyLevelUp('food')"><div class="upgrade-icon">🍗</div>食物 +1</div>
+                        <div class="upgrade-card" onclick="applyLevelUp('hp')"><div class="upgrade-icon">❤️</div>生命 +2</div>
+                        <div class="upgrade-card" onclick="applyLevelUp('combat')"><div class="upgrade-icon">⚔️🛡️</div>攻擊 +1, 防禦 +1</div>
+                    </div>
+                `, true, true);
+                return true;
+            }
+            return false;
+        }
+
+        function applyLevelUp(type) {
+            if (type === 'food') { hero.food = Math.min(5, hero.food + 1); log('升級：食物 +1。'); }
+            if (type === 'hp') { hero.hp = Math.min(hero.maxHp, hero.hp + 2); log('升級：生命 +2。'); }
+            if (type === 'combat') { hero.atk += 1; hero.def += 1; log('升級：攻擊與防禦 +1。'); }
+            updateUI();
+            autoSave();
+            
+            if (pendingLevelUps > 0) {
+                checkAndShowLevelUp(levelUpCallback);
+            } else {
+                closeModal();
+                if (levelUpCallback) {
+                    const cb = levelUpCallback;
+                    levelUpCallback = null;
+                    cb(); 
+                }
+            }
+        }
+
+        // --- 行動階段 ---
+        function getHuntPreview(val) {
+            let r = huntTable[val] || huntTable[6];
+            if (r.f === 0 && r.h === 0) return '無收穫';
+            let s = [];
+            if (r.f > 0) s.push(`+${r.f} 食物`);
+            if (r.h > 0) s.push(`+${r.h} HP`);
+            return s.join(', ');
+        }
+        function getSearchPreview(val) {
+            let r = searchTable[val] || searchTable[1];
+            if (r.hp < 0) return `受到 ${-r.hp} 傷害`;
+            if (r.xp) return `+${r.xp} 經驗`;
+            if (r.f) return `+${r.f} 食物`;
+            if (r.atk) return `+${r.atk} 攻擊`;
+            if (r.def) return `+${r.def} 防禦`;
+            if (r.crystal) return `+${r.crystal} 水晶`;
+            return '無事發生';
+        }
+
+        function updateActionButtons() {
+            const container = document.getElementById('location-actions');
+            container.innerHTML = '';
+            const tile = mapLocations[currentPosition];
+            
+            if (currentState !== STATE.ACTION) {
+                container.innerHTML = '<div style="text-align: center; color: #777; font-size: 12px;">請先移動至下一格</div>';
+                document.getElementById('btn-skip').style.display = 'none';
+                return;
+            }
+            if (!tile.actions || tile.actions.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--gold); font-size: 13px;">此地點無可用行動，<br>請休息或跳過行動。</div>';
+                document.getElementById('btn-skip').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('btn-skip').style.display = 'none';
+            
+            const selected = getSelectedDice();
+            const currentDieVal = selected.length === 1 ? selected[0].value : null;
+
+            tile.actions.forEach((act, idx) => {
+                const actionKey = `${currentPosition}-${idx}`;
+                const isUsed = usedActions[actionKey];
+                
+                const btn = document.createElement('button');
+                btn.className = 'action-btn';
+                
+                let btnText = `${act.icon} ${act.name}`;
+                if (act.cost === 2) btnText += ` (需 2 顆骰)`;
+                else if (act.type === 'SOCK') btnText += ` (需 2 顆骰)`;
+                
+                if (currentDieVal !== null && !isUsed && act.cost !== 2 && act.type !== 'SOCK') {
+                    let finalVal = Math.max(1, Math.min(10, currentDieVal + (act.mod || 0)));
+                    if (act.type === 'HUNT') btnText += ` ➔ ${getHuntPreview(finalVal)}`;
+                    else if (act.type === 'SEARCH') btnText += ` ➔ ${getSearchPreview(finalVal)}`;
+                    else if (act.type === 'QUEST') btnText += ` ➔ 由冒險骰決定`;
+                    else if (act.type === 'CRYING_CHILD') btnText += ` ➔ 失去1禮物，得1攻1防`;
+                }
+
+                btn.innerHTML = btnText;
+                btn.disabled = isUsed || currentDieVal === null || currentState !== STATE.ACTION;
+                
+                if (isUsed) {
+                    btn.style.textDecoration = 'line-through';
+                    btn.style.backgroundColor = '#333';
+                    btn.innerHTML = `${act.icon} ${act.name} (已使用)`;
+                }
+
+                btn.onclick = () => executeAction(act, actionKey);
+                container.appendChild(btn);
+            });
+        }
+
+        function executeAction(action, actionKey) {
+            if (currentState !== STATE.ACTION) return;
+            
+            // 需要兩顆骰子的特殊行動
+            if (action.type === 'SOCK') {
+                const prepared = preparedDice;
+                if (prepared.length < 2) { alert('需要 2 顆骰子來翻襪子！'); return; }
+                consumeDie(prepared[0]);
+                consumeDie(prepared[1]);
+                usedActions[actionKey] = true;
+                specialStatValue += 1;
+                log(`翻找襪子，獲得 1 個禮物！ (目前共 ${specialStatValue} 個)`);
+                startRound();
+                return;
+            }
+
+            const selected = getSelectedDice();
+            if (selected.length !== 1) { alert('請先從準備區選擇 1 顆骰子！'); return; }
+            
+            const die = selected[0];
+            consumeDie(die);
+            usedActions[actionKey] = true;
+            
+            let finalVal = Math.max(1, Math.min(10, die.value + (action.mod || 0)));
+
+            if (action.type === 'HUNT') {
+                let reward = huntTable[finalVal] || huntTable[6];
+                log(`狩獵/採集 (點數 ${finalVal})`);
+                applyReward({f: reward.f, hp: reward.h});
+                if (!checkAndShowLevelUp(() => { startRound(); autoSave(); })) startRound();
+            } 
+            else if (action.type === 'SEARCH') {
+                if (action.heal) {
+                    hero.hp = Math.min(hero.maxHp, hero.hp + action.heal);
+                    log(`使用醫療包，恢復 1 生命。`);
+                } else {
+                    let reward = searchTable[finalVal] || searchTable[1];
+                    log(`探索 (點數 ${finalVal})`);
+                    applyReward(reward);
+                }
+                if (!checkAndShowLevelUp(() => { startRound(); autoSave(); })) startRound();
+            }
+            else if (action.type === 'QUEST') {
+                rollAdventureDie((roll) => {
+                    let qVal = Math.max(1, Math.min(10, roll + (action.mod || 0)));
+                    let reward = questTable[qVal] || questTable[1];
+                    log(`任務 (冒險骰 ${qVal})`);
+                    applyReward(reward);
+                    if (!checkAndShowLevelUp(() => { startRound(); autoSave(); })) startRound();
+                });
+            }
+            else if (action.type === 'SPRING') {
+                preparedDice.forEach(d => d.value = Math.floor(Math.random() * 6) + 1);
+                log('泉水：重擲了所有準備區的骰子。');
+                startRound();
+            }
+            else if (action.type === 'CRYING_CHILD') {
+                if (specialStatValue > 0) {
+                    specialStatValue--;
+                    hero.atk += 1;
+                    hero.def += 1;
+                    log('你安撫了小孩，失去 1 個禮物，獲得 1 攻擊與 1 防禦。');
+                } else {
+                    log('你沒有禮物可以給小孩。');
+                }
+                startRound();
+            }
+        }
+
+        function applyReward(reward) {
+            let msgs = [];
+            if (reward.hp) { 
+                hero.hp = Math.max(0, Math.min(hero.maxHp, hero.hp + reward.hp)); 
+                msgs.push(reward.hp < 0 ? `失去 ${-reward.hp} 生命` : `恢復 ${reward.hp} 生命`); 
+            }
+            if (reward.xp) { gainXP(reward.xp); msgs.push(`獲得 ${reward.xp} 經驗`); }
+            if (reward.f) { hero.food += reward.f; msgs.push(`獲得 ${reward.f} 食物`); }
+            if (reward.atk) { hero.atk += reward.atk; msgs.push(`攻擊 +${reward.atk}`); }
+            if (reward.def) { hero.def += reward.def; msgs.push(`防禦 +${reward.def}`); }
+            if (reward.crystal) { hero.crystal = Math.min(5, hero.crystal + reward.crystal); msgs.push(`獲得 ${reward.crystal} 水晶`); }
+            
+            if (msgs.length > 0) log(msgs.join(', ') + '。');
+            else log('沒有獲得任何東西。');
+            
+            if (hero.hp <= 0) gameOver();
+        }
+
+        function attemptRest() {
+            if (currentState !== STATE.ACTION) return;
+            if (hero.food <= 0) { 
+                alert('沒有食物無法休息！請點擊「跳過行動」或「消耗英雄」。'); 
+                return; 
+            }
+            
+            hero.food--;
+            log('休息：消耗 1 食物。');
+            
+            let allDice = [...preparedDice, ...usedDice];
+            preparedDice = allDice.map(d => ({ id: d.id, value: Math.floor(Math.random() * 6) + 1 }));
+            usedDice = [];
+            
+            log('重擲了所有骰子。');
+            startRound();
+        }
+
+        function skipAction() {
+            if (currentState !== STATE.ACTION) return;
+            log('跳過行動階段，準備移動。');
+            startRound();
+        }
+
+        function exertHero() {
+            if (currentState === STATE.GAMEOVER) return;
+            hero.hp -= 1;
+            log('消耗英雄：扣除 1 生命。');
+            
+            if (hero.hp <= 0) { gameOver(); return; }
+
+            if (usedDice.length > 0) {
+                let die = usedDice.pop();
+                die.value = Math.floor(Math.random() * 6) + 1;
+                preparedDice.push(die);
+                log(`從使用區取回骰子並重擲為 ${die.value}。`);
+            } else if (preparedDice.length > 0) {
+                let die = preparedDice[0];
+                die.value = Math.floor(Math.random() * 6) + 1;
+                log(`重擲準備區骰子為 ${die.value}。`);
+            } else {
+                log('沒有骰子可以重擲！');
+            }
+            updateUI();
+            autoSave();
+        }
+
+        function useCrystal() {
+            if (crystalUsedThisRound) { alert('本回合已經使用過水晶了！'); return; }
+            if (hero.crystal <= 0) { alert('沒有水晶可用！'); return; }
+
+            showModal(`
+                <h3>💎 使用水晶</h3>
+                <p>消耗 1 顆水晶，選擇一項效果：</p>
+                <div class="upgrade-options">
+                    <div class="upgrade-card" onclick="applyCrystal('hp')"><div class="upgrade-icon">❤️❤️</div>恢復 2 生命</div>
+                    <div class="upgrade-card" onclick="applyCrystal('dice')"><div class="upgrade-icon">🎲🎲🎲</div>準備 3 顆骰子</div>
+                    <div class="upgrade-card" onclick="applyCrystal('combat')"><div class="upgrade-icon">⚔️🛡️</div>本回合攻防 +2</div>
+                </div>
+            `);
+        }
+
+        function applyCrystal(type) {
+            hero.crystal--;
+            crystalUsedThisRound = true;
+            
+            if (type === 'hp') {
+                hero.hp = Math.min(hero.maxHp, hero.hp + 2);
+                log('水晶：恢復 2 生命。');
+            } else if (type === 'dice') {
+                let count = 0;
+                for (let i = 0; i < 3; i++) {
+                    if (usedDice.length > 0) {
+                        let d = usedDice.pop();
+                        d.value = Math.floor(Math.random() * 6) + 1;
+                        preparedDice.push(d);
+                        count++;
+                    }
+                }
+                if (count < 3 && preparedDice.length > 0) {
+                    for(let i=0; i<3-count; i++) {
+                        if(preparedDice[i]) preparedDice[i].value = Math.floor(Math.random() * 6) + 1;
+                    }
+                }
+                log('水晶：準備了 3 顆骰子。');
+            } else if (type === 'combat') {
+                hero.atk += 2;
+                hero.def += 2;
+                log('水晶：本回合攻防 +2。');
+            }
+            closeModal();
+            updateUI();
+            autoSave();
+        }
+
+        function updateUI() {
+            if (!hero) return;
+
+            document.getElementById('hero-name').innerText = hero.name;
+            document.getElementById('stat-hp').innerText = `${hero.hp}/${hero.maxHp}`;
+            document.getElementById('stat-food').innerText = `${hero.food}/5`;
+            document.getElementById('stat-atk').innerText = hero.atk;
+            document.getElementById('stat-def').innerText = hero.def;
+            document.getElementById('stat-xp').innerText = `${hero.xp}/3`;
+            document.getElementById('stat-crystal').innerText = `${hero.crystal}/5`;
+            document.getElementById('stat-gifts').innerText = specialStatValue;
+            document.getElementById('hero-skill').innerHTML = `<strong>專屬技能：</strong><br>${hero.skill}`;
+            
+            const isMove = currentState === STATE.MOVEMENT;
+            const isAction = currentState === STATE.ACTION;
+            const req = mapLocations[currentPosition].trickyPassage;
+            const hasSelection = getSelectedDice().length === 1;
+
+            const btnMove = document.getElementById('btn-move');
+            if (isMove) {
+                if (req > 0) {
+                    btnMove.innerText = `移動 (需點數 ≥ ${req} 的骰子)`;
+                    btnMove.disabled = !hasSelection;
+                } else {
+                    btnMove.innerText = `移動 (免費)`;
+                    btnMove.disabled = false;
+                }
+            } else {
+                btnMove.disabled = true;
+            }
+
+            document.getElementById('btn-rest').disabled = !isAction || hero.food <= 0;
+            document.getElementById('btn-skip').disabled = !isAction;
+            document.getElementById('btn-crystal').disabled = hero.crystal <= 0 || crystalUsedThisRound;
+
+            if (isMove) document.getElementById('phase-display').innerText = '階段：強制移動';
+            else if (isAction) document.getElementById('phase-display').innerText = '階段：行動或休息';
+            else document.getElementById('phase-display').innerText = '戰鬥中...';
+            
+            renderBoard();
+            renderDice();
+            updateActionButtons();
+        }
+
+        function renderBoard() {
+            const container = document.getElementById('board-container');
+            container.innerHTML = '';
+            
+            let currentRegionDiv = null;
+            let lastRegionId = -1;
+
+            mapLocations.forEach((tile, i) => {
+                if (tile.regionId !== lastRegionId) {
+                    if (currentRegionDiv) container.appendChild(currentRegionDiv);
+                    currentRegionDiv = document.createElement('div');
+                    currentRegionDiv.className = 'region';
+                    lastRegionId = tile.regionId;
+                }
+
+                const el = document.createElement('div');
+                el.className = 'tile';
+                if (i === currentPosition) el.classList.add('current');
+                if (i < currentPosition) el.classList.add('tile-passed');
+                
+                let actionsHtml = '<div class="tile-actions">';
+                if (tile.actions) {
+                    tile.actions.forEach((a, idx) => {
+                        const isUsed = usedActions[`${i}-${idx}`];
+                        actionsHtml += `<span class="action-icon" style="${isUsed ? 'opacity:0.3;text-decoration:line-through;' : ''}">${a.icon}</span>`;
+                    });
+                }
+                actionsHtml += '</div>';
+
+                let bossHpHtml = '';
+                if (tile.isBoss) {
+                    let percent = (tile.bossHp / tile.maxBossHp) * 100;
+                    bossHpHtml = `<div class="boss-hp-bar"><div class="boss-hp-fill" style="width: ${percent}%"></div></div>`;
+                }
+
+                el.innerHTML = `
+                    ${tile.trickyPassage > 0 ? `<div class="tricky-passage">需 ${tile.trickyPassage}</div>` : ''}
+                    <div class="tile-desc">${tile.desc}</div>
+                    <div style="font-size: 30px; margin-top: 20px;">${tile.isEnemy ? (tile.isTentacle ? '🦑' : '👹') : '🏕️'}</div>
+                    ${actionsHtml}
+                    ${tile.isEnemy ? `<div class="enemy-info">${tile.enemyMod >= 0 ? '+'+tile.enemyMod : tile.enemyMod}</div>` : ''}
+                    ${bossHpHtml}
+                `;
+                currentRegionDiv.appendChild(el);
+            });
+            if (currentRegionDiv) container.appendChild(currentRegionDiv);
+        }
+
+        function renderDice() {
+            const prepContainer = document.getElementById('prepared-dice');
+            prepContainer.innerHTML = '';
+            preparedDice.forEach(die => {
+                const el = document.createElement('div');
+                el.className = 'die';
+                if (selectedDieId === die.id) el.classList.add('selected');
+                el.innerText = die.value;
+                el.onclick = () => toggleDie(die.id);
+                prepContainer.appendChild(el);
+            });
+
+            const usedContainer = document.getElementById('used-dice');
+            usedContainer.innerHTML = '';
+            usedDice.forEach(die => {
+                const el = document.createElement('div');
+                el.className = 'die used';
+                el.innerText = die.value;
+                usedContainer.appendChild(el);
+            });
+        }
+
+        let selectedDieId = null;
+        function toggleDie(id) {
+            if (currentState === STATE.GAMEOVER) return;
+            if (selectedDieId === id) selectedDieId = null;
+            else selectedDieId = id;
+            renderDice();
+            updateUI();
+        }
+
+        function getSelectedDice() {
+            if (selectedDieId === null) return [];
+            const die = preparedDice.find(d => d.id === selectedDieId);
+            return die ? [die] : [];
+        }
+
+        function consumeDie(die) {
+            preparedDice = preparedDice.filter(d => d.id !== die.id);
+            usedDice.push(die);
+            selectedDieId = null;
+            updateUI();
+        }
+
+        function rollAdventureDie(callback) {
+            adventureDie = Math.floor(Math.random() * 6) + 1;
+            document.getElementById('adventure-die').innerText = adventureDie;
+            setTimeout(() => callback(adventureDie), 300);
+        }
+
+        function gameOver() {
+            currentState = STATE.GAMEOVER;
+            showModal(`
+                <h3>💀 遊戲結束</h3>
+                <p>你的冒險到此為止。</p>
+                <button onclick="location.reload()">重新開始</button>
+            `, true, true);
+            log('遊戲結束。');
+            localStorage.removeItem('a4quest_save');
+        }
+
+        function log(msg) {
+            const logBox = document.getElementById('game-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerText = `> ${msg}`;
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function showModal(html, hideClose = false, preventClose = false) {
+            document.getElementById('modal-content').innerHTML = html;
+            const modal = document.getElementById('modal');
+            modal.classList.add('active');
+            if (!preventClose) {
+                modal.onclick = (e) => { if (e.target === modal && !hideClose) closeModal(); };
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+    </script>
+</body>
+</html>

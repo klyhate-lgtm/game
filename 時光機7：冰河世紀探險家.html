@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>時光機7：冰河世紀探險家</title>
+    <style>
+        :root {
+            --bg-color: #1a1e24;
+            --panel-bg: #2a2f38;
+            --text-color: #e0e0e0;
+            --accent-color: #4a90e2;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --label-bg: rgba(0, 0, 0, 0.7);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 頂部導航 */
+        header {
+            background-color: #111;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            color: var(--accent-color);
+        }
+
+        .header-btns button {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid #555;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-left: 10px;
+            transition: 0.2s;
+        }
+
+        .header-btns button:hover {
+            background: #333;
+            border-color: var(--accent-color);
+        }
+
+        /* 主遊戲區 */
+        main {
+            flex: 1;
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        /* 圖片與文字區 */
+        .game-area {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .image-container {
+            flex: 1;
+            position: relative;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 250px;
+            overflow: hidden;
+        }
+
+        .image-container svg {
+            width: 100%;
+            height: 100%;
+            max-height: 400px;
+        }
+
+        .image-label {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--label-bg);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            border: 1px solid #444;
+            white-space: nowrap;
+        }
+
+        .text-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            border-top: 2px solid #333;
+        }
+
+        /* 選項區 */
+        .choices-container {
+            padding: 15px 20px;
+            background-color: #1e2229;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .choice-btn {
+            padding: 12px 20px;
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 1rem;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .choice-btn:hover:not(:disabled) {
+            background-color: var(--accent-color);
+            border-color: #fff;
+            transform: translateX(5px);
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .choice-btn.hint {
+            border-color: var(--success-color);
+        }
+
+        /* 側邊進度面板 */
+        .sidebar {
+            flex: 1;
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            min-width: 250px;
+        }
+
+        .sidebar h2 {
+            font-size: 1.1rem;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            color: var(--accent-color);
+        }
+
+        .discoveries-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .discoveries-list li {
+            background: #111;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        /* 彈窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--panel-bg);
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 15px;
+            color: var(--accent-color);
+        }
+
+        .modal-content p {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .close-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: var(--accent-color);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        /* 橫向捲動安全區 */
+        .scroll-x {
+            overflow-x: auto;
+            white-space: nowrap;
+            display: flex;
+            gap: 10px;
+            padding-bottom: 5px;
+        }
+
+        @media (max-width: 768px) {
+            main {
+                flex-direction: column;
+                padding: 10px;
+            }
+            .sidebar {
+                flex: none;
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>⏱️ 時光機 7：冰河世紀探險家</h1>
+        <div class="header-btns">
+            <button id="btn-help">📖 遊戲說明</button>
+            <button id="btn-save">💾 存檔</button>
+            <button id="btn-load">📂 讀檔</button>
+            <button id="btn-restart">🔄 重新開始</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="game-area">
+            <div class="image-container" id="image-container">
+                <!-- SVG 會動態插入這裡 -->
+                <div class="image-label" id="image-label">時光機啟動中...</div>
+            </div>
+            <div class="text-container" id="text-container">
+                歡迎來到時光機。你將回到冰河時期，解開洞穴壁畫中獨角獸的神秘面紗。
+            </div>
+            <div class="choices-container" id="choices-container">
+                <!-- 按鈕會動態生成 -->
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <h2>📊 探索進度</h2>
+            <ul class="discoveries-list" id="discoveries-list">
+                <li>尚未發現任何線索</li>
+            </ul>
+        </div>
+    </main>
+
+    <!-- 說明彈窗 -->
+    <div class="modal" id="help-modal">
+        <div class="modal-content">
+            <h2>遊戲說明</h2>
+            <p>你是一名時光旅人，任務是回到冰河時期，找出古人類在洞穴中繪製的「獨角獸」動物究竟是什麼。</p>
+            <p><strong>玩法：</strong>閱讀故事，從下方選項中選擇你想跳躍的時間與地點。每個選擇都會影響你的發現。</p>
+            <p><strong>提示：</strong>有些選項旁邊有 💡 符號，代表你可以參考提示。但請注意，錯誤的選擇可能會讓你陷入危險！</p>
+            <p><strong>目標：</strong>解開壁畫之謎，並盡可能收集所有動物與時代的圖鑑。遊戲只有一個真正的結局。</p>
+            <button class="close-btn" onclick="closeModal('help-modal')">開始探險</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 遊戲資料 (狀態機節點) ---
+        const gameData = {
+            start: {
+                id: 'start',
+                title: '林地迷蹤',
+                text: '你站在一片林地中，陽光透過橡樹枝葉灑落。你穿著厚重的防寒大衣，但這裡卻異常炎熱，蚊蟲飛舞。這根本不像冰河時期！你是否搞錯了時間座標？',
+                image: 'forest',
+                choices: [
+                    { text: '跳回 2 億年前', next: 'permian' },
+                    { text: '往前跳 80 萬年', next: 'interglacial' },
+                    { text: '留在原地觀察', next: 'stay' }
+                ]
+            },
+            permian: {
+                id: 'permian',
+                title: '二疊紀的錯誤',
+                text: '你來到了一片荒蕪的平原，一隻長得像蜥蜴又像哺乳類的奇怪生物冷冷地看著你。這裡是二疊紀！你完全搞錯了冰河時期。',
+                image: 'reptile',
+                choices: [
+                    { text: '往前跳 2 億年 (回到起點)', next: 'start', isDanger: false }
+                ]
+            },
+            stay: {
+                id: 'stay',
+                title: '溫暖的間冰期',
+                text: '你脫下外套走向水池，看到一隻長著長直象牙的大象（古菱齒象）。原來你正處於冰河時期的「間冰期」（溫暖期）。這裡大約是 80 萬年前，北京猿人的時代。',
+                image: 'elephant',
+                discoveries: ['古菱齒象', '間冰期'],
+                choices: [
+                    { text: '前往中國拜訪北京猿人', next: 'china' },
+                    { text: '前往非洲看看早期人類', next: 'africa' }
+                ]
+            },
+            interglacial: {
+                id: 'interglacial',
+                title: '冰河時期',
+                text: '狂風暴雪扑面而來，你站在冰川上，氣溫極低。這裡是真正的冰河時期，但在這片冰天雪地中，你要如何找到人類與壁畫？',
+                image: 'ice',
+                choices: [
+                    { text: '向南跳躍尋找溫暖', next: 'africa' },
+                    { text: '跳回現代查閱資料', next: 'modern_lecture' }
+                ]
+            },
+            china: {
+                id: 'china',
+                title: '北京猿人',
+                text: '你來到了中國，看到一群北京猿人正在使用火。他們獵殺了一頭大象，正在用火烤食。你發現火的應用在各地獨立發生。',
+                image: 'fire',
+                discoveries: ['北京猿人', '火的使用'],
+                choices: [
+                    { text: '前往西班牙看看其他猿人', next: 'spain' },
+                    { text: '前往歐洲找尋尼安德塔人', next: 'neanderthal' }
+                ]
+            },
+            spain: {
+                id: 'spain',
+                title: '西班牙狩獵',
+                text: '你來到西班牙，目睹了一場壯觀的大象狩獵。猿人們合作無間，將大象趕入沼澤並用石刃宰殺。這展現了早期人類的高度合作。',
+                image: 'hunt',
+                discoveries: ['合作狩獵'],
+                choices: [
+                    { text: '前往非洲早期人類起源地', next: 'africa' }
+                ]
+            },
+            africa: {
+                id: 'africa',
+                title: '非洲起源',
+                text: '你來到 160 萬年前的非洲，看到兩種不同的南猿（粗壯南猿與非洲南猿）。同時，你發現了能人（Homo habilis），他們正在製作石器！這是人類最早的工具。',
+                image: 'tools',
+                discoveries: ['能人', '石器'],
+                choices: [
+                    { text: '前往歐洲尋找尼安德塔人', next: 'neanderthal' },
+                    { text: '前往現代大學聽課', next: 'modern_lecture' }
+                ]
+            },
+            neanderthal: {
+                id: 'neanderthal',
+                title: '尼安德塔人的洞穴',
+                text: '你來到 4 萬年前的歐洲，遇到了一群尼安德塔人。他們看起來很強壯，且有埋葬死者與崇拜洞穴熊的儀式。他們甚至可能會吃掉陌生人！',
+                image: 'neanderthal',
+                discoveries: ['尼安德塔人', '洞穴熊崇拜'],
+                choices: [
+                    { text: '悄悄離開，前往克羅馬儂人地盤', next: 'cro_magnon' },
+                    { text: '跳躍到 1.5 萬年前的法國', next: 'lascaux' }
+                ]
+            },
+            cro_magnon: {
+                id: 'cro_magnon',
+                title: '克羅馬儂人',
+                text: '你遇到了克羅馬儂人（現代人）。他們與尼安德塔人似乎有交流，甚至可能互相通婚。他們正在追捕一頭披毛犀，展現了高超的狩獵技巧。',
+                image: 'hunt_rhino',
+                discoveries: ['克羅馬儂人'],
+                choices: [
+                    { text: '跟隨他們，前往 1.5 萬年前的法國', next: 'lascaux' }
+                ]
+            },
+            lascaux: {
+                id: 'lascaux',
+                title: '拉斯科洞穴',
+                text: '你來到了法國拉斯科洞穴，這裡有壯觀的冰河時期壁畫！公牛、馬、馴鹿，以及那個神秘的「獨角獸」斑點動物。你正好趕上 1940 年兩位男孩發現這個洞穴的瞬間。',
+                image: 'cave_painting',
+                discoveries: ['拉斯科壁畫', '獨角獸壁畫'],
+                choices: [
+                    { text: '跟隨導覽，聽取解說', next: 'modern_lecture' },
+                    { text: '跳到 1.5 萬年前，看看作畫過程', next: 'ritual' }
+                ]
+            },
+            modern_lecture: {
+                id: 'modern_lecture',
+                title: '現代大學課堂',
+                text: '你坐在現代大學的課堂裡，教授正在講解冰河時期的四次大冰進與海平面下降。學生們提到了猛獁象、劍齒虎等動物。你不小心脫口而出「獨角獸」，引來一陣笑聲。',
+                image: 'classroom',
+                discoveries: ['冰河時期知識'],
+                choices: [
+                    { text: '前往白令陸橋看動物遷徙', next: 'beringia' },
+                    { text: '回到 1.5 萬年前的歐洲看壁畫', next: 'ritual' }
+                ]
+            },
+            beringia: {
+                id: 'beringia',
+                title: '白令陸橋',
+                text: '你來到 2 萬年前的白令陸橋（Beringia）。這裡是亞洲與美洲的連接處，你看到了猛獁象、劍齒虎和巨型地懶。這裡的人類為了生存，對陌生人非常警戒。',
+                image: 'beringia',
+                discoveries: ['猛獁象', '劍齒虎', '白令陸橋'],
+                choices: [
+                    { text: '前往南美洲看看巨型動物', next: 'south_america' },
+                    { text: '回到歐洲尋找壁畫真相', next: 'ritual' }
+                ]
+            },
+            south_america: {
+                id: 'south_america',
+                title: '南美洲奇觀',
+                text: '你來到南美洲，看到巨大的雕齒獸（Glyptodon）和大地懶。這裡的動物與北美不同，因為陸橋形成時間不同。你依然沒找到獨角獸。',
+                image: 'sloth',
+                discoveries: ['雕齒獸', '大地懶'],
+                choices: [
+                    { text: '前往澳洲看看有袋類', next: 'australia' }
+                ]
+            },
+            australia: {
+                id: 'australia',
+                title: '澳洲有袋類',
+                text: '你來到澳洲，看到了巨型袋鼠（Procoptodon）和袋狼。這裡的動物演化路徑完全不同。你意識到獨角獸壁畫不在這裡。',
+                image: 'kangaroo',
+                discoveries: ['巨型袋鼠', '袋狼'],
+                choices: [
+                    { text: '回到歐洲 4 萬年前', next: 'neanderthal' }
+                ]
+            },
+            ritual: {
+                id: 'ritual',
+                title: '真相大白',
+                text: '你回到 1.5 萬年前的歐洲，看到一群人正在進行儀式。一位戴著面具的薩滿正在跳舞，面具上有斑點和兩根角。你突然明白了！壁畫上的「獨角獸」根本不是真實存在的動物，而是薩滿戴著動物面具、披著獸皮的模樣！這代表了人類與動物世界的緊密連結。',
+                image: 'mask',
+                discoveries: ['獨角獸之謎解開'],
+                choices: [
+                    { text: '完成任務，回到現代', next: 'end_true' }
+                ]
+            },
+            end_true: {
+                id: 'end_true',
+                title: '任務完成',
+                text: '你成功解開了獨角獸壁畫的謎團，也見證了冰河時期人類的藝術與生活。你回到現代，準備將這個發現公諸於世。MISSION COMPLETED!',
+                image: 'end',
+                isEnd: true,
+                choices: []
+            }
+        };
+
+        // --- 狀態機與變數 ---
+        let currentState = 'start';
+        let discoveries = [];
+
+        // --- SVG 生成器 ---
+        const svgGen = {
+            forest: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#2d4a22"/><circle cx="200" cy="100" r="40" fill="#4a7c38"/><text x="200" y="105" fill="#fff" text-anchor="middle" font-size="14">🌳 林地 🌳</text></svg>`,
+            reptile: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#5c4a3d"/><ellipse cx="200" cy="120" rx="50" ry="20" fill="#7a6a5d"/><text x="200" y="125" fill="#fff" text-anchor="middle" font-size="14">🦎 似哺乳爬行動物</text></svg>`,
+            elephant: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#1e3d59"/><path d="M 150 100 Q 200 50 250 100 Q 280 120 250 150 L 180 150 Q 120 130 150 100" fill="#a09080"/><text x="200" y="170" fill="#fff" text-anchor="middle" font-size="14">🐘 古菱齒象 (間冰期)</text></svg>`,
+            ice: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#e0f7fa"/><path d="M 0 100 L 100 20 L 200 120 L 300 30 L 400 100 L 400 200 L 0 200 Z" fill="#ffffff"/><text x="200" y="180" fill="#333" text-anchor="middle" font-size="14">❄️ 冰川時期 ❄️</text></svg>`,
+            fire: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#3e2723"/><circle cx="200" cy="150" r="30" fill="#ff5722"/><path d="M 180 150 Q 200 100 220 150" fill="#ffc107"/><text x="200" y="180" fill="#fff" text-anchor="middle" font-size="14">🔥 北京猿人用火</text></svg>`,
+            hunt: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#4e342e"/><path d="M 100 150 L 150 100 L 200 150 Z" fill="#8d6e63"/><text x="200" y="180" fill="#fff" text-anchor="middle" font-size="14">🏹 團隊狩獵</text></svg>`,
+            tools: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#33691e"/><polygon points="180,120 220,120 200,80" fill="#9e9e9e"/><text x="200" y="160" fill="#fff" text-anchor="middle" font-size="14">🪨 打製石器</text></svg>`,
+            neanderthal: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#37474f"/><path d="M 180 80 Q 200 60 220 80 L 230 150 L 170 150 Z" fill="#a1887f"/><text x="200" y="180" fill="#fff" text-anchor="middle" font-size="14">🦴 尼安德塔人</text></svg>`,
+            hunt_rhino: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#4e342e"/><ellipse cx="250" cy="120" rx="60" ry="30" fill="#795548"/><text x="200" y="180" fill="#fff" text-anchor="middle" font-size="14">🦏 狩獵披毛犀</text></svg>`,
+            cave_painting: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#bcaaa4"/><path d="M 150 100 Q 200 50 250 100 L 220 120 L 250 150 L 200 130 L 150 150 L 180 120 Z" fill="#d32f2f" opacity="0.6"/><text x="200" y="180" fill="#fff" text-anchor="middle" font-size="14">🎨 拉斯科壁畫</text></svg>`,
+            classroom: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#e0e0e0"/><rect x="150" y="50" width="100" height="60" fill="#333"/><text x="200" y="140" fill="#333" text-anchor="middle" font-size="14">📚 現代大學講堂</text></svg>`,
+            beringia: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#cfd8dc"/><path d="M 0 120 Q 200 100 400 120 L 400 200 L 0 200 Z" fill="#78909c"/><text x="200" y="180" fill="#fff" text-anchor="middle" font-size="14">🐾 白令陸橋</text></svg>`,
+            sloth: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#4caf50"/><circle cx="200" cy="100" r="40" fill="#8d6e63"/><text x="200" y="180" fill="#fff" text-anchor="middle" font-size="14">🦥 大地懶</text></svg>`,
+            kangaroo: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#ffb74d"/><path d="M 150 150 Q 180 80 220 100 L 240 150 Z" fill="#795548"/><text x="200" y="180" fill="#fff" text-anchor="middle" font-size="14">🦘 巨型袋鼠</text></svg>`,
+            mask: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#ffcc80"/><circle cx="200" cy="100" r="40" fill="#fff"/><circle cx="185" cy="90" r="5" fill="#000"/><circle cx="215" cy="90" r="5" fill="#000"/><text x="200" y="180" fill="#fff" text-anchor="middle" font-size="14">🎭 薩滿面具</text></svg>`,
+            end: `<svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#1a1e24"/><text x="200" y="110" fill="#2ecc71" text-anchor="middle" font-size="24" font-weight="bold">MISSION COMPLETED</text></svg>`
+        };
+
+        // --- DOM 元素 ---
+        const textContainer = document.getElementById('text-container');
+        const choicesContainer = document.getElementById('choices-container');
+        const imageContainer = document.getElementById('image-container');
+        const imageLabel = document.getElementById('image-label');
+        const discoveriesList = document.getElementById('discoveries-list');
+
+        // --- 遊戲邏輯 ---
+        function renderState(stateId) {
+            const state = gameData[stateId];
+            if (!state) return;
+
+            currentState = stateId;
+
+            // 更新文字
+            textContainer.innerHTML = `<h3>${state.title}</h3><p>${state.text}</p>`;
+
+            // 更新圖片 (使用 SVG)
+            if (svgGen[state.image]) {
+                // 保留 label
+                const labelText = state.image === 'mask' ? '薩滿儀式' : state.title;
+                imageContainer.innerHTML = svgGen[state.image] + `<div class="image-label">${labelText}</div>`;
+            } else {
+                imageContainer.innerHTML = `<div class="image-label">暫無圖像</div>`;
+            }
+
+            // 更新發現
+            if (state.discoveries) {
+                state.discoveries.forEach(d => {
+                    if (!discoveries.includes(d)) {
+                        discoveries.push(d);
+                    }
+                });
+                updateDiscoveriesUI();
+            }
+
+            // 更新選項
+            choicesContainer.innerHTML = '';
+            if (state.isEnd) {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = '重新開始遊戲';
+                btn.onclick = () => { resetGame(); };
+                choicesContainer.appendChild(btn);
+                return;
+            }
+
+            if (state.choices && state.choices.length > 0) {
+                state.choices.forEach(choice => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    if (choice.isDanger) btn.classList.add('danger');
+                    btn.innerHTML = `<span>${choice.text}</span>`;
+                    btn.onclick = () => {
+                        if (choice.next) {
+                            renderState(choice.next);
+                        }
+                    };
+                    choicesContainer.appendChild(btn);
+                });
+            }
+        }
+
+        function updateDiscoveriesUI() {
+            discoveriesList.innerHTML = '';
+            if (discoveries.length === 0) {
+                discoveriesList.innerHTML = '<li>尚未發現任何線索</li>';
+                return;
+            }
+            discoveries.forEach(d => {
+                const li = document.createElement('li');
+                li.textContent = `✅ ${d}`;
+                discoveriesList.appendChild(li);
+            });
+        }
+
+        // --- 存讀檔功能 ---
+        function saveGame() {
+            const saveData = {
+                state: currentState,
+                discoveries: discoveries
+            };
+            localStorage.setItem('iceAgeExplorerSave', JSON.stringify(saveData));
+            alert('遊戲已儲存！');
+        }
+
+        function loadGame() {
+            const saveData = localStorage.getItem('iceAgeExplorerSave');
+            if (saveData) {
+                const data = JSON.parse(saveData);
+                currentState = data.state;
+                discoveries = data.discoveries;
+                updateDiscoveriesUI();
+                renderState(currentState);
+                alert('遊戲已載入！');
+            } else {
+                alert('沒有找到存檔！');
+            }
+        }
+
+        function resetGame() {
+            if (confirm('確定要重新開始嗎？目前進度將不會保留。')) {
+                currentState = 'start';
+                discoveries = [];
+                updateDiscoveriesUI();
+                renderState('start');
+            }
+        }
+
+        // --- 初始化 ---
+        function init() {
+            renderState('start');
+            
+            document.getElementById('btn-save').onclick = saveGame;
+            document.getElementById('btn-load').onclick = loadGame;
+            document.getElementById('btn-restart').onclick = resetGame;
+            
+            document.getElementById('btn-help').onclick = () => {
+                document.getElementById('help-modal').classList.add('active');
+            };
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // 啟動遊戲
+        window.onload = init;
+
+    </script>
+</body>
+</html>

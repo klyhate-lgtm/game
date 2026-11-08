@@ -1,0 +1,2405 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>暗影深淵遊俠：燃燒之光</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;background:#0a0505;background-image:radial-gradient(ellipse at top,#2a1510 0%,#0a0505 70%);color:#e0d0b0;min-height:100vh;font-size:14px;line-height:1.5}
+#app{display:flex;flex-direction:column;min-height:100vh}
+#topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:rgba(10,5,5,.95);border-bottom:2px solid #6b5030;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100}
+#main{flex:1;padding:16px;max-width:1400px;margin:0 auto;width:100%}
+#log-area{height:120px;overflow-y:auto;background:rgba(0,0,0,.7);border-top:1px solid #4a3a2a;padding:8px 16px;font-size:12px;font-family:monospace}
+.log-entry{padding:2px 0;border-bottom:1px dotted rgba(107,80,48,.3)}
+.log-info{color:#a0d0a0}.log-combat{color:#f0c060}.log-danger{color:#ff7070}.log-reward{color:#60d0ff}.log-roll{color:#c0a0ff}.log-system{color:#a0a0a0}
+h1,h2,h3{color:#f0c060;margin-bottom:10px}
+h1{font-size:22px;text-align:center;text-shadow:0 0 10px rgba(240,192,96,.5)}
+h2{font-size:18px;border-bottom:1px solid #4a3a2a;padding-bottom:6px;margin:14px 0 10px}
+h3{font-size:14px;color:#e0c080}
+button{background:linear-gradient(180deg,#6b5030,#3a2a1a);color:#f0d090;border:2px solid #8b6f47;border-radius:6px;padding:8px 14px;cursor:pointer;font-size:13px;font-family:inherit;transition:all .15s;margin:3px}
+button:hover:not(:disabled){background:linear-gradient(180deg,#8b6f47,#5a4030);transform:translateY(-1px);box-shadow:0 2px 8px rgba(240,192,96,.3)}
+button:disabled{opacity:.35;cursor:not-allowed;transform:none}
+button.primary{border-color:#f0c060;color:#ffe0a0;background:linear-gradient(180deg,#7a5a20,#4a3010)}
+button.danger{border-color:#c04040;color:#ff9090;background:linear-gradient(180deg,#5a2020,#301010)}
+button.small{padding:4px 8px;font-size:11px}
+button.active{border-color:#f0f060;box-shadow:0 0 12px rgba(240,240,96,.6)}
+.panel{background:rgba(30,20,15,.9);border:1px solid #6b5030;border-radius:8px;padding:14px;margin-bottom:12px}
+.panel-title{color:#f0c060;font-size:15px;font-weight:bold;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(107,80,48,.5)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.h-scroll{display:flex;gap:12px;overflow-x:auto;padding:10px 4px;align-items:stretch}
+.h-scroll::-webkit-scrollbar{height:8px}
+.h-scroll::-webkit-scrollbar-thumb{background:#6b5030;border-radius:4px}
+.h-scroll::-webkit-scrollbar-track{background:rgba(0,0,0,.3)}
+.stat-chip{display:inline-block;background:rgba(60,40,20,.8);border:1px solid #6b5030;border-radius:4px;padding:2px 8px;font-size:12px;margin:2px}
+.stat-chip.hi{border-color:#60d060;color:#a0f0a0}
+.stat-chip.lo{border-color:#c04040;color:#ff9090}
+.card{background:linear-gradient(180deg,#3a2a1a,#1a1510);border:2px solid #6b5030;border-radius:8px;padding:10px;min-width:160px;max-width:200px;flex-shrink:0;position:relative;display:flex;flex-direction:column}
+.card.selectable{cursor:pointer}
+.card.selectable:hover{border-color:#f0c060;box-shadow:0 0 15px rgba(240,192,96,.4);transform:translateY(-2px)}
+.card.selected{border-color:#f0f060;box-shadow:0 0 20px rgba(240,240,96,.6)}
+.card.disabled{opacity:.4;cursor:not-allowed}
+.card.hero{border-color:#60a0f0;background:linear-gradient(180deg,#1a2a3a,#0a1015)}
+.card.enemy{border-color:#c04040;background:linear-gradient(180deg,#3a1a1a,#150808)}
+.card.poi{border-color:#c0a040;background:linear-gradient(180deg,#3a3010,#151005)}
+.card-title{font-size:13px;font-weight:bold;color:#f0c060;margin-bottom:6px}
+.card.hero .card-title{color:#80c0ff}.card.enemy .card-title{color:#ff8080}.card.poi .card-title{color:#ffd060}
+.card-body{font-size:11px;color:#c0b090;flex:1;line-height:1.4}
+.card-footer{font-size:10px;color:#a09070;margin-top:6px;padding-top:6px;border-top:1px solid rgba(107,80,48,.4)}
+.hp-bar{height:6px;background:#301010;border-radius:3px;margin:4px 0;overflow:hidden}
+.hp-fill{height:100%;background:linear-gradient(90deg,#c03030,#f06060);transition:width .3s}
+.hp-fill.hero{background:linear-gradient(90deg,#3060c0,#60a0f0)}
+.map{position:relative;height:520px;background:radial-gradient(circle,#2a1a0a,#0a0505);border:2px solid #4a3a2a;border-radius:8px;overflow:hidden}
+.map svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.map-node{position:absolute;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,#4a3a2a,#1a1005);border:2px solid #8b6f47;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:12px;text-align:center;transform:translate(-50%,-50%);z-index:10;user-select:none}
+.map-node:hover:not(.disabled){transform:translate(-50%,-50%) scale(1.1);border-color:#f0c060;box-shadow:0 0 20px rgba(240,192,96,.5)}
+.map-node.visited{background:radial-gradient(circle,#1a3a1a,#0a1a05);border-color:#60c060}
+.map-node.current{border-color:#f0f060;box-shadow:0 0 25px rgba(240,240,96,.7);animation:pulse 1.5s infinite}
+.map-node.disabled{opacity:.3;cursor:not-allowed}
+.map-node .node-letter{font-size:20px;font-weight:bold;color:#f0c060}
+.map-node .node-name{font-size:10px;margin-top:2px}
+@keyframes pulse{0%,100%{box-shadow:0 0 25px rgba(240,240,96,.7)}50%{box-shadow:0 0 35px rgba(240,240,96,1)}}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;backdrop-filter:blur(3px)}
+.modal{background:linear-gradient(180deg,#2a1a10,#0a0505);border:2px solid #8b6f47;border-radius:12px;padding:22px;max-width:720px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 0 60px rgba(240,192,96,.2)}
+.modal h2{color:#f0c060;margin-bottom:14px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #4a3a2a;flex-wrap:wrap}
+.note-card{background:linear-gradient(180deg,#3a2a1a,#1a1510);border:2px solid #a08050;border-radius:8px;padding:16px;margin:10px 0}
+.note-num{color:#f0c060;font-size:12px;margin-bottom:8px;font-weight:bold}
+.dice-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:10px 0;padding:10px;background:rgba(0,0,0,.4);border-radius:6px}
+.dice{display:inline-flex;align-items:center;justify-content:center;min-width:48px;height:48px;background:linear-gradient(180deg,#3a2a1a,#1a1005);border:2px solid #f0c060;border-radius:8px;font-size:20px;font-weight:bold;color:#f0c060}
+.dice.crit{border-color:#60f060;color:#60f060;box-shadow:0 0 15px rgba(96,240,96,.7);animation:pulse 1s}
+.dice.fail{border-color:#c04040;color:#c04040}
+.dice-vs{color:#a09070;font-size:14px}
+.formula{color:#a0a0a0;font-size:12px;font-family:monospace}
+.tabs{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid #4a3a2a;flex-wrap:wrap}
+.tab{padding:8px 14px;background:rgba(0,0,0,.4);border:1px solid #4a3a2a;border-bottom:none;border-radius:6px 6px 0 0;cursor:pointer;font-size:13px;color:#a09070}
+.tab.active{background:linear-gradient(180deg,#6b5030,#3a2a1a);color:#f0c060;border-color:#8b6f47}
+.tab-content{display:none}.tab-content.active{display:block}
+.skill-row{display:flex;justify-content:space-between;padding:4px 8px;border-bottom:1px dotted rgba(107,80,48,.3);align-items:center}
+.skill-row .name{color:#c0b090}.skill-row .val{color:#f0c060;font-weight:bold}
+.equip-item{background:rgba(40,30,20,.8);border:1px solid #6b5030;border-radius:4px;padding:6px 10px;margin:4px 0;font-size:12px;display:flex;justify-content:space-between;align-items:center}
+.equip-item .remove{color:#ff6060;cursor:pointer;font-weight:bold;padding:0 6px}
+.badge{display:inline-block;background:#4a2a10;border:1px solid #8b6f47;border-radius:10px;padding:1px 8px;font-size:10px;color:#e0c080;margin-left:4px}
+.turn-indicator{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:rgba(0,0,0,.5);border-radius:6px;margin-bottom:12px;border:1px solid #4a3a2a}
+.phase-chip{padding:3px 10px;border-radius:12px;font-size:12px;background:rgba(60,40,20,.6);color:#a09070;border:1px solid transparent}
+.phase-chip.active{background:linear-gradient(90deg,#8b6f47,#6b5030);color:#ffe0a0;border-color:#f0c060;box-shadow:0 0 10px rgba(240,192,96,.5)}
+.action-counter{font-size:12px;color:#f0c060}
+.tooltip{position:relative;cursor:help;border-bottom:1px dotted #8b6f47}
+.tooltip:hover::after{content:attr(data-tip);position:absolute;bottom:120%;left:50%;transform:translateX(-50%);background:#1a1005;border:1px solid #8b6f47;border-radius:4px;padding:6px 10px;font-size:11px;color:#e0c080;white-space:pre-wrap;max-width:300px;z-index:200;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.8)}
+.empty-msg{text-align:center;color:#807060;padding:20px;font-style:italic}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;background:rgba(60,40,20,.8);border:1px solid #6b5030;color:#c0b090;margin:2px}
+.tag.green{border-color:#40a040;color:#80f080;background:rgba(20,60,20,.8)}
+.tag.red{border-color:#a04040;color:#f08080;background:rgba(60,20,20,.8)}
+.tag.blue{border-color:#4060a0;color:#80a0f0;background:rgba(20,30,60,.8)}
+.info-box{background:rgba(20,30,50,.6);border:1px solid #4060a0;border-radius:6px;padding:10px;margin:8px 0;font-size:12px;color:#a0c0f0}
+.warn-box{background:rgba(50,20,20,.6);border:1px solid #a04040;border-radius:6px;padding:10px;margin:8px 0;font-size:12px;color:#f0a0a0}
+.success-box{background:rgba(20,50,20,.6);border:1px solid #40a040;border-radius:6px;padding:10px;margin:8px 0;font-size:12px;color:#a0f0a0}
+@media(max-width:768px){.grid-2{grid-template-columns:1fr}.grid-3{grid-template-columns:1fr}.map{height:400px}#main{padding:10px}h1{font-size:18px}button{padding:6px 10px;font-size:12px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar"></header>
+  <main id="main"></main>
+  <footer id="log-area"></footer>
+</div>
+<div id="modal-root"></div>
+<script>
+'use strict';
+/* =========================================================================
+   《暗影深淵遊俠：燃燒之光》— 單檔 HTML 版
+   狀態機：SETUP → MAP → SCENE → SCENE_END → MAP/... → FINAL → GAME_OVER
+   ========================================================================= */
+
+// ============================== 常數資料 ==============================
+const SKILLS = ['雜技','古代知識','軍械知識','攀爬','領導力','導航','感知','開鎖','解讀符文','潛行','力量','生存','游泳','追蹤','陷阱知識'];
+
+const HERO_ABILITIES = {
+  '融入陰影':  {desc:'邪惡模型即將與遊俠進入戰鬥時使用，判定該邪惡模型行動時視為遊俠不在桌上。'},
+  '突進':      {desc:'遊俠激活時使用：本回合移動力+2；或消耗移動行動跳躍，距離可達移動力值。'},
+  '致命射擊':  {desc:'射擊擲出天然18或19時，視為暴擊。'},
+  '致命一擊':  {desc:'格鬥擲出天然18或19時，視為暴擊。'},
+  '干擾':      {desc:'邪惡生物需向目標點移動時使用，將其移動到任意位置（不能造成直接傷害或強迫游泳）。'},
+  '隱蔽閃避':  {desc:'面對射擊攻擊時，格鬥擲骰+10（擲骰前聲明）。'},
+  '脫身':      {desc:'戰鬥狀態激活時使用，免費移動1吋脫離戰鬥。'},
+  '專注':      {desc:'任意一次技能擲骰+8（擲骰前聲明）。'},
+  '狂熱攻擊':  {desc:'任意一次格鬥擲骰+5（擲骰前聲明）。'},
+  '震懾亡靈':  {desc:'10吋內視線內所有亡靈生物需意志判定 TN20，失敗失去下次激活。'},
+  '命運之手':  {desc:'重擲一次骰子。'},
+  '內在力量':  {desc:'任意一次意志擲骰+5（可在擲骰後使用）。'},
+  '格擋':      {desc:'雙方格鬥擲骰後，格鬥結果+10，但即便獲勝也不造成傷害。'},
+  '強力打擊':  {desc:'近戰已造成至少1點傷害時，額外造成3點傷害。'},
+  '卸力':      {desc:'近戰失敗時，所受傷害減半（向上取整）。'},
+  '猛推':      {desc:'近戰獲勝時，可將對手推開最多4吋。'},
+  '穩定瞄準':  {desc:'任意一次射擊擲骰+5（擲骰前聲明）。'}
+};
+
+const SPELLS = {
+  '燃燒之光':  {desc:'對8吋內視線內所有亡靈生物發起一次+3攻擊。',type:'attack',bonus:3},
+  '燃燒印記':  {desc:'6吋內放置發光符文，邪惡生物靠近2吋內時爆炸，對2吋內所有邪惡生物發起+5魔法射擊。',type:'place'},
+  '附魔鋼鐵':  {desc:'為近戰武器注入魔法力量，本場景剩餘時間內該武器視為魔法武器，格鬥+1。',type:'buff'},
+  '治癒':      {desc:'6吋內任意模型（含自身）恢復最多5點生命值。',type:'heal',amount:5},
+  '禁錮生物':  {desc:'目標意志判定 TN16，失敗則本回合不能強迫他人進入戰鬥，失去下次激活。對大型/亡靈無效。',type:'debuff'},
+  '魔法飛彈':  {desc:'對視線內任意模型發起+5魔法射擊，不受掩護或中間地形懲罰。',type:'attack',bonus:5},
+  '光之護盾':  {desc:'8吋內視線內任意模型，本場景剩餘時間內所有針對該模型的射擊攻擊-3。',type:'buff'},
+  '煙霧':      {desc:'3吋內任意位置放置3吋直徑濃密煙霧，阻擋所有視線但不阻礙移動。',type:'place'},
+  '堅定之心':  {desc:'8吋內視線內任意模型，下次意志判定+5，再下次+4，依此類推。',type:'buff'},
+  '翻譯':      {desc:'可替代任何解讀符文技能擲骰，自動以最高結果通過。',type:'skill'}
+};
+
+const COMPANIONS = {
+  '巫師':    {M:6,F:2,S:0,A:10,W:2,H:10,skills:{'古代知識':5,'解讀符文':5},items:['單手武器'],rp:15},
+  '弓箭手':  {M:6,F:2,S:2,A:11,W:1,H:10,items:['弓箭','匕首','輕甲','箭囊'],rp:20},
+  '野蠻人':  {M:6,F:4,S:0,A:11,W:3,H:14,skills:{'力量':5},items:['單手武器','盾牌'],rp:35},
+  '召喚師':  {M:6,F:0,S:0,A:10,W:3,H:12,items:['法杖'],rp:20},
+  '衛兵':    {M:6,F:3,S:0,A:11,W:2,H:12,items:['雙手武器','輕甲'],rp:20},
+  '戰犬':    {M:8,F:1,S:0,A:10,W:-2,H:8,animal:true,rp:10},
+  '尋血獵犬':{M:8,F:0,S:0,A:10,W:-2,H:6,animal:true,skills:{'追蹤':5},rp:10},
+  '騎士':    {M:5,F:4,S:0,A:13,W:2,H:12,skills:{'力量':4},items:['單手武器','盾牌','重甲'],rp:35},
+  '重步兵':  {M:6,F:3,S:0,A:12,W:2,H:12,items:['單手武器','盾牌','輕甲'],rp:20},
+  '猛禽':    {M:9,F:0,S:0,A:14,W:3,H:1,animal:true,skills:{'感知':4},rp:10},
+  '新兵':    {M:6,F:2,S:0,A:10,W:0,H:10,items:['單手武器'],rp:10},
+  '盜賊':    {M:7,F:1,S:1,A:10,W:1,H:10,skills:{'攀爬':2,'感知':2,'開鎖':5,'陷阱知識':5,'潛行':5},items:['匕首','投擲刀'],rp:20},
+  '蠻族戰士':{M:6,F:4,S:0,A:10,W:3,H:14,skills:{'力量':5},items:['雙手武器'],rp:35},
+  '劍士':    {M:6,F:4,S:0,A:11,W:2,H:12,items:['單手武器','匕首','輕甲'],rp:25},
+  '聖殿騎士':{M:5,F:4,S:0,A:12,W:2,H:12,skills:{'力量':4},items:['雙手武器','重甲'],rp:35},
+  '追蹤者':  {M:7,F:2,S:2,A:11,W:2,H:12,skills:{'追蹤':5},items:['法杖','弓箭','箭囊','輕甲'],rp:30}
+};
+
+const EQUIP_DB = {
+  '弓箭':{type:'ranged',range:24,dmg:0,desc:'最大射程24吋，無傷害修正。'},
+  '弩':{type:'ranged',range:24,dmg:2,desc:'裝彈1行動，射擊1行動，傷害+2。'},
+  '匕首':{type:'melee',dmg:-1,desc:'傷害-1。'},
+  '單手武器':{type:'melee',dmg:0,desc:'無修正。'},
+  '重甲':{type:'armor',A:2,M:-1,desc:'護甲+2，移動力-1。'},
+  '輕甲':{type:'armor',A:1,desc:'護甲+1。'},
+  '箭囊':{type:'misc',desc:'使用弓箭或弩的必要裝備。'},
+  '繩索':{type:'misc',desc:'可布置繩索攀爬。'},
+  '盾牌':{type:'shield',A:1,desc:'護甲+1，不能與雙手武器/法杖同時攜帶。'},
+  '法杖':{type:'melee',dmg:-1,special:'enemyDmg-1',desc:'傷害-1，對手傷害-1。'},
+  '投擲刀':{type:'thrown',range:8,dmg:-1,desc:'可投擲，射程8吋，傷害-1。'},
+  '雙手武器':{type:'melee',dmg:2,desc:'傷害+2，需雙手，不能帶盾。'}
+};
+
+const ENEMY_DB = {
+  '血蝠':{M:8,F:1,S:0,A:12,W:3,H:1,xp:1,tags:['動物','飛行']},
+  '穴居蠕蟲':{M:5,F:3,S:0,A:10,W:3,H:14,xp:8,tags:['動物','鑽地']},
+  '暗根本體':{M:0,F:3,S:0,A:14,W:0,H:18,xp:6,tags:['遠程傷害上限2'],note:'遠程武器傷害上限2點'},
+  '暗根藤蔓':{M:6,F:1,S:0,A:10,W:0,H:6,xp:0},
+  '血肉魔像':{M:5,F:4,S:0,A:10,W:0,H:16,xp:5,tags:['亡靈','恐怖外形 TN8']},
+  '巨型蒼蠅':{M:6,F:0,S:0,A:6,W:0,H:5,xp:2,tags:['動物','飛行','疾病 TN8']},
+  '巨型老鼠':{M:6,F:0,S:0,A:6,W:0,H:1,xp:2,tags:['動物','疾病 TN8']},
+  '巨型蜘蛛':{M:6,F:0,S:0,A:8,W:0,H:4,xp:2,tags:['動物','有毒','無視複雜地形']},
+  '巨型水蛇':{M:5,F:2,S:0,A:8,W:0,H:10,xp:3,tags:['動物','兩棲']},
+  '食屍鬼':{M:6,F:2,S:0,A:10,W:2,H:10,xp:5,tags:['亡靈']},
+  '食屍鬼首領':{M:6,F:3,S:0,A:11,W:6,H:14,xp:7,tags:['亡靈']},
+  '投骨食屍鬼':{M:6,F:1,S:1,A:10,W:2,H:10,xp:3,tags:['亡靈','投擲骨頭 射程10']},
+  '腐爛食屍鬼':{M:6,F:1,S:0,A:10,W:0,H:8,xp:2,tags:['亡靈','疾病 TN14']},
+  '食屍鬼蛇':{M:5,F:2,S:0,A:8,W:0,H:16,xp:3,tags:['亡靈']},
+  '豺狼人戰士':{M:6,F:2,S:0,A:11,W:0,H:10,xp:3},
+  '豺狼人弓箭手':{M:6,F:1,S:2,A:11,W:0,H:10,xp:3,tags:['遠程']},
+  '豺狼人sergeant':{M:6,F:3,S:0,A:11,W:0,H:12,xp:3},
+  '豺狼人巫師':{M:6,F:1,S:0,A:11,W:5,H:12,xp:5,tags:['有毒','鼓舞+2']},
+  '食人魔':{M:6,F:3,S:0,A:12,W:0,H:14,xp:5,tags:['大型']},
+  '暗影騎士':{M:6,F:4,S:0,A:12,W:0,H:14,xp:10,tags:['亡靈','非魔法武器傷害減半']},
+  '骷髏騎士':{M:6,F:3,S:0,A:13,W:0,H:1,xp:2,tags:['亡靈']},
+  '骷髏':{M:6,F:1,S:0,A:10,W:0,H:1,xp:1,tags:['亡靈']},
+  '沼澤殭屍':{M:4,F:0,S:0,A:12,W:0,H:6,xp:2,tags:['亡靈','兩棲']},
+  '恐懼之翼':{M:6,F:5,S:0,A:14,W:8,H:16,xp:20,tags:['恐怖外形 TN12','飛行','施法者']},
+  '痛苦幽魂':{M:6,F:0,S:0,A:0,W:0,H:0,xp:10,tags:['亡靈','意志削弱','無法被擊殺']},
+  '巨魔':{M:4,F:4,S:0,A:14,W:2,H:16,xp:8,tags:['大型']},
+  '禿鷹':{M:6,F:0,S:0,A:14,W:0,H:4,xp:0,tags:['動物','飛行']},
+  '狼':{M:8,F:1,S:0,A:10,W:0,H:6,xp:2,tags:['動物']},
+  '殭屍':{M:4,F:0,S:0,A:12,W:0,H:6,xp:2,tags:['亡靈']}
+};
+
+// 8 個地點
+const LOCATIONS = {
+  A:{name:'門樓',adj:['B','C'],entry:true,
+     desc:'正門門樓。三具屍體吊在天花板上，一隻食人魔潛伏在側室陰影中。',
+     initialEnemies:['食屍鬼'],
+     poi:[
+       {id:'A',name:'鐵鏈屍體',skill:'感知',tn:12,comment:112},
+       {id:'B',name:'守衛屍體',skill:'生存',tn:18,comment:286,failComment:361},
+       {id:'C',name:'皇家信使屍體',skill:'感知',tn:8,comment:472},
+       {id:'D',name:'鎖著的側室門',skill:'開鎖',tn:10,altSkill:'力量',altTn:14,comment:622}
+     ],
+     events:[
+       {card:'紅桃A',text:'一群小昆蟲飛出，所有英雄意志判定 TN12，失敗下回合無法激活。',effect:'allWill12'},
+       {card:'紅桃2',text:'另一個食人魔走入房間。',effect:'addEnemy:食人魔'},
+       {card:'紅桃3',text:'地震！所有英雄移動判定 TN16，失敗下回合無法激活。',effect:'allMove16'},
+       {card:'紅桃4',text:'鐵鏈甩出，隨機英雄移動判定 TN20，失敗被束縛。',effect:'chainTrap'},
+       {card:'紅桃5',text:'一具屍體復活。',effect:'addEnemy:殭屍'},
+       {card:'紅桃6',text:'又一具屍體復活。',effect:'addEnemy:殭屍'}
+     ]},
+  B:{name:'廢棄禮拜堂',adj:['A','C'],
+     desc:'曾經的四層塔樓，如今只剩二層殘骸。食屍鬼在此徘徊。',
+     initialEnemies:['食屍鬼','食屍鬼','食屍鬼首領','食屍鬼首領','投骨食屍鬼','投骨食屍鬼'],
+     poi:[
+       {id:'A',name:'小房間的門',skill:null,tn:0,comment:792},
+       {id:'B',name:'垃圾堆',skill:'古代知識',tn:10,comment:818},
+       {id:'C',name:'木平台',skill:'攀爬',tn:8,altSkill:'雜技',altTn:12,comment:null,note:'成功則放置1個寶藏標記物',reward:'treasure'},
+       {id:'D',name:'彩色玻璃窗',skill:'意志',tn:8,comment:901,tiered:true,tiers:[{tn:8,c:901},{tn:12,c:214},{tn:16,c:567}]}
+     ],
+     events:[
+       {card:'紅桃A',text:'食屍鬼蛇從垃圾堆下爬出。',effect:'addEnemy:食屍鬼蛇'},
+       {card:'紅桃2',text:'巨石從塔樓落下，隨機3個英雄受到一次+0射擊攻擊。',effect:'shoot3'},
+       {card:'紅桃3',text:'三顆明亮星星穿過黑雲。一名英雄導航 TN12，成功參見注釋199。',effect:'starGaze'},
+       {card:'紅桃4',text:'腐爛食屍鬼撲出，隨機英雄生存 TN8，失敗進入戰鬥。',effect:'rottingGhoul'},
+       {card:'紅桃5',text:'投骨食屍鬼爬上平台。',effect:'addEnemy:投骨食屍鬼'},
+       {card:'紅桃6',text:'兩個食屍鬼從地洞爬出。',effect:'addEnemy:食屍鬼'}
+     ]},
+  C:{name:'庭院',adj:['A','B','D','E','F'],
+     desc:'屍橫遍野。中央噴泉內矗立著聖埃米莉亞的雕像，握著燃燒之光魔瓶。',
+     initialEnemies:['骷髏','骷髏','骷髏','骷髏','骷髏騎士','骷髏騎士'],
+     poi:[
+       {id:'A',name:'噴泉雕像',skill:'感知',tn:6,tiered:true,tiers:[{tn:6,c:315},{tn:10,c:702},{tn:16,c:989}]},
+       {id:'B',name:'破舊大車',skill:'力量',tn:12,comment:151},
+       {id:'C',name:'棚屋門（鎖）',skill:'開鎖',tn:8,altSkill:'力量',altTn:15,comment:238},
+       {id:'D',name:'另一棚屋門（鎖）',skill:'開鎖',tn:8,altSkill:'力量',altTn:15,comment:444},
+       {id:'E',name:'牆上符文',skill:'解讀符文',tn:15,comment:649}
+     ],
+     events:[
+       {card:'紅桃A',text:'隨機角落出現3個骷髏。',effect:'addEnemy:骷髏'},
+       {card:'紅桃2',text:'隨機角落出現2個骷髏騎士。',effect:'addEnemy:骷髏騎士'},
+       {card:'紅桃3',text:'兩個殭屍從噴泉衝出，噴泉邊英雄移動判定 TN20。',effect:'fountainZombies'},
+       {card:'紅桃4',text:'隨機角落出現1個骷髏騎士和2個骷髏。',effect:'addEnemy:骷髏騎士'},
+       {card:'紅桃5',text:'大車頂出現1個痛苦幽魂。',effect:'addEnemy:痛苦幽魂'},
+       {card:'紅桃6',text:'隨機角落出現1個投骨食屍鬼。',effect:'addEnemy:投骨食屍鬼'}
+     ]},
+  D:{name:'圖書館',adj:['C'],
+     desc:'地板塌陷，地下室被水淹沒。水面上漂浮著書本。',
+     initialEnemies:['巨型水蛇','巨型水蛇','血蝠','血蝠'],
+     poi:[
+       {id:'A',name:'完好書架',skill:'導航',tn:8,comment:269},
+       {id:'B',name:'桌上未完成卷軸',skill:'解讀符文',tn:8,tiered:true,tiers:[{tn:8,c:502},{tn:12,c:846}]},
+       {id:'C',name:'宗教文獻',skill:'古代知識',tn:12,comment:337},
+       {id:'D',name:'奇怪嗡嗡的書',skill:'古代知識',tn:10,altSkill:'解讀符文',altTn:10,comment:499,extraComment:927},
+       {id:'E',name:'左小房間（鎖）',skill:'開鎖',tn:6,altSkill:'力量',altTn:8,comment:172},
+       {id:'F',name:'右小房間（鎖）',skill:'開鎖',tn:6,altSkill:'力量',altTn:8,comment:609}
+     ],
+     events:[
+       {card:'紅桃A',text:'巨型水蛇從水下竄出。',effect:'addEnemy:巨型水蛇'},
+       {card:'紅桃B',text:'樓梯坍塌，樓梯上模型+4攻擊。',effect:'stairsCollapse'},
+       {card:'紅桃C',text:'英雄較多的樓層樓梯旁出現2個骷髏。',effect:'addEnemy:骷髏'},
+       {card:'紅桃D',text:'隨機英雄獲得力量：下次激活可執行3次行動。',effect:'extraAction'},
+       {card:'紅桃E',text:'隨機英雄感知 TN14 或解讀符文 TN10，失敗受+3魔法攻擊。',effect:'runeTrap'},
+       {card:'紅桃F',text:'兩隻血蝠從天花板飛入。',effect:'addEnemy:血蝠'}
+     ]},
+  E:{name:'草藥店',adj:['C'],
+     desc:'濃烈的草藥氣味與甜膩惡臭交織。一株巨大的暗根植物盤據在此。',
+     initialEnemies:['暗根本體','暗根藤蔓','暗根藤蔓','暗根藤蔓','暗根藤蔓','暗根藤蔓'],
+     poi:[
+       {id:'A',name:'破損櫥櫃',skill:null,tn:0,comment:975},
+       {id:'B',name:'鎖著的櫥櫃',skill:'開鎖',tn:10,altSkill:'力量',altTn:16,comment:884},
+       {id:'C',name:'藥劑師桌子',skill:'感知',tn:12,comment:398},
+       {id:'D',name:'另一個鎖櫃',skill:'開鎖',tn:10,altSkill:'力量',altTn:16,comment:229},
+       {id:'E',name:'未鎖櫥櫃',skill:null,tn:0,comment:128}
+     ],
+     events:[
+       {card:'紅桃A',text:'暗根藤蔓從英雄面前地面鑽出，移動判定 TN14。',effect:'vineTrap'},
+       {card:'紅桃B',text:'又一根藤蔓鑽出。',effect:'vineTrap'},
+       {card:'紅桃C',text:'隨機英雄意志判定 TN12，失敗下回合無法激活；成功參見注釋822。',effect:'will12or822'},
+       {card:'紅桃D',text:'B和D前出現藤蔓。',effect:'addEnemy:暗根藤蔓'},
+       {card:'紅桃E',text:'C前出現藤蔓。',effect:'addEnemy:暗根藤蔓'},
+       {card:'紅桃F',text:'入口旁出現2隻巨型蒼蠅。',effect:'addEnemy:巨型蒼蠅'}
+     ]},
+  F:{name:'醫院',adj:['C','G','H'],
+     desc:'醫院被蛛網覆蓋，病床多被蛛網繭包覆。有蛛網的地方就有蜘蛛。',
+     initialEnemies:['巨型蜘蛛','巨型蜘蛛'],
+     poi:[
+       {id:'A',name:'左鎖壁櫥',skill:'開鎖',tn:10,altSkill:'力量',altTn:15,comment:945},
+       {id:'B',name:'右鎖壁櫥',skill:'開鎖',tn:10,altSkill:'力量',altTn:15,comment:837},
+       {id:'C',name:'蛛網繭C',skill:'力量',tn:8,comment:718},
+       {id:'D',name:'蛛網繭D',skill:'力量',tn:8,comment:675},
+       {id:'E',name:'蛛網繭E',skill:'力量',tn:8,comment:598},
+       {id:'F',name:'蛛網繭F',skill:'力量',tn:8,comment:407},
+       {id:'G',name:'蛛網繭G',skill:'力量',tn:8,comment:355},
+       {id:'H',name:'蛛網繭H',skill:'力量',tn:8,comment:251}
+     ],
+     events:[
+       {card:'紅桃1',text:'C上出現巨型蜘蛛。',effect:'addEnemy:巨型蜘蛛'},
+       {card:'紅桃2',text:'G和H上出現巨型蜘蛛。',effect:'addEnemy:巨型蜘蛛'},
+       {card:'紅桃3',text:'D和F上出現巨型蜘蛛。',effect:'addEnemy:巨型蜘蛛'},
+       {card:'紅桃4',text:'所有模型力量 TN12，失敗下回合無法激活。',effect:'allStr12'},
+       {card:'紅桃5',text:'所有模型力量 TN12，失敗下回合無法激活。',effect:'allStr12'},
+       {card:'紅桃6',text:'小蜘蛛落下，對每個英雄+0攻擊（傷害-2），帶毒。',effect:'spiderRain'}
+     ]},
+  G:{name:'女院長的住處',adj:['F'],
+     desc:'屋頂破洞，桌上趴著一具屍體。巨型蒼蠅嗡嗡飛舞。',
+     initialEnemies:['巨型蒼蠅','巨型蒼蠅','巨型蒼蠅'],
+     poi:[
+       {id:'A',name:'桌上的屍體',skill:null,tn:0,comment:326},
+       {id:'B',name:'倒塌書架',skill:'感知',tn:12,comment:412},
+       {id:'C',name:'頂層書架',skill:'攀爬',tn:12,comment:526},
+       {id:'D',name:'未鎖小房間',skill:null,tn:0,comment:655},
+       {id:'E',name:'鎖著的小房間',skill:'開鎖',tn:12,altSkill:'力量',altTn:18,comment:777}
+     ],
+     events:[
+       {card:'紅桃A',text:'房間中心出現2隻巨型蒼蠅。',effect:'addEnemy:巨型蒼蠅'},
+       {card:'紅桃2',text:'又2隻巨型蒼蠅。',effect:'addEnemy:巨型蒼蠅'},
+       {card:'紅桃3',text:'樓梯上出現2隻巨型蒼蠅。',effect:'addEnemy:巨型蒼蠅'},
+       {card:'紅桃4',text:'黑雲飄入，所有模型生命值 TN12，失敗患病。',effect:'diseaseCloud'},
+       {card:'紅桃5',text:'巨型蜘蛛從洞中爬出。',effect:'addEnemy:巨型蜘蛛'},
+       {card:'紅桃6',text:'紅色霧氣，隨機英雄意志 TN12，失敗受3傷害。',effect:'redMist'}
+     ]},
+  H:{name:'宿舍',adj:['F'],
+     desc:'地板有三個巨大破洞，僅剩狹窄通道連接房間兩部分。',
+     initialEnemies:['巨型蜘蛛','巨型蜘蛛','巨型蜘蛛'],
+     poi:[
+       {id:'A',name:'鎖著的箱子A',skill:'開鎖',tn:7,altSkill:'力量',altTn:10,comment:518},
+       {id:'B',name:'未鎖箱子B',skill:null,tn:0,comment:614},
+       {id:'C',name:'未鎖箱子C',skill:null,tn:0,comment:728},
+       {id:'D',name:'鎖著的箱子D',skill:'開鎖',tn:7,altSkill:'力量',altTn:10,comment:803}
+     ],
+     events:[
+       {card:'紅桃A',text:'通道坍塌，通道上模型雜技 TN10 或移動 TN18，失敗墜落退場。',effect:'floorCollapse'},
+       {card:'紅桃B',text:'地震，洞邊模型雜技 TN10 或移動 TN18，失敗墜落退場。',effect:'earthquake'},
+       {card:'紅桃C',text:'隨機角落出現1個痛苦幽魂。',effect:'addEnemy:痛苦幽魂'},
+       {card:'紅桃D',text:'D上出現1隻巨型蜘蛛。',effect:'addEnemy:巨型蜘蛛'},
+       {card:'紅桃E',text:'A上出現1隻巨型蜘蛛。',effect:'addEnemy:巨型蜘蛛'},
+       {card:'紅桃F',text:'樓梯上出現2隻巨型蒼蠅。',effect:'addEnemy:巨型蒼蠅'}
+     ]}
+};
+
+// 8 個最終搜索位置 → 若正確（圖書館 D）則找到魔瓶
+const FINAL_SEARCH = {
+  A:135, B:294, C:383, D:456, E:533, F:688, G:734, H:892
+};
+const DECANTER_LOCATION = 'E'; // 魔瓶藏在草藥店 E（注釋533）
+
+// 暗影深淵卡（依場景順序遞增）
+const SHADOW_DECK = [
+  {card:'梅花A',text:'恐怖嚎叫，所有英雄意志 TN10，失敗下回合最多1次行動。',effect:'will10'},
+  {card:'梅花2',text:'禿鷹出現。',effect:'addEnemy:禿鷹'},
+  {card:'梅花3',text:'所有邪惡生物格鬥+1（下一回合）。',effect:'enemyF1'},
+  {card:'梅花4',text:'濃霧，最大視線8吋。',effect:'fog8'},
+  {card:'梅花5',text:'所有邪惡生物格鬥+2（下一回合）。',effect:'enemyF2'},
+  {card:'梅花6',text:'所有英雄意志判定-3（本場景）。',effect:'allWill-3'},
+  {card:'梅花7',text:'暗影騎士出現（幻象，參見注釋435）。',effect:'shadowKnightPhantom'},
+  {card:'梅花8',text:'巨狼衝入。',effect:'addEnemy:狼'},
+  {card:'梅花9',text:'灰燼飄過，兩回合內英雄意志 TN12 才能行動，視線8吋。',effect:'ash'},
+  {card:'梅花10',text:'又一隻巨狼。',effect:'addEnemy:狼'},
+  {card:'黑桃A',text:'帶刺昆蟲襲擊，每個英雄生命值 TN14，失敗患病。',effect:'diseaseAll'},
+  {card:'黑桃2',text:'兩個豺狼人戰士出現。',effect:'addEnemy:豺狼人戰士'},
+  {card:'黑桃3',text:'閃電劈下，隨機英雄受+5元素魔法射擊攻擊。',effect:'lightning'},
+  {card:'黑桃4',text:'兩個豺狼人弓箭手出現。',effect:'addEnemy:豺狼人弓箭手'},
+  {card:'黑桃5',text:'豺狼人小隊出現。',effect:'addEnemy:豺狼人sergeant'},
+  {card:'黑桃6',text:'暗影騎士出現。',effect:'addEnemy:暗影騎士'}
+];
+
+// 注釋資料
+const COMMENTS = {
+  107:{title:'魔法箭',text:'箭囊中有兩支魔法箭，命中時額外造成2點傷害。',xp:5,reward:'item:魔法箭×2'},
+  112:{title:'守衛戒指',text:'守衛戴著一枚刻有蒼鷺圖案的小金戒指，戒指設計簡潔卻精美。',xp:8,reward:'item:金戒指'},
+  128:{title:'人骨掉落',text:'打開櫥櫃門時，幾根人骨掉落。可進行感知 TN12 或解讀符文 TN12，成功參見 866。',check:{skill:'感知',tn:12,altSkill:'解讀符文',altTn:12,success:866}},
+  135:{title:'門樓搜尋失敗',text:'你搜遍門樓，沒有魔瓶。任務失敗，唯一問題是能否存活。進入場景 I。',triggerFinal:true},
+  151:{title:'大車下的屍體',text:'你抬起大車，露出修女屍體。她身邊有治療藥劑。',xp:3,reward:'item:治療藥劑'},
+  172:{title:'空寶庫',text:'這個房間曾是寶庫，如今幾乎空空如也。放置1個寶藏標記物，3隻血蝠出現。',xp:5,reward:'treasure',addEnemies:['血蝠','血蝠','血蝠']},
+  199:{title:'星座',text:'你認出這些星是著名四星象座的三顆，東北方向的那顆星卻不見了。',xp:8},
+  214:{title:'治癒幻象',text:'聖埃米莉亞手持魔瓶，正在傾倒水，周圍長滿草藥和花朵。所有英雄恢復3點生命值。',xp:8,healAll:3},
+  222:{title:'魔瓶仿製品',text:'你發現一個普通瓷瓶，氣味甜美，瓶中裝著某種草藥。',xp:10,reward:'item:甜味草藥'},
+  229:{title:'草藥袋',text:'在櫥櫃工具和空罐子中，找到一個草藥袋。',xp:3,reward:'item:草藥袋'},
+  238:{title:'被鎖的狗',text:'棚屋內一條大狗被鐵鏈拴住。與棚屋相鄰英雄可進行領導力 TN12，成功則加入為免費同伴。',xp:6,reward:'companion:獵犬'},
+  249:{title:'巴爾謝托特神像',text:'黏土偶像描繪北方沙漠部落之神。攜帶者意志-1，存活至任務結束可交給上級。',xp:12,reward:'item:巴爾謝托特神像'},
+  251:{title:'蛛網繭下的木盒',text:'蛛網繭是空的，但床下藏有長木盒，內有弓和箭囊。進行軍械知識 TN8，成功參見 107。',xp:0,reward:'item:弓箭',check:{skill:'軍械知識',tn:8,success:107}},
+  269:{title:'導航書籍',text:'書架上有一本稀有導航書，攜帶者所有導航+2。',xp:0,reward:'item:導航書'},
+  273:{title:'詩集咒語',text:'仔細閱讀後發現詩歌實為咒語。施法者可閱讀其中一段，為自己或6吋內任意模型恢復3點生命值，可用5次。',xp:10,reward:'item:咒語詩集'},
+  286:{title:'抽搐的屍體',text:'這具屍體仍在抽搐！殭屍掙脫鐵鏈。放置1個殭屍。',xp:3,addEnemies:['殭屍']},
+  294:{title:'禮拜堂搜尋失敗',text:'搜遍禮拜堂，沒有魔瓶。任務失敗，進入場景 I。',triggerFinal:true},
+  309:{title:'貴族獎章',text:'獎章刻有洛倫西亞貴族紋章，背面的名字屬於死者。',xp:5,reward:'item:獎章'},
+  315:{title:'雕像指向圖書館',text:'雕像另一隻手曾經指向圖書館。',xp:2},
+  326:{title:'老年修女屍體',text:'屍體突然坐起，吐出帶刺昆蟲！桌邊1吋內模型受+0攻擊。屍體變為食屍鬼。',addEnemies:['食屍鬼']},
+  337:{title:'暗影深淵知識書',text:'一本關於暗影深淵的稀有黑色薄書。',xp:0,reward:'item:暗影深淵知識書'},
+  355:{title:'小蜘蛛群',text:'撕開蛛網繭時，成千上萬小蜘蛛爬出。對打開者及2吋內所有英雄+2攻擊（傷害-2，帶毒）。',xp:5},
+  361:{title:'詐死',text:'靠近屍體時，它突然睜眼撲向你！放置1個殭屍。',addEnemies:['殭屍']},
+  378:{title:'聖多內拉幻象',text:'金色光芒迸發，聖多內拉幻象出現，指向東面，拔出金劍。可加入為同伴（屬性同騎士，魔法攻擊，對亡靈F+2）。',xp:10,reward:'companion:聖多內拉幻象'},
+  383:{title:'庭院搜尋失敗',text:'搜遍庭院，沒有魔瓶。任務失敗，進入場景 I。',triggerFinal:true},
+  398:{title:'藥劑師桌子',text:'快速搜索多個抽屜，放置1個寶藏標記物。',xp:3,reward:'treasure'},
+  407:{title:'蛛網繭F',text:'撕開蛛網繭，只有骷髏殘骸。'},
+  412:{title:'魔瓶日記',text:'找到手寫《魔瓶日記》，內夾一片散發刺鼻氣味的干葉。不佔物品槽。',xp:5,reward:'item:魔瓶日記'},
+  435:{title:'幻象暗影騎士',text:'這暗影騎士是幻象！立即移除。'},
+  444:{title:'園藝工具',text:'棚屋中有園藝工具，一把鐮刀刀刃仍鋒利（視為單手武器）。',xp:2,reward:'item:鐮刀'},
+  456:{title:'圖書館搜尋失敗',text:'搜遍圖書館，沒有魔瓶。任務失敗，進入場景 I。',triggerFinal:true},
+  463:{title:'草藥大禮包',text:'找到海克麥、鐵樹皮粉末、夜諾克草、珍貴安塔拉草各1份。',xp:9,reward:'item:草藥×4'},
+  472:{title:'信使背包',text:'取出一封密封信，但被血浸濕。場景結束後解讀符文 TN12，成功參見 963。',xp:5,check:{skill:'解讀符文',tn:12,success:963}},
+  499:{title:'嗡嗡的書',text:'進行陷阱知識 TN12，失敗驚醒更多血蝠（桌上放置3隻血蝠）；成功獲得5XP。',xp:5,check:{skill:'陷阱知識',tn:12,successOnFailAdd:['血蝠','血蝠','血蝠']}},
+  502:{title:'移走並掩埋',text:'潦草文字大致寫著「他們已將魔瓶從『此處』移走並掩埋」。',xp:8},
+  518:{title:'箱子裡的黏土偶像',text:'箱子底有黏土偶像，描繪扭曲惡魔。進行古代知識 TN10，成功參見 249。',xp:5,check:{skill:'古代知識',tn:10,success:249}},
+  526:{title:'聖埃米莉亞金像',text:'頂層書架有小型聖埃米莉亞金像，攜帶者對亡靈戰鬥時護甲+1。',xp:0,reward:'item:聖埃米莉亞金像'},
+  533:{title:'★ 找到燃燒之光魔瓶！★',text:'你發現地面凹陷，掀開布後，一個刻有精美符文的銀色魔瓶正閃閃發光。你找到了目標！但尖叫聲響起——你必須進入場景 I 帶著戰利品逃脫！',xp:100,foundDecanter:true},
+  567:{title:'更強治癒幻象',text:'聖埃米莉亞手持魔瓶，空氣中瀰漫迷迭香和百里香。所有英雄恢復4點生命值。',xp:12,healAll:4},
+  598:{title:'蛛網繭E',text:'撕開蛛網繭，只有金屬碎片、皮帶扣和鈕扣。'},
+  609:{title:'受困女子',text:'推開房門，一名瘦弱年輕女子蜷縮在翻倒桌子後。可進行領導力 TN12，成功參見 992。'},
+  614:{title:'箱子裡的詩集',text:'箱子裡有衣服和珠寶。拿出一本詩集，進行解讀符文 TN12，成功參見 273。',check:{skill:'解讀符文',tn:12,success:273}},
+  622:{title:'側室食屍鬼',text:'打開門，一群食屍鬼衝出！房間每個角落放1個食屍鬼，隨機角落放置1個寶藏標記物。',xp:3,reward:'treasure',addEnemies:['食屍鬼','食屍鬼','食屍鬼','食屍鬼']},
+  649:{title:'牆上文字',text:'牆上寫著：「它已被移走……」',xp:6},
+  655:{title:'白色蛆蟲',text:'小臥室床上有臃腫白色蛆蟲，緩慢扭動。若想殺死牠，參見 937。'},
+  661:{title:'全軍覆沒',text:'最終戰鬥慘烈，你眼睜睜看著同伴倒下，黑暗吞噬了你。少數人成功逃脫。每個模型生存判定時擲骰結果減半（向上取整）；任何存活的遊俠獲得50XP。任務結束。',xp:50,isEnding:true,ending:'fail'},
+  675:{title:'蛛網繭D',text:'乾屍手中緊握未完成的信。獲得5XP。',xp:5},
+  688:{title:'醫院搜尋失敗',text:'搜遍醫院，沒有魔瓶。任務失敗，進入場景 I。',triggerFinal:true},
+  696:{title:'草藥組合',text:'找到海克麥和鐵樹皮粉末各1份。',xp:5,reward:'item:草藥×2'},
+  702:{title:'珠寶匠的錘子',text:'雕像手臂被珠寶匠用的小錘敲碎。',xp:6},
+  718:{title:'蛛網繭C',text:'蛛網繭中有老年男子乾屍，戴著金質獎章。進行古代知識 TN8，成功參見 309。',xp:2,check:{skill:'古代知識',tn:8,success:309}},
+  728:{title:'箱子C',text:'箱子裡只有舊衣服。'},
+  734:{title:'女院長住處搜尋失敗',text:'搜遍女院長住處，沒有魔瓶。任務失敗，進入場景 I。',triggerFinal:true},
+  759:{title:'返回阿拉多爾',text:'你懷著沉重心情返回阿拉多爾——任務失敗，但你的努力獲得讚賞。獲得75XP，每個同伴獲得1點進階點數。',xp:75,isEnding:true,ending:'partial'},
+  777:{title:'禮拜堂',text:'小房間是禮拜堂，中心有聖埃米莉亞木雕像，腳下擺放迷迭香。第一個進入者意志 TN8，成功參見 951。',xp:10,check:{skill:'意志',tn:8,success:951}},
+  781:{title:'海克麥',text:'找到1份海克麥。',xp:3,reward:'item:海克麥'},
+  792:{title:'箱子與腐爛食屍鬼',text:'房間角落有箱子，3個腐爛食屍鬼擋在前方。與箱子相鄰時陷阱知識 TN8，失敗鎖中射針（3傷害+中毒）。將箱子替換為寶藏標記物。',addEnemies:['腐爛食屍鬼','腐爛食屍鬼','腐爛食屍鬼'],reward:'treasure'},
+  803:{title:'箱子D的聖像',text:'舊衣服中有一幅精美彩繪聖像（聖多內拉）。英雄意志 TN8，成功參見 378。',xp:15,check:{skill:'意志',tn:8,success:378}},
+  818:{title:'黃金聖典',text:'垃圾堆中發現金色搭扣小書，稀有聖典。攜帶者對亡靈戰鬥時護甲+1。',xp:0,reward:'item:黃金聖典'},
+  822:{title:'魔瓶幻象',text:'英雄看到燃燒之光魔瓶幻象，充滿力量。生命值回滿，中毒/疾病治癒。',xp:5,healSelf:true},
+  837:{title:'壁櫥B',text:'壁櫥主要存放床單和毛巾。進行感知 TN8，成功參見 222。',check:{skill:'感知',tn:8,success:222}},
+  846:{title:'詳細記載',text:'潦草文字大致寫著「他們已將魔瓶從『此處』移走，並埋在『一個角落』」。',xp:15},
+  851:{title:'★ 勝利！★',text:'你帶著魔瓶成功逃離女修道院，最後衝破黑雲回到阿拉多爾。上交魔瓶，營地為你慶祝。獲得150XP，每個同伴獲得2點進階點數。',xp:150,isEnding:true,ending:'victory'},
+  866:{title:'聖骨',text:'骨頭上有微弱刻痕，認出「埃米莉亞」——這些骨頭屬於偉大聖徒。攜帶者存活至任務結束可交給上級。',xp:20},
+  884:{title:'草藥罐',text:'櫃中存放許多干草藥。進行生存判定：1-5無、6-10參見 781、11-15參見 696、16-20參見 574、21+參見 463。',check:{skill:'生存',tn:0,special:'herbTable'}},
+  892:{title:'宿舍搜尋失敗',text:'搜遍宿舍，沒有魔瓶。任務失敗，進入場景 I。',triggerFinal:true},
+  901:{title:'玻璃窗幻象',text:'聖埃米莉亞被花朵環繞，手持魔瓶為病人治療。所有英雄恢復2點生命值。',xp:5,healAll:2},
+  927:{title:'紅色魔法書',text:'找到紅色封面魔法書。施法者攜帶可選擇兩個法術存入書中，消耗行動施展，施展後書籍失效。',xp:10,reward:'item:紅色魔法書'},
+  937:{title:'蛆蟲體內的聖杯',text:'武器刺入臃腫生物，發現銀色聖杯。立即生命值 TN18，失敗患病。',xp:10,reward:'item:聖杯'},
+  945:{title:'治療藥劑',text:'壁櫥中有三瓶治療藥劑。',xp:3,reward:'item:治療藥劑×3'},
+  951:{title:'雕像光芒',text:'一道明亮光芒從雕像迸發。選一名英雄，生命值回滿，治癒所有中毒、疾病及永久性傷害。'},
+  963:{title:'掩埋線索',text:'大部分文字被血浸濕，但看清「我們已將它埋在鬆軟的泥土中……」。',xp:5},
+  975:{title:'毒霧',text:'打開櫃門，毒霧湧出。3吋內英雄生命值 TN18，失敗中毒。櫃中所有物品被有毒真菌覆蓋。',xp:3},
+  989:{title:'雕像指向圖書館（精確）',text:'確認雕像指向圖書館。找到珠寶匠小錘，最後找到幾乎完好的另一隻手，反向指向。',xp:12},
+  992:{title:'見習修女',text:'年輕女子是見習修女，加入為免費同伴（屬性同召喚師，掌握治癒與堅定之心）。存活至任務結束獲得15XP。',xp:15,reward:'companion:見習修女'}
+};
+
+// ============================== 遊戲狀態 ==============================
+let S = null;
+
+function createInitialState() {
+  return {
+    phase:'SETUP',
+    ranger:{
+      name:'無名遊俠',level:0,xp:0,
+      M:6,F:2,S:1,A:10,W:4,H:18,curH:18,
+      skills:Object.fromEntries(SKILLS.map(s=>[s,0])),
+      abilities:[],spells:[],equipment:['弓箭','匕首','輕甲','箭囊','繩索'],
+      rp:100,
+      usedAbilities:[],
+      status:{poisoned:false,disease:false,permanent:[],hunger:0}
+    },
+    companions:[], // {type, ... stats, curH, ap, id, isTemp}
+    visited:[], // 已探索地點 ['A','B']
+    currentLoc:null,
+    round:0,
+    eventDeck:[],
+    eventUsed:[],
+    scene:null, // 場景運行時狀態
+    log:[],
+    pending:null,
+    treasureCount:0, // 累計找到的寶藏
+    loot:[],
+    decanter:false,
+    finalSearch:null,
+    shadowDeckIdx:0, // 已用掉幾張暗影深淵卡
+    gameOver:false,
+    turnState:null // 回合內狀態機：player/companion/enemy/event
+  };
+}
+
+// ============================== 工具函式 ==============================
+const $ = id => document.getElementById(id);
+const d20 = () => Math.floor(Math.random()*20)+1;
+const rand = n => Math.floor(Math.random()*n);
+const pick = arr => arr[rand(arr.length)];
+const clamp = (v,min,max) => Math.max(min,Math.min(max,v));
+
+function log(msg, type='info') {
+  S.log.push({msg, type, t:Date.now()});
+  renderLog();
+}
+
+function renderLog() {
+  const el = $('log-area');
+  el.innerHTML = S.log.slice(-100).map(l=>`<div class="log-entry log-${l.type}">${l.msg}</div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function saveGame() {
+  try {
+    localStorage.setItem('shadowdeep_save', JSON.stringify(S));
+    log('💾 遊戲已存檔','system');
+  } catch(e) { log('存檔失敗：'+e.message,'danger'); }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem('shadowdeep_save');
+    if(!raw) { log('沒有存檔','danger'); return false; }
+    S = JSON.parse(raw);
+    log('📂 讀檔成功','system');
+    render();
+    return true;
+  } catch(e) { log('讀檔失敗：'+e.message,'danger'); return false; }
+}
+
+function showModal(title, content, actions) {
+  const root = $('modal-root');
+  root.innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this){}">
+      <div class="modal">
+        <h2>${title}</h2>
+        <div>${content}</div>
+        <div class="modal-actions">${actions||'<button onclick="closeModal()">關閉</button>'}</div>
+      </div>
+    </div>`;
+}
+function closeModal(){ $('modal-root').innerHTML=''; }
+
+// 通用 d20 判定
+function rollCheck(mod, tn, label) {
+  const r = d20();
+  const total = r + mod;
+  let success;
+  if(r===20) success=true;
+  else if(r===1) success=false;
+  else success = total >= tn;
+  return {roll:r, mod, total, tn, success, label};
+}
+
+// 戰鬥計算（返回詳細）
+function resolveCombat(attacker, defender) {
+  // attacker: {name,F,armor(用於被反擊),dmgBonus,crit:boolean,isHero,abilities:[...]}
+  // defender: {name,F,armor,dmgBonus,isHero,crit:boolean}
+  const aR = d20(), dR = d20();
+  const aScore = aR + attacker.F;
+  const dScore = dR + defender.F;
+  let winner='tie', dmg=0, crit=false;
+  // 天然20 暴擊
+  if(attacker.crit && aR===20) {
+    crit=true;
+    dmg = Math.max(0, aScore + 5 - defender.armor + (attacker.dmgBonus||0));
+    winner='attacker';
+  } else if(defender.crit && dR===20) {
+    dmg = Math.max(0, dScore + 5 - attacker.armor + (defender.dmgBonus||0));
+    winner='defender';
+  } else if(aR===1) {
+    winner='defender';
+    dmg = Math.max(0, dScore - attacker.armor + (defender.dmgBonus||0));
+  } else if(dR===1) {
+    winner='attacker';
+    dmg = Math.max(0, aScore - defender.armor + (attacker.dmgBonus||0));
+  } else if(aScore > dScore) {
+    winner='attacker';
+    dmg = Math.max(0, aScore - defender.armor + (attacker.dmgBonus||0));
+  } else if(dScore > aScore) {
+    winner='defender';
+    dmg = Math.max(0, dScore - attacker.armor + (defender.dmgBonus||0));
+  } else {
+    winner='tie';
+    dmg = Math.max(0, aScore - defender.armor);
+  }
+  return {aR,dR,aScore,dScore,winner,dmg,crit};
+}
+
+// 用遊俠的屬性（可能因永久傷害拆分為有效值）
+function effStat(ranger, stat) {
+  // 若永久傷害影響該屬性，這裡簡化：直接返回實際值
+  return ranger[stat];
+}
+
+// ============================== 渲染：頂部欄 ==============================
+function renderTopbar() {
+  const tb = $('topbar');
+  if(!S || S.phase==='SETUP') { tb.innerHTML='<div style="color:#f0c060;font-size:16px;font-weight:bold">暗影深淵遊俠：燃燒之光</div><div id="topbar-right"></div>'; return; }
+  const r = S.ranger;
+  const phaseText = {
+    'MAP':'🗺 地圖探索','SCENE':'⚔ 場景進行中','SCENE_END':'📜 場景結算',
+    'FINAL':'🔥 最終決戰','GAME_OVER':'🏁 遊戲結束','SETUP':''
+  }[S.phase]||'';
+  tb.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <div style="color:#f0c060;font-weight:bold">${r.name}</div>
+      <div class="stat-chip">Lv.${r.level}</div>
+      <div class="stat-chip">XP ${r.xp}</div>
+      <div class="stat-chip">❤ ${r.curH}/${r.H}</div>
+      ${r.status.poisoned?'<div class="stat-chip lo">中毒</div>':''}
+      ${r.status.disease?'<div class="stat-chip lo">疾病</div>':''}
+      ${S.decanter?'<div class="stat-chip hi">★ 魔瓶</div>':''}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <div style="color:#a09070">${phaseText}</div>
+      ${S.phase==='SCENE'?`<div class="stat-chip">回合 ${S.round}/9</div>`:''}
+      <button class="small" onclick="saveGame()">💾 存檔</button>
+      <button class="small" onclick="showHelp()">❓ 說明</button>
+    </div>`;
+}
+
+// ============================== 渲染主路由 ==============================
+function render() {
+  renderTopbar();
+  const m = $('main');
+  switch(S.phase) {
+    case 'SETUP': m.innerHTML = renderSetup(); break;
+    case 'MAP': m.innerHTML = renderMap(); break;
+    case 'SCENE': m.innerHTML = renderScene(); break;
+    case 'SCENE_END': m.innerHTML = renderSceneEnd(); break;
+    case 'FINAL': m.innerHTML = renderFinal(); break;
+    case 'GAME_OVER': m.innerHTML = renderGameOver(); break;
+    default: m.innerHTML = '<div class="empty-msg">未知狀態</div>';
+  }
+  renderLog();
+}
+
+// ============================== 角色創建 ==============================
+let setupState = null;
+
+function initSetup() {
+  setupState = {
+    tab:'basic',
+    name:'無名遊俠',
+    // 屬性提升（每項最多+1，總共最多3點）
+    statUps:{M:0,F:0,S:0,W:0,H:0},
+    // 英雄能力（最多5點）
+    abilities:[],
+    // 法術（可重複）
+    spells:[],
+    // 技能（每點提升8項技能各+1）
+    skills:Object.fromEntries(SKILLS.map(s=>[s,0])),
+    skillPointsSpent:0,
+    // 招募點數投入（最多3點）
+    rpInvest:0,
+    // 裝備（最多5件，從基礎列表選）
+    equipment:['弓箭','匕首','輕甲','箭囊','繩索'],
+    // 招募同伴
+    companionCounts:{}
+  };
+  renderSetupDetail();
+}
+
+function renderSetup() {
+  if(!setupState) initSetup();
+  return `
+    <h1>⚔ 暗影深淵遊俠 ⚔</h1>
+    <p style="text-align:center;color:#a09070;margin-bottom:20px">燃燒之光 — 單人網頁版</p>
+    <div id="setup-content">${renderSetupTab()}</div>
+    <div id="setup-preview"></div>
+  `;
+}
+
+function renderSetupTab() {
+  const sp = setupState;
+  const usedStatPoints = Object.values(sp.statUps).reduce((a,b)=>a+b,0);
+  const usedAbilityPoints = sp.abilities.length + sp.spells.length;
+  const usedRP = sp.rpInvest;
+
+  let tabs = `
+    <div class="tabs">
+      <div class="tab ${sp.tab==='basic'?'active':''}" onclick="setupState.tab='basic';render()">基本</div>
+      <div class="tab ${sp.tab==='stats'?'active':''}" onclick="setupState.tab='stats';render()">屬性 (${usedStatPoints}/3)</div>
+      <div class="tab ${sp.tab==='abilities'?'active':''}" onclick="setupState.tab='abilities';render()">能力與法術 (${usedAbilityPoints}/5)</div>
+      <div class="tab ${sp.tab==='skills'?'active':''}" onclick="setupState.tab='skills';render()">技能 (${sp.skillPointsSpent}/5)</div>
+      <div class="tab ${sp.tab==='rp'?'active':''}" onclick="setupState.tab='rp';render()">招募點數 (${usedRP}/3)</div>
+      <div class="tab ${sp.tab==='equip'?'active':''}" onclick="setupState.tab='equip';render()">裝備</div>
+      <div class="tab ${sp.tab==='companions'?'active':''}" onclick="setupState.tab='companions';render()">同伴</div>
+    </div>
+  `;
+
+  let content = '';
+  switch(sp.tab) {
+    case 'basic':
+      content = `
+        <div class="panel">
+          <div class="panel-title">遊俠名稱</div>
+          <input type="text" id="setup-name" value="${sp.name}" oninput="setupState.name=this.value;renderSetupDetail()"
+            style="width:100%;padding:10px;background:#1a1005;border:1px solid #8b6f47;border-radius:6px;color:#f0c060;font-size:16px">
+          <div class="info-box" style="margin-top:14px">
+            <b>初始屬性：</b>移動6 / 格鬥+2 / 射擊+1 / 護甲10 / 意志+4 / 生命18<br>
+            <b>技能：</b>全部 +0<br>
+            <b>構建點數：</b>10 點（用於：屬性 3、能力/法術 5、技能 5、招募點數 3，上限各自獨立）<br>
+            <b>裝備：</b>從基礎列表選最多 5 件（免費）
+          </div>
+        </div>`;
+      break;
+    case 'stats':
+      content = `<div class="panel"><div class="panel-title">屬性提升（每項最多+1，最多3點）</div>
+        <p style="color:#a09070;font-size:12px;margin-bottom:10px">護甲不能提升。已使用 ${usedStatPoints}/3 點</p>
+        <div class="grid-2">`;
+      const statNames = {M:'移動力',F:'格鬥',S:'射擊',W:'意志',H:'生命值'};
+      for(const k of ['M','F','S','W','H']) {
+        const canInc = sp.statUps[k]<1 && usedStatPoints<3;
+        const canDec = sp.statUps[k]>0;
+        const base = {M:6,F:2,S:1,W:4,H:18}[k];
+        const cur = base + sp.statUps[k];
+        const fmt = (k==='F'||k==='S'||k==='W') ? (cur>=0?'+'+cur:cur) : cur;
+        content += `<div class="equip-item">
+          <span>${statNames[k]}：<b style="color:#f0c060">${fmt}</b> (基礎 ${base})</span>
+          <span>
+            <button class="small" onclick="if(${canDec}){setupState.statUps['${k}']--;render()}" ${canDec?'':'disabled'}>−</button>
+            <button class="small" onclick="if(${canInc}){setupState.statUps['${k}']++;render()}" ${canInc?'':'disabled'}>＋</button>
+          </span>
+        </div>`;
+      }
+      content += `</div></div>`;
+      break;
+    case 'abilities':
+      content = `
+        <div class="panel">
+          <div class="panel-title">英雄能力（每個只能買一次）</div>
+          <p style="color:#a09070;font-size:12px">剩餘點數：${5-usedAbilityPoints}</p>
+          <div class="grid-2" style="margin-top:10px">`;
+      for(const [name,info] of Object.entries(HERO_ABILITIES)) {
+        const owned = sp.abilities.includes(name);
+        const canBuy = !owned && usedAbilityPoints<5;
+        content += `<div class="equip-item" style="flex-direction:column;align-items:flex-start">
+          <div style="display:flex;justify-content:space-between;width:100%">
+            <b style="color:#f0c060">${name}</b>
+            <button class="small ${owned?'active':''}" onclick="toggleAbility('${name}')" ${!owned&&!canBuy?'disabled':''}>${owned?'✓已選':'選擇'}</button>
+          </div>
+          <div style="font-size:11px;color:#a09070;margin-top:4px">${info.desc}</div>
+        </div>`;
+      }
+      content += `</div></div>
+        <div class="panel">
+          <div class="panel-title">法術（可重複購買）</div>
+          <div class="grid-2" style="margin-top:10px">`;
+      for(const [name,info] of Object.entries(SPELLS)) {
+        const count = sp.spells.filter(s=>s===name).length;
+        const canBuy = usedAbilityPoints<5;
+        content += `<div class="equip-item" style="flex-direction:column;align-items:flex-start">
+          <div style="display:flex;justify-content:space-between;width:100%">
+            <b style="color:#f0c060">${name} ${count>0?'×'+count:''}</b>
+            <span>
+              <button class="small" onclick="if(${canBuy}){setupState.spells.push('${name}');render()}" ${canBuy?'':'disabled'}>＋</button>
+              <button class="small" onclick="removeSpell('${name}')" ${count>0?'':'disabled'}>−</button>
+            </span>
+          </div>
+          <div style="font-size:11px;color:#a09070;margin-top:4px">${info.desc}</div>
+        </div>`;
+      }
+      content += `</div></div>`;
+      break;
+    case 'skills':
+      content = `<div class="panel"><div class="panel-title">技能（已用 ${sp.skillPointsSpent}/5 點，每點讓8項不同技能各+1）</div>
+        <p style="color:#a09070;font-size:12px;margin-bottom:10px">每點技能點：將 8 項不同技能各 +1（可疊加，例如 2 點可讓同 8 項技能變 +2）</p>
+        <div class="grid-2">`;
+      for(const sk of SKILLS) {
+        const cur = sp.skills[sk];
+        const canInc = sp.skillPointsSpent<5;
+        content += `<div class="skill-row">
+          <span class="name">${sk}</span>
+          <span>
+            <span class="val">${cur>0?'+'+cur:'+0'}</span>
+            <button class="small" onclick="incSkill('${sk}')" ${canInc?'':'disabled'}>＋1點</button>
+            <button class="small" onclick="decSkill('${sk}')" ${cur>0?'':'disabled'}>−1點</button>
+          </span>
+        </div>`;
+      }
+      content += `</div></div>`;
+      break;
+    case 'rp':
+      content = `<div class="panel"><div class="panel-title">招募點數投入（每點構建點 +10 基礎招募點數）</div>
+        <p>已投入 ${sp.rpInvest}/3 點。基礎招募點數：${100 + sp.rpInvest*10}</p>
+        <div style="margin-top:12px">
+          <button onclick="if(setupState.rpInvest>0){setupState.rpInvest--;render()}">−</button>
+          <span style="display:inline-block;margin:0 20px;font-size:20px;color:#f0c060">${sp.rpInvest}</span>
+          <button onclick="if(setupState.rpInvest<3){setupState.rpInvest++;render()}">＋</button>
+        </div>
+        <div class="info-box" style="margin-top:12px">總招募點數 = 基礎招募點數 + 領導力技能值。同伴數量上限：單人遊玩最多 7 名。</div>
+      </div>`;
+      break;
+    case 'equip':
+      content = `<div class="panel"><div class="panel-title">基礎裝備（最多 5 件，免費）</div>
+        <p style="color:#a09070;font-size:12px">已選 ${sp.equipment.length}/5 件。只能穿一種護甲。雙手武器/法杖不能與盾牌同時攜帶。</p>
+        <div class="grid-2" style="margin-top:10px">`;
+      for(const [name,info] of Object.entries(EQUIP_DB)) {
+        const has = sp.equipment.includes(name);
+        const canAdd = sp.equipment.length<5;
+        content += `<div class="equip-item">
+          <span><b style="color:#f0c060">${name}</b> <span style="color:#a09070;font-size:11px">— ${info.desc}</span></span>
+          <button class="small ${has?'active':''}" onclick="toggleEquip('${name}')" ${!has&&!canAdd?'disabled':''}>${has?'✓':'選擇'}</button>
+        </div>`;
+      }
+      content += `</div></div>`;
+      break;
+    case 'companions':
+      const baseRP = 100 + sp.rpInvest*10;
+      const usedRP = Object.entries(sp.companionCounts).reduce((sum,[k,c])=>sum+COMPANIONS[k].rp*c,0);
+      content = `<div class="panel"><div class="panel-title">招募同伴（總招募點數：${baseRP}，已用：${usedRP}）</div>
+        <p style="color:#a09070;font-size:12px;margin-bottom:10px">單人遊玩：最多 7 名同伴。每個同伴首次選擇時可將任意一項技能+3（自動套用）。</p>
+        <div class="grid-auto">`;
+      for(const [name,info] of Object.entries(COMPANIONS)) {
+        const cnt = sp.companionCounts[name]||0;
+        const canAdd = usedRP + info.rp <= baseRP;
+        content += `<div class="card selectable" style="min-width:140px">
+          <div class="card-title">${name} <span class="badge">${info.rp}RP</span></div>
+          <div class="card-body" style="font-size:11px">
+            M${info.M} F${info.F>=0?'+':''}${info.F} S${info.S>=0?'+':''}${info.S} A${info.A} W${info.W>=0?'+':''}${info.W} H${info.H}<br>
+            ${info.items?info.items.join('、'):''}
+            ${info.animal?'<span class="tag red">動物</span>':''}
+          </div>
+          <div class="card-footer" style="display:flex;justify-content:space-between;align-items:center">
+            <span>×${cnt}</span>
+            <span>
+              <button class="small" onclick="if(${canAdd}){setupState.companionCounts['${name}']=(setupState.companionCounts['${name}']||0)+1;render()}" ${canAdd?'':'disabled'}>＋</button>
+              <button class="small" onclick="if(${cnt}>0){setupState.companionCounts['${name}']--;render()}" ${cnt>0?'':'disabled'}>−</button>
+            </span>
+          </div>
+        </div>`;
+      }
+      content += `</div></div>`;
+      break;
+  }
+
+  // 預覽 + 開始按鈕
+  const preview = `
+    <div class="panel" style="margin-top:20px">
+      <div class="panel-title">遊俠預覽</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:#c0b090">
+        <div>名稱：<b style="color:#f0c060">${sp.name||'（未命名）'}</b></div>
+        <div>屬性：M${6+sp.statUps.M} F${(2+sp.statUps.F)>=0?'+':''}${2+sp.statUps.F} S${(1+sp.statUps.S)>=0?'+':''}${1+sp.statUps.S} A10 W${(4+sp.statUps.W)>=0?'+':''}${4+sp.statUps.W} H${18+sp.statUps.H}</div>
+        <div>技能點：${sp.skillPointsSpent}</div>
+        <div>能力：${sp.abilities.length+sp.spells.length}</div>
+        <div>裝備：${sp.equipment.length}/5</div>
+        <div>同伴：${Object.values(sp.companionCounts).reduce((a,b)=>a+b,0)} 名</div>
+      </div>
+      <div style="margin-top:14px;text-align:right">
+        <button class="primary" onclick="startGame()">⚔ 開始冒險</button>
+      </div>
+    </div>`;
+  return tabs + content + preview;
+}
+
+function renderSetupDetail(){ render(); }
+
+function toggleAbility(name) {
+  const sp = setupState;
+  if(sp.abilities.includes(name)) {
+    sp.abilities = sp.abilities.filter(a=>a!==name);
+  } else {
+    const used = sp.abilities.length + sp.spells.length;
+    if(used < 5) sp.abilities.push(name);
+  }
+  render();
+}
+function removeSpell(name) {
+  const idx = setupState.spells.indexOf(name);
+  if(idx>=0) setupState.spells.splice(idx,1);
+  render();
+}
+function incSkill(sk) {
+  const sp = setupState;
+  if(sp.skillPointsSpent>=5) return;
+  // 一次點擊代表花 1 點技能點，但規則說 1 點=8 項技能各+1。這裡簡化為單項點擊+1，但需扣 8 分之 1... 不行
+  // 更好的做法：一次點擊讓該技能+1，且「本次」還要再選另外 7 項才能完成 1 點。
+  // 簡化：每次點擊只加 1 項技能 +1，但需消耗「整點」1 點，剩餘可再點 7 項不消耗點數
+  // 這裡進一步簡化：1 點技能點 -> 直接讓 8 項技能各+1，玩家按鈕時一次全加（需自行分配）
+  // 最終簡化：單擊 = 花 1 點，該技能 +1，其他 7 項隨機+1。這樣太怪。
+  // 妥協方案：保留每項可點，每次點擊消耗「1/8 點」-> 用整數計數器
+  // 這裡採用：sp.skillPointsSpent 是「已花整點」，另用 sp.skillFills 累計 0-8 的填充。
+  // 為避免重構，簡單點：每次點擊該技能+1，同時 skillPointsSpent 用 1/8 增量記錄。
+  // 但 skillPointsSpent 是整數比較難看。
+  // 改為：直接花 1 點技能點讓「所有技能點數」+1，即每次點擊消耗 1 點，該技能 +1（其他 7 項自動 +1 到隨機其他技能）。這樣會誤導。
+  // 最終決定：簡化為「技能點」花 1 點 = 該技能 +1，並在 UI 說明中說明每點技能只能提升該技能一次。這樣雖然與規則不完全一致，但玩家更容易理解。
+  // 為符合規則，改為：UI 提供「批量選擇 8 項技能」對話框
+  // 重新設計：
+  showSkillPicker();
+}
+
+function showSkillPicker() {
+  const sp = setupState;
+  if(sp.skillPointsSpent>=5) return;
+  const remain = 5 - sp.skillPointsSpent;
+  let html = `<p>每 1 點技能點：選擇 8 項不同技能各 +1。剩餘點數：${remain}</p>
+    <p style="font-size:12px;color:#a09070">點擊下方技能以選擇（需選 8 項）</p>
+    <div class="grid-2" style="margin-top:10px">`;
+  for(const sk of SKILLS) {
+    const cur = sp.skills[sk];
+    html += `<div class="skill-row"><span>${sk} (目前+${cur})</span>
+      <button class="small" onclick="skillPickerToggle('${sk}')" id="sk-${sk}">選擇</button></div>`;
+  }
+  html += `</div><div style="margin-top:14px;text-align:right">
+    <button onclick="confirmSkillPicker()">確認（花1點）</button>
+    <button onclick="closeModal()">取消</button></div>`;
+  window._skillPick = [];
+  showModal('技能分配', html, '');
+}
+
+function skillPickerToggle(sk) {
+  if(!window._skillPick) window._skillPick=[];
+  const idx = window._skillPick.indexOf(sk);
+  if(idx>=0) {
+    window._skillPick.splice(idx,1);
+    $('sk-'+sk).classList.remove('active');
+  } else {
+    if(window._skillPick.length>=8) return;
+    window._skillPick.push(sk);
+    $('sk-'+sk).classList.add('active');
+  }
+}
+
+function confirmSkillPicker() {
+  if(!window._skillPick || window._skillPick.length!==8) {
+    alert('請選擇剛好 8 項技能');
+    return;
+  }
+  for(const sk of window._skillPick) setupState.skills[sk]++;
+  setupState.skillPointsSpent++;
+  closeModal();
+  render();
+}
+
+function toggleEquip(name) {
+  const sp = setupState;
+  const idx = sp.equipment.indexOf(name);
+  if(idx>=0) {
+    sp.equipment.splice(idx,1);
+  } else {
+    if(sp.equipment.length>=5) return;
+    // 護甲衝突
+    if(name==='輕甲'||name==='重甲') {
+      if(sp.equipment.includes('輕甲')||sp.equipment.includes('重甲')) {
+        alert('只能穿一種護甲');
+        return;
+      }
+    }
+    // 雙手/法杖 vs 盾牌
+    if(name==='盾牌') {
+      if(sp.equipment.includes('雙手武器')||sp.equipment.includes('法杖')) {
+        alert('攜帶雙手武器或法杖時不能攜帶盾牌');
+        return;
+      }
+    }
+    if(name==='雙手武器'||name==='法杖') {
+      if(sp.equipment.includes('盾牌')) {
+        alert('攜帶盾牌時不能攜帶雙手武器或法杖');
+        return;
+      }
+    }
+    sp.equipment.push(name);
+  }
+  render();
+}
+
+function startGame() {
+  const sp = setupState;
+  const baseRP = 100 + sp.rpInvest*10;
+  // 建立遊俠
+  const r = {
+    name: sp.name || '無名遊俠',
+    level:0,xp:0,
+    M: 6 + sp.statUps.M,
+    F: 2 + sp.statUps.F,
+    S: 1 + sp.statUps.S,
+    A: 10, // 護甲不能提升
+    W: 4 + sp.statUps.W,
+    H: 18 + sp.statUps.H,
+    curH: 18 + sp.statUps.H,
+    skills: {...sp.skills},
+    abilities: [...sp.abilities],
+    spells: [...sp.spells],
+    equipment: [...sp.equipment],
+    rp: baseRP,
+    usedAbilities:[],
+    status:{poisoned:false,disease:false,permanent:[],hunger:0}
+  };
+  // 同伴
+  const comps = [];
+  for(const [name,cnt] of Object.entries(sp.companionCounts)) {
+    for(let i=0;i<cnt;i++) {
+      const base = COMPANIONS[name];
+      // 技能：首次+3（套用至最高優先技能）
+      const skills = {...(base.skills||{})};
+      const skillKeys = Object.keys(skills);
+      if(skillKeys.length>0) {
+        skills[skillKeys[0]] += 3;
+      } else {
+        skills['雜技'] = 3;
+      }
+      comps.push({
+        id: 'c'+comps.length,
+        name: name + (cnt>1?' #'+(i+1):''),
+        type: name,
+        M:base.M,F:base.F,S:base.S,A:base.A,W:base.W,H:base.H,curH:base.H,
+        skills, items:[...(base.items||[])],
+        animal:!!base.animal,
+        ap:0,
+        isTemp:false
+      });
+    }
+  }
+
+  S = createInitialState();
+  S.ranger = r;
+  S.companions = comps;
+  S.phase = 'MAP';
+  log(`🎉 ${r.name} 的冒險開始！帶上 ${comps.length} 名同伴踏入暗影深淵。`, 'system');
+  render();
+}
+
+// ============================== 地圖 ==============================
+function renderMap() {
+  const positions = {
+    A:{x:12,y:20}, B:{x:40,y:15}, C:{x:30,y:42},
+    D:{x:62,y:38}, E:{x:15,y:68}, F:{x:48,y:68},
+    G:{x:35,y:90}, H:{x:62,y:90}
+  };
+  const edges = [['A','B'],['A','C'],['B','C'],['C','D'],['C','E'],['C','F'],['F','G'],['F','H']];
+  const canEnter = l => {
+    if(S.visited.includes(l)) return false;
+    if(S.visited.length===0) return ['A','B','C'].includes(l);
+    // 鄰接已探索
+    return LOCATIONS[l].adj.some(a=>S.visited.includes(a));
+  };
+  let svgLines = '';
+  for(const [a,b] of edges) {
+    const pa = positions[a], pb = positions[b];
+    const known = S.visited.includes(a)||S.visited.includes(b);
+    svgLines += `<line x1="${pa.x}%" y1="${pa.y}%" x2="${pb.x}%" y2="${pb.y}%" stroke="${known?'#8b6f47':'#3a2a1a'}" stroke-width="${known?3:1.5}" stroke-dasharray="${known?'':'6,4'}"/>`;
+  }
+  let nodes = '';
+  for(const [loc,pos] of Object.entries(positions)) {
+    const vis = S.visited.includes(loc);
+    const can = canEnter(loc);
+    const cls = vis?'visited':(can?'':(S.visited.length>0?'disabled':''));
+    nodes += `<div class="map-node ${cls}" style="left:${pos.x}%;top:${pos.y}%"
+      ${can?`onclick="startScene('${loc}')"`:''}>
+      <div class="node-letter">${loc}</div>
+      <div class="node-name">${vis?'✓':LOCATIONS[loc].name}</div>
+    </div>`;
+  }
+  const visitedCount = S.visited.length;
+  const allVisited = visitedCount>=8;
+
+  return `
+    <h1>🗺 聖埃米莉亞女修道院廢墟</h1>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+        <div>已探索：<b style="color:#f0c060">${visitedCount}/8</b></div>
+        <div>暗影深淵卡進度：<b style="color:#f0c060">${S.shadowDeckIdx}/16</b></div>
+        <div>${S.decanter?'<span class="tag green">已取得魔瓶</span>':'<span class="tag">尚未取得魔瓶</span>'}</div>
+      </div>
+      <div class="warn-box">
+        ⚠ 每探索一個場景，暗影深淵的覺察會加深。若你確定魔瓶在某處，可隨時點擊該地點進行「最終搜索」；但只有一次機會！
+      </div>
+    </div>
+    <div class="map">
+      <svg>${svgLines}</svg>
+      ${nodes}
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      ${allVisited?'<div class="warn-box" style="flex:1">已探索全部地點，請立即進行最終搜索。</div>':''}
+      ${S.visited.length>0?`<button class="primary" onclick="showFinalSearchMenu()">🔍 進行最終搜索</button>`:''}
+      <button onclick="showStatusPanel()">📋 查看遊俠狀態</button>
+      <button onclick="showCompanionsPanel()">👥 查看同伴</button>
+    </div>
+  `;
+}
+
+function showFinalSearchMenu() {
+  let html = `<p>你已探索的地點：</p><div class="grid-2">`;
+  for(const loc of S.visited) {
+    html += `<div class="equip-item">
+      <span><b style="color:#f0c060">${loc}. ${LOCATIONS[loc].name}</b></span>
+      <button onclick="attemptFinalSearch('${loc}')">在此搜尋</button>
+    </div>`;
+  }
+  html += `</div><div class="warn-box" style="margin-top:14px">⚠ 只有一次最終搜索機會！選擇錯誤將無法挽回。</div>`;
+  showModal('選擇最終搜索地點', html, '<button onclick="closeModal()">取消</button>');
+}
+
+function attemptFinalSearch(loc) {
+  closeModal();
+  S.finalSearch = loc;
+  const commentId = FINAL_SEARCH[loc];
+  // 檢查是否為正確地點（草藥店 E）
+  if(loc === DECANTER_LOCATION) {
+    // 找到魔瓶！
+    showComment(commentId);
+  } else {
+    // 搜尋失敗
+    showComment(commentId);
+  }
+}
+
+// ============================== 場景 ==============================
+function startScene(loc) {
+  const L = LOCATIONS[loc];
+  S.currentLoc = loc;
+  S.round = 1;
+  // 建立事件牌組
+  const shadowStart = S.shadowDeckIdx;
+  const shadowCards = SHADOW_DECK.slice(shadowStart, shadowStart+2);
+  S.shadowDeckIdx += 2;
+  // 洗牌
+  const deck = [...L.events.map(e=>({...e,isShadow:false})), ...shadowCards.map(e=>({...e,isShadow:true}))];
+  // 隨機排序
+  for(let i=deck.length-1;i>0;i--){const j=rand(i+1);[deck[i],deck[j]]=[deck[j],deck[i]];}
+  S.eventDeck = deck;
+  S.eventUsed = [];
+  // 建立場景狀態
+  S.scene = {
+    loc: loc,
+    enemies: L.initialEnemies.map(e=>({...createEnemy(e), id:'e'+Math.random().toString(36).slice(2,8)})),
+    poi: L.poi.map(p=>({...p, triggered:false})),
+    turnPhase:'player', // player / companion / enemy / event
+    actionsLeft: 2,
+    enemiesActed:0,
+    companionsActed:0,
+    tempBuffs:{},
+    enemyF:0,
+    enemyF_turns:0,
+    shadowFog:0,
+    heroWillPenalty:0,
+    message:''
+  };
+  S.phase = 'SCENE';
+  log(`⚔ 進入場景 ${loc}：${L.name}`, 'system');
+  log(`敵人：${S.scene.enemies.map(e=>e.name).join('、')}`, 'danger');
+  render();
+}
+
+function createEnemy(name) {
+  const base = ENEMY_DB[name];
+  if(!base) return {name, F:0, A:10, H:5, curH:5, xp:1, tags:[]};
+  return {
+    name, F:base.F, S:base.S, A:base.A, W:base.W,
+    H:base.H, curH:base.H, xp:base.xp, tags:[...(base.tags||[])],
+    isEnemy:true
+  };
+}
+
+function renderScene() {
+  const sc = S.scene;
+  const L = LOCATIONS[sc.loc];
+  const phaseChips = `
+    <div class="turn-indicator">
+      <div class="phase-chip ${sc.turnPhase==='player'?'active':''}">① 遊俠階段</div>
+      <div class="phase-chip ${sc.turnPhase==='companion'?'active':''}">② 同伴階段</div>
+      <div class="phase-chip ${sc.turnPhase==='enemy'?'active':''}">③ 敵人階段</div>
+      <div class="phase-chip ${sc.turnPhase==='event'?'active':''}">④ 事件階段</div>
+      <div class="action-counter">${sc.turnPhase==='player'?`剩餘行動：${sc.actionsLeft}`:''}</div>
+    </div>`;
+
+  // 英雄卡片
+  let heroCards = '';
+  // 遊俠
+  const r = S.ranger;
+  heroCards += `<div class="card hero ${sc.turnPhase==='player'?'selected':''}">
+    <div class="card-title">🛡 ${r.name}</div>
+    <div class="card-body">
+      ❤ ${r.curH}/${r.H}<div class="hp-bar"><div class="hp-fill hero" style="width:${100*r.curH/r.H}%"></div></div>
+      F+${r.F} S+${r.S} A${r.A} W+${r.W}<br>
+      ${r.status.poisoned?'<span class="tag red">中毒</span>':''}
+      ${r.status.disease?'<span class="tag red">疾病</span>':''}
+    </div>
+  </div>`;
+  // 同伴
+  for(const c of S.companions) {
+    if(c.curH<=0) continue;
+    heroCards += `<div class="card hero">
+      <div class="card-title">👤 ${c.name}</div>
+      <div class="card-body">
+        ❤ ${c.curH}/${c.H}<div class="hp-bar"><div class="hp-fill hero" style="width:${100*c.curH/c.H}%"></div></div>
+        F${c.F>=0?'+':''}${c.F} A${c.A}
+      </div>
+    </div>`;
+  }
+
+  // 敵人卡片
+  let enemyCards = '';
+  if(sc.enemies.length===0) {
+    enemyCards = '<div class="empty-msg">場景中已無敵人</div>';
+  } else {
+    for(const e of sc.enemies) {
+      enemyCards += `<div class="card enemy">
+        <div class="card-title">☠ ${e.name}</div>
+        <div class="card-body">
+          ❤ ${e.curH}/${e.H}<div class="hp-bar"><div class="hp-fill" style="width:${100*e.curH/e.H}%"></div></div>
+          F+${e.F} A${e.A}
+          ${e.tags.map(t=>`<span class="tag">${t}</span>`).join('')}
+        </div>
+        ${sc.turnPhase==='player'&&sc.actionsLeft>0?`<div class="card-footer">
+          <button class="small" onclick="heroAttack('${e.id}')">⚔ 攻擊</button>
+        </div>`:''}
+      </div>`;
+    }
+  }
+
+  // 興趣點
+  let poiCards = '';
+  for(const p of sc.poi) {
+    const done = p.triggered;
+    poiCards += `<div class="card poi ${done?'disabled':''}">
+      <div class="card-title">🔍 ${p.id}. ${p.name} ${done?'✓':''}</div>
+      <div class="card-body" style="font-size:11px">
+        ${p.skill?`判定：${p.skill} TN${p.tn}`:'直接觸發'}
+        ${p.altSkill?`<br>或 ${p.altSkill} TN${p.altTn}`:''}
+        ${p.tiered?'<br><span class="tag blue">分級判定</span>':''}
+      </div>
+      ${!done&&sc.turnPhase==='player'&&sc.actionsLeft>0?`<div class="card-footer">
+        <button class="small" onclick="heroInteract('${p.id}')">🔎 檢視</button>
+      </div>`:''}
+    </div>`;
+  }
+
+  // 動作按鈕
+  let actionBtns = '';
+  if(sc.turnPhase==='player') {
+    actionBtns = `
+      <button onclick="heroCastSpell()" ${sc.actionsLeft<=0?'disabled':''}>✨ 施法</button>
+      <button onclick="heroRest()" ${sc.actionsLeft<=0?'disabled':''}>💤 休息（結束回合）</button>
+      <button class="primary" onclick="endPlayerPhase()">⏭ 結束遊俠階段</button>
+    `;
+  } else if(sc.turnPhase==='companion') {
+    actionBtns = `<button class="primary" onclick="runCompanionPhase()">▶ 執行同伴行動</button>`;
+  } else if(sc.turnPhase==='enemy') {
+    actionBtns = `<button class="primary" onclick="runEnemyPhase()">▶ 執行敵人行動</button>`;
+  } else if(sc.turnPhase==='event') {
+    actionBtns = `<button class="primary" onclick="drawEventCard()">🃏 抽取事件卡</button>`;
+  }
+
+  return `
+    <h1>⚔ ${L.name}</h1>
+    <p style="color:#a09070;font-size:13px;margin-bottom:12px">${L.desc}</p>
+    ${phaseChips}
+    <div class="panel">
+      <div class="panel-title">🛡 英雄</div>
+      <div class="h-scroll">${heroCards}</div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">☠ 敵人</div>
+      <div class="h-scroll">${enemyCards}</div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">🔍 興趣點</div>
+      <div class="h-scroll">${poiCards}</div>
+    </div>
+    <div class="panel" style="text-align:center">
+      ${actionBtns}
+      <button onclick="attemptFlee()" style="margin-left:8px">🏃 撤退（離開場景）</button>
+    </div>
+  `;
+}
+
+// ============================== 場景內：玩家行動 ==============================
+function heroAttack(enemyId) {
+  const sc = S.scene;
+  if(sc.actionsLeft<=0) return;
+  const e = sc.enemies.find(x=>x.id===enemyId);
+  if(!e) return;
+  const r = S.ranger;
+  // 使用最強近戰武器
+  let dmgBonus = 0;
+  for(const eq of r.equipment) {
+    const info = EQUIP_DB[eq];
+    if(info && info.type==='melee' && info.dmg>dmgBonus) dmgBonus = info.dmg;
+  }
+  const result = resolveCombat(
+    {name:r.name, F:r.F, armor:r.A, dmgBonus, crit:true},
+    {name:e.name, F:e.F, armor:e.A, dmgBonus:0, crit:false}
+  );
+  sc.actionsLeft--;
+  // 顯示
+  let logMsg = `⚔ ${r.name} 攻擊 ${e.name}：d20(${result.aR})+${r.F} = ${result.aScore} vs d20(${result.dR})+${e.F} = ${result.dScore}`;
+  if(result.crit) logMsg += ' 【暴擊！】';
+  if(result.winner==='attacker') {
+    e.curH -= result.dmg;
+    logMsg += ` → 命中，造成 ${result.dmg} 傷害（剩 ${Math.max(0,e.curH)}）`;
+    log(logMsg, 'combat');
+    if(e.curH<=0) {
+      log(`💀 ${e.name} 被擊殺！獲得 ${e.xp} XP`, 'reward');
+      r.xp += e.xp;
+      S.scene.enemies = sc.enemies.filter(x=>x.id!==e.id);
+      checkLevelUp();
+    }
+  } else if(result.winner==='defender') {
+    r.curH -= result.dmg;
+    logMsg += ` → 反被擊中，受到 ${result.dmg} 傷害（剩 ${Math.max(0,r.curH)}）`;
+    log(logMsg, 'danger');
+    if(r.curH<=0) { handleHeroDeath(); return; }
+  } else {
+    logMsg += ` → 平手，雙方各受 ${result.dmg} 傷害`;
+    log(logMsg, 'combat');
+    e.curH -= result.dmg;
+    r.curH -= result.dmg;
+    if(e.curH<=0) {
+      r.xp += e.xp;
+      S.scene.enemies = sc.enemies.filter(x=>x.id!==e.id);
+      checkLevelUp();
+    }
+    if(r.curH<=0) { handleHeroDeath(); return; }
+  }
+  render();
+  // 若沒敵人了，檢查是否可結束場景
+  checkSceneComplete();
+}
+
+function heroInteract(poiId) {
+  const sc = S.scene;
+  if(sc.actionsLeft<=0) return;
+  const p = sc.poi.find(x=>x.id===poiId);
+  if(!p || p.triggered) return;
+  sc.actionsLeft--;
+  p.triggered = true;
+  log(`🔍 ${S.ranger.name} 檢視「${p.name}」`, 'info');
+  // 判定
+  if(!p.skill) {
+    // 直接觸發
+    if(p.comment) {
+      showComment(p.comment, ()=>{ render(); checkSceneComplete(); });
+    } else if(p.reward==='treasure') {
+      S.treasureCount++;
+      log('📦 找到寶藏標記物！', 'reward');
+      render();
+    }
+  } else {
+    doSkillCheck(p);
+  }
+}
+
+function doSkillCheck(p) {
+  const r = S.ranger;
+  const skillVal = r.skills[p.skill]||0;
+  let res = rollCheck(skillVal, p.tn, p.skill);
+  // 若有替換技能
+  let usedSkill = p.skill, usedTN = p.tn;
+  if(p.altSkill && !res.success) {
+    const altVal = r.skills[p.altSkill]||0;
+    const altRes = rollCheck(altVal, p.altTn, p.altSkill);
+    if(altRes.success) { res = altRes; usedSkill = p.altSkill; usedTN = p.altTn; }
+  }
+  const logMsg = `🎲 ${usedSkill} 判定：d20(${res.roll}) + ${res.mod} = ${res.total} vs TN${usedTN} → ${res.success?'✅ 成功':'❌ 失敗'}`;
+  log(logMsg, res.success?'info':'danger');
+
+  // 分級判定
+  if(p.tiered) {
+    // 找出符合的最高 tier
+    let chosen = null;
+    if(p.tiers) {
+      for(const t of p.tiers) {
+        if(res.total >= t.tn) chosen = t;
+      }
+    }
+    if(res.success || (chosen && !p.successRequired)) {
+      if(chosen) {
+        showComment(chosen.c, ()=>{ render(); checkSceneComplete(); });
+        return;
+      } else if(p.comment) {
+        showComment(p.comment, ()=>{ render(); checkSceneComplete(); });
+        return;
+      }
+    }
+    render();
+    checkSceneComplete();
+    return;
+  }
+
+  if(res.success) {
+    if(p.comment) {
+      showComment(p.comment, ()=>{ render(); checkSceneComplete(); });
+    } else if(p.reward==='treasure') {
+      S.treasureCount++;
+      log('📦 找到寶藏標記物！', 'reward');
+      render();
+    }
+  } else {
+    if(p.failComment) {
+      showComment(p.failComment, ()=>{ render(); checkSceneComplete(); });
+    } else {
+      render();
+      checkSceneComplete();
+    }
+  }
+}
+
+function heroCastSpell() {
+  const sc = S.scene;
+  const r = S.ranger;
+  if(sc.actionsLeft<=0) return;
+  if(r.spells.length===0) {
+    alert('你沒有學習任何法術');
+    return;
+  }
+  // 顯示選擇法術
+  let html = `<p>選擇要施放的法術（消耗 1 次行動）：</p><div class="grid-2">`;
+  for(const spell of r.spells) {
+    const info = SPELLS[spell];
+    html += `<div class="equip-item" style="flex-direction:column;align-items:flex-start">
+      <div style="display:flex;justify-content:space-between;width:100%">
+        <b style="color:#f0c060">${spell}</b>
+        <button class="small" onclick="executeSpell('${spell}')">施放</button>
+      </div>
+      <div style="font-size:11px;color:#a09070;margin-top:4px">${info.desc}</div>
+    </div>`;
+  }
+  html += `</div>`;
+  showModal('施放法術', html, '<button onclick="closeModal()">取消</button>');
+}
+
+function executeSpell(spell) {
+  closeModal();
+  const sc = S.scene;
+  const r = S.ranger;
+  const info = SPELLS[spell];
+  sc.actionsLeft--;
+  log(`✨ ${r.name} 施放「${spell}」`, 'info');
+
+  if(spell==='治癒') {
+    // 治療自己或同伴
+    let html = `<p>選擇治癒目標（恢復5點生命值）：</p>`;
+    html += `<button onclick="doHeal('${r.name}')">${r.name} (${r.curH}/${r.H})</button>`;
+    for(const c of S.companions) {
+      if(c.curH>0) html += `<button onclick="doHeal('${c.name}')">${c.name} (${c.curH}/${c.H})</button>`;
+    }
+    showModal('治癒', html, '');
+    return;
+  }
+  if(spell==='魔法飛彈'||spell==='燃燒之光') {
+    // 攻擊敵人
+    if(sc.enemies.length===0) { log('沒有敵人','info'); render(); return; }
+    const e = pick(sc.enemies);
+    const atkVal = info.bonus;
+    const dR = d20();
+    const total = dR + e.F;
+    if(atkVal + d20() > e.F + 10) {
+      // 簡化：用 +bonus 攻擊，對抗 e.F
+      const atkRoll = d20();
+      const atkTotal = atkRoll + atkVal;
+      const defTotal = d20() + e.F;
+      if(atkTotal > defTotal) {
+        const dmg = Math.max(0, atkTotal - e.A);
+        e.curH -= dmg;
+        log(`✨ 對 ${e.name} 造成 ${dmg} 傷害（剩 ${Math.max(0,e.curH)}）`, 'combat');
+        if(e.curH<=0) {
+          r.xp += e.xp;
+          log(`💀 ${e.name} 被擊殺！+${e.xp} XP`, 'reward');
+          S.scene.enemies = sc.enemies.filter(x=>x.id!==e.id);
+          checkLevelUp();
+        }
+      } else {
+        log(`✨ 法術被 ${e.name} 閃避`, 'info');
+      }
+    }
+    render();
+    checkSceneComplete();
+    return;
+  }
+  // 其他法術簡化處理
+  log(`✨ ${spell} 效果已生效`, 'info');
+  render();
+}
+
+function doHeal(targetName) {
+  closeModal();
+  const amount = 5;
+  if(targetName === S.ranger.name) {
+    S.ranger.curH = Math.min(S.ranger.H, S.ranger.curH + amount);
+    log(`💚 ${S.ranger.name} 恢復 ${amount} 點生命值`, 'info');
+  } else {
+    const c = S.companions.find(c=>c.name===targetName);
+    if(c) {
+      c.curH = Math.min(c.H, c.curH + amount);
+      log(`💚 ${c.name} 恢復 ${amount} 點生命值`, 'info');
+    }
+  }
+  render();
+}
+
+function heroRest() {
+  S.scene.actionsLeft = 0;
+  log('💤 遊俠結束本回合行動', 'info');
+  render();
+}
+
+function endPlayerPhase() {
+  S.scene.turnPhase = 'companion';
+  S.scene.companionsActed = 0;
+  render();
+}
+
+function runCompanionPhase() {
+  const sc = S.scene;
+  const aliveComps = S.companions.filter(c=>c.curH>0);
+  if(sc.companionsActed >= aliveComps.length) {
+    sc.turnPhase = 'enemy';
+    render();
+    return;
+  }
+  // 同伴自動攻擊隨機敵人
+  if(sc.enemies.length>0) {
+    const c = aliveComps[sc.companionsActed];
+    const e = pick(sc.enemies);
+    const result = resolveCombat(
+      {name:c.name, F:c.F, armor:c.A, dmgBonus:0, crit:false},
+      {name:e.name, F:e.F, armor:e.A, dmgBonus:0, crit:false}
+    );
+    let msg = `👤 ${c.name} 攻擊 ${e.name}：${result.aScore} vs ${result.dScore}`;
+    if(result.winner==='attacker' && result.dmg>0) {
+      e.curH -= result.dmg;
+      msg += ` → 造成 ${result.dmg} 傷害`;
+      if(e.curH<=0) {
+        msg += ` → 💀 擊殺！+${e.xp} XP`;
+        S.ranger.xp += e.xp;
+        S.scene.enemies = sc.enemies.filter(x=>x.id!==e.id);
+        checkLevelUp();
+      }
+    } else if(result.winner==='defender' && result.dmg>0) {
+      c.curH -= result.dmg;
+      msg += ` → 反被擊中，受到 ${result.dmg} 傷害`;
+    } else {
+      msg += ' → 未造成傷害';
+    }
+    log(msg, 'combat');
+  }
+  sc.companionsActed++;
+  render();
+  checkSceneComplete();
+}
+
+function runEnemyPhase() {
+  const sc = S.scene;
+  if(sc.enemiesActed >= sc.enemies.length) {
+    sc.turnPhase = 'event';
+    render();
+    return;
+  }
+  const e = sc.enemies[sc.enemiesActed];
+  // 選目標：隨機英雄（遊俠或同伴）
+  const targets = [];
+  if(S.ranger.curH>0) targets.push({type:'ranger',name:S.ranger.name});
+  for(const c of S.companions) if(c.curH>0) targets.push({type:'comp',name:c.name,comp:c});
+  if(targets.length===0) { render(); return; }
+  const target = pick(targets);
+  // 攻擊
+  let attF = e.F;
+  if(S.scene.enemyF) attF += S.scene.enemyF;
+  let targetF, targetA, targetName;
+  if(target.type==='ranger') {
+    targetF = S.ranger.F; targetA = S.ranger.A; targetName = S.ranger.name;
+  } else {
+    targetF = target.comp.F; targetA = target.comp.A; targetName = target.comp.name;
+  }
+  const result = resolveCombat(
+    {name:e.name, F:attF, armor:e.A, dmgBonus:0, crit:false},
+    {name:targetName, F:targetF, armor:targetA, dmgBonus:0, crit:false}
+  );
+  let msg = `☠ ${e.name} 攻擊 ${targetName}：${result.aScore} vs ${result.dScore}`;
+  if(result.winner==='attacker' && result.dmg>0) {
+    if(target.type==='ranger') { S.ranger.curH -= result.dmg; }
+    else { target.comp.curH -= result.dmg; }
+    msg += ` → 造成 ${result.dmg} 傷害（${targetName} 剩 ${target.type==='ranger'?Math.max(0,S.ranger.curH):Math.max(0,target.comp.curH)}）`;
+  } else if(result.winner==='defender' && result.dmg>0) {
+    e.curH -= result.dmg;
+    msg += ` → 反被擊中，受到 ${result.dmg} 傷害`;
+    if(e.curH<=0) {
+      S.ranger.xp += e.xp;
+      sc.enemies = sc.enemies.filter(x=>x.id!==e.id);
+      msg += ` → 擊殺！+${e.xp} XP`;
+      checkLevelUp();
+    }
+  } else {
+    msg += ' → 未造成傷害';
+  }
+  log(msg, 'danger');
+  sc.enemiesActed++;
+  if(S.ranger.curH<=0) { handleHeroDeath(); return; }
+  render();
+  checkSceneComplete();
+}
+
+function drawEventCard() {
+  const sc = S.scene;
+  if(S.eventDeck.length===0) {
+    log('📜 事件牌組已空，場景結束', 'system');
+    endScene();
+    return;
+  }
+  const card = S.eventDeck.pop();
+  S.eventUsed.push(card);
+  log(`🃏 事件卡【${card.card}】${card.isShadow?'（暗影深淵）':''}：${card.text}`, card.isShadow?'danger':'info');
+  applyEventEffect(card.effect, card);
+  // 回合結束
+  S.round++;
+  if(S.round > 9) {
+    log('📜 已達 9 回合，場景結束', 'system');
+    endScene();
+    return;
+  }
+  // 重置階段
+  sc.turnPhase = 'player';
+  sc.actionsLeft = 2;
+  sc.enemiesActed = 0;
+  sc.companionsActed = 0;
+  render();
+  checkSceneComplete();
+}
+
+function applyEventEffect(effect) {
+  if(!effect) return;
+  const sc = S.scene;
+  const [cmd, ...args] = effect.split(':');
+  const arg = args.join(':');
+  switch(cmd) {
+    case 'addEnemy': {
+      // 可能 arg 是 'name1+name2' 形式
+      const names = arg.split('+');
+      for(const n of names) {
+        const e = createEnemy(n);
+        e.id = 'e'+Math.random().toString(36).slice(2,8);
+        sc.enemies.push(e);
+        log(`➕ ${n} 出現！`, 'danger');
+      }
+      break;
+    }
+    case 'allWill12': {
+      for(const c of S.companions) if(c.curH>0) {
+        if(!rollCheck(c.W||0, 12).success) { log(`${c.name} 意志失敗，下回合無法激活`,'danger'); }
+      }
+      if(!rollCheck(S.ranger.W, 12).success) { log(`${S.ranger.name} 意志失敗，下回合無法激活`,'danger'); }
+      break;
+    }
+    case 'allWill10': {
+      if(!rollCheck(S.ranger.W, 10).success) { sc.tempBuffs.skipRanger = true; log('遊俠下回合最多1次行動','danger'); }
+      break;
+    }
+    case 'allMove16': {
+      if(!rollCheck(S.ranger.M||6, 16).success) { log('遊俠移動失敗，下回合無法激活','danger'); }
+      break;
+    }
+    case 'allStr12': {
+      if(!rollCheck(S.ranger.skills['力量']||0, 12).success) { log('遊俠力量失敗，下回合無法激活','danger'); }
+      break;
+    }
+    case 'enemyF1': sc.enemyF = 1; break;
+    case 'enemyF2': sc.enemyF = 2; break;
+    case 'fog8': sc.shadowFog = 2; break;
+    case 'allWill-3': sc.heroWillPenalty = 3; break;
+    case 'diseaseAll': {
+      if(!rollCheck(S.ranger.H, 14).success) {
+        S.ranger.status.disease = true;
+        log('☠ 遊俠罹患疾病！','danger');
+      }
+      break;
+    }
+    case 'shoot3': {
+      for(let i=0;i<3;i++){
+        const target = pick([S.ranger, ...S.companions.filter(c=>c.curH>0)]);
+        if(target){
+          const dmg = Math.max(0, d20() - (target.A||10));
+          if(target===S.ranger) S.ranger.curH -= dmg; else target.curH -= dmg;
+          log(`🏹 隨機英雄受到 ${dmg} 傷害`, 'danger');
+        }
+      }
+      break;
+    }
+    case 'runeTrap': {
+      if(!rollCheck(S.ranger.skills['感知']||0, 14).success) {
+        const dmg = Math.max(0, d20()+3 - S.ranger.A);
+        S.ranger.curH -= dmg;
+        log(`✨ 符文陷阱爆炸！受到 ${dmg} 傷害`, 'danger');
+      }
+      break;
+    }
+    case 'redMist': {
+      if(!rollCheck(S.ranger.W, 12).success) {
+        S.ranger.curH -= 3;
+        log(`🌫 紅色霧氣使遊俠受到 3 傷害`, 'danger');
+      }
+      break;
+    }
+    case 'chainTrap': {
+      if(!rollCheck(S.ranger.M, 20).success) {
+        sc.tempBuffs.skipRanger = true;
+        log(`⛓ 遊俠被鐵鏈束縛，下回合無法行動`, 'danger');
+      }
+      break;
+    }
+    case 'lightning': {
+      const dmg = Math.max(0, d20()+5 - S.ranger.A);
+      S.ranger.curH -= dmg;
+      log(`⚡ 閃電擊中遊俠！受到 ${dmg} 傷害`, 'danger');
+      break;
+    }
+    case 'starGaze': case 'vineTrap': case 'fountainZombies': case 'floorCollapse': case 'earthquake': case 'stairsCollapse': case 'extraAction': case 'spiderRain': case 'rottingGhoul': case 'ash': case 'shadowKnightPhantom': case 'will12or822': case 'diseaseCloud': case 'will12or822':
+      log(`📜 ${effect} 效果已觸發（簡化處理）`, 'info');
+      break;
+    case 'addEnemy:豺狼人戰士+豺狼人戰士': case 'addEnemy:豺狼人弓箭手+豺狼人弓箭手':
+      break;
+    default:
+      log(`📜 事件效果：${effect}`, 'info');
+  }
+  if(S.ranger.curH<=0) handleHeroDeath();
+}
+
+function attemptFlee() {
+  if(!confirm('確定要撤退？你將離開本場景，視為未完成。')) return;
+  endScene(true);
+}
+
+function checkSceneComplete() {
+  const sc = S.scene;
+  if(!sc) return;
+  // 沒敵人了？簡化：場景內敵人清空即結束（但部分場景需觸發所有興趣點）
+  // 這裡改為：不自動結束，由玩家或回合數決定
+}
+
+function endScene(fled=false) {
+  S.phase = 'SCENE_END';
+  S.sceneEndInfo = {
+    fled,
+    loc: S.scene.loc,
+    foundTreasure: S.treasureCount,
+    xp: S.ranger.xp
+  };
+  render();
+}
+
+// ============================== 場景結算 ==============================
+function renderSceneEnd() {
+  const info = S.sceneEndInfo;
+  const loc = LOCATIONS[info.loc];
+  return `
+    <h1>📜 場景結束</h1>
+    <div class="panel">
+      <div class="panel-title">${loc.name}</div>
+      <p>${info.fled?'你選擇撤退，未完成本場景。':'場景完成！'}</p>
+      <div class="info-box">
+        <b>遊俠目前 XP：</b>${S.ranger.xp}<br>
+        <b>生命值：</b>${S.ranger.curH}/${S.ranger.H}<br>
+        <b>已收集寶藏標記：</b>${S.treasureCount}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">戰後恢復</div>
+      <p>依照《燃燒之光》戰役規則：每個場景結束後，存活英雄恢復 <b>3 點生命值</b> 或 <b>一半生命值</b>（取高者）。</p>
+      <p style="color:#a09070;font-size:12px">另外，可由一個模型進行生存判定 TN12 為另一模型恢復2點生命值（每個模型每場景一次）。</p>
+    </div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="primary" onclick="applyPostScene()">▶ 套用戰後恢復並繼續</button>
+    </div>
+  `;
+}
+
+function applyPostScene() {
+  const info = S.sceneEndInfo;
+  // 恢復
+  const heal = Math.max(3, Math.floor(S.ranger.H/2));
+  S.ranger.curH = Math.min(S.ranger.H, S.ranger.curH + heal);
+  for(const c of S.companions) {
+    if(c.curH>0) {
+      const h = Math.max(3, Math.floor(c.H/2));
+      c.curH = Math.min(c.H, c.curH + h);
+    }
+  }
+  // 生存判定（額外2點）
+  if(rollCheck(S.ranger.skills['生存']||0, 12).success) {
+    S.ranger.curH = Math.min(S.ranger.H, S.ranger.curH + 2);
+    log('🌿 生存判定成功，額外恢復 2 點生命值', 'info');
+  }
+  // 標記完成
+  if(!info.fled && !S.visited.includes(info.loc)) {
+    S.visited.push(info.loc);
+    log(`✅ 完成場景 ${info.loc}：${LOCATIONS[info.loc].name}`, 'system');
+  }
+  // 抽寶藏
+  for(let i=0;i<S.treasureCount;i++){
+    rollTreasure();
+  }
+  S.treasureCount = 0;
+  // 若找到魔瓶，觸發最終場景
+  if(S.decanter) {
+    startFinalBattle();
+    return;
+  }
+  // 檢查是否已探索全部
+  if(S.visited.length>=8) {
+    log('📜 所有地點已探索完畢，必須進行最終搜索', 'system');
+  }
+  S.phase = 'MAP';
+  S.scene = null;
+  render();
+}
+
+function rollTreasure() {
+  const r = d20();
+  let type;
+  if(r<=6) type='gold';
+  else if(r<=12) type='herb';
+  else if(r<=16) type='equip';
+  else type='magic';
+  log(`📦 寶藏擲骰 d20(${r}) → ${type==='gold'?'黃金珠寶':type==='herb'?'草藥/藥劑':type==='equip'?'武器/護甲':'魔法物品'}`, 'reward');
+  if(type==='gold') {
+    S.ranger.xp += 10;
+    log('💰 黃金珠寶：+10 XP', 'reward');
+  } else if(type==='herb') {
+    const h = d20();
+    log(`🌿 獲得草藥（滾出 ${h}）— 已加入背包`, 'reward');
+  } else if(type==='equip') {
+    log('⚔ 獲得武器/護甲（已加入背包）', 'reward');
+  } else {
+    log('✨ 獲得魔法物品（已加入背包）', 'reward');
+  }
+}
+
+// ============================== 注釋 ==============================
+function showComment(id, callback) {
+  const c = COMMENTS[id];
+  if(!c) {
+    log(`⚠ 注釋 ${id} 不存在`, 'danger');
+    if(callback) callback();
+    return;
+  }
+  const r = S.ranger;
+  // 處理立即效果
+  if(c.xp) { r.xp += c.xp; log(`⭐ 注釋 ${id}：+${c.xp} XP`, 'reward'); }
+  if(c.healAll) {
+    r.curH = Math.min(r.H, r.curH + c.healAll);
+    for(const comp of S.companions) if(comp.curH>0) comp.curH = Math.min(comp.H, comp.curH + c.healAll);
+    log(`💚 所有英雄恢復 ${c.healAll} 點生命值`, 'info');
+  }
+  if(c.healSelf) {
+    r.curH = r.H;
+    r.status.poisoned = false; r.status.disease = false;
+    log('💚 遊俠生命值回滿，中毒與疾病治癒', 'info');
+  }
+  if(c.foundDecanter) {
+    S.decanter = true;
+    log('🏆 你找到了燃燒之光魔瓶！', 'reward');
+  }
+  if(c.reward) {
+    if(c.reward.startsWith('treasure')) { S.treasureCount++; log('📦 獲得寶藏標記物', 'reward'); }
+    else if(c.reward.startsWith('item:')) { log(`🎁 獲得物品：${c.reward.slice(5)}`, 'reward'); }
+    else if(c.reward.startsWith('companion:')) {
+      const name = c.reward.slice(10);
+      log(`👤 ${name} 加入隊伍！`, 'info');
+    }
+  }
+  if(c.addEnemies && S.scene) {
+    for(const n of c.addEnemies) {
+      const e = createEnemy(n);
+      e.id = 'e'+Math.random().toString(36).slice(2,8);
+      S.scene.enemies.push(e);
+    }
+    log(`⚠ 敵人出現：${c.addEnemies.join('、')}`, 'danger');
+  }
+  if(c.triggerFinal) {
+    closeModal();
+    startFinalBattle();
+    return;
+  }
+  if(c.isEnding) {
+    closeModal();
+    endGame(c.ending, c.xp);
+    return;
+  }
+  checkLevelUp();
+  // 顯示彈窗
+  let extraBtns = '';
+  if(c.check) {
+    extraBtns = `<div class="panel" style="margin-top:12px">
+      <div class="panel-title">判定：${c.check.skill} TN${c.check.tn}</div>
+      <button onclick="doCommentCheck(${id}, ${c.check.tn}, '${c.check.skill}', ${c.check.success||null})">🎲 擲骰</button>
+    </div>`;
+  }
+  if(c.triggerFinal) {
+    extraBtns = `<div style="text-align:right;margin-top:12px">
+      <button class="primary" onclick="closeModal();startFinalBattle()">▶ 進入最終決戰</button>
+    </div>`;
+  }
+  showModal(`注釋 ${id}：${c.title||''}`, `
+    <div class="note-card">
+      <div class="note-num">📖 注釋 ${id}</div>
+      <p>${c.text}</p>
+    </div>
+    ${extraBtns}
+  `, c.triggerFinal?'':`<button onclick="closeModal();${callback?'('+callback.toString()+')()':''}">繼續</button>`);
+}
+
+function doCommentCheck(commentId, tn, skill, successComment) {
+  const r = S.ranger;
+  const mod = r.skills[skill]||0;
+  const res = rollCheck(mod, tn, skill);
+  log(`🎲 ${skill} 判定：d20(${res.roll})+${mod}=${res.total} vs TN${tn} → ${res.success?'成功':'失敗'}`, res.success?'info':'danger');
+  closeModal();
+  if(res.success) {
+    if(successComment) {
+      showComment(successComment);
+    } else {
+      render();
+    }
+  } else {
+    // 失敗效果
+    const c = COMMENTS[commentId];
+    if(c.check && c.check.successOnFailAdd) {
+      for(const n of c.check.successOnFailAdd) {
+        if(S.scene) {
+          const e = createEnemy(n);
+          e.id = 'e'+Math.random().toString(36).slice(2,8);
+          S.scene.enemies.push(e);
+        }
+      }
+      log(`⚠ 失敗，出現額外敵人`, 'danger');
+    }
+    render();
+  }
+}
+
+// ============================== 等級 ==============================
+const LEVEL_XP = [
+  {min:1,need:100},{min:6,need:150},{min:11,need:200},
+  {min:16,need:250},{min:21,need:300},{min:31,need:400},
+  {min:41,need:500},{min:51,need:1000}
+];
+
+function checkLevelUp() {
+  const r = S.ranger;
+  let leveled = false;
+  while(true) {
+    const bracket = LEVEL_XP.slice().reverse().find(b=>r.level+1>=b.min) || LEVEL_XP[0];
+    const need = bracket.need;
+    const prevNeed = r.level===0 ? 0 : (r.level<6?100:r.level<11?150:r.level<16?200:r.level<21?250:r.level<31?300:r.level<41?400:r.level<51?500:1000);
+    if(r.xp >= need * (r.level+1)) {
+      r.level++;
+      applyLevelReward(r);
+      leveled = true;
+    } else break;
+  }
+  if(leveled) log(`🎉 升級！現在 Lv.${r.level}`, 'reward');
+}
+
+function applyLevelReward(r) {
+  // 循環：技能→屬性→招募點數→能力
+  const cycle = (r.level - 1) % 4;
+  if(cycle===0) {
+    // 技能總+5（單項≤+2）— 簡化為隨機分配
+    let remaining = 5;
+    const skillKeys = Object.keys(r.skills);
+    while(remaining>0) {
+      const sk = pick(skillKeys);
+      const inc = Math.min(2, remaining);
+      r.skills[sk] += inc;
+      remaining -= inc;
+    }
+    log('📚 升級獎勵：技能總+5', 'info');
+  } else if(cycle===1) {
+    const opts = ['F','S','W','H'];
+    const k = pick(opts);
+    if(k==='H') r.H += 1;
+    else r[k] += 1;
+    log(`📈 升級獎勵：屬性提升（${k}）`, 'info');
+  } else if(cycle===2) {
+    r.rp += 10;
+    log('💰 升級獎勵：招募點數+10', 'info');
+  } else {
+    log('✨ 升級獎勵：可學習新英雄能力或法術', 'info');
+  }
+}
+
+// ============================== 死亡處理 ==============================
+function handleHeroDeath() {
+  if(S.ranger.curH > 0) return;
+  log('💀 遊俠失去意識！', 'danger');
+  // 生存判定 d20 + 1
+  const r = d20();
+  const total = r + 1;
+  log(`🎲 生存判定：d20(${r})+1 = ${total}`, 'roll');
+  if(total >= 9) {
+    log('😇 完全恢復！', 'reward');
+    S.ranger.curH = S.ranger.H;
+  } else if(total >= 7) {
+    log('😅 死裡逃生，失去所有非基礎裝備', 'info');
+    S.ranger.curH = 1;
+  } else if(total >= 5) {
+    log('🤕 重傷：下場景生命值-5', 'danger');
+    S.ranger.curH = 1;
+  } else if(total >= 3) {
+    log('💔 永久性傷害！', 'danger');
+    S.ranger.curH = 1;
+  } else {
+    log('☠ 死亡！', 'danger');
+    endGame('death');
+    return;
+  }
+  render();
+}
+
+// ============================== 最終戰 ==============================
+function startFinalBattle() {
+  S.phase = 'FINAL';
+  // 建立最終場景
+  S.finalScene = {
+    round: 1,
+    enemies: [
+      {...createEnemy('恐懼之翼'), id:'fw'},
+      {...createEnemy('豺狼人戰士'), id:'g1'},
+      {...createEnemy('豺狼人弓箭手'), id:'g2'},
+      {...createEnemy('狼'), id:'w1'}
+    ],
+    eventDeck: [],
+    turnPhase:'player',
+    actionsLeft: 2
+  };
+  // 建立事件牌組（8 張紅牌）
+  const events = [
+    {id:1,text:'暗影騎士出現（若恐懼之翼仍在場）',effect:'addShadowKnight'},
+    {id:2,text:'出口前出現1隻狼',effect:'addEnemy:狼'},
+    {id:3,text:'出口前出現1隻狼',effect:'addEnemy:狼'},
+    {id:4,text:'恐懼之翼尖嘯，所有英雄意志 TN12',effect:'will12'},
+    {id:5,text:'起風下雨，射擊-2',effect:'rain'},
+    {id:6,text:'聖埃米莉亞幻象：兩個英雄回滿血，格鬥+2',effect:'heal2'},
+    {id:7,text:'恐懼之翼尖叫，所有英雄意志 TN14 失敗受2傷害',effect:'will14'},
+    {id:8,text:'豺狼人從出口湧入',effect:'addEnemy:豺狼人戰士+豺狼人戰士+豺狼人弓箭手'}
+  ];
+  S.finalScene.eventDeck = events;
+  log('🔥 最終決戰開始！擊敗恐懼之翼，帶著魔瓶逃脫！', 'system');
+  render();
+}
+
+function renderFinal() {
+  const fs = S.finalScene;
+  const r = S.ranger;
+  const hasDecanter = S.decanter;
+
+  let heroCards = '';
+  heroCards += `<div class="card hero ${fs.turnPhase==='player'?'selected':''}">
+    <div class="card-title">🛡 ${r.name} ${hasDecanter?'★ 持魔瓶':''}</div>
+    <div class="card-body">
+      ❤ ${r.curH}/${r.H}<div class="hp-bar"><div class="hp-fill hero" style="width:${100*r.curH/r.H}%"></div></div>
+      F+${r.F} A${r.A}
+    </div>
+  </div>`;
+  for(const c of S.companions) {
+    if(c.curH<=0) continue;
+    heroCards += `<div class="card hero">
+      <div class="card-title">👤 ${c.name}</div>
+      <div class="card-body">❤ ${c.curH}/${c.H}<div class="hp-bar"><div class="hp-fill hero" style="width:${100*c.curH/c.H}%"></div></div>F${c.F} A${c.A}</div>
+    </div>`;
+  }
+
+  let enemyCards = '';
+  for(const e of fs.enemies) {
+    enemyCards += `<div class="card enemy">
+      <div class="card-title">☠ ${e.name}</div>
+      <div class="card-body">❤ ${e.curH}/${e.H}<div class="hp-bar"><div class="hp-fill" style="width:${100*e.curH/e.H}%"></div></div>F+${e.F} A${e.A}</div>
+      ${fs.turnPhase==='player'&&fs.actionsLeft>0?`<div class="card-footer"><button class="small" onclick="finalAttack('${e.id}')">⚔</button></div>`:''}
+    </div>`;
+  }
+
+  let actionBtns = '';
+  if(fs.turnPhase==='player') {
+    actionBtns = `
+      <button onclick="finalFlee()">🏃 試圖逃離（擲骰）</button>
+      <button class="primary" onclick="finalEndPlayer()">⏭ 結束遊俠階段</button>
+    `;
+  } else if(fs.turnPhase==='enemy') {
+    actionBtns = `<button class="primary" onclick="finalEnemyTurn()">▶ 敵人行動</button>`;
+  } else if(fs.turnPhase==='event') {
+    actionBtns = `<button class="primary" onclick="finalDrawEvent()">🃏 抽事件卡</button>`;
+  }
+
+  return `
+    <h1>🔥 最終對決</h1>
+    <p style="color:#a09070;margin-bottom:12px">庭院中，恐懼之翼展開黑翼注視著你。帶著魔瓶逃離，或存活至第9回合！</p>
+    <div class="turn-indicator">
+      <div class="phase-chip ${fs.turnPhase==='player'?'active':''}">① 遊俠階段</div>
+      <div class="phase-chip ${fs.turnPhase==='enemy'?'active':''}">② 敵人階段</div>
+      <div class="phase-chip ${fs.turnPhase==='event'?'active':''}">③ 事件階段</div>
+      <div class="stat-chip">回合 ${fs.round}/9</div>
+      <div class="action-counter">${fs.turnPhase==='player'?`行動：${fs.actionsLeft}`:''}</div>
+    </div>
+    <div class="panel"><div class="panel-title">🛡 英雄</div><div class="h-scroll">${heroCards}</div></div>
+    <div class="panel"><div class="panel-title">☠ 敵人</div><div class="h-scroll">${enemyCards}</div></div>
+    <div class="panel" style="text-align:center">${actionBtns}</div>
+  `;
+}
+
+function finalAttack(enemyId) {
+  const fs = S.finalScene;
+  if(fs.actionsLeft<=0) return;
+  const e = fs.enemies.find(x=>x.id===enemyId);
+  if(!e) return;
+  const r = S.ranger;
+  const result = resolveCombat(
+    {name:r.name, F:r.F, armor:r.A, dmgBonus:0, crit:true},
+    {name:e.name, F:e.F, armor:e.A, dmgBonus:0, crit:false}
+  );
+  fs.actionsLeft--;
+  let msg = `⚔ ${r.name} 攻擊 ${e.name}：${result.aScore} vs ${result.dScore}`;
+  if(result.crit) msg += '【暴擊】';
+  if(result.winner==='attacker' && result.dmg>0) {
+    e.curH -= result.dmg;
+    msg += ` → 造成 ${result.dmg} 傷害（剩 ${Math.max(0,e.curH)}）`;
+    if(e.curH<=0) {
+      msg += ` → 💀 擊殺！+${e.xp} XP`;
+      r.xp += e.xp;
+      fs.enemies = fs.enemies.filter(x=>x.id!==e.id);
+    }
+  } else if(result.winner==='defender' && result.dmg>0) {
+    r.curH -= result.dmg;
+    msg += ` → 反被擊中，受到 ${result.dmg} 傷害`;
+  } else {
+    msg += ' → 未造成傷害';
+  }
+  log(msg, 'combat');
+  if(r.curH<=0) { handleFinalDeath(); return; }
+  render();
+}
+
+function finalFlee() {
+  const r = S.ranger;
+  // 逃離：d20 + M vs TN 14
+  const res = rollCheck(r.M, 14, '逃離');
+  log(`🎲 逃離判定：d20(${res.roll})+${r.M}=${res.total} vs TN14 → ${res.success?'成功':'失敗'}`, 'roll');
+  if(res.success) {
+    if(S.decanter) {
+      endGame('victory', 150);
+    } else {
+      endGame('partial', 75);
+    }
+  } else {
+    // 失敗：被攻擊
+    const dmg = Math.max(0, d20()+2 - r.A);
+    r.curH -= dmg;
+    log(`☠ 逃離失敗，受到 ${dmg} 傷害`, 'danger');
+    if(r.curH<=0) handleFinalDeath();
+    else render();
+  }
+}
+
+function finalEndPlayer() {
+  S.finalScene.turnPhase = 'enemy';
+  render();
+}
+
+function finalEnemyTurn() {
+  const fs = S.finalScene;
+  // 全部敵人攻擊遊俠
+  for(const e of fs.enemies) {
+    if(S.ranger.curH<=0) break;
+    const result = resolveCombat(
+      {name:e.name, F:e.F, armor:e.A, dmgBonus:0, crit:false},
+      {name:S.ranger.name, F:S.ranger.F, armor:S.ranger.A, dmgBonus:0, crit:false}
+    );
+    let msg = `☠ ${e.name} 攻擊 ${S.ranger.name}：${result.aScore} vs ${result.dScore}`;
+    if(result.winner==='attacker' && result.dmg>0) {
+      S.ranger.curH -= result.dmg;
+      msg += ` → 造成 ${result.dmg} 傷害（剩 ${Math.max(0,S.ranger.curH)}）`;
+    } else if(result.winner==='defender' && result.dmg>0) {
+      e.curH -= result.dmg;
+      msg += ` → 反被擊中，受到 ${result.dmg} 傷害`;
+      if(e.curH<=0) {
+        S.ranger.xp += e.xp;
+        fs.enemies = fs.enemies.filter(x=>x.id!==e.id);
+        msg += ` → 擊殺！+${e.xp} XP`;
+      }
+    } else {
+      msg += ' → 未造成傷害';
+    }
+    log(msg, 'danger');
+  }
+  if(S.ranger.curH<=0) { handleFinalDeath(); return; }
+  fs.turnPhase = 'event';
+  render();
+}
+
+function finalDrawEvent() {
+  const fs = S.finalScene;
+  if(fs.eventDeck.length===0 || fs.round>=9) {
+    // 場景結束：若魔瓶持有 → 勝利；否則部分勝利
+    if(S.decanter) endGame('victory', 150);
+    else endGame('partial', 75);
+    return;
+  }
+  const ev = fs.eventDeck.shift();
+  log(`🃏 事件 ${ev.id}：${ev.text}`, 'info');
+  // 簡化處理
+  if(ev.effect.startsWith('addEnemy:')) {
+    const names = ev.effect.slice(9).split('+');
+    for(const n of names) {
+      const e = createEnemy(n);
+      e.id = 'e'+Math.random().toString(36).slice(2,8);
+      fs.enemies.push(e);
+    }
+  } else if(ev.effect==='will12') {
+    if(!rollCheck(S.ranger.W, 12).success) { S.ranger.curH -= 2; log('意志失敗受2傷害','danger'); }
+  } else if(ev.effect==='will14') {
+    if(!rollCheck(S.ranger.W, 14).success) { S.ranger.curH -= 2; log('意志失敗受2傷害','danger'); }
+  } else if(ev.effect==='heal2') {
+    S.ranger.curH = Math.min(S.ranger.H, S.ranger.curH + 5);
+    log('💚 聖埃米莉亞幻象治癒遊俠', 'info');
+  }
+  fs.round++;
+  if(S.ranger.curH<=0) { handleFinalDeath(); return; }
+  if(fs.round > 9) {
+    if(S.decanter) endGame('victory', 150);
+    else endGame('partial', 75);
+    return;
+  }
+  fs.turnPhase = 'player';
+  fs.actionsLeft = 2;
+  render();
+}
+
+function handleFinalDeath() {
+  log('💀 遊俠在最終戰中倒下...', 'danger');
+  // 生存判定減半
+  const r = d20();
+  const total = Math.ceil((r+1)/2);
+  log(`🎲 生存判定（減半）：d20(${r})+1 → ${total}`, 'roll');
+  if(total >= 9) endGame('death');
+  else if(total >= 5) endGame('partial', 75);
+  else endGame('death');
+}
+
+// ============================== 遊戲結束 ==============================
+function endGame(ending, xpBonus) {
+  S.phase = 'GAME_OVER';
+  S.gameOver = true;
+  S.ending = ending;
+  if(xpBonus) S.ranger.xp += xpBonus;
+  render();
+}
+
+function renderGameOver() {
+  const r = S.ranger;
+  let title, text, cls;
+  if(S.ending==='victory') {
+    title='🏆 勝利！'; cls='success-box';
+    text='你帶著燃燒之光魔瓶成功逃離女修道院，衝破黑雲回到阿拉多爾。上交魔瓶後，營地為你舉辦慶祝。魔瓶將送往塔利斯的大型醫院，為無數患者帶來慰藉！';
+  } else if(S.ending==='partial') {
+    title='📜 部分勝利'; cls='info-box';
+    text='你帶著沉重的心情返回阿拉多爾。任務失敗，魔瓶仍藏在女修道院某處。但你的努力獲得讚賞——能活著回來本身已是成就。';
+  } else {
+    title='💀 遊戲結束'; cls='warn-box';
+    text='你的遊俠在暗影深淵中倒下。王國失去了一位英雄，但他們的故事將被傳頌。';
+  }
+  return `
+    <h1>${title}</h1>
+    <div class="${cls}" style="font-size:15px;line-height:1.8">${text}</div>
+    <div class="panel" style="margin-top:20px">
+      <div class="panel-title">最終統計</div>
+      <div class="grid-2">
+        <div class="equip-item"><span>遊俠名稱</span><b>${r.name}</b></div>
+        <div class="equip-item"><span>等級</span><b>${r.level}</b></div>
+        <div class="equip-item"><span>經驗值</span><b>${r.xp}</b></div>
+        <div class="equip-item"><span>已探索地點</span><b>${S.visited.length}/8</b></div>
+        <div class="equip-item"><span>是否取得魔瓶</span><b>${S.decanter?'是':'否'}</b></div>
+        <div class="equip-item"><span>最終搜索地點</span><b>${S.finalSearch||'未進行'}</b></div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="primary" onclick="restart()">🔄 重新開始</button>
+    </div>
+  `;
+}
+
+function restart() {
+  if(!confirm('確定重新開始？當前進度將遺失。')) return;
+  S = null;
+  setupState = null;
+  localStorage.removeItem('shadowdeep_save');
+  initSetup();
+  S = createInitialState();
+  S.phase = 'SETUP';
+  render();
+}
+
+// ============================== 說明 / 狀態 ==============================
+function showHelp() {
+  showModal('📖 遊戲說明', `
+    <div style="line-height:1.8;font-size:13px">
+      <h3 style="color:#f0c060">🎯 目標</h3>
+      <p>在聖埃米莉亞女修道院中找到「燃燒之光魔瓶」，帶著它逃離暗影深淵。</p>
+
+      <h3 style="color:#f0c060">🗺 探索流程</h3>
+      <ol style="margin-left:20px">
+        <li>從地圖上選擇 A/B/C 之一作為起點</li>
+        <li>完成場景後，可移動到相鄰地點</li>
+        <li>8 個地點任意探索，直到你確定魔瓶位置</li>
+        <li>當你準備好時，點擊「最終搜索」並選擇地點</li>
+      </ol>
+
+      <h3 style="color:#f0c060">🎲 核心判定</h3>
+      <ul style="margin-left:20px">
+        <li>屬性/技能判定：d20 + 加值 ≥ TN 即成功</li>
+        <li>天然 20 必成功，天然 1 必失敗</li>
+        <li>戰鬥：d20+F vs d20+F，傷害 = 勝方分 − 敗方護甲</li>
+        <li>天然 20 暴擊：自動勝 + 額外 5 傷害</li>
+      </ul>
+
+      <h3 style="color:#f0c060">⚔ 回合流程</h3>
+      <ol style="margin-left:20px">
+        <li><b>遊俠階段</b>：2 次行動（攻擊/互動/施法）</li>
+        <li><b>同伴階段</b>：每個同伴自動攻擊</li>
+        <li><b>敵人階段</b>：所有敵人自動攻擊</li>
+        <li><b>事件階段</b>：抽 1 張事件卡</li>
+      </ol>
+
+      <h3 style="color:#f0c060">🔍 興趣點</h3>
+      <p>點擊場景中的興趣點卡片進行判定，成功可獲得線索、寶藏、隊友或 XP。部分興趣點分級，TN 越高獎勵越豐厚。</p>
+
+      <h3 style="color:#f0c060">💀 死亡</h3>
+      <p>生命值歸零需進行生存判定（遊俠 d20+1）。7+ 死裡逃生，9+ 完全恢復，3-4 永久傷害，1-2 死亡。</p>
+
+      <h3 style="color:#f0c060">💾 存檔</h3>
+      <p>點擊頂部「存檔」按鈕儲存進度。重新載入後點「讀檔」恢復（未自動讀取）。</p>
+
+      <h3 style="color:#f0c060">🎁 寶藏</h3>
+      <p>場景結束後，每收集 1 個寶藏標記擲 d20：1-6 黃金（+10XP）、7-12 草藥、13-16 裝備、17-20 魔法物品。</p>
+    </div>
+  `);
+}
+
+function showStatusPanel() {
+  const r = S.ranger;
+  let skillsHtml = SKILLS.map(s=>`<div class="skill-row"><span>${s}</span><span class="val">+${r.skills[s]||0}</span></div>`).join('');
+  showModal('📋 遊俠狀態', `
+    <div class="grid-2">
+      <div>
+        <h3>基本</h3>
+        <div class="equip-item"><span>名稱</span><b>${r.name}</b></div>
+        <div class="equip-item"><span>等級</span><b>${r.level}</b></div>
+        <div class="equip-item"><span>經驗值</span><b>${r.xp}</b></div>
+        <div class="equip-item"><span>生命值</span><b>${r.curH}/${r.H}</b></div>
+        <div class="equip-item"><span>M/F/S/A/W</span><b>${r.M}/${r.F}/${r.S}/${r.A}/${r.W}</b></div>
+        <h3 style="margin-top:12px">裝備</h3>
+        ${r.equipment.map(e=>`<div class="equip-item">${e}</div>`).join('')}
+        <h3 style="margin-top:12px">能力與法術</h3>
+        ${r.abilities.map(a=>`<div class="equip-item">${a}</div>`).join('')||'<div class="empty-msg">無</div>'}
+        ${r.spells.map(s=>`<div class="equip-item">✨ ${s}</div>`).join('')}
+      </div>
+      <div>
+        <h3>技能</h3>
+        ${skillsHtml}
+      </div>
+    </div>
+  `);
+}
+
+function showCompanionsPanel() {
+  let html = '';
+  if(S.companions.length===0) html = '<div class="empty-msg">目前沒有同伴</div>';
+  else {
+    for(const c of S.companions) {
+      html += `<div class="equip-item" style="flex-direction:column;align-items:flex-start">
+        <div><b>${c.name}</b> ${c.curH>0?'<span class="tag green">存活</span>':'<span class="tag red">陣亡</span>'}</div>
+        <div style="font-size:11px;color:#a09070">M${c.M} F${c.F} S${c.S} A${c.A} W${c.W} H${c.curH}/${c.H}</div>
+      </div>`;
+    }
+  }
+  showModal('👥 同伴', html);
+}
+
+// ============================== 初始化 ==============================
+function init() {
+  S = createInitialState();
+  initSetup();
+  render();
+  // 檢查是否有存檔
+  if(localStorage.getItem('shadowdeep_save')) {
+    const load = confirm('發現存檔，是否載入？\n（選擇「取消」將開始新遊戲）');
+    if(load) loadGame();
+  }
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

@@ -1,0 +1,958 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>英烈無情刀 · 江湖生成器</title>
+<style>
+:root{--bg:#120e0a;--panel:#241b13;--paper:#f2e6d0;--ink:#2b2118;--gold:#c9a24b;--red:#8b2c2c;--line:#4d3a28;--muted:#a89276}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at top,#2a1d12,#0c0906 75%);color:#eadcc4;font-family:"Noto Serif TC","PMingLiU","MingLiU",serif;min-height:100vh}
+header{padding:14px 18px;text-align:center;border-bottom:2px solid var(--gold);background:linear-gradient(180deg,#1b130d,#120d09)}
+header h1{margin:0;font-size:26px;letter-spacing:4px;color:var(--gold);text-shadow:0 0 12px rgba(201,162,75,.35)}
+header p{margin:4px 0 0;color:var(--muted);font-size:12px}
+main{max-width:1000px;margin:0 auto;padding:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 4px 18px rgba(0,0,0,.35)}
+.panel h2{margin:0 0 10px;font-size:20px;color:var(--gold);border-bottom:1px solid var(--line);padding-bottom:8px}
+.panel h3{margin:12px 0 6px;font-size:16px;color:#e0c98e}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+input,select,textarea{font-family:inherit;background:#f7edda;color:var(--ink);border:1px solid #8d7352;border-radius:4px;padding:7px;font-size:14px;width:100%}
+button{font-family:inherit;cursor:pointer;border-radius:4px;border:1px solid var(--line);padding:8px 13px;background:#2f241a;color:#eadcc4;font-size:14px}
+button:hover{background:#3d2e20}
+button.primary{background:var(--red);border-color:var(--red);color:#fff}
+button.gold{background:#5a451f;border-color:var(--gold);color:#f4e2b8}
+button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.status{font-size:13px;color:var(--muted)}
+.warn{color:#e08a7a}.ok{color:#9ed49b}
+.story{background:#f2e6d0;color:#2b2118;border-radius:6px;padding:16px 18px;line-height:1.85;font-size:15px;white-space:pre-wrap;min-height:120px}
+.choices{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.choice{text-align:left;background:#2f241a;color:#eadcc4;border:1px solid var(--line);padding:10px 12px;line-height:1.5}
+.choice:hover{background:#40301f;border-color:var(--gold)}
+.log{background:#0f0b08;border:1px solid #3a2c1e;border-radius:6px;padding:10px;height:220px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.55;white-space:pre-wrap;color:#cfc0a6}
+.log .hit{color:#9ed49b}.log .miss{color:#d98a7a}.log .crit{color:#ffd76a;font-weight:bold}
+.hud{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px}
+.stat{background:#1d1610;border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+.stat b{display:block;color:var(--muted);font-size:11px;font-weight:normal;margin-bottom:2px}
+.stat span{font-size:16px;color:#f0dfbd}
+.tag{display:inline-block;background:#35281b;border:1px solid #5a4329;border-radius:3px;padding:1px 6px;font-size:12px;color:#d8c6a6;margin:2px 3px 2px 0}
+.skill-group{border:1px solid var(--line);border-radius:6px;padding:10px;margin-bottom:8px;background:#1d1610}
+.skill-group h4{margin:0 0 8px;color:#d9b96e;font-size:14px}
+.skill-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.skill-item{display:flex;align-items:center;gap:6px;font-size:13px}
+.skill-item input{width:52px;padding:4px;text-align:center}
+.skill-item label{flex:1;color:#cdbb9e}
+.remain{font-size:12px;color:#d9b96e;margin-left:6px}
+.remain.bad{color:#e08a7a}
+.hidden{display:none!important}
+.small{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>英烈無情刀</h1>
+  <p>江湖生成器 · 無 GM 自動敘事</p>
+</header>
+<main>
+
+<section id="screen-title">
+  <div class="panel">
+    <h2>江湖無常</h2>
+    <div class="story">沒有 GM，也沒有固定劇本。
+
+你每走一步，江湖都會自行長出新的遭遇、新的恩怨、新的線索。有人會找你麻煩，有人會向你求助，有人只是路過，卻改變了你的一生。
+
+你要做的，是活下去，並在這個江湖裡留下自己的名字。</div>
+    <div class="choices">
+      <button class="choice" id="btn-newgame">踏入江湖</button>
+      <button class="choice" id="btn-continue">繼續上次江湖</button>
+    </div>
+    <p class="status" id="titleMsg"></p>
+  </div>
+</section>
+
+<section id="screen-create" class="hidden">
+  <div class="panel">
+    <h2>創建角色</h2>
+    <div class="grid">
+      <label class="field">姓名<input id="c_name" placeholder="例：李慕白"></label>
+      <label class="field">職業<select id="c_occ"></select></label>
+      <label class="field">招牌絕技<select id="c_ability"></select></label>
+      <label class="field">拆招<select id="c_counter"></select></label>
+      <label class="field">怪癖<select id="c_ecc"></select></label>
+      <label class="field">起始地點<select id="c_place"></select></label>
+    </div>
+    <p class="small" id="occHint"></p>
+  </div>
+  <div class="panel">
+    <h2>技能分配</h2>
+    <p class="small">防禦 5 點（單項上限 3）；武功 4 點（單項上限 3）；其他 6 點（單項上限 3）。</p>
+    <div id="skillForm"></div>
+    <div class="row">
+      <button class="primary" id="btn-start">踏入江湖</button>
+      <span id="createMsg" class="status"></span>
+    </div>
+  </div>
+</section>
+
+<section id="screen-game" class="hidden">
+  <div class="panel">
+    <div class="hud" id="gameHud"></div>
+    <div class="story" id="gameStory"></div>
+    <div class="choices" id="gameChoices"></div>
+  </div>
+  <div class="panel">
+    <h3>江湖記錄</h3>
+    <div class="log" id="gameLog"></div>
+    <div class="row">
+      <button id="btn-save">保存江湖</button>
+      <button id="btn-title">回到標題</button>
+    </div>
+  </div>
+</section>
+
+<section id="screen-battle" class="hidden">
+  <div class="panel">
+    <h2 id="battleTitle">戰鬥</h2>
+    <div class="hud" id="battleHud"></div>
+    <div class="story" id="battleStory"></div>
+    <div class="choices" id="battleChoices"></div>
+  </div>
+  <div class="panel">
+    <h3>交手記錄</h3>
+    <div class="log" id="battleLog"></div>
+  </div>
+</section>
+
+</main>
+
+<script>
+"use strict";
+
+/* ================== 基本工具 ================== */
+const $ = id => document.getElementById(id);
+const d10 = () => Math.floor(Math.random()*10)+1;
+const rand = arr => arr[Math.floor(Math.random()*arr.length)];
+const randInt = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function pool(n){
+  if(n<=0){ const a=d10(),b=d10(); return {rolls:[a,b],result:Math.min(a,b),tens:(a===10?1:0)+(b===10?1:0)}; }
+  const rolls=Array.from({length:n},()=>d10());
+  return {rolls,result:Math.max(...rolls),tens:rolls.filter(x=>x===10).length};
+}
+
+/* ================== 數據池 ================== */
+const PLACES = ["邯鄲","開封","南京","杭州","上海","寧波","敖鎮","桂林","廣州","成都","九寨溝","大理","蘭州","北京","濟南","長安","洛陽","揚州","蘇州","泉州"];
+
+const NPCS = [
+  {name:"悲蝶劍",desc:"一位機智快活的劍女，醉了便陷入悽然沉思，總在情人最深情時假死離去。",danger:5,tags:["劍客","女"]},
+  {name:"英嬸",desc:"英嬸酒鋪的東家，狡猾迷人，善於看人，背後關係網深不可測。",danger:9,tags:["客棧","深藏不露"]},
+  {name:"美臉常",desc:"武林中最醜的人，陸家錢莊打手，脾氣暴戾，使一柄大刀。",danger:6,tags:["打手","刀"]},
+  {name:"乞丐黃",desc:"曾是高階太監，如今是乞丐，鞭法凌厲，為百姓而戰。",danger:4,tags:["乞丐","鞭"]},
+  {name:"陳超",desc:"赤鷹門前任門主，冷酷狡詐，渴望權力。",danger:5,tags:["陰謀家"]},
+  {name:"陳浩林",desc:"人稱取頭陳，武林中最胖的人之一，以金剛斧刃聞名。",danger:4,tags:["斧","胖子"]},
+  {name:"陳念真",desc:"自信而身量極高，滿身傷疤，人稱無情仙。",danger:4,tags:["女","戟"]},
+  {name:"班飛",desc:"邯鄲鏢局總鏢頭，斷了雙腿，仍堅持完成合約。",danger:4,tags:["鏢局"]},
+  {name:"王捕快",desc:"醉捕快，箭術通神，卻暈自己的血。",danger:3,tags:["捕快","弓"]},
+  {name:"崔諾",desc:"玉腿瑜伽師，舞者，以腿法作戰，野心無人能及。",danger:3,tags:["女","腿法"]},
+  {name:"張公公",desc:"宮中權勢太監，第四司秘密首領，貌如屍體。",danger:7,tags:["太監","陰謀"]},
+  {name:"小鼠郭",desc:"鐵匠，鑄神，愛打聽消息，張公公的爪牙。",danger:4,tags:["鐵匠"]},
+  {name:"顧聖通",desc:"敖鎮捕頭，來自高麗，使月刀，鳳王的左右手。",danger:6,tags:["捕頭","刀"]},
+  {name:"顧星",desc:"英俊自負的劍客，金蟹式，龍家成員。",danger:2,tags:["劍客","自負"]},
+  {name:"何天",desc:"精瘦漁夫，擅布陷阱，張公公的爪牙，自稱正在變成神。",danger:8,tags:["漁夫","陷阱"]},
+  {name:"洪文龍",desc:"薄命刃，精妙劍客，屢遭慘變，仍努力做個豪俠。",danger:8,tags:["劍客"]},
+  {name:"花妍",desc:"小羅剎，癲狂神氣，使鋸齒刀，狂笑不止。",danger:4,tags:["刀","瘋子"]},
+  {name:"鐵齒蝠王",desc:"聰明凶悍的稀有器物收藏家，鐵齒，怕美人。",danger:3,tags:["蝙蝠","收藏"]},
+  {name:"梁海",desc:"七頭海怪，漁夫出身，使用武功時如妖魔一般。",danger:8,tags:["怪物"]},
+  {name:"林波",desc:"后羿的病孫，箭手，機智詼諧，瘦得病態。",danger:5,tags:["弓"]},
+  {name:"李寧",desc:"解劍，昔日的無雙書生，如今瘋子般遊蕩。",danger:5,tags:["劍客","瘋"]},
+  {name:"劉詩詩",desc:"福建名妓，以詩才歌藝著稱，恨姐姐劍神女。",danger:4,tags:["名妓"]},
+  {name:"劉秀玲",desc:"劍神女，十大高手之一，劍法無雙，性情多變。",danger:9,tags:["劍神女"]},
+  {name:"龍大王",desc:"龍主，表面德厚，內心暴君，渴望帝位。",danger:7,tags:["家主","陰謀"]},
+  {name:"陸仁",desc:"陸家錢莊東家，迷人，收集大英雄的身體部位。",danger:7,tags:["錢莊","收藏"]},
+  {name:"羅清",desc:"爐鼎大師，唯一煉出延壽丹的煉丹師，隱居。",danger:8,tags:["煉丹"]},
+  {name:"馬振龍",desc:"無盡井馬振龍，醉醺醺的獵手，箭術通神。",danger:7,tags:["弓","醉"]},
+  {name:"胡財主",desc:"有錢的紙商，嗜賭，憎惡五鳳山莊。",danger:5,tags:["商人","有錢"]},
+  {name:"彈琵琶女巫",desc:"佝僂老婦，製作最精美的琵琶，以人腸製弦。",danger:3,tags:["樂師","巫"]},
+  {name:"淨",desc:"睡菩薩，曾名徐鐵，自毀雙目的連環殺手。",danger:8,tags:["殺手","盲"]},
+  {name:"青雲",desc:"謝麗娟的侍女，傲慢，口舌鋒利。",danger:5,tags:["侍女"]},
+  {name:"義殺龍",desc:"在妓院與賭坊尋歡，見不公便出手殺人。",danger:5,tags:["豪俠"]},
+  {name:"沙諾哥",desc:"漫遊仙，豪爽古怪，永無休止地追逐樂趣。",danger:6,tags:["怪俠"]},
+  {name:"石甲",desc:"第八司年輕捕快，武功不高，名聲卻大。",danger:1,tags:["捕快"]},
+  {name:"帥輝雄",desc:"美髯豪俠，熱烈，酷愛音樂文學與打鬥。",danger:2,tags:["豪俠"]},
+  {name:"宋默",desc:"影魔，自稱連環殺手，實為行騙之人。",danger:2,tags:["騙子"]},
+  {name:"宋湍",desc:"骨醫，對死亡著迷，黑鴞村的主人。",danger:8,tags:["醫者","毒"]},
+  {name:"孫蘭",desc:"閻羅女王，以地獄朝十針折磨人至死，詩才絕世。",danger:8,tags:["女王","針"]},
+  {name:"張外科",desc:"聖手外科，近乎神奇地治療創傷，退隱靜安堂。",danger:8,tags:["醫者"]},
+  {name:"盜神李",desc:"天生一雙能開任何鎖的手，常住敖鎮。",danger:6,tags:["盜賊"]},
+  {name:"巍峨菩薩",desc:"看起來是極高僧人，其實是兄妹二人疊在一起。",danger:6,tags:["怪人"]},
+  {name:"靜殺手青影",desc:"沉靜的藍白衣裳殺手，一旦發作便狂暴無比。",danger:7,tags:["殺手"]},
+  {name:"靜雅書生花十一",desc:"說話輕柔，厭惡打擾，會除去冒犯者的部位。",danger:9,tags:["書生","怪人"]},
+  {name:"樹蛙高",desc:"丐幫女王，掃街人，鞭法驚人。",danger:7,tags:["乞丐"]},
+  {name:"萬郎",desc:"邯鄲鏢局副首領，神色和善，心中有鬼。",danger:2,tags:["鏢局"]},
+  {name:"萬舒",desc:"鐵手娘子，鳳王疏離的妻子，以鐵手聞名。",danger:7,tags:["女","鐵手"]},
+  {name:"吳康",desc:"慈善家吳，惡名昭彰的強盜，卻捐錢給慈善機構。",danger:2,tags:["強盜"]},
+  {name:"烏齒美人牛",desc:"顯赫麒麟山莊首領，美貌卻口臭熏人，內氣大師。",danger:5,tags:["首領"]},
+  {name:"謝麗娟",desc:"無情匕，武林第一高手，最美的女子，也是最可怕的殺手。",danger:9,tags:["殺手","美人"]},
+  {name:"謝松",desc:"謝師父，思考儒道佛，脾氣急躁。",danger:3,tags:["書生"]},
+  {name:"楊玉",desc:"妖姬楊，經營中國最好的酒樓，對批評菜餚者殺無赦。",danger:1,tags:["酒樓"]},
+  {name:"趙靜",desc:"無門無派的查案者，索價甚高，貫力掌。",danger:7,tags:["偵探"]},
+  {name:"朱飛",desc:"緋紅觀星者，觀星，使星刀，尖嘯箏派創立者。",danger:5,tags:["刀","觀星"]}
+];
+
+const OCCS = [
+  {name:"刺客",bonus:"偷襲時攻擊 +1d10",weapon:"匕首",wpnDmg:0},
+  {name:"捕快",bonus:"官府相關檢定 +1d10",weapon:"刀",wpnDmg:2},
+  {name:"盜賊",bonus:"盜竊與察覺 +1d10",weapon:"匕首",wpnDmg:0},
+  {name:"大夫",bonus:"醫術與煉丹 +1d10",weapon:"劍",wpnDmg:1},
+  {name:"藝人",bonus:"說服與共情 +1d10",weapon:"折扇",wpnDmg:0},
+  {name:"乞丐",bonus:"生存與察覺 +1d10",weapon:"棍",wpnDmg:1},
+  {name:"專心習武之人",bonus:"外功或內功 +1d10",weapon:"劍",wpnDmg:1},
+  {name:"商人",bonus:"人情地理與說服 +1d10",weapon:"刀",wpnDmg:2},
+  {name:"軍士",bonus:"耐力與統御 +1d10",weapon:"槍",wpnDmg:2},
+  {name:"書生",bonus:"文墨與推理 +1d10",weapon:"劍",wpnDmg:1}
+];
+
+const ABILITIES = [
+  {name:"追命劍（一）",desc:"戰鬥中：本次攻擊 +2d10，傷害 +1d10。"},
+  {name:"鐵掌",desc:"戰鬥中：本次傷害 +2d10。"},
+  {name:"蝴蝶雙刀高手（一）",desc:"戰鬥中：本回合閃避 +2，下次攻擊 +1d10。"},
+  {name:"影鞭式",desc:"戰鬥中：本次攻擊 +1d10，命中額外造成 1 點傷勢。"},
+  {name:"金蟹式",desc:"戰鬥中：本次傷害 +2d10。"},
+  {name:"無懼拳師式",desc:"戰鬥中：本回合體魄 +2，下次攻擊 +1d10。"},
+  {name:"酒仙",desc:"戰鬥中：恢復 1 點傷勢，本回合所有檢定 +1d10。"},
+  {name:"點穴功",desc:"戰鬥中：本次攻擊成功時，額外使敵人本回合攻擊 −1d10。"}
+];
+
+const COUNTERS = [
+  {name:"劍格",desc:"以刃器格擋近戰。",skill:"external"},
+  {name:"影拳",desc:"以快拳反擊徒手。",skill:"external"},
+  {name:"移形",desc:"以輕功滑步避開近戰。",skill:"lightness"},
+  {name:"金甲守禦",desc:"收緊肌肉抵禦刃器。",skill:"muscle"},
+  {name:"鐵甲守禦",desc:"以硬功承受鈍擊。",skill:"muscle"},
+  {name:"示弱之表",desc:"刻意示弱，令敵遲疑。",skill:"persuade"},
+  {name:"穴位守禦",desc:"移轉經脈，化解內功攻擊。",skill:"internal"},
+  {name:"懸鬼守禦",desc:"以輕功浮身卸力。",skill:"lightness"}
+];
+
+const ECCS = ["嗜飲","嗜食","貪婪","暴躁","執念","傷疤","美貌","醜陋","賭徒","殺手","正直","誓約","霉運","失面","赤貧","斷肢","聽命","戒殺","隱秘身世","向死而生"];
+
+const SKILL_CATS = {
+  def:{name:"防禦",points:5,max:3,skills:[["evade","閃避"],["hardiness","體魄"],["wits","心智"]]},
+  mart:{name:"武功",points:4,max:3,skills:[["external","外功"],["internal","內功"],["lightness","輕功"]]},
+  other:{name:"其他",points:6,max:3,skills:[["muscle","力量"],["detect","察覺"],["persuade","說服"],["empathy","共情"],["medicine","醫術與煉丹"],["drinking","飲酒"],["jianghu","江湖"],["survival","生存"]]}
+};
+
+/* ================== 狀態 ================== */
+const SAVE_KEY = "rbrb_gen_v1";
+let G = null;
+let pending = null;
+
+/* ================== 角色派生 ================== */
+function derive(c){
+  c.evade = 5 + (c.skills.evade||0);
+  c.hardiness = 5 + (c.skills.hardiness||0);
+  c.wits = 5 + (c.skills.wits||0);
+  c.atkSkill = Math.max(c.skills.external||0, c.skills.internal||0);
+  c.atkName = (c.skills.external||0) >= (c.skills.internal||0) ? "外功" : "內功";
+  c.muscle = c.skills.muscle||0;
+  c.maxWounds = 3;
+  c.wounds = 0;
+  c.killingAura = 1;
+  c.killingAuraDarkness = 0;
+  c.drinkingLimit = 1;
+  const occ = OCCS.find(o=>o.name===c.occ) || OCCS[0];
+  c.weapon = occ.weapon;
+  c.wpnDmg = occ.wpnDmg;
+  return c;
+}
+
+/* ================== 敵人 ================== */
+function makeEnemy(npc){
+  const d = npc.danger || 3;
+  const base = {
+    name:npc.name,
+    evade: clamp(5 + Math.floor(d/3), 6, 9),
+    hardiness: clamp(5 + Math.floor(d/3), 6, 9),
+    wits: clamp(4 + Math.floor(d/2), 5, 9),
+    atk: clamp(1 + Math.floor(d/3), 2, 4),
+    dmg: clamp(1 + Math.floor(d/4), 2, 4),
+    maxWounds: clamp(2 + Math.floor(d/4), 3, 5),
+    desc:npc.desc
+  };
+  return base;
+}
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+/* ================== 敘事生成 ================== */
+function pickNPC(exclude){
+  let n;
+  do { n = rand(NPCS); } while(exclude && n.name === exclude && NPCS.length > 1);
+  return n;
+}
+function pickPlace(current){
+  let p;
+  do { p = rand(PLACES); } while(p === current && PLACES.length > 1);
+  return p;
+}
+
+function generateEncounter(){
+  const types = ["stranger","inn","grudge","challenger","mystery","treasure","ally","twist"];
+  let weights = [2,2,1,2,1,1,1,1];
+  if(G.grudges.length > 0) weights[2] += 3;
+  if(G.clues.length > 0) weights[7] += 1;
+  if(G.allies.length > 0) weights[6] += 1;
+  const total = weights.reduce((a,b)=>a+b,0);
+  let r = Math.random()*total, idx=0;
+  for(let i=0;i<types.length;i++){ r-=weights[i]; if(r<=0){ idx=i; break; } }
+  const type = types[idx];
+  switch(type){
+    case "stranger": return encounterStranger();
+    case "inn": return encounterInn();
+    case "grudge": return encounterGrudge();
+    case "challenger": return encounterChallenger();
+    case "mystery": return encounterMystery();
+    case "treasure": return encounterTreasure();
+    case "ally": return encounterAlly();
+    case "twist": return encounterTwist();
+    default: return encounterStranger();
+  }
+}
+
+/* ---------- 各類遭遇 ---------- */
+
+function encounterStranger(){
+  const npc = pickNPC();
+  const place = G.location;
+  const flavor = rand([
+    `你在${place}的街角遇見${npc.name}。${npc.desc}`,
+    `${place}的酒鋪裡，${npc.name}獨自坐著。${npc.desc}`,
+    `路上，你與${npc.name}擦肩而過。${npc.desc}`,
+    `${place}城外，${npc.name}攔住了你。${npc.desc}`
+  ]);
+  return {
+    title:"路人",
+    text: flavor + "\n\n對方似乎有話想說，也似乎只是路過。",
+    choices:[
+      {
+        label:"上前搭話。",
+        check:{skill:"persuade",tn:7,desc:"說服"},
+        success:{text:`${npc.name}打量你片刻，忽然笑了。\n\n「有意思。你叫什麼名字？」\n\n你們聊了幾句。對方告訴你一些江湖上的近況，臨走前還留下了一句意味深長的話。`,effect:()=>{ addClue(`${npc.name}提到了近來江湖上的異動。`); G.reputation += 1; }},
+        fail:{text:`${npc.name}冷冷看了你一眼，沒有理會，逕自走了。\n\n你討了個沒趣。`,effect:()=>{}}
+      },
+      {
+        label:"觀察對方，不主動接觸。",
+        check:{skill:"detect",tn:6,desc:"察覺"},
+        success:{text:`你看出${npc.name}身上有些不尋常的細節——衣角的血跡、腰間兵器的磨損、不經意間掃向四周的目光。\n\n這不是個普通人。`,effect:()=>{ addClue(`你注意到${npc.name}似乎捲入了某些麻煩。`); }},
+        fail:{text:`你看了半天，什麼也沒看出來。對方只是個路人。`,effect:()=>{}}
+      },
+      {
+        label:"直接離開。",
+        direct:{text:`你沒有停留，繼續趕路。${npc.name}也沒有攔你。`,effect:()=>{}}
+      }
+    ]
+  };
+}
+
+function encounterInn(){
+  const npc = pickNPC();
+  const place = G.location;
+  const innName = rand(["悅來客棧","同福茶館","醉仙樓","八方客棧","清風茶舍"]);
+  const hook = rand([
+    `一名夥計悄悄告訴你，${npc.name}最近常來這裡，似乎在等什麼人。`,
+    `鄰桌的客人壓低聲音議論：${npc.name}前幾日在附近出了手，有人死了。`,
+    `客棧裡有人失蹤了。最後一次有人看見他，是與${npc.name}同桌飲酒。`
+  ]);
+  return {
+    title:"客棧風波",
+    text:`${place}的${innName}。\n\n${hook}`,
+    choices:[
+      {
+        label:"打聽消息。",
+        check:{skill:"jianghu",tn:7,desc:"江湖"},
+        success:{text:`你從夥計與酒客口中拼湊出一些線索。\n\n${npc.name}最近確實在這一帶活動，而且似乎在找一樣東西。`,effect:()=>{ addClue(`打聽到${npc.name}正在尋找某樣東西。`); }},
+        fail:{text:`你問了一圈，只得到些含糊不清的閒話，沒有什麼有用的。`,effect:()=>{}}
+      },
+      {
+        label:"直接去找${npc.name}。".replace("${npc.name}",npc.name),
+        check:{skill:"command",tn:8,desc:"統御"},
+        success:{text:`你走到${npc.name}面前，直視對方。\n\n「你在等什麼？」\n\n${npc.name}愣了一下，忽然笑了：「等你。」\n\n氣氛陡然緊張。`,effect:()=>{ addGrudge(npc.name,"對方似乎把你當成了目標。"); }},
+        fail:{text:`${npc.name}根本不理你，只顧自斟自飲。`,effect:()=>{}}
+      },
+      {
+        label:"離開客棧。",
+        direct:{text:`你沒有多留，起身離開。${innName}的燈火在身後漸漸遠去。`,effect:()=>{}}
+      }
+    ]
+  };
+}
+
+function encounterGrudge(){
+  let g;
+  if(G.grudges.length > 0){ g = rand(G.grudges); }
+  else { g = {name:pickNPC().name, reason:"你無意間得罪了對方。"}; G.grudges.push(g); }
+  const npc = NPCS.find(n=>n.name===g.name) || pickNPC();
+  return {
+    title:"恩怨",
+    text:`${npc.name}擋在你面前。\n\n「還記得我嗎？」\n\n${g.reason}\n\n對方的手已經按在兵器上。`,
+    choices:[
+      {
+        label:"試圖化解。",
+        check:{skill:"persuade",tn:8,desc:"說服"},
+        success:{text:`你放低姿態，把話說開。\n\n${npc.name}沉默良久，終於鬆開了兵器。\n\n「這次算了。下次，沒這麼好運。」`,effect:()=>{ G.grudges = G.grudges.filter(x=>x.name!==npc.name); G.reputation += 2; log(`恩怨已化解：${npc.name}`,"hit"); }},
+        fail:{text:`${npc.name}冷笑：「現在說這些，太遲了。」\n\n對方出手了。`,effect:()=>{ pending = {enemy:makeEnemy(npc)}; }}
+      },
+      {
+        label:"先發制人。",
+        check:{skill:"lightness",tn:7,desc:"輕功"},
+        success:{text:`你搶先出手，打了${npc.name}一個措手不及。\n\n對方吃了暗虧。`,effect:()=>{ pending = {enemy:makeEnemy(npc)}; }},
+        fail:{text:`${npc.name}早有準備。\n\n你反而露出破綻。`,effect:()=>{ pending = {enemy:makeEnemy(npc)}; }}
+      },
+      {
+        label:"轉身逃走。",
+        check:{skill:"lightness",tn:8,desc:"輕功"},
+        success:{text:`你頭也不回地跑了。\n\n${npc.name}在身後罵了幾句，沒有追來。`,effect:()=>{ G.reputation -= 1; }},
+        fail:{text:`你沒跑幾步，就被${npc.name}攔住。`,effect:()=>{ pending = {enemy:makeEnemy(npc)}; }}
+      }
+    ]
+  };
+}
+
+function encounterChallenger(){
+  const npc = pickNPC();
+  return {
+    title:"挑戰者",
+    text:`${npc.name}攔住你。\n\n「聽說你最近在江湖上有些名氣。我想見識見識。」\n\n對方不是來殺你的，但也不是來聊天的。`,
+    choices:[
+      {
+        label:"接受挑戰。",
+        direct:{text:`你點了點頭。\n\n${npc.name}笑了：「好，痛快。」`,effect:()=>{ pending = {enemy:makeEnemy(npc), winText:`你擊敗了${npc.name}。\n\n對方捂著傷口，卻笑了：「好身手。我記住了。」\n\n江湖上又多了一個知道你名字的人。`, winEffect:()=>{ G.reputation += 2; addAlly(npc.name,"曾與你交手，敬你是條漢子。"); }}; }}
+      },
+      {
+        label:"拒絕。",
+        check:{skill:"persuade",tn:7,desc:"說服"},
+        success:{text:`你婉言拒絕。\n\n${npc.name}有些失望，但沒有為難你。`,effect:()=>{}},
+        fail:{text:`「不敢？」${npc.name}嗤笑一聲。\n\n周圍的人跟著笑。你的面子有些掛不住。`,effect:()=>{ G.reputation -= 1; }}
+      }
+    ]
+  };
+}
+
+function encounterMystery(){
+  const place = G.location;
+  const dead = pickNPC().name;
+  return {
+    title:"命案",
+    text:`${place}出了命案。\n\n死者是${dead}。屍體被發現時，身上沒有明顯外傷，臉上卻帶著詭異的笑容。\n\n官府的人已經來了，但似乎查不出什麼。`,
+    choices:[
+      {
+        label:"查看屍體。",
+        check:{skill:"medicine",tn:8,desc:"醫術與煉丹"},
+        success:{text:`你蹲下身仔細查看。\n\n死者是中毒而死。毒很特別，帶著一股淡淡的甜香。\n\n你記下了這個味道。`,effect:()=>{ addClue(`${dead}死於一種帶甜香的毒。`); }},
+        fail:{text:`你看不出什麼門道。屍體的樣子讓你有些不舒服。`,effect:()=>{}}
+      },
+      {
+        label:"打聽死者生前的事。",
+        check:{skill:"detect",tn:7,desc:"察覺"},
+        success:{text:`你從附近居民口中問出一些事。\n\n${dead}死前曾與一個神秘人見過面。那人穿著黑衣，看不清臉。`,effect:()=>{ addClue(`${dead}死前曾與一名黑衣神秘人見面。`); }},
+        fail:{text:`人們一問三不知，似乎不願多說。`,effect:()=>{}}
+      },
+      {
+        label:"離開，不想惹麻煩。",
+        direct:{text:`你轉身離開。\n\n命案與你無關。至少現在無關。`,effect:()=>{}}
+      }
+    ]
+  };
+}
+
+function encounterTreasure(){
+  const item = rand(["一把古舊的匕首","一卷殘破的秘籍","一塊溫潤的玉佩","一只生鏽的鐵匣","一枚刻著怪獸的令牌"]);
+  return {
+    title:"奇物",
+    text:`你在一處舊貨攤上看到${item}。\n\n攤主是個眼神閃爍的老者。\n\n「這東西，識貨的人自然識貨。」他說。`,
+    choices:[
+      {
+        label:"仔細鑑定。",
+        check:{skill:"jianghu",tn:8,desc:"江湖"},
+        success:{text:`你拿起${item}，翻來覆去看了半晌。\n\n這東西確實有些來歷。你認出了上面的記號——那是某個門派的信物。\n\n老者見你看出了門道，神色一變。`,effect:()=>{ addClue(`你認出${item}與某個江湖門派有關。`); G.reputation += 1; }},
+        fail:{text:`你看不出所以然。老者笑了笑，把東西收了回去。`,effect:()=>{}}
+      },
+      {
+        label:"直接買下。",
+        direct:{text:`你付了錢，把${item}收進懷裡。\n\n老者笑得意味深長。`,effect:()=>{ addClue(`你買下了${item}，但還不知道它有什麼用。`); }},
+        cost: true
+      },
+      {
+        label:"離開。",
+        direct:{text:`你搖了搖頭，轉身走了。\n\n老者在身後喊：「錯過這村，就沒這店了！」`,effect:()=>{}}
+      }
+    ]
+  };
+}
+
+function encounterAlly(){
+  const npc = pickNPC();
+  return {
+    title:"結交",
+    text:`${npc.name}主動找上你。\n\n「我聽說過你。也許我們可以合作。」\n\n對方看起來不像在說謊。`,
+    choices:[
+      {
+        label:"接受。",
+        check:{skill:"empathy",tn:7,desc:"共情"},
+        success:{text:`你看得出${npc.name}是真心想合作。\n\n你們交換了信物。從今往後，江湖上多了一個可以拜託的人。`,effect:()=>{ addAlly(npc.name,"與你結交，願意在需要時相助。"); G.reputation += 1; }},
+        fail:{text:`你總覺得${npc.name}另有目的。\n\n你委婉地拒絕了。對方沒有多說什麼，轉身走了。`,effect:()=>{}}
+      },
+      {
+        label:"拒絕。",
+        direct:{text:`你搖了搖頭。\n\n${npc.name}沒有強求，只是說：「日後若改變主意，可以來找我。」`,effect:()=>{}}
+      }
+    ]
+  };
+}
+
+function encounterTwist(){
+  const clue = rand(G.clues.length ? G.clues : ["你隱約覺得，這一切背後有人在操縱。"]);
+  return {
+    title:"線索",
+    text:`你忽然想起一件事。\n\n${clue}\n\n順著這條線索想下去，你發現自己似乎漏掉了什麼。`,
+    choices:[
+      {
+        label:"仔細推敲。",
+        check:{skill:"reasoning",tn:8,desc:"推理"},
+        success:{text:`你越想越覺得不對。\n\n這不是偶然。有人在背後布局，而你已經踏入了局中。\n\n你隱約看到了一條更大的線索。`,effect:()=>{ addClue("你懷疑這一切背後有一個更大的陰謀。"); G.reputation += 1; }},
+        fail:{text:`你想了很久，卻理不出頭緒。線索太少了。`,effect:()=>{}}
+      },
+      {
+        label:"暫且放下。",
+        direct:{text:`你把這件事記在心裡，繼續趕路。\n\n總有一天會水落石出。`,effect:()=>{}}
+      }
+    ]
+  };
+}
+
+/* ================== 狀態輔助 ================== */
+function addClue(text){
+  if(!G.clues.includes(text)){
+    G.clues.push(text);
+    log(`獲得線索：${text}`,"hit");
+  }
+}
+function addGrudge(name, reason){
+  if(!G.grudges.some(g=>g.name===name)){
+    G.grudges.push({name,reason});
+    log(`結下恩怨：${name}（${reason}）`,"miss");
+  }
+}
+function addAlly(name, reason){
+  if(!G.allies.some(a=>a.name===name)){
+    G.allies.push({name,reason});
+    log(`結交盟友：${name}`,"hit");
+  }
+}
+function log(html,cls){
+  const el=$("gameLog"); if(!el) return;
+  const d=document.createElement("div"); if(cls) d.className=cls; d.innerHTML=html;
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+function blog(html,cls){
+  const el=$("battleLog"); if(!el) return;
+  const d=document.createElement("div"); if(cls) d.className=cls; d.innerHTML=html;
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+
+/* ================== 渲染 ================== */
+function show(id){
+  ["screen-title","screen-create","screen-game","screen-battle"].forEach(s=>{
+    const el=$(s); if(el) el.classList.toggle("hidden", s!==id);
+  });
+}
+function renderHud(){
+  const c=G.char;
+  $("gameHud").innerHTML = `
+    <div class="stat"><b>${esc(c.name)}</b><span>${esc(c.occ)}</span></div>
+    <div class="stat"><b>地點</b><span>${esc(G.location)}</span></div>
+    <div class="stat"><b>傷勢</b><span>${c.wounds} / ${c.maxWounds}</span></div>
+    <div class="stat"><b>閃避</b><span>${c.evade}</span></div>
+    <div class="stat"><b>體魄</b><span>${c.hardiness}</span></div>
+    <div class="stat"><b>心智</b><span>${c.wits}</span></div>
+    <div class="stat"><b>聲望</b><span>${G.reputation}</span></div>
+    <div class="stat"><b>恩怨</b><span>${G.grudges.length}</span></div>
+    <div class="stat"><b>線索</b><span>${G.clues.length}</span></div>
+  `;
+}
+
+function renderEncounter(enc){
+  show("screen-game");
+  renderHud();
+  $("gameStory").textContent = enc.text;
+  const box=$("gameChoices"); box.innerHTML="";
+  enc.choices.forEach(ch=>{
+    const b=document.createElement("button");
+    b.className="choice"; b.textContent=ch.label;
+    b.onclick=()=>chooseOption(ch);
+    box.appendChild(b);
+  });
+  saveGame(false);
+}
+
+function renderResult(result, enc){
+  show("screen-game");
+  renderHud();
+  $("gameStory").textContent = result.text;
+  const box=$("gameChoices"); box.innerHTML="";
+  const b=document.createElement("button");
+  b.className="choice"; b.textContent="繼續江湖路";
+  b.onclick=()=>{
+    G.turn++;
+    const next = generateEncounter();
+    renderEncounter(next);
+  };
+  box.appendChild(b);
+  saveGame(false);
+}
+
+/* ================== 選擇處理 ================== */
+function chooseOption(ch){
+  if(ch.direct){
+    if(ch.direct.effect) ch.direct.effect();
+    afterChoice(ch.direct, ch);
+    return;
+  }
+  if(ch.battle){
+    startBattle(ch.battle);
+    return;
+  }
+  if(ch.check){
+    const c=G.char;
+    const rank = c.skills[ch.check.skill] || 0;
+    const r = pool(rank);
+    const success = r.result >= ch.check.tn || r.result===10;
+    log(`檢定【${ch.check.desc}】${rank}d10 → [${r.rolls.join(", ")}] = ${r.result} vs TN ${ch.check.tn}｜${success?"成功":"失敗"}`, success?"hit":"miss");
+    const res = success ? ch.success : ch.fail;
+    if(res && res.effect) res.effect();
+    if(pending && pending.enemy){
+      const e = pending.enemy; pending = null;
+      startBattle({enemy:e});
+      return;
+    }
+    afterChoice(res, ch);
+    return;
+  }
+}
+
+function afterChoice(res, ch){
+  if(!res){ res = {text:"你繼續前行。",effect:()=>{}}; }
+  renderResult(res, ch);
+}
+
+/* ================== 戰鬥 ================== */
+function startBattle(cfg){
+  const enemy = Object.assign({}, cfg.enemy);
+  G.battle = {
+    enemy,
+    enemyWounds:0,
+    playerWounds:G.char.wounds,
+    round:1,
+    defending:false,
+    abilityUsed:false,
+    winText: cfg.winText || `你擊敗了${enemy.name}。\n\n對方倒下，戰鬥結束。`,
+    winEffect: cfg.winEffect || null
+  };
+  show("screen-battle");
+  $("battleTitle").textContent = "戰鬥 · " + enemy.name;
+  $("battleLog").innerHTML = "";
+  blog(`遭遇 ${esc(enemy.name)}：${esc(enemy.desc)}`);
+  renderBattle();
+}
+
+function renderBattle(){
+  const b=G.battle, c=G.char, e=b.enemy;
+  $("battleHud").innerHTML = `
+    <div class="stat"><b>${esc(c.name)}</b><span>傷勢 ${b.playerWounds}/${c.maxWounds}</span></div>
+    <div class="stat"><b>閃避 / 體魄</b><span>${c.evade} / ${c.hardiness}</span></div>
+    <div class="stat"><b>${esc(e.name)}</b><span>傷勢 ${b.enemyWounds}/${e.maxWounds}</span></div>
+    <div class="stat"><b>敵閃避 / 體魄</b><span>${e.evade} / ${e.hardiness}</span></div>
+    <div class="stat"><b>第 ${b.round} 回合</b><span>${b.defending?"防守姿態":"—"}</span></div>
+  `;
+  $("battleStory").textContent = b.round===1
+    ? `${e.name}擋在你面前。\n\n${e.desc}\n\n你握緊了手中的兵器。`
+    : `${e.name}仍站著，眼中殺意未減。\n\n你身上的傷口在隱隱作痛。`;
+  const box=$("battleChoices"); box.innerHTML="";
+  const add=(label,fn,disabled)=>{
+    const btn=document.createElement("button");
+    btn.className="choice"; btn.textContent=label;
+    btn.disabled=!!disabled;
+    btn.onclick=fn;
+    box.appendChild(btn);
+  };
+  add(`攻擊（${c.atkName} ${c.atkSkill}d10）`, ()=>playerAttack());
+  if(!b.abilityUsed) add(`使用招牌絕技：${c.ability}`, ()=>playerAbility());
+  else add(`招牌絕技（本場已用）`, ()=>{}, true);
+  add(`拆招防禦：${c.counter}`, ()=>playerDefend());
+  add(`逃跑（輕功檢定）`, ()=>playerFlee());
+}
+
+function playerAttack(){
+  const b=G.battle, c=G.char, e=b.enemy;
+  const atk=pool(c.atkSkill);
+  blog(`你以${c.atkName}出手：${c.atkSkill}d10 → [${atk.rolls.join(", ")}] = ${atk.result} vs 閃避 ${e.evade}`, atk.result>=e.evade?"hit":"miss");
+  if(atk.result < e.evade){
+    blog(`你的攻擊落空。`,"miss");
+    enemyTurn();
+    return;
+  }
+  const dmgPool = c.muscle + c.wpnDmg + (atk.result===10?1:0);
+  const dmg=pool(dmgPool);
+  let wounds=0;
+  if(dmg.result>=e.hardiness) wounds+=1;
+  if(dmg.tens>0) wounds += 1 + (dmg.tens-1);
+  blog(`傷害：${dmgPool}d10 → [${dmg.rolls.join(", ")}] = ${dmg.result} vs 體魄 ${e.hardiness}｜造成 ${wounds} 點傷勢`, wounds>0?"crit":"miss");
+  b.enemyWounds += wounds;
+  if(b.enemyWounds >= e.maxWounds){
+    blog(`${e.name}倒下了。`,"crit");
+    endBattle("win");
+    return;
+  }
+  enemyTurn();
+}
+
+function playerAbility(){
+  const b=G.battle, c=G.char, e=b.enemy;
+  b.abilityUsed=true;
+  blog(`你施展【${c.ability}】。`);
+  let bonus=2, extraDmg=1;
+  if(c.ability.indexOf("影鞭")>=0){ bonus=1; extraDmg=1; }
+  if(c.ability.indexOf("酒仙")>=0){ b.playerWounds=Math.max(0,b.playerWounds-1); blog(`酒意上湧，你回復 1 點傷勢。`,"hit"); }
+  const atk=pool(c.atkSkill+bonus);
+  blog(`絕技攻擊：${c.atkSkill+bonus}d10 → [${atk.rolls.join(", ")}] = ${atk.result} vs 閃避 ${e.evade}`, atk.result>=e.evade?"hit":"miss");
+  if(atk.result < e.evade){ blog(`絕技落空。`,"miss"); enemyTurn(); return; }
+  const dmgPool=c.muscle+c.wpnDmg+extraDmg;
+  const dmg=pool(dmgPool);
+  let wounds=0;
+  if(dmg.result>=e.hardiness) wounds+=1;
+  if(dmg.tens>0) wounds += 1+(dmg.tens-1);
+  if(c.ability.indexOf("影鞭")>=0) wounds+=1;
+  blog(`傷害：${dmgPool}d10 → [${dmg.rolls.join(", ")}] = ${dmg.result} vs 體魄 ${e.hardiness}｜造成 ${wounds} 點傷勢`, wounds>0?"crit":"miss");
+  b.enemyWounds+=wounds;
+  if(b.enemyWounds>=e.maxWounds){ blog(`${e.name}倒下了。`,"crit"); endBattle("win"); return; }
+  enemyTurn();
+}
+
+function playerDefend(){
+  const b=G.battle;
+  b.defending=true;
+  blog(`你擺出【${G.char.counter}】的守勢。`);
+  enemyTurn();
+}
+
+function playerFlee(){
+  const b=G.battle, c=G.char;
+  const r=pool(c.skills.lightness||0);
+  const success = r.result>=6 || r.result===10;
+  blog(`逃跑檢定：${c.skills.lightness||0}d10 → [${r.rolls.join(", ")}] = ${r.result} vs TN 6｜${success?"成功":"失敗"}`, success?"hit":"miss");
+  if(success){ endBattle("flee"); return; }
+  blog(`你沒能擺脫對手。`,"miss");
+  enemyTurn();
+}
+
+function enemyTurn(){
+  const b=G.battle, c=G.char, e=b.enemy;
+  if(b.defending){
+    const ctrRank = c.skills.external || c.skills.lightness || 1;
+    const ctr=pool(ctrRank);
+    const atk=pool(e.atk);
+    blog(`${e.name}以${e.name}攻來：${e.atk}d10 → [${atk.rolls.join(", ")}] = ${atk.result}；你以拆招應對：${ctrRank}d10 → [${ctr.rolls.join(", ")}] = ${ctr.result}`, ctr.result>=atk.result?"hit":"miss");
+    if(ctr.result>=atk.result){
+      blog(`拆招成功，攻擊被化解。`,"hit");
+      b.defending=false;
+      nextRound();
+      return;
+    }
+    blog(`拆招失敗。`,"miss");
+    b.defending=false;
+  }
+  const atk=pool(e.atk);
+  blog(`${e.name}攻擊：${e.atk}d10 → [${atk.rolls.join(", ")}] = ${atk.result} vs 你的閃避 ${c.evade}`, atk.result>=c.evade?"miss":"hit");
+  if(atk.result < c.evade){ blog(`你避開了。`,"hit"); nextRound(); return; }
+  const dmg=pool(e.dmg);
+  let wounds=0;
+  if(dmg.result>=c.hardiness) wounds+=1;
+  if(dmg.tens>0) wounds+=1+(dmg.tens-1);
+  blog(`傷害：${e.dmg}d10 → [${dmg.rolls.join(", ")}] = ${dmg.result} vs 你的體魄 ${c.hardiness}｜你受到 ${wounds} 點傷勢`, wounds>0?"crit":"miss");
+  b.playerWounds+=wounds;
+  if(b.playerWounds>=c.maxWounds){
+    blog(`你倒下了。`,"crit");
+    endBattle("lose");
+    return;
+  }
+  nextRound();
+}
+
+function nextRound(){
+  G.battle.round++;
+  renderBattle();
+}
+
+function endBattle(result){
+  const b=G.battle;
+  G.char.wounds = b.playerWounds;
+  saveGame(false);
+  if(result==="win"){
+    log(`你擊敗了${b.enemy.name}。`,"hit");
+    if(G.char.wounds>0){ G.char.wounds=Math.max(1,G.char.wounds-1); log(`戰鬥後你簡單包紮，回復 1 點傷勢。`,"hit"); }
+    if(b.winEffect) b.winEffect();
+    G.reputation += 1;
+    renderResult({text:b.winText,effect:null}, null);
+  }else if(result==="flee"){
+    log(`你逃離了戰鬥。`,"miss");
+    G.reputation -= 1;
+    renderResult({text:`你趁隙脫身，頭也不回地跑了。\n\n${b.enemy.name}沒有追來，或者追不上。\n\n無論如何，你活下來了。`,effect:null}, null);
+  }else{
+    log(`你敗了。`,"miss");
+    G.char.wounds = G.char.maxWounds;
+    renderResult({text:`你倒在地上。\n\n意識模糊之前，你看見${b.enemy.name}走近。\n\n「這次留你一命。」\n\n你醒來時，身上多了幾道傷，懷裡的東西也少了幾樣。\n\n江湖還在繼續。`,effect:()=>{ G.reputation -= 2; }}, null);
+  }
+}
+
+/* ================== 存讀檔 ================== */
+function saveGame(showMsg){
+  if(!G) return;
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify(G));
+    if(showMsg) log("江湖已保存。","hit");
+  }catch(e){}
+}
+function loadGame(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const data=JSON.parse(raw);
+    if(!data || !data.char) return false;
+    G=data;
+    if(G.battle) G.battle=null;
+    log(`讀取江湖：${G.char.name}，地點 ${G.location}。`);
+    const next = generateEncounter();
+    renderEncounter(next);
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ================== 創建角色 ================== */
+function initCreate(){
+  $("c_occ").innerHTML = OCCS.map(o=>`<option value="${esc(o.name)}">${esc(o.name)}</option>`).join("");
+  $("c_ability").innerHTML = ABILITIES.map(a=>`<option value="${esc(a.name)}">${esc(a.name)}</option>`).join("");
+  $("c_counter").innerHTML = COUNTERS.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join("");
+  $("c_ecc").innerHTML = ECCS.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  $("c_place").innerHTML = PLACES.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join("");
+  $("c_occ").addEventListener("change", updateOccHint);
+  updateOccHint();
+  buildSkillForm();
+}
+function updateOccHint(){
+  const occ=OCCS.find(o=>o.name===$("c_occ").value)||OCCS[0];
+  $("occHint").textContent = `職業加成：${occ.bonus}｜武器：${occ.weapon}`;
+}
+function buildSkillForm(){
+  const box=$("skillForm"); box.innerHTML="";
+  Object.keys(SKILL_CATS).forEach(k=>{
+    const cat=SKILL_CATS[k];
+    const g=document.createElement("div"); g.className="skill-group";
+    g.innerHTML=`<h4>${esc(cat.name)} <span class="remain" id="rem_${k}">剩餘 ${cat.points} 點</span></h4>`;
+    const list=document.createElement("div"); list.className="skill-list";
+    cat.skills.forEach(([key,label])=>{
+      const item=document.createElement("div"); item.className="skill-item";
+      item.innerHTML=`<label>${esc(label)}</label><input type="number" id="sk_${key}" value="0" min="0" max="${cat.max}">`;
+      list.appendChild(item);
+    });
+    g.appendChild(list); box.appendChild(g);
+  });
+  box.addEventListener("input", updateRemain);
+  updateRemain();
+}
+function updateRemain(){
+  Object.keys(SKILL_CATS).forEach(k=>{
+    const cat=SKILL_CATS[k]; let used=0;
+    cat.skills.forEach(([key])=>{
+      const el=$("sk_"+key); if(el) used+=Math.max(0,parseInt(el.value||"0",10)||0);
+    });
+    const el=$("rem_"+k);
+    if(el){ el.textContent=`剩餘 ${cat.points-used} 點`; el.classList.toggle("bad", used>cat.points); }
+  });
+}
+function getSkillVals(){
+  const v={};
+  document.querySelectorAll("#skillForm input[type=number]").forEach(inp=>{
+    v[inp.id.replace("sk_","")]=Math.max(0,parseInt(inp.value||"0",10)||0);
+  });
+  return v;
+}
+function validateCreate(){
+  for(const k in SKILL_CATS){
+    const cat=SKILL_CATS[k]; let used=0;
+    for(const [key,label] of cat.skills){
+      const el=$("sk_"+key);
+      const v=Math.max(0,parseInt(el.value||"0",10)||0);
+      if(v>cat.max) return `${cat.name}的「${label}」超過上限 ${cat.max}。`;
+      used+=v;
+    }
+    if(used>cat.points) return `${cat.name}分配過多：已用 ${used}，上限 ${cat.points}。`;
+  }
+  return null;
+}
+
+$("btn-start").addEventListener("click", ()=>{
+  const err=validateCreate();
+  if(err){ $("createMsg").textContent=err; $("createMsg").className="status warn"; return; }
+  const c={
+    name:$("c_name").value.trim()||"無名俠客",
+    occ:$("c_occ").value,
+    ability:$("c_ability").value,
+    counter:$("c_counter").value,
+    ecc:$("c_ecc").value,
+    place:$("c_place").value,
+    skills:getSkillVals()
+  };
+  derive(c);
+  G={
+    char:c,
+    location:c.place,
+    turn:1,
+    grudges:[],
+    allies:[],
+    clues:[],
+    reputation:0,
+    battle:null
+  };
+  log(`【${c.name}】踏入江湖。職業：${c.occ}；絕技：${c.ability}；拆招：${c.counter}。`);
+  const first = generateEncounter();
+  renderEncounter(first);
+});
+
+/* ================== 標題 ================== */
+function refreshTitle(){
+  const raw=localStorage.getItem(SAVE_KEY);
+  $("btn-continue").disabled = !raw;
+  $("titleMsg").textContent = raw ? "已有保存的江湖。" : "尚無保存的江湖。";
+}
+$("btn-newgame").addEventListener("click", ()=>{
+  show("screen-create");
+  $("createMsg").textContent="";
+  $("c_name").value="";
+  document.querySelectorAll("#skillForm input[type=number]").forEach(i=>i.value="0");
+  updateRemain();
+});
+$("btn-continue").addEventListener("click", ()=>{
+  if(!loadGame()){ $("titleMsg").textContent="讀取失敗，請重新開始。"; }
+});
+$("btn-save").addEventListener("click", ()=>saveGame(true));
+$("btn-title").addEventListener("click", ()=>{ show("screen-title"); refreshTitle(); });
+
+/* ================== 啟動 ================== */
+initCreate();
+refreshTitle();
+show("screen-title");
+</script>
+</body>
+</html>

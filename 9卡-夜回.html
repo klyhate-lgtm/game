@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>夜回 Lost - 單人桌遊</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #222;
+            --card-border: #444;
+            --text-main: #e0e0e0;
+            --text-dim: #aaa;
+            --accent: #ffcc00;
+            --danger: #ff4444;
+            --heal: #44ff44;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Microsoft JhengHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+            background-image: radial-gradient(circle at 50% 0%, #2a2a2a 0%, #121212 70%);
+            min-height: 100vh;
+        }
+
+        h1 { font-size: 32px; letter-spacing: 4px; text-shadow: 0 0 15px rgba(255,255,255,0.2); margin: 0 0 5px 0; color: #fff; }
+        .subtitle { font-size: 14px; color: var(--text-dim); margin-bottom: 20px; letter-spacing: 2px; }
+
+        /* 頂部控制 */
+        .header-controls { display: flex; gap: 15px; margin-bottom: 20px; }
+        .btn {
+            background: #2c3e50; color: white; border: 1px solid #4a6076; padding: 8px 20px;
+            border-radius: 4px; cursor: pointer; font-size: 15px; transition: 0.2s;
+        }
+        .btn:hover { background: #34495e; }
+        .btn:disabled { background: #333; color: #666; border-color: #444; cursor: not-allowed; }
+        .btn-accent { background: #d35400; border-color: #e67e22; }
+        .btn-accent:hover { background: #e67e22; }
+
+        /* 夢境指示面板 */
+        .dream-indicator-panel {
+            background: #1e1e1e; border: 1px solid #444; border-radius: 8px;
+            padding: 15px 20px; margin-bottom: 20px; text-align: center;
+            width: 100%; max-width: 900px; box-sizing: border-box;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center;
+        }
+        .indicator-title { font-size: 16px; color: var(--accent); margin-bottom: 10px; font-weight: bold; }
+        .indicator-layout { display: flex; gap: 15px; align-items: flex-end; justify-content: center; min-height: 40px; flex-wrap: wrap; }
+        .layout-column { display: flex; flex-direction: column; gap: 5px; align-items: center; }
+        .layout-slot {
+            width: 20px; height: 30px; border: 2px solid #555; border-radius: 3px; background: #222; transition: 0.3s;
+        }
+        .layout-slot.active { background: #ffcc00; border-color: #ffcc00; box-shadow: 0 0 10px #ffcc00; }
+        .layout-slot.done { background: #44ff44; border-color: #44ff44; opacity: 0.5; }
+
+        /* 玩家狀態面板 */
+        .player-status {
+            background: #1e1e1e; border: 2px solid var(--card-border); border-radius: 8px;
+            padding: 15px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            width: 100%; max-width: 700px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); margin-bottom: 30px; box-sizing: border-box;
+        }
+        @media (max-width: 600px) { .player-status { grid-template-columns: repeat(2, 1fr); } }
+        .stat-item {
+            font-size: 14px; display: flex; flex-direction: column; align-items: center;
+            padding: 10px; background: #252525; border-radius: 6px; border-top: 3px solid #555;
+        }
+        .stat-item.hope { border-top-color: #ffcc00; }
+        .stat-item.sanity { border-top-color: #44aaff; }
+        .stat-item.soul { border-top-color: #aa44ff; }
+        .stat-item.key { border-top-color: #ff8800; }
+        .stat-value { font-weight: bold; font-size: 24px; color: #fff; margin-top: 5px; }
+        .stat-value.danger { color: var(--danger); animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .items-area {
+            grid-column: span 4; display: flex; justify-content: center; gap: 10px;
+            font-size: 14px; color: var(--text-dim); padding-top: 10px; border-top: 1px solid #333;
+        }
+        .item-badge { background: #333; color: #fff; padding: 2px 10px; border-radius: 12px; font-size: 12px; border: 1px solid #555; }
+
+        /* 卡牌區域外層 (新增：處理水平捲動) */
+        .game-board-wrapper {
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: auto; /* 允許水平捲動 */
+            display: flex;
+            justify-content: center;
+            padding: 10px 0 30px 0;
+        }
+        
+        /* 隱藏捲軸美化 (可選) */
+        .game-board-wrapper::-webkit-scrollbar { height: 8px; }
+        .game-board-wrapper::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+
+        /* 卡牌區域 */
+        .game-board {
+            display: flex; 
+            flex-wrap: nowrap; /* 強制不換行 */
+            gap: 30px; 
+            justify-content: center;
+            align-items: center; /* 垂直置中對齊，讓單張雙張列看起來整齊 */
+            padding: 0 20px;
+        }
+        
+        .board-column { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            justify-content: center; 
+            flex-shrink: 0; /* 防止被壓縮變形 */
+        }
+
+        .card-container { perspective: 1000px; width: 150px; height: 220px; position: relative; cursor: pointer; }
+        .card {
+            width: 100%; height: 100%; position: absolute; transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+        }
+        .card.flipped { transform: rotateY(180deg); }
+        .card.disabled { pointer-events: none; filter: brightness(0.3); box-shadow: none; }
+
+        .card-face {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+            border-radius: 10px; border: 2px solid var(--card-border); box-sizing: border-box; background: var(--card-bg); overflow: hidden;
+        }
+        .card-back {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .card-back::after { content: '★'; font-size: 40px; color: #333; text-shadow: 0 0 10px #000; }
+        .card-front { transform: rotateY(180deg); display: flex; flex-direction: column; background: #1a1a1a; }
+        .card-image-area {
+            flex: 1; display: flex; justify-content: center; align-items: center;
+            position: relative; background: radial-gradient(circle, #333 0%, #111 100%);
+        }
+        .card-title-top { position: absolute; top: 5px; width: 100%; text-align: center; font-size: 15px; font-weight: bold; color: #fff; text-shadow: 0 2px 4px #000; z-index: 2; }
+
+        /* 中文標籤 */
+        .card-label { background: rgba(0, 0, 0, 0.85); color: #fff; padding: 6px; text-align: center; border-top: 1px solid #444; z-index: 10; }
+        .card-name { font-weight: bold; font-size: 14px; color: var(--accent); margin-bottom: 2px; }
+        .card-desc { font-size: 11px; line-height: 1.3; color: #ccc; }
+
+        /* SVG 圖標 */
+        .icon-svg {
+            width: 70px; height: 70px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.3));
+        }
+
+        /* 控制列 */
+        .dice-area {
+            display: flex; align-items: center; gap: 20px; margin-bottom: 20px;
+            background: #1e1e1e; padding: 15px 30px; border-radius: 50px; border: 1px solid #333;
+        }
+        .dice-display {
+            font-size: 36px; font-weight: bold; color: #fff; width: 70px; height: 70px;
+            display: flex; justify-content: center; align-items: center; border-radius: 12px;
+            background: #2a2a2a; border: 2px solid #555; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); transition: 0.1s;
+        }
+        .dice-display.rolling { animation: rollAnim 0.3s ease-in-out infinite; }
+        @keyframes rollAnim { 0% { transform: rotate(0deg); } 25% { transform: rotate(15deg); } 75% { transform: rotate(-15deg); } 100% { transform: rotate(0deg); } }
+
+        /* 日誌區 */
+        .log-area {
+            width: 100%; max-width: 800px; height: 120px; background: rgba(0,0,0,0.5);
+            border: 1px solid #333; border-radius: 8px; padding: 15px; overflow-y: auto;
+            font-size: 14px; line-height: 1.6; box-sizing: border-box;
+        }
+        .log-entry { border-bottom: 1px solid #222; padding: 4px 0; }
+        .log-entry:last-child { border-bottom: none; }
+        .log-dmg { color: var(--danger); }
+        .log-heal { color: var(--heal); }
+        .log-info { color: #44aaff; }
+        .log-sys { color: #ffcc00; }
+
+        /* 彈窗 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content { background: #1e1e1e; padding: 30px; border-radius: 12px; max-width: 700px; max-height: 85vh; overflow-y: auto; border: 1px solid #444; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+        .modal h2 { color: var(--accent); margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px;}
+        .modal h3 { color: #fff; margin-top: 25px; font-size: 16px;}
+        .modal p, .modal li { font-size: 14px; line-height: 1.6; color: #bbb; }
+        .close-btn { background: var(--danger); color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; float: right; font-weight: bold; }
+
+        /* 獎勵分配介面 */
+        .reward-modal .modal-content { text-align: center; }
+        .reward-points-display { font-size: 48px; color: var(--accent); font-weight: bold; margin: 20px 0; }
+        .reward-buttons { display: flex; gap: 20px; justify-content: center; margin-top: 20px; }
+        .reward-btn {
+            background: #333; border: 2px solid #555; padding: 15px 25px; border-radius: 8px;
+            color: white; font-size: 18px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center;
+        }
+        .reward-btn:hover { background: #444; border-color: var(--accent); }
+        .reward-btn.disabled { opacity: 0.3; pointer-events: none; }
+
+    </style>
+</head>
+<body>
+
+    <h1>夜回 Lost</h1>
+    <div class="subtitle">單人夢境探索桌遊</div>
+
+    <div class="header-controls">
+        <button class="btn" onclick="showRules()">查看完整規則</button>
+        <button class="btn" onclick="resetGame()">重新開始</button>
+    </div>
+
+    <!-- 夢境指示面板 -->
+    <div class="dream-indicator-panel">
+        <div class="indicator-title" id="indicator-title">夢境指示卡：未知</div>
+        <div class="indicator-layout" id="indicator-layout"></div>
+    </div>
+
+    <!-- 玩家狀態面板 -->
+    <div class="player-status">
+        <div class="stat-item hope">希望 <span class="stat-value" id="val-hope">6</span></div>
+        <div class="stat-item sanity">神智 <span class="stat-value" id="val-sanity">7</span></div>
+        <div class="stat-item soul">靈魂 <span class="stat-value" id="val-soul">1</span></div>
+        <div class="stat-item key">鑰匙 <span class="stat-value" id="val-key">1</span></div>
+        <div class="items-area" id="val-items">目前道具：無</div>
+    </div>
+
+    <!-- 遊戲區 (新增外層 wrapper 處理水平捲動) -->
+    <div class="game-board-wrapper">
+        <div class="game-board" id="game-board"></div>
+    </div>
+
+    <!-- 控制區 -->
+    <div class="dice-area">
+        <button class="btn" id="btn-draw" onclick="drawCard()" disabled>探索夢境 (翻牌)</button>
+        <button class="btn" id="btn-roll" onclick="rollDice()" disabled>擲骰判定</button>
+        <button class="btn btn-accent" id="btn-next" onclick="nextPhase()" disabled>完成牌陣</button>
+        <div class="dice-display" id="dice-result">-</div>
+    </div>
+
+    <!-- 日誌區 -->
+    <div class="log-area" id="log-area">
+        <div class="log-entry log-sys">歡迎來到《夜回 Lost》。請點擊「重新開始」。</div>
+    </div>
+
+    <!-- 遊戲規則彈窗 -->
+    <div class="modal" id="rules-modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeRules()">關閉</button>
+            <h2>夜回 Lost - 遊戲規則</h2>
+            <h3>夢境指示卡</h3>
+            <p>遊戲中的牌陣由「夢境指示卡」決定。每次進入新夢境時，會根據骰子點數（1-6）生成對應數量與排列的夢境卡。上方面板會顯示當前的排列狀態。</p>
+            <h3>遊戲流程</h3>
+            <ol>
+                <li>玩家從最左側的列開始，點擊「探索夢境」或直接點擊卡牌來翻開。</li>
+                <li>觸發卡牌效果並點擊「擲骰判定」結算。</li>
+                <li>移動到下一列。若該列有兩張卡，只能選擇其中一張翻開，另一張則被鎖定（變暗）。</li>
+                <li>走完最後一列後，點擊「完成牌陣」，會擲獎勵骰，玩家可將點數自由分配給希望、神智、靈魂。</li>
+                <li>當「靈魂」達到 14 時，進入「回家」階段，此時需擲骰判定（1-2安全，3-6死亡）。</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- 獎勵分配彈窗 -->
+    <div class="modal reward-modal" id="reward-modal">
+        <div class="modal-content">
+            <h2>牌陣探索完成！</h2>
+            <p>獲得獎勵點數，請自由分配：</p>
+            <div class="reward-points-display" id="reward-points-display">0</div>
+            <div class="reward-buttons">
+                <div class="reward-btn" id="btn-add-hope" onclick="allocateReward('hope')">希望<br>+1</div>
+                <div class="reward-btn" id="btn-add-sanity" onclick="allocateReward('sanity')">神智<br>+1</div>
+                <div class="reward-btn" id="btn-add-soul" onclick="allocateReward('soul')">靈魂<br>+1</div>
+            </div>
+            <button class="btn btn-accent" style="margin-top: 30px; width: 100%;" id="btn-confirm-reward" onclick="confirmReward()" disabled>確認並進入下一夢境</button>
+        </div>
+    </div>
+
+    <script>
+        // 遊戲核心狀態
+        let state = {
+            hope: 6, sanity: 7, soul: 1, key: 1,
+            items: [], phase: 'dream', 
+            currentBoard: [], currentCol: 0, 
+            pendingEffect: null, isGameOver: false, isRolling: false,
+            dreamPoint: 1, layout: [],
+            rewardPoints: 0 
+        };
+
+        // 對應原圖的 1-6 點牌陣
+        const DREAM_LAYOUTS = {
+            1: [1, 2, 2, 2],
+            2: [1, 2, 1, 2, 1],
+            3: [2, 1, 2, 1, 2],
+            4: [1, 1, 2, 1, 2],
+            5: [1, 1, 1, 2, 1, 1, 1],
+            6: [2, 1, 1, 1, 1, 1],
+            home: [1, 1, 1]
+        };
+
+        // SVG 圖標庫
+        const SVG_ICONS = {
+            shadow: `<svg viewBox="0 0 100 100" class="icon-svg"><path d="M50 20 C40 20 30 30 30 50 C30 70 20 80 20 80 L80 80 C80 80 70 70 70 50 C70 30 60 20 50 20 Z" fill="#111" stroke="#555"/><circle cx="40" cy="45" r="5" fill="#fff"/><circle cx="60" cy="45" r="5" fill="#fff"/></svg>`,
+            omen: `<svg viewBox="0 0 100 100" class="icon-svg"><path d="M20 40 L80 40 L60 70 L40 70 Z" fill="#222" stroke="#888"/><path d="M30 40 L35 20 L45 40 M70 40 L65 20 L55 40" stroke="#888" fill="none"/><path d="M35 50 L65 50 M40 60 L60 60" stroke="#ff4444" stroke-width="3"/></svg>`,
+            girl: `<svg viewBox="0 0 100 100" class="icon-svg"><circle cx="50" cy="30" r="15" fill="#111" stroke="#aaa"/><path d="M35 45 L65 45 L75 90 L25 90 Z" fill="#111" stroke="#aaa"/><circle cx="50" cy="30" r="5" fill="#fff"/></svg>`,
+            lurking: `<svg viewBox="0 0 100 100" class="icon-svg"><path d="M10 80 L30 30 L50 80 L70 30 L90 80 Z" fill="#111" stroke="#666"/><circle cx="30" cy="50" r="3" fill="#fff"/><circle cx="70" cy="50" r="3" fill="#fff"/></svg>`,
+            peace: `<svg viewBox="0 0 100 100" class="icon-svg"><path d="M20 80 L50 20 L80 80 Z" fill="#111" stroke="#aaa"/><circle cx="50" cy="60" r="10" fill="#fff" opacity="0.5"/></svg>`,
+            candy: `<svg viewBox="0 0 100 100" class="icon-svg"><rect x="25" y="30" width="50" height="50" rx="5" fill="#111" stroke="#aaa"/><rect x="35" y="40" width="30" height="30" fill="#222"/><circle cx="50" cy="55" r="8" fill="#fff"/></svg>`,
+            gaze: `<svg viewBox="0 0 100 100" class="icon-svg"><ellipse cx="50" cy="50" rx="40" ry="20" fill="#111" stroke="#aaa"/><circle cx="50" cy="50" r="15" fill="#222" stroke="#fff"/><circle cx="50" cy="50" r="5" fill="#fff"/></svg>`,
+            home: `<svg viewBox="0 0 100 100" class="icon-svg"><rect x="30" y="40" width="40" height="50" fill="#333" stroke="#fff"/><circle cx="60" cy="65" r="3" fill="#fff"/><path d="M50 20 L50 40" stroke="#fff" stroke-width="2"/></svg>`
+        };
+
+        // 卡牌資料庫
+        const CARD_DATA = [
+            { id: 'shadow', name: '黑影', icon: 'shadow', trigger: { sanity: -1 }, triggerText: '神智-1',
+              random: [{ text: '希望+2', effect: { hope: 2 } }, { text: '希望+3', effect: { hope: 3 } }, { text: '鑰匙+2', effect: { key: 2 } }, { text: '神智-2', effect: { sanity: -2 } }, { text: '道具-2', effect: { item: -2 } }, { text: '重塑夢境', effect: { reset: true } }] },
+            { id: 'omen', name: '噩兆', icon: 'omen', trigger: { sanity: -1 }, triggerText: '神智-1',
+              random: [{ text: '鑰匙-1', effect: { key: -1 } }, { text: '希望-1', effect: { hope: -1 } }, { text: '希望+1', effect: { hope: 1 } }, { text: '靈魂-1', effect: { soul: -1 } }, { text: '道具-1', effect: { item: -1 } }, { text: '神智-1', effect: { sanity: -1 } }] },
+            { id: 'girl', name: '小女孩', icon: 'girl', trigger: { soul: 1 }, triggerText: '靈魂+1',
+              random: [{ text: '希望-2', effect: { hope: -2 } }, { text: '鑰匙+1', effect: { key: 1 } }, { text: '神智+2', effect: { sanity: 2 } }] },
+            { id: 'lurking', name: '蠢蠢欲動', icon: 'lurking', trigger: { sanity: -1 }, triggerText: '神智-1',
+              random: [{ text: '神智-1', effect: { sanity: -1 } }, { text: '希望-1', effect: { hope: -1 } }, { text: '靈魂+1', effect: { soul: 1 } }, { text: '神智-2', effect: { sanity: -2 } }, { text: '鑰匙+1', effect: { key: 1 } }, { text: '黑影', effect: { sanity: -3 } }] },
+            { id: 'peace', name: '片刻安寧', icon: 'peace', trigger: { soul: 1 }, triggerText: '靈魂+1',
+              random: [{ text: '靈魂+1', effect: { soul: 1 } }, { text: '希望+1', effect: { hope: 1 } }, { text: '神智+1', effect: { sanity: 1 } }] },
+            { id: 'candy', name: '糖果盒子', icon: 'candy', trigger: { key: -1 }, triggerText: '鑰匙-1',
+              random: [{ text: '玩偶', effect: { addItem: '玩偶' } }, { text: '懷錶', effect: { addItem: '懷錶' } }, { text: '羽毛', effect: { addItem: '羽毛' } }, { text: '硬幣', effect: { addItem: '硬幣' } }] },
+            { id: 'gaze', name: '黑暗中的視線', icon: 'gaze', trigger: { sanity: -1 }, triggerText: '神智-1',
+              random: [{ text: '希望-2', effect: { hope: -2 } }, { text: '神智-1', effect: { sanity: -1 } }, { text: '道具-1', effect: { item: -1 } }, { text: '神智-2', effect: { sanity: -2 } }, { text: '靈魂-1', effect: { soul: -1 } }, { text: '希望-1', effect: { hope: -1 } }] },
+            { id: 'home', name: '回家', icon: 'home', trigger: {}, triggerText: '無', random: [] }
+        ];
+
+        // 更新 UI
+        function updateUI() {
+            if (state.isGameOver) return;
+
+            document.getElementById('val-hope').innerText = state.hope;
+            document.getElementById('val-sanity').innerText = state.sanity;
+            document.getElementById('val-soul').innerText = state.soul;
+            document.getElementById('val-key').innerText = state.key;
+            
+            const itemsHtml = state.items.length > 0 ? state.items.map(i => `<span class="item-badge">${i}</span>`).join('') : '目前道具：無';
+            document.getElementById('val-items').innerHTML = itemsHtml;
+
+            document.getElementById('val-hope').className = state.hope <= 2 ? 'stat-value danger' : 'stat-value';
+            document.getElementById('val-sanity').className = state.sanity <= 2 ? 'stat-value danger' : 'stat-value';
+
+            // 檢查死亡
+            if (state.hope <= 0 || state.sanity <= 0 || state.key <= 0 || state.soul < 0) {
+                if (state.items.includes('玩偶')) {
+                    state.items = state.items.filter(i => i !== '玩偶');
+                    state.hope = 6; 
+                    state.sanity = 7;
+                    state.key = 1;
+                    log('【玩偶】發動！希望、神智與鑰匙恢復初始值。', 'heal');
+                    updateUI();
+                } else {
+                    gameOver('壞結局：你被夢中無盡的黑影所吞噬，永遠消失...');
+                }
+                return;
+            }
+
+            // 檢查回家階段
+            if (state.soul >= 14 && state.phase === 'dream' && !state.pendingEffect) {
+                state.phase = 'home';
+                log('靈魂達到14！四周的迷霧散去，你看到了「回家」的道路。', 'info');
+                setupBoard('home');
+                return;
+            }
+
+            const hasUnflipped = state.currentBoard.some(c => c.col === state.currentCol && !c.isFlipped);
+
+            // 按鈕狀態機
+            document.getElementById('btn-draw').disabled = state.isGameOver || state.pendingEffect !== null || state.currentCol >= state.layout.length || !hasUnflipped || state.isRolling;
+            document.getElementById('btn-roll').disabled = state.pendingEffect === null || state.isGameOver || state.isRolling;
+            
+            const isBoardComplete = state.currentCol >= state.layout.length && !state.pendingEffect && !state.isGameOver;
+            document.getElementById('btn-next').disabled = !isBoardComplete || state.isRolling;
+            
+            updateIndicatorPanel();
+        }
+
+        function updateIndicatorPanel() {
+            const title = document.getElementById('indicator-title');
+            const layoutDiv = document.getElementById('indicator-layout');
+            
+            if (state.phase === 'home') {
+                title.innerText = '★ 回家階段 ★';
+            } else {
+                const totalCards = state.layout.reduce((a,b)=>a+b,0);
+                title.innerText = `夢境指示卡：點數 ${state.dreamPoint} (共 ${totalCards} 張)`;
+            }
+
+            layoutDiv.innerHTML = '';
+            
+            for(let c = 0; c < state.layout.length; c++) {
+                const colDiv = document.createElement('div');
+                colDiv.className = 'layout-column';
+                
+                for(let r = 0; r < state.layout[c]; r++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'layout-slot';
+                    if (c < state.currentCol) slot.classList.add('done');
+                    if (c === state.currentCol) slot.classList.add('active');
+                    colDiv.appendChild(slot);
+                }
+                layoutDiv.appendChild(colDiv);
+            }
+        }
+
+        function log(msg, type = '') {
+            const area = document.getElementById('log-area');
+            const div = document.createElement('div');
+            div.className = `log-entry ${type ? 'log-' + type : ''}`;
+            div.innerText = msg;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function setupBoard(forceType = null) {
+            const boardDiv = document.getElementById('game-board');
+            boardDiv.innerHTML = '';
+            state.currentBoard = [];
+            state.currentCol = 0;
+            state.pendingEffect = null;
+            document.getElementById('dice-result').innerText = '-';
+            document.getElementById('dice-result').classList.remove('rolling');
+
+            if (forceType === 'home') {
+                state.phase = 'home';
+                state.layout = DREAM_LAYOUTS['home'];
+            } else {
+                state.dreamPoint = Math.floor(Math.random() * 6) + 1;
+                state.layout = DREAM_LAYOUTS[state.dreamPoint];
+            }
+
+            for (let c = 0; c < state.layout.length; c++) {
+                const colCardCount = state.layout[c];
+                const colDiv = document.createElement('div');
+                colDiv.className = 'board-column';
+                
+                for (let r = 0; r < colCardCount; r++) {
+                    let cardData;
+                    if (state.phase === 'home') {
+                        cardData = JSON.parse(JSON.stringify(CARD_DATA.find(cd => cd.id === 'home')));
+                    } else {
+                        const rand = Math.floor(Math.random() * (CARD_DATA.length - 1));
+                        cardData = JSON.parse(JSON.stringify(CARD_DATA[rand]));
+                    }
+                    
+                    cardData.col = c;
+                    cardData.row = r;
+                    cardData.isFlipped = false;
+                    state.currentBoard.push(cardData);
+
+                    const cardContainer = document.createElement('div');
+                    cardContainer.className = 'card-container';
+                    cardContainer.id = `card-${c}-${r}`;
+                    cardContainer.onclick = () => flipCard(cardContainer, cardData);
+
+                    cardContainer.innerHTML = `
+                        <div class="card">
+                            <div class="card-face card-back"></div>
+                            <div class="card-face card-front">
+                                <div class="card-image-area">
+                                    <div class="card-title-top">${cardData.name}</div>
+                                    ${SVG_ICONS[cardData.icon]}
+                                </div>
+                                <div class="card-label">
+                                    <div class="card-name">${cardData.name}</div>
+                                    <div class="card-desc">觸發：${cardData.triggerText}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    colDiv.appendChild(cardContainer);
+                }
+                boardDiv.appendChild(colDiv);
+            }
+            
+            if (state.phase === 'home') {
+                log(`【回家】牌陣展開。擲骰判定：1-2無事，3-6死亡。`, 'sys');
+            } else {
+                log(`進入新夢境，指示卡點數為 ${state.dreamPoint}。請點擊卡牌開始。`, 'sys');
+            }
+            updateUI();
+        }
+
+        function drawCard() {
+            if (state.isGameOver || state.pendingEffect !== null) return;
+            const unflippedCard = state.currentBoard.find(c => c.col === state.currentCol && !c.isFlipped);
+            if (unflippedCard) {
+                const container = document.getElementById(`card-${unflippedCard.col}-${unflippedCard.row}`);
+                flipCard(container, unflippedCard);
+            }
+        }
+
+        function flipCard(container, cardData) {
+            if (state.isGameOver || cardData.col !== state.currentCol || state.pendingEffect || cardData.isFlipped) return;
+            
+            const cardEl = container.querySelector('.card');
+            cardEl.classList.add('flipped');
+            cardData.isFlipped = true;
+
+            const currentColCards = state.currentBoard.filter(c => c.col === state.currentCol);
+            if (currentColCards.length === 2) {
+                const otherCard = currentColCards.find(c => c.row !== cardData.row);
+                if (otherCard) {
+                    const otherContainer = document.getElementById(`card-${otherCard.col}-${otherCard.row}`);
+                    if (otherContainer) otherContainer.querySelector('.card').classList.add('disabled');
+                }
+            }
+
+            log(`翻開【${cardData.name}】。`);
+            
+            if (state.phase === 'home') {
+                state.pendingEffect = { type: 'home' };
+                updateUI();
+                return;
+            }
+
+            let triggerMsg = [];
+            if (cardData.trigger.hope) { state.hope += cardData.trigger.hope; triggerMsg.push(`希望${cardData.trigger.hope}`); }
+            if (cardData.trigger.sanity) { state.sanity += cardData.trigger.sanity; triggerMsg.push(`神智${cardData.trigger.sanity}`); }
+            if (cardData.trigger.soul) { state.soul += cardData.trigger.soul; triggerMsg.push(`靈魂+${cardData.trigger.soul}`); }
+            if (cardData.trigger.key) { state.key += cardData.trigger.key; triggerMsg.push(`鑰匙${cardData.trigger.key}`); }
+            
+            if (triggerMsg.length > 0) {
+                log(`觸發效果：${triggerMsg.join(', ')}`, cardData.trigger.sanity < 0 || cardData.trigger.hope < 0 ? 'dmg' : 'heal');
+            } else {
+                log(`無觸發效果。`);
+            }
+
+            state.pendingEffect = cardData;
+            updateUI();
+        }
+
+        function rollDice() {
+            if (!state.pendingEffect || state.isGameOver || state.isRolling) return;
+            
+            state.isRolling = true;
+            const diceEl = document.getElementById('dice-result');
+            diceEl.classList.add('rolling');
+            updateUI(); 
+            
+            let rollCount = 0;
+            const rollInterval = setInterval(() => {
+                diceEl.innerText = Math.floor(Math.random() * 6) + 1;
+                rollCount++;
+                if (rollCount > 10) {
+                    clearInterval(rollInterval);
+                    finalizeRoll();
+                }
+            }, 50);
+        }
+
+        function finalizeRoll() {
+            const diceEl = document.getElementById('dice-result');
+            diceEl.classList.remove('rolling');
+            const roll = Math.floor(Math.random() * 6) + 1;
+            diceEl.innerText = roll;
+            state.isRolling = false;
+            
+            log(`擲出了 ${roll} 點。`, 'sys');
+
+            if (state.phase === 'home') {
+                if (roll >= 3) {
+                    gameOver('壞結局：在回家的路上，你遭遇了不測，永遠留在了夢中...');
+                } else {
+                    log('判定成功！你安全地向前邁進了一步。', 'heal');
+                    state.pendingEffect = null;
+                    state.currentCol++;
+                    if (state.currentCol >= state.layout.length) {
+                        gameOver('好結局：你成功脫離夢境，回到了現實！', 'win');
+                    }
+                }
+                updateUI();
+                return;
+            }
+
+            const card = state.pendingEffect;
+            if (card.random && card.random.length > 0) {
+                let effectIndex = (roll - 1) % card.random.length;
+                const effect = card.random[effectIndex];
+                log(`隨機效果：${effect.text}`, 'info');
+
+                if (effect.effect.hope) { state.hope += effect.effect.hope; log(`希望 ${effect.effect.hope > 0 ? '+' : ''}${effect.effect.hope}`, effect.effect.hope < 0 ? 'dmg' : 'heal'); }
+                if (effect.effect.sanity) { state.sanity += effect.effect.sanity; log(`神智 ${effect.effect.sanity > 0 ? '+' : ''}${effect.effect.sanity}`, effect.effect.sanity < 0 ? 'dmg' : 'heal'); }
+                if (effect.effect.soul) { state.soul += effect.effect.soul; log(`靈魂 ${effect.effect.soul > 0 ? '+' : ''}${effect.effect.soul}`, effect.effect.soul < 0 ? 'dmg' : 'heal'); }
+                if (effect.effect.key) { state.key += effect.effect.key; log(`鑰匙 ${effect.effect.key > 0 ? '+' : ''}${effect.effect.key}`, effect.effect.key < 0 ? 'dmg' : 'heal'); }
+                
+                if (effect.effect.addItem) {
+                    if (state.items.length < 2) { state.items.push(effect.effect.addItem); log(`獲得道具：${effect.effect.addItem}`, 'heal'); } 
+                    else { log(`道具已滿，無法獲得【${effect.effect.addItem}】。`, 'dmg'); }
+                }
+                
+                if (effect.effect.reset) {
+                    log('發動重塑夢境！');
+                    state.pendingEffect = null;
+                    setTimeout(() => setupBoard(state.phase === 'home' ? 'home' : null), 1000);
+                    return;
+                }
+            }
+
+            state.pendingEffect = null;
+            state.currentCol++;
+            updateUI();
+        }
+
+        function nextPhase() {
+            if (state.isGameOver || state.phase === 'home') return;
+            
+            log('牌陣探索完畢，準備結算獎勵。', 'sys');
+            
+            const rewardRoll = Math.floor(Math.random() * 6) + 1;
+            state.rewardPoints = rewardRoll;
+            
+            document.getElementById('reward-points-display').innerText = state.rewardPoints;
+            document.getElementById('reward-modal').style.display = 'flex';
+            updateRewardButtons();
+        }
+
+        function updateRewardButtons() {
+            const points = state.rewardPoints;
+            document.getElementById('reward-points-display').innerText = points;
+            
+            if (points <= 0) {
+                document.getElementById('btn-add-hope').classList.add('disabled');
+                document.getElementById('btn-add-sanity').classList.add('disabled');
+                document.getElementById('btn-add-soul').classList.add('disabled');
+                document.getElementById('btn-confirm-reward').disabled = false;
+            } else {
+                document.getElementById('btn-add-hope').classList.remove('disabled');
+                document.getElementById('btn-add-sanity').classList.remove('disabled');
+                document.getElementById('btn-add-soul').classList.remove('disabled');
+                document.getElementById('btn-confirm-reward').disabled = true;
+            }
+        }
+
+        function allocateReward(type) {
+            if (state.rewardPoints <= 0) return;
+            
+            state.rewardPoints--;
+            
+            if (type === 'hope') {
+                state.hope++;
+                log('獎勵分配：希望 +1', 'heal');
+            } else if (type === 'sanity') {
+                state.sanity++;
+                log('獎勵分配：神智 +1', 'heal');
+            } else if (type === 'soul') {
+                state.soul++;
+                log('獎勵分配：靈魂 +1', 'heal');
+            }
+            
+            document.getElementById('val-hope').innerText = state.hope;
+            document.getElementById('val-sanity').innerText = state.sanity;
+            document.getElementById('val-soul').innerText = state.soul;
+            
+            updateRewardButtons(); 
+        }
+
+        function confirmReward() {
+            document.getElementById('reward-modal').style.display = 'none';
+            log('獎勵結算完畢，進入下一段夢境。', 'sys');
+            setTimeout(() => setupBoard(), 100);
+        }
+
+        function gameOver(msg, type='dmg') {
+            if (state.isGameOver) return;
+            state.isGameOver = true;
+            log(msg, type === 'win' ? 'heal' : 'dmg');
+            
+            document.getElementById('btn-draw').disabled = true;
+            document.getElementById('btn-roll').disabled = true;
+            document.getElementById('btn-next').disabled = true;
+
+            if(type === 'win') setTimeout(() => alert(msg), 100);
+        }
+
+        function resetGame() {
+            state = { 
+                hope: 6, sanity: 7, soul: 1, key: 1, 
+                items: [], phase: 'dream', 
+                currentBoard: [], currentCol: 0, 
+                pendingEffect: null, isGameOver: false, isRolling: false,
+                dreamPoint: 1, layout: [], rewardPoints: 0
+            };
+            document.getElementById('reward-modal').style.display = 'none';
+            document.getElementById('log-area').innerHTML = '<div class="log-entry log-sys">遊戲重新開始。深呼吸，進入夢境...</div>';
+            setupBoard();
+        }
+
+        function showRules() { document.getElementById('rules-modal').style.display = 'flex'; }
+        function closeRules() { document.getElementById('rules-modal').style.display = 'none'; }
+
+        window.onload = () => { resetGame(); };
+    </script>
+</body>
+</html>

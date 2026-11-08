@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>時光機：前往中國</title>
+    <style>
+        /* CSS 變數與基礎設定 */
+        :root {
+            --parchment: #f4e4c1;
+            --parchment-dark: #d8c29b;
+            --ink: #2c1e16;
+            --accent: #8b4513;
+            --accent-hover: #a0522d;
+            --gold: #d4af37;
+            --bg-dark: #1a0f0a;
+            --nav-height: 60px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background-color: var(--bg-dark);
+            color: var(--ink);
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 主容器：模擬羊皮紙與暗角 */
+        #app-container {
+            width: 100%;
+            max-width: 800px;
+            height: 100%;
+            background-color: var(--parchment);
+            background-image: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.4) 150%),
+                              url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" opacity="0.05"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)"/></svg>');
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        /* 頂部標題列 */
+        #top-bar {
+            padding: 15px;
+            text-align: center;
+            background: linear-gradient(to bottom, var(--parchment-dark), var(--parchment));
+            border-bottom: 2px solid var(--ink);
+            font-weight: bold;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            z-index: 10;
+        }
+
+        /* 主要內容區 */
+        #main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: calc(var(--nav-height) + 20px);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scroll-behavior: smooth;
+        }
+
+        /* 插圖區 */
+        #illustration {
+            width: 100%;
+            height: 200px;
+            background-color: #e0d0b0;
+            border: 3px double var(--ink);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        #illustration svg {
+            width: 100%;
+            height: 100%;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        /* 故事文字區 */
+        #story-text {
+            font-size: 1.15rem;
+            line-height: 1.8;
+            text-align: justify;
+            text-indent: 2em;
+            min-height: 150px;
+            flex-shrink: 0;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* 選項區 */
+        #choices-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+            flex-shrink: 0;
+        }
+
+        .choice-btn {
+            background-color: var(--parchment-dark);
+            color: var(--ink);
+            border: 2px solid var(--ink);
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            text-align: left;
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .choice-btn:hover, .choice-btn:active {
+            background-color: var(--accent);
+            color: var(--parchment);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .choice-btn.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            filter: grayscale(0.5);
+        }
+
+        .choice-btn.disabled:hover {
+            background-color: var(--parchment-dark);
+            color: var(--ink);
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 底部導航列 */
+        #bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: var(--nav-height);
+            background-color: var(--ink);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--parchment);
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            padding: 5px 10px;
+            transition: color 0.2s;
+        }
+
+        .nav-btn:hover {
+            color: var(--gold);
+        }
+
+        .nav-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        /* 彈窗與遮罩 */
+        .modal-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background-color: var(--parchment);
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 3px solid var(--ink);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .modal-content h2 {
+            border-bottom: 2px solid var(--ink);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .modal-content p, .modal-content li {
+            line-height: 1.6;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .modal-content ul {
+            padding-left: 20px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: var(--ink);
+        }
+
+        /* 側邊欄（歷史紀錄） */
+        #history-panel {
+            position: absolute;
+            top: 0;
+            right: -100%;
+            width: 80%;
+            max-width: 300px;
+            height: 100%;
+            background: var(--parchment-dark);
+            border-left: 2px solid var(--ink);
+            z-index: 30;
+            transition: right 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+        }
+
+        #history-panel.active {
+            right: 0;
+        }
+
+        #history-header {
+            padding: 15px;
+            background: var(--ink);
+            color: var(--parchment);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        #history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            list-style: none;
+        }
+
+        #history-list li {
+            padding: 10px 0;
+            border-bottom: 1px dashed var(--accent);
+            font-size: 0.9rem;
+        }
+
+        /* Toast 提示 */
+        #toast {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            z-index: 100;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+            white-space: nowrap;
+            border: 1px solid var(--gold);
+        }
+
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 600px) {
+            #main-content { padding: 15px; padding-bottom: calc(var(--nav-height) + 15px); }
+            #story-text { font-size: 1.05rem; }
+            #illustration { height: 150px; }
+            .choice-btn { font-size: 1rem; padding: 12px 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- 頂部標題 -->
+    <div id="top-bar">時光機：前往中國</div>
+
+    <!-- 主要內容區 -->
+    <div id="main-content">
+        <div id="illustration"></div>
+        <div id="story-text"></div>
+        <div id="choices-container"></div>
+    </div>
+
+    <!-- 底部導航 -->
+    <div id="bottom-nav">
+        <button class="nav-btn" onclick="openModal('help')">
+            <svg viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
+            說明
+        </button>
+        <button class="nav-btn" onclick="toggleHistory()">
+            <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+            歷程
+        </button>
+        <button class="nav-btn" onclick="toggleAchievements()">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-5h4v2h-4zm0-10h4v8h-4z"/></svg>
+            成就
+        </button>
+        <button class="nav-btn" onclick="openModal('save')">
+            <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+            存檔
+        </button>
+        <button class="nav-btn" onclick="toggleSound()">
+            <svg id="sound-icon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+            音效
+        </button>
+    </div>
+
+    <!-- 歷史紀錄側邊欄 -->
+    <div id="history-panel">
+        <div id="history-header">
+            <span>旅行日誌</span>
+            <button onclick="toggleHistory()" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;">&times;</button>
+        </div>
+        <ul id="history-list"></ul>
+    </div>
+
+    <!-- 通用彈窗 -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-content" id="modal-content">
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div id="toast"></div>
+</div>
+
+<script>
+/**
+ * 遊戲狀態機與資料設定
+ */
+const GameState = {
+    phase: 'START', // START, READING, CHOOSING, END
+    currentNodeId: 'start',
+    inventory: [],
+    history: [],
+    achievements: [],
+    isTyping: false,
+    soundEnabled: true,
+    typingTimer: null,
+    fullText: '',
+    charIndex: 0
+};
+
+// SVG 圖像生成器
+const SVGs = {
+    venice: `<svg viewBox="0 0 100 100"><rect fill="#87CEEB" width="100" height="100"/><path d="M10,80 Q30,60 50,80 T90,80 L90,100 L10,100 Z" fill="#4682B4"/><rect x="20" y="40" width="15" height="40" fill="#D2B48C"/><rect x="60" y="30" width="20" height="50" fill="#D2B48C"/><polygon points="20,40 27.5,30 35,40" fill="#8B0000"/><polygon points="60,30 70,20 80,30" fill="#8B0000"/></svg>`,
+    ship: `<svg viewBox="0 0 100 100"><rect fill="#87CEEB" width="100" height="100"/><path d="M20,70 Q50,50 80,70 L70,90 L30,90 Z" fill="#8B4513"/><rect x="45" y="20" width="10" height="50" fill="#A0522D"/><path d="M55,25 L75,50 L55,60 Z" fill="white"/></svg>`,
+    desert: `<svg viewBox="0 0 100 100"><rect fill="#FFD700" width="100" height="100"/><circle cx="80" cy="20" r="15" fill="#FF8C00"/><path d="M0,80 Q25,50 50,80 T100,80 L100,100 L0,100 Z" fill="#DAA520"/><path d="M20,70 Q40,60 60,70" stroke="#8B4513" stroke-width="2" fill="none"/></svg>`,
+    horse: `<svg viewBox="0 0 100 100"><rect fill="#DEB887" width="100" height="100"/><path d="M30,80 L30,50 Q30,30 50,30 Q70,30 70,50 L70,80" stroke="#2c1e16" stroke-width="5" fill="none"/><circle cx="50" cy="20" r="10" fill="#2c1e16"/><path d="M20,80 L80,80" stroke="#2c1e16" stroke-width="3"/></svg>`,
+    palace: `<svg viewBox="0 0 100 100"><rect fill="#87CEEB" width="100" height="100"/><rect x="20" y="40" width="60" height="40" fill="#FFD700"/><path d="M10,40 L50,10 L90,40 Z" fill="#B22222"/><rect x="40" y="60" width="20" height="20" fill="#8B0000"/><circle cx="50" cy="35" r="5" fill="#FFD700"/></svg>`,
+    scroll: `<svg viewBox="0 0 100 100"><rect fill="#f4e4c1" width="100" height="100"/><rect x="30" y="20" width="40" height="60" fill="#D2B48C" rx="5"/><line x1="35" y1="30" x2="65" y2="30" stroke="#2c1e16" stroke-width="2"/><line x1="35" y1="40" x2="65" y2="40" stroke="#2c1e16" stroke-width="2"/><line x1="35" y1="50" x2="65" y2="50" stroke="#2c1e16" stroke-width="2"/></svg>`,
+    temple: `<svg viewBox="0 0 100 100"><rect fill="#87CEEB" width="100" height="100"/><rect x="25" y="40" width="50" height="40" fill="#D3D3D3"/><polygon points="15,40 50,15 85,40" fill="#A9A9A9"/><rect x="45" y="60" width="10" height="20" fill="#2c1e16"/></svg>`,
+    danger: `<svg viewBox="0 0 100 100"><rect fill="#8B0000" width="100" height="100"/><path d="M50,20 L80,80 L20,80 Z" fill="#FFD700"/><text x="50" y="70" font-size="30" text-anchor="middle" fill="#8B0000" font-weight="bold">!</text></svg>`,
+    win: `<svg viewBox="0 0 100 100"><rect fill="#FFD700" width="100" height="100"/><circle cx="50" cy="50" r="30" fill="#FFA500"/><path d="M40,45 L50,55 L70,35" stroke="#8B0000" stroke-width="5" fill="none"/></svg>`,
+    default: `<svg viewBox="0 0 100 100"><rect fill="#f4e4c1" width="100" height="100"/><circle cx="50" cy="50" r="20" fill="#D2B48C"/><text x="50" y="55" font-size="12" text-anchor="middle" fill="#2c1e16">?</text></svg>`
+};
+
+// 音效合成器
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new AudioContext();
+    }
+}
+
+function playSound(type = 'click') {
+    if (!GameState.soundEnabled) return;
+    initAudio();
+    
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    if (type === 'click') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+    } else if (type === 'type') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.03);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.03);
+    } else if (type === 'error') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+    }
+}
+
+/**
+ * 故事資料庫 (節點)
+ */
+const StoryData = {
+    start: {
+        text: "你站在義大利威尼斯的庭院裡，時間是1323年。拱門上方寫著「百萬人的法庭」。屋內，一位白髮蒼蒼的老人躺在床上，氣息奄奄。他似乎對周遭的吵鬧感到有趣。旁邊的人正在爭論他關於「國泰」（中國）的故事是否真實。老人突然睜開眼，抓住你的手腕說：「我來自國泰的朋友！事實是，我沒有告訴他們我所看到的一半！」然後他閉上了眼睛。醫生說他神智不清了。你決定尋找年輕時的他，找出為什麼通往東方的路線會失傳。",
+        image: "venice",
+        options: [
+            { text: "回到55年前，尋找年輕的馬可·波羅。", next: "venice_1268" }
+        ]
+    },
+    venice_1268: {
+        text: "你深吸一口氣，周圍是威尼斯的廣場。現在是1268年。你遇到一個14歲左右的男孩，他有一頭棕色捲髮，他說他叫馬可·波羅。他的父親和叔叔去東方已經14年了，但他相信他們會回來。他告訴你，如果想找他，可以去阿克里（Acre）找他的另一個叔叔，或者留在威尼斯等待。",
+        image: "venice",
+        options: [
+            { text: "跳轉到1269年的阿克里，尋找馬可的叔叔。", next: "acre_1269" },
+            { text: "留在威尼斯，跳轉到1271年。", next: "venice_1271" }
+        ]
+    },
+    acre_1269: {
+        text: "你來到阿克里喧鬧的市場。在一個條紋帳篷裡，你看到三個男人正在激烈討論。其中一個是年邁的馬可·波羅，他說自己太老了，需要年輕人去完成旅程。另一個是他的兄弟尼科洛，他說必須等新教皇選出才能完成忽必烈的任務，在此之前他會回威尼斯找兒子馬可。看來你要找的馬可剛剛出發。",
+        image: "scroll",
+        options: [
+            { text: "跳轉到1271年的威尼斯。", next: "venice_1271" },
+            { text: "跳轉到1271年的阿克里，等他們回來道別。", next: "acre_1271" }
+        ]
+    },
+    venice_1271: {
+        text: "你回到了威尼斯，遇到了17歲的馬可·波羅。他興奮地告訴你，他的父親和叔叔回來了，他們帶著忽必烈大汗的黃金通行證，要去耶路撒冷取聖油，然後前往國泰！馬可請求父親帶上你，但尼科洛覺得你太年輕，不是個有經驗的旅行者。",
+        image: "venice",
+        options: [
+            { text: "證明自己，先跳去阿克里與他們會合。", next: "acre_1271" },
+            { text: "跳過這段，直接去國泰。", next: "cathay_jump" }
+        ]
+    },
+    cathay_jump: {
+        text: "你跳躍失誤，來到了1215年的中國北方。成吉思汗的蒙古大軍正在攻城，到處都是火光和殺戮。一個女孩拉著你躲進燃燒的建築。她說秦人（金人）已經滅亡，成吉思汗將征服整個世界。你意識到偏離了路線，必須回到波羅身邊。",
+        image: "danger",
+        options: [
+            { text: "跳轉到1271年的阿克里。", next: "acre_1271" }
+        ]
+    },
+    acre_1271: {
+        text: "你在阿克里找到了波羅一家。他們正準備出發。你告訴他們新教皇已經選出，並在阿克里等他們。你們一起回到阿克里，見到了教皇派來的兩位修士。尼科洛將教皇送給忽必烈的禮物（金水壺和水晶碗）交給你保管。你們將從阿亞斯（Ayas）出發。",
+        image: "ship",
+        options: [
+            { text: "前往阿亞斯。", next: "ayas" }
+        ]
+    },
+    ayas: {
+        text: "你們從阿亞斯出發，卻遇到了聖殿騎士團的警告：前方的埃及穆斯林正在肆虐。兩位修士決定退縮，跟著騎士們回去。馬可非常失望。尼科洛計劃繞道北方，經波斯前往霍爾木茲。你必須決定是否跟著修士們回去。",
+        image: "horse",
+        options: [
+            { text: "跟著修士們回去，試圖說服他們。", next: "monks" },
+            { text: "留在波羅身邊，繼續前往波斯。", next: "persia" }
+        ]
+    },
+    monks: {
+        text: "你跟隨修士們回到了阿亞斯，但無論你怎麼勸說，他們都認為蒙古人是魔鬼，拒絕前往。你無奈之下，只能再次尋找波羅一家的蹤跡。",
+        image: "scroll",
+        options: [
+            { text: "跳轉到波斯，追趕波羅一家。", next: "persia" }
+        ]
+    },
+    persia: {
+        text: "你們穿越了波斯。在巴拉克尚省（Balakhshan），你們遇到了一群礦工，他們正在開採火紅的巴拉斯紅寶石。馬可認為這可以作為送給忽必烈的禮物，代替丟失的水晶碗。你可以選擇留在商隊繼續前進，或者潛入礦坑尋找紅寶石。",
+        image: "palace",
+        options: [
+            { text: "留在商隊，繼續前往帕米爾高原。", next: "pamir" },
+            { text: "潛入紅寶石礦坑。", next: "ruby_mine" }
+        ]
+    },
+    ruby_mine: {
+        text: "你偷偷溜進礦坑，撿起一塊拳頭大的紅寶石，卻被礦工發現。偷竊紅寶石的懲罰是死刑！你慌亂中逃進礦坑深處，無路可逃。",
+        image: "danger",
+        options: [
+            { text: "緊急跳躍！", next: "tamerlane" }
+        ]
+    },
+    tamerlane: {
+        text: "你跳躍到了1405年的撒馬爾罕。帖木兒（Tamerlane）的大軍正在集結，準備進攻中國。你意識到時間跳得太遠了，蒙古人早已被明朝推翻。你必須回到過去。",
+        image: "horse",
+        options: [
+            { text: "回到帕米爾高原，與波羅會合。", next: "pamir" }
+        ]
+    },
+    pamir: {
+        text: "你們在帕米爾高原的雪山上跋涉了四十天。極度寒冷和缺氧讓你們疲憊不堪，但最終你們抵達了溫暖的喀什。接下來，你們要面對的是可怕的羅布沙漠（戈壁灘）。",
+        image: "desert",
+        options: [
+            { text: "繼續前進，穿越沙漠。", next: "desert" }
+        ]
+    },
+    desert: {
+        text: "沙漠中酷熱難耐，四周除了沙丘什麼也看不見。你聽到了奇異的聲音：鑼聲、鼓聲，甚至有人在呼喚你的名字。尼科洛說那是邪靈的聲音，想引誘旅人迷路。但遠處似乎出現了另一支商隊的鈴鐺聲。",
+        image: "desert",
+        options: [
+            { text: "追尋鈴鐺聲，走向左邊的商隊。", next: "dead_desert" },
+            { text: "聽從尼科洛的警告，沿著原定路線前進。", next: "mongolia" }
+        ]
+    },
+    dead_desert: {
+        text: "你追尋著鈴聲，卻發現那只是一具風化的骷髏，風聲穿過肋骨發出鈴聲。你迷失在茫茫沙海中，水源耗盡。你的任務以失敗告終……",
+        image: "danger",
+        options: [
+            { text: "重新開始", next: "start", isRestart: true }
+        ],
+        isEnd: true,
+        achievement: "沙漠亡魂"
+    },
+    mongolia: {
+        text: "你們幸運地走出了沙漠，來到了一片廣闊的蒙古草原。你們遇到了一群騎馬的蒙古人。他們得知你們帶著黃金通行證，熱情地接待了你們。馬可甚至穿上了蒙古服飾，學會了他們的語言。你們即將前往上都（Shang-tu）覲見忽必烈。",
+        image: "horse",
+        options: [
+            { text: "前往忽必烈的宮殿。", next: "khan_court" }
+        ]
+    },
+    khan_court: {
+        text: "你們終於抵達了上都，見到了忽必烈大汗。他對教皇只派了兩名修士感到失望，但依然熱情地款待了你們。他對馬可的見聞非常感興趣，並賜予你們每人一本黃金通行證，允許你們在他的帝國中自由旅行。他指派馬可去緬省（Mien）執行任務。",
+        image: "palace",
+        options: [
+            { text: "跟著馬可去汗八里（Khan-balik）打獵。", next: "khanbalik" },
+            { text: "獨自前往緬省測試通行證。", next: "mien" }
+        ]
+    },
+    khanbalik: {
+        text: "時間到了1282年。你在汗八里的宮殿裡。半夜，馬可叫醒你，說他發現大臣艾哈邁德（Ahmad）鬼鬼祟祟地去了王座廳。你們偷偷跟過去，卻目睹了一場暗殺——艾哈邁德被刺殺了！衛兵抓住了你，認為你是同謀，把你關進了地牢，準備處死。",
+        image: "danger",
+        options: [
+            { text: "使用時光機跳躍，逃離地牢。", next: "ming_dynasty" }
+        ]
+    },
+    ming_dynasty: {
+        text: "你跳躍到了1432年的北京（紫禁城）。你拿出黃金通行證，卻被明朝官員嘲笑：「這是蒙古人的金子！我們早就把蒙古人趕回草原了！」你被當作間諜抓了起來。中國已經對西方關閉了大門。",
+        image: "danger",
+        options: [
+            { text: "跳轉到1293年的波斯，尋找波羅一家的歸途。", next: "return_persia" }
+        ]
+    },
+    mien: {
+        text: "你跳躍到了1277年的緬省（緬甸）。蒙古大軍正在與緬甸國王交戰，使用了戰象。你利用黃金通行證安全觀戰。馬可也在這裡，他準備去錫蘭尋找佛舍利。馬可告訴你，忽必烈大汗死後，國泰可能不再歡迎外國人。",
+        image: "horse",
+        options: [
+            { text: "留在緬甸，繼續探索。", next: "ww2" },
+            { text: "跳轉到1293年的波斯，與波羅一家會合。", next: "return_persia" }
+        ]
+    },
+    ww2: {
+        text: "你不小心跳躍到了1940年的緬甸。一隊美國飛虎隊的卡車正沿著緬甸公路駛過。士兵問你是不是墜機了。你意識到這不是你的時代，你必須回到過去。",
+        image: "danger",
+        options: [
+            { text: "回到汗八里，加入馬可的打獵隊伍。", next: "khanbalik" }
+        ]
+    },
+    return_persia: {
+        text: "時間到了1293年。波羅一家正將科卡琴公主（Cocachin）護送到波斯，嫁給當地的可汗。他們經歷了風暴、疾病甚至食人部落，但奇蹟般地生還了。你看到年近四十的馬可，不敢上前相認，以免嚇到他們。",
+        image: "ship",
+        options: [
+            { text: "跟著他們去特雷比宗（Trebizond）。", next: "trebizond" }
+        ]
+    },
+    trebizond: {
+        text: "時間是1294年。在黑海邊的特雷比宗，你得知忽必烈大汗已經去世。馬可悲傷地說：「現在我再也回不去了。黃金通行證可能只是一塊煤炭。世界再次陷入戰亂，中國很快就會對外國人關上大門。」你們登上了一艘回威尼斯的船，卻遭到了海盜襲擊，所幸你們將珠寶縫在衣服裡才得以保全。",
+        image: "ship",
+        options: [
+            { text: "回到1295年的威尼斯。", next: "homecoming" }
+        ]
+    },
+    homecoming: {
+        text: "你們回到了威尼斯，離家已經23年。起初，沒有人認出你們，還嘲笑你們是乞丐。但在晚上的宴會上，馬可拿出東方帶回來的奇珍異寶，並撕開衣服接縫，倒出無數的鑽石、珍珠和紅寶石。所有客人都驚呆了。",
+        image: "win",
+        options: [
+            { text: "完成任務，進入結局。", next: "win" }
+        ]
+    },
+    win: {
+        text: "你終於明白了。國泰之路之所以失守，是因為蒙古帝國的統一局面結束了，世界再次陷入戰亂，加上明朝閉關鎖國。然而，馬可·波羅最偉大的遺產不是那些珠寶，而是他的故事與夢想。他的故事激勵了後來的探險家，如哥倫布，發現了新世界。你的任務完成了！",
+        image: "win",
+        options: [
+            { text: "重新開始", next: "start", isRestart: true }
+        ],
+        isEnd: true,
+        achievement: "時空探險家"
+    }
+};
+
+/**
+ * 核心渲染邏輯與狀態機
+ */
+const DOM = {
+    story: document.getElementById('story-text'),
+    choices: document.getElementById('choices-container'),
+    illustration: document.getElementById('illustration'),
+    toast: document.getElementById('toast'),
+    historyPanel: document.getElementById('history-panel'),
+    historyList: document.getElementById('history-list'),
+    modalOverlay: document.getElementById('modal-overlay'),
+    modalBody: document.getElementById('modal-body')
+};
+
+function showToast(msg) {
+    DOM.toast.innerText = msg;
+    DOM.toast.classList.add('show');
+    playSound('error');
+    setTimeout(() => {
+        DOM.toast.classList.remove('show');
+    }, 2500);
+}
+
+function renderNode(nodeId) {
+    if (!StoryData[nodeId]) return;
+
+    // 狀態切換
+    GameState.phase = 'READING';
+    GameState.currentNodeId = nodeId;
+    const node = StoryData[nodeId];
+
+    // 紀錄歷史
+    GameState.history.push(nodeId);
+    updateHistoryUI();
+
+    // 更新插圖
+    DOM.illustration.innerHTML = SVGs[node.image] || SVGs.default;
+    
+    // 清空選項
+    DOM.choices.innerHTML = '';
+    
+    // 打字機效果
+    DOM.story.innerText = '';
+    GameState.fullText = node.text;
+    GameState.charIndex = 0;
+    GameState.isTyping = true;
+
+    if (GameState.typingTimer) clearInterval(GameState.typingTimer);
+
+    GameState.typingTimer = setInterval(() => {
+        if (GameState.charIndex < GameState.fullText.length) {
+            DOM.story.innerText += GameState.fullText.charAt(GameState.charIndex);
+            GameState.charIndex++;
+            if (GameState.charIndex % 3 === 0) playSound('type'); // 減少音效頻率
+        } else {
+            finishTyping(node);
+        }
+    }, 30);
+}
+
+function finishTyping(node) {
+    clearInterval(GameState.typingTimer);
+    GameState.isTyping = false;
+    DOM.story.innerText = GameState.fullText;
+    
+    // 顯示選項
+    GameState.phase = 'CHOOSING';
+    renderChoices(node.options);
+}
+
+// 點擊文字跳過打字
+DOM.story.addEventListener('click', () => {
+    if (GameState.isTyping) {
+        const node = StoryData[GameState.currentNodeId];
+        finishTyping(node);
+    }
+});
+
+function renderChoices(options) {
+    DOM.choices.innerHTML = '';
+    
+    if (options && options.length > 0) {
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.innerHTML = `<span>${opt.text}</span>`;
+            
+            btn.onclick = () => {
+                if (GameState.phase !== 'CHOOSING') return; // 防連點
+                playSound('click');
+                
+                // 特殊處理：重新開始
+                if (opt.isRestart) {
+                    restartGame();
+                    return;
+                }
+                
+                // 切換到下一個節點
+                GameState.phase = 'TRANSITIONING';
+                DOM.choices.innerHTML = ''; // 隱藏選項防呆
+                
+                // 檢查是否為結局
+                if (opt.next && StoryData[opt.next].isEnd) {
+                    const achievement = StoryData[opt.next].achievement;
+                    if (achievement && !GameState.achievements.includes(achievement)) {
+                        GameState.achievements.push(achievement);
+                        saveGameState();
+                    }
+                }
+
+                setTimeout(() => {
+                    renderNode(opt.next);
+                }, 300); // 假裝過渡
+            };
+            DOM.choices.appendChild(btn);
+        });
+    }
+}
+
+// 歷史紀錄 UI
+function updateHistoryUI() {
+    DOM.historyList.innerHTML = '';
+    GameState.history.forEach((id, index) => {
+        const li = document.createElement('li');
+        li.innerText = `第 ${index + 1} 步：${StoryData[id].text.substring(0, 15)}...`;
+        DOM.historyList.appendChild(li);
+    });
+}
+
+function toggleHistory() {
+    playSound('click');
+    DOM.historyPanel.classList.toggle('active');
+}
+
+// 彈窗 UI
+function openModal(type) {
+    playSound('click');
+    if (type === 'help') {
+        DOM.modalBody.innerHTML = `
+            <h2>遊戲說明</h2>
+            <p><strong>歡迎來到時光機！</strong></p>
+            <p>這是一本互動式小說。你將扮演時空旅行者，與馬可·波羅一起前往神祕的國泰（中國）。</p>
+            <ul>
+                <li><strong>時間旅行法則：</strong>不能殺生、不能改變歷史、不能帶走任何人。</li>
+                <li><strong>閱讀文本：</strong>點擊文字區域可以跳過打字機動畫。</li>
+                <li><strong>做出選擇：</strong>閱讀完畢後，點擊下方的選項按鈕推進故事。</li>
+                <li><strong>結局：</strong>遊戲有多個結局，包含死亡與勝利。請謹慎選擇！</li>
+            </ul>
+        `;
+    } else if (type === 'save') {
+        DOM.modalBody.innerHTML = `
+            <h2>存檔 / 讀檔</h2>
+            <p>你可以將目前的冒險進度保存在瀏覽器中。</p>
+            <button class="choice-btn" onclick="saveGameState(true)" style="margin-bottom:10px; justify-content:center;">保存進度</button>
+            <button class="choice-btn" onclick="loadGameState()" style="justify-content:center;">讀取進度</button>
+        `;
+    }
+    DOM.modalOverlay.classList.add('active');
+}
+
+function closeModal() {
+    playSound('click');
+    DOM.modalOverlay.classList.remove('active');
+}
+
+function toggleAchievements() {
+    playSound('click');
+    DOM.modalBody.innerHTML = `<h2>成就殿堂</h2>`;
+    if (GameState.achievements.length === 0) {
+        DOM.modalBody.innerHTML += `<p>目前還沒有解鎖任何成就，繼續探索吧！</p>`;
+    } else {
+        let html = '<ul>';
+        GameState.achievements.forEach(ach => {
+            html += `<li>🏆 ${ach}</li>`;
+        });
+        html += '</ul>';
+        DOM.modalBody.innerHTML += html;
+    }
+    DOM.modalOverlay.classList.add('active');
+}
+
+// 音效開關
+function toggleSound() {
+    GameState.soundEnabled = !GameState.soundEnabled;
+    playSound('click'); // 切換時發聲
+    const icon = document.getElementById('sound-icon');
+    if (GameState.soundEnabled) {
+        icon.innerHTML = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
+    } else {
+        icon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
+    }
+}
+
+/**
+ * 存讀檔系統
+ */
+function saveGameState(showToastMsg = false) {
+    const stateToSave = {
+        currentNodeId: GameState.currentNodeId,
+        inventory: GameState.inventory,
+        history: GameState.history,
+        achievements: GameState.achievements
+    };
+    localStorage.setItem('timeMachineSave', JSON.stringify(stateToSave));
+    if (showToastMsg) {
+        showToast("進度已保存！");
+        closeModal();
+    }
+}
+
+function loadGameState() {
+    const saved = localStorage.getItem('timeMachineSave');
+    if (saved) {
+        const state = JSON.parse(saved);
+        GameState.currentNodeId = state.currentNodeId;
+        GameState.inventory = state.inventory || [];
+        GameState.history = state.history || [];
+        GameState.achievements = state.achievements || [];
+        
+        closeModal();
+        renderNode(GameState.currentNodeId);
+        showToast("進度已讀取！");
+    } else {
+        showToast("沒有找到存檔！");
+    }
+}
+
+function restartGame() {
+    GameState.inventory = [];
+    GameState.history = [];
+    GameState.achievements = []; // 保留成就？視需求而定，這裡重置
+    renderNode('start');
+}
+
+// 初始化
+window.onload = () => {
+    // 首次互動解鎖音效
+    document.body.addEventListener('click', initAudio, { once: true });
+    renderNode('start');
+};
+</script>
+</body>
+</html>

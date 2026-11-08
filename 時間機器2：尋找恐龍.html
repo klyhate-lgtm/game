@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>時間機器2：尋找恐龍</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-bg: #16213e;
+            --text-color: #e94560;
+            --text-light: #f5f5f5;
+            --btn-bg: #0f3460;
+            --btn-hover: #1a5276;
+            --border-color: #533483;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            background-image: radial-gradient(circle at center, #1a1a2e 0%, #0a0a15 100%);
+        }
+
+        h1 {
+            color: var(--text-color);
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+            font-size: 2rem;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex: 1;
+        }
+
+        /* 頂部狀態列 */
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--panel-bg);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .time-info {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #f1c40f;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background: var(--btn-bg);
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background: var(--btn-hover);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #333;
+            color: #777;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 主要內容區 */
+        #main-content {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            #main-content {
+                flex-direction: column;
+            }
+        }
+
+        /* 事件卡片 */
+        #event-card {
+            flex: 2;
+            min-width: 300px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        #event-image {
+            width: 100%;
+            height: 200px;
+            background: #000;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #event-image svg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #event-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            min-height: 100px;
+        }
+
+        /* 選項按鈕區 */
+        #choices {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .choice-btn {
+            text-align: left;
+            padding: 12px 20px;
+            background: rgba(15, 52, 96, 0.8);
+            border-left: 5px solid var(--text-color);
+        }
+
+        .choice-btn:hover {
+            background: var(--btn-hover);
+            border-left: 5px solid #fff;
+        }
+
+        /* 背包側邊欄 */
+        #inventory-panel {
+            flex: 1;
+            min-width: 250px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        #inventory-panel h2 {
+            font-size: 1.2rem;
+            color: #f1c40f;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        #inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 10px;
+        }
+
+        .item-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #222;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            position: relative;
+        }
+
+        .item-card .item-icon {
+            width: 40px;
+            height: 40px;
+        }
+
+        .item-card .item-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            font-size: 0.6rem;
+            text-align: center;
+            padding: 2px;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 模態框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--panel-bg);
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid var(--text-color);
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h2 {
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+
+        .modal-content p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .close-btn {
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        /* 遊戲結束畫面 */
+        .ending-screen {
+            text-align: center;
+            padding: 50px 20px;
+        }
+
+        .ending-screen h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .ending-screen .win { color: #2ecc71; }
+        .ending-screen .lose { color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+    <h1>時間機器 2：尋找恐龍</h1>
+
+    <div id="game-container">
+        <!-- 頂部狀態列 -->
+        <div id="top-bar">
+            <div class="time-info" id="time-display">時間：未知</div>
+            <div class="controls">
+                <button onclick="game.toggleModal('help-modal')">遊戲說明</button>
+                <button onclick="game.toggleModal('hint-modal')">提示</button>
+                <button onclick="game.saveGame()">存檔</button>
+                <button onclick="game.loadGame()">讀檔</button>
+            </div>
+        </div>
+
+        <!-- 主要內容 -->
+        <div id="main-content">
+            <!-- 事件卡片 -->
+            <div id="event-card">
+                <div id="event-image">
+                    <!-- SVG 動態生成 -->
+                </div>
+                <div id="event-text">
+                    <!-- 文字描述 -->
+                </div>
+                <div id="choices">
+                    <!-- 選項按鈕 -->
+                </div>
+            </div>
+
+            <!-- 背包 -->
+            <div id="inventory-panel">
+                <h2>🎒 裝備欄</h2>
+                <div id="inventory-grid">
+                    <!-- 裝備列表 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 遊戲說明 Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <h2>遊戲說明</h2>
+            <p>歡迎來到《時間機器2：尋找恐龍》。你的任務是回到中生代，找到並拍攝「始祖鳥（Archaeopteryx）！」。</p>
+            <p><strong>時空旅行四項鐵律：</strong></p>
+            <ul>
+                <li>1. 不可殺害任何人或動物。</li>
+                <li>2. 不可改變歷史，不可將未來的物品留在過去。</li>
+                <li>3. 不可將任何人帶入時空跳躍。</li>
+                <li>4. 必須服從時間機器的指示。</li>
+            </ul>
+            <p><strong>操作方式：</strong>閱讀事件描述，點擊下方按鈕做出選擇。注意您的裝備與時間地點。若迷路可查看提示，或隨時存讀檔。</p>
+            <button class="close-btn" onclick="game.toggleModal('help-modal')">關閉</button>
+        </div>
+    </div>
+
+    <!-- 提示 Modal -->
+    <div id="hint-modal" class="modal">
+        <div class="modal-content">
+            <h2>💡 提示 (Data File)</h2>
+            <p id="hint-text">目前沒有提示。</p>
+            <button class="close-btn" onclick="game.toggleModal('hint-modal')">關閉</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 遊戲資料 (Game Data) ---
+        // 為了單一檔案，我將原書的複雜分支簡化為幾個核心決策點
+        const gameData = {
+            // 開局
+            "start": {
+                text: "這本書是你的時間機器。你將回到6500萬年前，面對霸王龍！你的任務是找到並拍攝始祖鳥。準備好開始你的冒險了嗎？",
+                image: "time_machine",
+                choices: [
+                    { text: "開始任務", nextId: "1" }
+                ],
+                time: "現代"
+            },
+            // 頁碼 1
+            "1": {
+                text: "你降落在中生代的沼澤中。周圍是茂密的叢林。一隻巨大的鴨嘴龍（Hadrosaur）用牠的尾巴把你掃飛，撞到了另一隻恐龍身上。你摔在泥濘中。",
+                image: "hadrosaur",
+                choices: [
+                    { text: "調查遠處的敲擊聲 (WHOCK!)", nextId: "3" }
+                ],
+                time: "中生代 未知時期"
+            },
+            // 頁碼 3
+            "3": {
+                text: "你循著聲音前進，看到兩隻厚頭龍（Pachycephalosaur）正在用頭部互撞決鬥。周圍還有一隻佈滿傷痕的老厚頭龍在休息。你該怎麼辦？",
+                image: "pachycephalosaur",
+                choices: [
+                    { text: "跳上老厚頭龍的背尋求庇護", nextId: "21" },
+                    { text: "跳躍回一年前避開牠們", nextId: "4" }
+                ],
+                time: "中生代 未知時期"
+            },
+            // 頁碼 4 (錯誤分支)
+            "4": {
+                text: "你回到了一年之前，但這裡依然很危險。一隻巨大的草食恐龍把你當成了早餐。你該怎麼辦？",
+                image: "herbivore",
+                choices: [
+                    { text: "使用麻醉槍", nextId: "error_gun" },
+                    { text: "試圖逃跑", nextId: "error_run" }
+                ],
+                time: "中生代 未知時期"
+            },
+            "error_gun": {
+                text: "你使用麻醉槍擊中了牠，但這違反了時空旅行的鐵律（不可傷害動物）。時間警察將你逮捕了。遊戲結束。",
+                image: "error",
+                isEnding: true,
+                endingType: "lose",
+                time: "時空監獄"
+            },
+            "error_run": {
+                text: "你試圖逃跑，但恐龍的速度太快了。你被踩扁了。遊戲結束。",
+                image: "error",
+                isEnding: true,
+                endingType: "lose",
+                time: "死亡"
+            },
+            // 頁碼 21 (騎厚頭龍)
+            "21": {
+                text: "你跳上老厚頭龍的背。牠是這個群體的領袖。一隻年輕的厚頭龍向你衝來！老厚頭龍迎戰，發出震耳欲聾的撞擊聲。你緊緊抓住牠。",
+                image: "pachycephalosaur_ride",
+                choices: [
+                    { text: "趁機跳躍 2000 萬年後 (前往白堊紀)", nextId: "creta" },
+                    { text: "繼續觀戰", nextId: "21b" }
+                ],
+                time: "中生代 未知時期"
+            },
+            "21b": {
+                text: "又一隻恐龍衝過來，這次撞擊太猛烈了，你被甩飛出去。你受了重傷，無法動彈。遊戲結束。",
+                image: "error",
+                isEnding: true,
+                endingType: "lose",
+                time: "死亡"
+            },
+            // 白堊紀 (錯誤時代，但有線索)
+            "creta": {
+                text: "你來到了白堊紀。這裡有巨大的霸王龍（T-Rex）和三角龍（Triceratops）。你看到一隻小三角龍被霸王龍攻擊。",
+                image: "trex",
+                choices: [
+                    { text: "使用麻醉槍攻擊霸王龍，拯救小三角龍", nextId: "trex_fight" },
+                    { text: "躲起來並跳躍 5000 萬年後", nextId: "jurassic_hint" }
+                ],
+                time: "白堊紀 (1.35億 ~ 6300萬年前)"
+            },
+            "trex_fight": {
+                text: "你擊中了霸王龍，牠昏睡了過去。小三角龍得救了，牠帶你來到牠的巢穴。你覺得你好像做了一件好事。",
+                image: "triceratops_baby",
+                choices: [
+                    { text: "跟隨小三角龍", nextId: "trex_follow" }
+                ],
+                time: "白堊紀"
+            },
+            "trex_follow": {
+                text: "你跟著小三角龍走，突然火山爆發了！你必須趕快跳躍時空。",
+                image: "volcano",
+                choices: [
+                    { text: "跳躍回 1.4 億年前 (侏羅紀)", nextId: "jurassic_hint" }
+                ],
+                time: "白堊紀"
+            },
+            // 侏羅紀 (尋找始祖鳥的關鍵)
+            "jurassic_hint": {
+                text: "你來到了侏羅紀。這裡的森林非常茂密。你看到一隻長頸恐龍（Diplodocus）正在吃樹葉。一隻迅猛龍（Coelurosaur）正在追捕你。",
+                image: "jurassic",
+                choices: [
+                    { text: "爬樹躲避", nextId: "tree_climb" },
+                    { text: "跳躍到 1.5 億年前 (更早的侏羅紀)", nextId: "europe_hint" }
+                ],
+                time: "侏羅紀 (1.95億 ~ 1.35億年前)"
+            },
+            "tree_climb": {
+                text: "你爬上了樹，但一隻巨大的蛇（30英尺長）纏住了你。你用火柴點燃樹枝驅趕牠，但樹也燒起來了。",
+                image: "snake",
+                choices: [
+                    { text: "跳躍回歐洲方向 (1.5億年前)", nextId: "europe_hint" }
+                ],
+                time: "侏羅紀"
+            },
+            "europe_hint": {
+                text: "你來到了一片看起來像歐洲的土地。你在河邊的泥地上發現了奇怪的足跡，有羽毛的痕跡！這可能是始祖鳥留下的。",
+                image: "tracks",
+                choices: [
+                    { text: "跟著腳印走", nextId: "archaeopteryx_encounter" }
+                ],
+                time: "侏羅紀 歐洲"
+            },
+            "archaeopteryx_encounter": {
+                text: "你跟著腳印，發現了一個巢穴。裡面有幾顆蛋正在孵化。一隻長著羽毛、有牙齒的小鳥正在旁邊跳來跳去。這就是始祖鳥！",
+                image: "archaeopteryx",
+                choices: [
+                    { text: "拿出相機拍照！", nextId: "victory" }
+                ],
+                time: "侏羅紀 歐洲"
+            },
+            "victory": {
+                text: "你成功拍到了始祖鳥的照片！你完成了任務。現在，你只需要安全地回到現代。你按下了時間機器的返回鍵。",
+                image: "victory",
+                isEnding: true,
+                endingType: "win",
+                time: "任務完成"
+            }
+        };
+
+        // --- 遊戲狀態 (State) ---
+        const state = {
+            currentNodeId: "start",
+            inventory: ["camera", "stun_gun", "time_machine", "compass", "supplies"],
+            gameStatus: "PLAYING", // PLAYING, GAME_OVER, VICTORY
+            currentTime: "現代"
+        };
+
+        // 裝備圖示 SVG 映射
+        const itemIcons = {
+            camera: `<svg viewBox="0 0 24 24"><path fill="#f1c40f" d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 14a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/></svg>`,
+            stun_gun: `<svg viewBox="0 0 24 24"><path fill="#2ecc71" d="M21 6l-3-2-3 2-2-1-2 1v4l2 1v6l-4 4h-4v-2h2l2-2H5v-2h4l2-2V8l-2-1V4l2-1 2 1 3-2 3 2v2z"/></svg>`,
+            time_machine: `<svg viewBox="0 0 24 24"><path fill="#e94560" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>`,
+            compass: `<svg viewBox="0 0 24 24"><path fill="#3498db" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-8l-3 1.5V15l3-1.5 3 1.5v-3.5L11 12z"/></svg>`,
+            supplies: `<svg viewBox="0 0 24 24"><path fill="#e67e22" d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>`
+        };
+
+        // --- 遊戲控制器 ---
+        const game = {
+            init() {
+                this.render();
+                this.updateInventory();
+            },
+
+            render() {
+                const node = gameData[state.currentNodeId];
+                if (!node) return;
+
+                // 更新時間
+                state.currentTime = node.time || "未知";
+                document.getElementById('time-display').innerText = `時間：${state.currentTime}`;
+
+                // 更新圖片
+                const imgContainer = document.getElementById('event-image');
+                imgContainer.innerHTML = this.getImageSVG(node.image);
+
+                // 更新文字
+                document.getElementById('event-text').innerText = node.text;
+
+                // 更新選項
+                const choicesContainer = document.getElementById('choices');
+                choicesContainer.innerHTML = '';
+
+                if (node.isEnding) {
+                    state.gameStatus = node.endingType === 'win' ? 'VICTORY' : 'GAME_OVER';
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.innerText = "重新開始";
+                    btn.onclick = () => { this.resetGame(); };
+                    choicesContainer.appendChild(btn);
+                } else {
+                    state.gameStatus = 'PLAYING';
+                    node.choices.forEach(choice => {
+                        const btn = document.createElement('button');
+                        btn.className = 'choice-btn';
+                        btn.innerText = choice.text;
+                        btn.onclick = () => { this.makeChoice(choice.nextId); };
+                        choicesContainer.appendChild(btn);
+                    });
+                }
+
+                // 更新提示
+                this.updateHint(node);
+            },
+
+            makeChoice(nextId) {
+                if (state.gameStatus !== 'PLAYING') return;
+                
+                // 狀態機：鎖定按鈕，防止連點
+                const buttons = document.querySelectorAll('.choice-btn');
+                buttons.forEach(b => b.disabled = true);
+
+                // 模擬載入
+                setTimeout(() => {
+                    state.currentNodeId = nextId;
+                    this.render();
+                    this.updateInventory();
+                }, 300);
+            },
+
+            updateInventory() {
+                const grid = document.getElementById('inventory-grid');
+                grid.innerHTML = '';
+                state.inventory.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.innerHTML = `
+                        <div class="item-icon">${itemIcons[item] || '❓'}</div>
+                        <div class="item-label">${this.getItemName(item)}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+            },
+
+            getItemName(key) {
+                const names = {
+                    camera: '相機',
+                    stun_gun: '麻醉槍',
+                    time_machine: '時間機器',
+                    compass: '指南針',
+                    supplies: '補給品'
+                };
+                return names[key] || key;
+            },
+
+            getImageSVG(type) {
+                // 使用簡單的幾何圖形生成 SVG 插圖
+                const svgs = {
+                    time_machine: `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" stroke="#e94560" stroke-width="5" fill="none" stroke-dasharray="10 5"/><circle cx="50" cy="50" r="20" fill="#533483"/><path d="M50 10 L60 30 L40 30 Z" fill="#f1c40f"/></svg>`,
+                    hadrosaur: `<svg viewBox="0 0 100 100"><path d="M20 80 Q30 20 80 30 Q90 40 85 60 Q70 70 50 70 Q40 80 20 80 Z" fill="#2ecc71"/><circle cx="75" cy="35" r="5" fill="#000"/></svg>`,
+                    pachycephalosaur: `<svg viewBox="0 0 100 100"><path d="M20 80 Q40 40 80 50 Q90 70 60 80 Z" fill="#f39c12"/><circle cx="70" cy="50" r="15" fill="#d35400"/><circle cx="75" cy="48" r="3" fill="#000"/></svg>`,
+                    pachycephalosaur_ride: `<svg viewBox="0 0 100 100"><path d="M10 80 Q30 30 90 40 Q90 60 50 80 Z" fill="#e67e22"/><circle cx="75" cy="45" r="10" fill="#d35400"/><circle cx="40" cy="50" r="5" fill="#fff"/></svg>`,
+                    herbivore: `<svg viewBox="0 0 100 100"><path d="M20 90 Q20 40 60 30 Q90 30 90 90 Z" fill="#27ae60"/><circle cx="70" cy="45" r="5" fill="#000"/><path d="M50 30 L60 10 L70 30" fill="none" stroke="#27ae60" stroke-width="4"/></svg>`,
+                    trex: `<svg viewBox="0 0 100 100"><path d="M10 80 Q30 30 60 20 Q90 20 90 50 L70 70 L80 90 L60 90 L50 70 Q30 80 10 80 Z" fill="#c0392b"/><circle cx="70" cy="30" r="4" fill="#000"/><path d="M60 35 L70 40 L60 45" fill="none" stroke="#000" stroke-width="2"/></svg>`,
+                    triceratops_baby: `<svg viewBox="0 0 100 100"><path d="M30 80 Q30 50 60 50 Q80 50 80 70 L70 80 Z" fill="#f1c40f"/><circle cx="60" cy="60" r="5" fill="#000"/><path d="M55 50 L60 30 L65 50" fill="none" stroke="#f1c40f" stroke-width="3"/></svg>`,
+                    volcano: `<svg viewBox="0 0 100 100"><path d="M10 90 L40 50 L60 50 L90 90 Z" fill="#7f8c8d"/><path d="M40 50 L45 30 L55 30 L60 50 Z" fill="#e74c3c"/><circle cx="50" cy="20" r="5" fill="#f1c40f" opacity="0.5"/><circle cx="60" cy="10" r="3" fill="#f1c40f" opacity="0.5"/></svg>`,
+                    jurassic: `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#1e5631"/><path d="M10 90 Q10 40 30 20 L40 90 Z" fill="#145A32"/><path d="M60 90 Q60 50 80 30 L90 90 Z" fill="#145A32"/><circle cx="50" cy="50" r="10" fill="#f1c40f" opacity="0.3"/></svg>`,
+                    snake: `<svg viewBox="0 0 100 100"><path d="M10 90 Q30 50 50 70 T90 50" fill="none" stroke="#27ae60" stroke-width="8" stroke-linecap="round"/><circle cx="90" cy="50" r="5" fill="#27ae60"/><circle cx="92" cy="48" r="2" fill="#000"/></svg>`,
+                    tracks: `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#8e6b45"/><path d="M20 80 Q30 70 40 80 Q50 90 60 80" fill="none" stroke="#4a3018" stroke-width="3"/><path d="M40 50 Q50 40 60 50 Q70 60 80 50" fill="none" stroke="#4a3018" stroke-width="3"/></svg>`,
+                    archaeopteryx: `<svg viewBox="0 0 100 100"><path d="M30 60 Q50 30 70 60 Q60 70 50 60 Q40 70 30 60 Z" fill="#d35400"/><path d="M50 60 L50 90 M50 70 L40 80 M50 70 L60 80" stroke="#d35400" stroke-width="3"/><circle cx="60" cy="50" r="3" fill="#000"/><path d="M60 50 L70 45" stroke="#000" stroke-width="2"/></svg>`,
+                    victory: `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#f1c40f" opacity="0.2"/><path d="M30 50 L45 65 L70 35" fill="none" stroke="#2ecc71" stroke-width="10" stroke-linecap="round"/></svg>`,
+                    error: `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#333"/><text x="50" y="55" font-size="40" text-anchor="middle" fill="#e74c3c" font-weight="bold">X</text></svg>`
+                };
+                return svgs[type] || svgs.error;
+            },
+
+            updateHint(node) {
+                // 從原書 Data File 中提取的提示 (簡化版)
+                const hints = {
+                    "start": "這是一趟時空旅行。記住四項鐵律：不殺生、不改變歷史、不帶人、服從指示。",
+                    "1": "你現在不知道確切的時間。先探索周圍環境吧。",
+                    "3": "厚頭龍是草食恐龍，牠們的頭部撞擊聲很大。騎上牠們可能很危險。",
+                    "4": "如果你試圖傷害恐龍或逃跑，可能會失敗。時空旅人必須小心。",
+                    "21": "在老厚頭龍背上非常危險。趁機跳躍到下一個時代吧。",
+                    "creta": "白堊紀的恐龍非常巨大。你可能需要幫助小三角龍，但這可能不是你的最終目標。",
+                    "jurassic_hint": "侏羅紀是尋找始祖鳥的正確時代。但始祖鳥的化石只在歐洲被發現。如果你在美洲，需要往東跳躍。",
+                    "tree_climb": "蛇怕火。但如果你點燃了樹，你也會被困住。記得往歐洲方向跳躍。",
+                    "europe_hint": "這些腳印看起來有羽毛的痕跡。跟著牠們走！",
+                    "archaeopteryx_encounter": "拿出相機，拍下這歷史性的一刻！"
+                };
+                document.getElementById('hint-text').innerText = hints[state.currentNodeId] || "目前沒有針對這個節點的提示。";
+            },
+
+            toggleModal(id) {
+                document.getElementById(id).classList.toggle('active');
+            },
+
+            saveGame() {
+                const saveData = {
+                    currentNodeId: state.currentNodeId,
+                    inventory: state.inventory,
+                    gameStatus: state.gameStatus,
+                    currentTime: state.currentTime
+                };
+                localStorage.setItem('timeMachineSave', JSON.stringify(saveData));
+                alert("遊戲已儲存！");
+            },
+
+            loadGame() {
+                const saveData = localStorage.getItem('timeMachineSave');
+                if (saveData) {
+                    const parsed = JSON.parse(saveData);
+                    state.currentNodeId = parsed.currentNodeId;
+                    state.inventory = parsed.inventory;
+                    state.gameStatus = parsed.gameStatus;
+                    state.currentTime = parsed.currentTime;
+                    this.render();
+                    this.updateInventory();
+                    alert("遊戲已讀取！");
+                } else {
+                    alert("找不到存檔！");
+                }
+            },
+
+            resetGame() {
+                state.currentNodeId = "start";
+                state.inventory = ["camera", "stun_gun", "time_machine", "compass", "supplies"];
+                state.gameStatus = "PLAYING";
+                state.currentTime = "現代";
+                this.render();
+                this.updateInventory();
+            }
+        };
+
+        // 啟動遊戲
+        window.onload = () => {
+            game.init();
+        };
+    </script>
+</body>
+</html>

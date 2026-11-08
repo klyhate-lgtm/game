@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>時間機器18：凱撒之劍</title>
+    <style>
+        :root {
+            --parchment: #f4e4c1;
+            --parchment-dark: #e0c9a6;
+            --ink: #3e2723;
+            --ink-light: #5d4037;
+            --gold: #b8860b;
+            --blood: #8b0000;
+            --font-main: 'Georgia', 'Times New Roman', serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-main);
+            background-color: #2c1e16;
+            color: var(--ink);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 羊皮紙背景與暗角 */
+        #app {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: radial-gradient(circle, var(--parchment) 0%, var(--parchment-dark) 100%);
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.7);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 頂部標題列 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: rgba(62, 39, 35, 0.95);
+            color: var(--parchment);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: normal;
+        }
+
+        .sound-toggle {
+            background: none;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: var(--font-main);
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .sound-toggle:hover { background: var(--gold); color: var(--ink); }
+
+        /* 主遊戲區域 - 預設手機版單欄 */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            position: relative;
+            z-index: 5;
+            width: 100%;
+        }
+
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px;
+            flex: 1;
+        }
+
+        /* 場景圖片 */
+        .scene-image {
+            width: 100%;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .scene-image svg {
+            max-width: 100%;
+            max-height: 100%;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.4));
+        }
+
+        /* 故事面板 */
+        .story-panel {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            width: 100%;
+        }
+
+        #story-text {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            text-align: justify;
+            min-height: 120px;
+            cursor: pointer;
+            flex-shrink: 0;
+            padding: 0 5px;
+        }
+
+        /* 選項按鈕區塊 - 手機版水平滾動 */
+        #choices-container {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 10px;
+            padding: 15px 5px 20px 5px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--gold) transparent;
+            min-height: 80px;
+            align-items: center;
+            margin-top: auto;
+        }
+
+        #choices-container::-webkit-scrollbar { height: 6px; }
+        #choices-container::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+
+        .choice-btn {
+            flex: 0 0 auto;
+            background: var(--ink-light);
+            color: var(--parchment);
+            border: 2px solid var(--gold);
+            padding: 12px 20px;
+            font-family: var(--font-main);
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            max-width: 85vw;
+            white-space: normal;
+            text-align: left;
+            position: relative;
+        }
+
+        .choice-btn:hover {
+            background: var(--gold);
+            color: var(--ink);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        .choice-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 底部導航列 */
+        footer {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(62, 39, 35, 0.98);
+            padding: 8px 0;
+            border-top: 2px solid var(--gold);
+            z-index: 10;
+            width: 100%;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--parchment);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: var(--font-main);
+            font-size: 0.75rem;
+            cursor: pointer;
+            padding: 5px 15px;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .nav-btn:hover { color: var(--gold); transform: translateY(-2px); }
+        .nav-btn span.icon { font-size: 1.3rem; margin-bottom: 2px; }
+
+        /* 彈窗系統 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal-content {
+            background: var(--parchment);
+            padding: 25px;
+            border-radius: 8px;
+            border: 3px solid var(--gold);
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            color: var(--ink);
+            animation: modalIn 0.3s ease-out;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            border-bottom: 2px solid var(--ink);
+            padding-bottom: 10px;
+            font-weight: normal;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: var(--ink);
+            line-height: 1;
+        }
+
+        /* Toast 提示 */
+        #toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--blood);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+            z-index: 200;
+            text-align: center;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* 歷史紀錄與成就清單 */
+        .list-item {
+            padding: 10px 0;
+            border-bottom: 1px dashed var(--ink-light);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .list-item:last-child { border-bottom: none; }
+
+        /* 動畫 */
+        .fade-in { animation: fadeIn 0.6s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .blink-star { animation: blink 1.5s infinite alternate; }
+        @keyframes blink { from { opacity: 0.2; } to { opacity: 1; } }
+
+        /* =========================================
+           電腦版 (Desktop) 專用佈局優化
+           ========================================= */
+        @media (min-width: 900px) {
+            header { padding: 15px 30px; }
+            header h1 { font-size: 1.5rem; }
+
+            main {
+                /* 使用 flex 讓內容居中，並允許外層滾動 */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px 40px;
+            }
+
+            .game-wrapper {
+                flex-direction: row; /* 雙欄佈局 */
+                gap: 40px;
+                max-width: 1100px;
+                width: 100%;
+                height: 80vh; /* 限制高度避免過度拉伸 */
+                max-height: 700px;
+                background: rgba(244, 228, 193, 0.4); /* 給一個半透明底板 */
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.15), inset 0 0 20px rgba(255,255,255,0.3);
+                border: 1px solid rgba(184, 134, 11, 0.3);
+            }
+
+            /* 左側圖片區 */
+            .scene-image {
+                flex: 0 0 45%; /* 固定左側寬度 */
+                height: 100%;
+                margin-bottom: 0;
+                background: rgba(0,0,0,0.03);
+                border-radius: 8px;
+                border: 1px solid rgba(62, 39, 35, 0.1);
+                padding: 20px;
+            }
+
+            .scene-image svg {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+
+            /* 右側故事區 */
+            .story-panel {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+                overflow: hidden; /* 讓內部文字區可以滾動 */
+            }
+
+            #story-text {
+                font-size: 1.15rem;
+                line-height: 1.8;
+                flex: 1;
+                overflow-y: auto;
+                padding-right: 15px; /* 留出滾動條空間 */
+                margin-bottom: 20px;
+                max-width: 650px; /* 限制文字行長，提升閱讀舒適度 */
+            }
+
+            /* 自訂滾動條 */
+            #story-text::-webkit-scrollbar { width: 6px; }
+            #story-text::-webkit-scrollbar-thumb { background: var(--ink-light); border-radius: 3px; }
+            #story-text::-webkit-scrollbar-track { background: transparent; }
+
+            /* 選項區改為垂直堆疊，不水平滾動 */
+            #choices-container {
+                display: flex;
+                flex-direction: column;
+                overflow-x: hidden;
+                overflow-y: auto;
+                gap: 12px;
+                padding: 0;
+                min-height: auto;
+                margin-top: 0;
+                max-height: 40%; /* 選項區最大高度 */
+                flex-shrink: 0;
+            }
+
+            .choice-btn {
+                width: 100%;
+                padding: 15px 20px;
+                font-size: 1.05rem;
+                text-align: center;
+                border-radius: 6px;
+                background: var(--ink);
+            }
+
+            .choice-btn:hover {
+                background: var(--gold);
+                border-color: var(--ink);
+            }
+
+            footer {
+                justify-content: center;
+                gap: 40px;
+                padding: 12px 0;
+            }
+
+            .nav-btn {
+                flex-direction: row;
+                gap: 8px;
+                font-size: 0.9rem;
+            }
+            .nav-btn span.icon { font-size: 1.1rem; margin-bottom: 0; }
+
+            #toast {
+                bottom: 100px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Time Machine 18: Sword of Caesar</h1>
+            <button class="sound-toggle" id="soundBtn">🔊 音效: ON</button>
+        </header>
+
+        <main id="main-area">
+            <!-- 包裝遊戲內容 -->
+            <div class="game-wrapper">
+                <div class="scene-image" id="scene-image">
+                    <!-- SVG 由 JS 動態插入 -->
+                </div>
+                <div class="story-panel">
+                    <div id="story-text" onclick="skipTyping()"></div>
+                    <div id="choices-container"></div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <button class="nav-btn" onclick="openModal('helpModal')"><span class="icon">📖</span>說明</button>
+            <button class="nav-btn" onclick="saveGame()"><span class="icon">💾</span>存檔</button>
+            <button class="nav-btn" onclick="loadGame()"><span class="icon">📂</span>讀檔</button>
+            <button class="nav-btn" onclick="openModal('historyModal')"><span class="icon">⏳</span>歷史</button>
+            <button class="nav-btn" onclick="openModal('achievementModal')"><span class="icon">🏆</span>成就</button>
+        </footer>
+    </div>
+
+    <!-- 說明彈窗 -->
+    <div class="modal-overlay" id="helpModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('helpModal')">×</button>
+            <h2>📖 遊戲說明</h2>
+            <p>這是一場穿越時空的冒險。你將回到古羅馬，尋找凱撒的佩劍。</p>
+            <h3>時間旅行四規則：</h3>
+            <ol>
+                <li>不能殺死任何人或動物。</li>
+                <li>不能改變歷史。</li>
+                <li>不能帶走任何人。</li>
+                <li>必須遵循時間機器的指示。</li>
+            </ol>
+            <p><strong>提示：</strong>點擊故事文字可跳過打字動畫。部分選項需要持有特定物品（如通行證）才能執行。</p>
+        </div>
+    </div>
+
+    <!-- 歷史紀錄彈窗 -->
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('historyModal')">×</button>
+            <h2>⏳ 歷史紀錄</h2>
+            <div id="history-list"></div>
+        </div>
+    </div>
+
+    <!-- 成就彈窗 -->
+    <div class="modal-overlay" id="achievementModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('achievementModal')">×</button>
+            <h2>🏆 成就</h2>
+            <div id="achievement-list"></div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        // --- Web Audio API 音效 ---
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'click') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'jump') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'error') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(100, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        document.getElementById('soundBtn').addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundBtn').textContent = soundEnabled ? '🔊 音效: ON' : '🔇 音效: OFF';
+            if (soundEnabled) playSound('click');
+        });
+
+        // --- 遊戲狀態機 ---
+        const GameState = {
+            READING: 'READING',
+            TYPING: 'TYPING',
+            CHOOSING: 'CHOOSING',
+            ENDED: 'ENDED'
+        };
+
+        let currentState = GameState.READING;
+        let currentStoryId = 'start';
+        let typewriterInterval = null;
+        let currentFullText = '';
+        let inventory = [];
+        let historyLog = [];
+        let achievements = JSON.parse(localStorage.getItem('caesar_achievements')) || [];
+
+        // --- 故事資料庫 ---
+        const storyData = {
+            'start': {
+                text: "你站在古羅馬一條荒涼的街道上。這是公元前44年3月初的潮濕冬夜。遠處傳來車輪碾過石板的隆隆聲。你開始向繁忙的區域走去，突然聽到狂風中傳來秘密的低語聲：「必須盡快殺死他。」你發現三個人聚集在附近的大理石柱廊下。你悄悄靠近，聽得更清楚了。「就在本月十五日，不能再晚了，」其中一人說。你意識到他們在討論尤利烏斯·凱撒！他們正在密謀刺殺他！就在這時，一陣風吹動你的斗篷，讓你在三個陰謀家面前暴露了。",
+                svg: 'assassins',
+                choices: [
+                    { text: "轉身逃跑", next: 'meet_silvius' }
+                ]
+            },
+            'meet_silvius': {
+                text: "你拼命逃跑，消失在夜色中。你在羅馬廣場遇到了一個和你年紀相仿的男孩。他自我介紹叫西爾維烏斯（Silvius）。得知你迷路了，他熱情地邀請你去他家吃晚餐。在交談中，你發現他的父親達里烏斯（Darius）是凱撒的秘書。你隱瞞了真實身份，說自己正在找工作。達里烏斯說：「我剛好需要一個能讀寫的助手，你願意為凱撒工作嗎？」",
+                svg: 'meeting',
+                choices: [
+                    { text: "接受工作，留在公元前44年的羅馬", next: 'caesar_house' },
+                    { text: "跳躍回公元前52年，見證凱撒的高盧戰役", next: 'gaul' }
+                ]
+            },
+            'caesar_house': {
+                text: "你在凱撒的宏偉別墅裡工作了一整天。第二天是假日，西爾維烏斯要去競技場看角鬥士比賽。他說凱撒也會去。但你想著你的任務，也許你應該在競技場尋找凱撒的劍？或者，年輕時的凱撒更常佩戴那把劍。",
+                svg: 'caesar_house',
+                choices: [
+                    { text: "和西爾維烏斯一起去競技場", next: 'colosseum' },
+                    { text: "跳躍回公元前52年的阿萊西亞", next: 'gaul' }
+                ]
+            },
+            'gaul': {
+                text: "公元前52年，阿萊西亞。你身處羅馬軍營，面對著高盧人的城牆。戰鬥異常慘烈。在混亂中，你看到一名受傷的高盧士兵正準備從背後偷襲凱撒！「凱撒——小心！」你大喊。凱撒轉身，用劍擋開了致命一擊。他看著你，說：「我欠你一條命，我的朋友。我該如何報答你？」",
+                svg: 'battle',
+                choices: [
+                    { text: "請求一份能在帝國通行無阻的通行證（Diploma）", next: 'get_diploma' }
+                ]
+            },
+            'get_diploma': {
+                text: "凱撒給了你一份蓋有他印章的羊皮紙。「這份通行證能讓你前往帝國的任何地方。」你接過通行證，這是你任務的關鍵道具。現在，你可以選擇跳躍到凱撒生涯中的另一個重要時刻，或者去尋找布魯圖斯。",
+                svg: 'diploma',
+                onEnter: () => { if (!inventory.includes('diploma')) inventory.push('diploma'); },
+                choices: [
+                    { text: "跳躍到公元前49年的盧比孔河", next: 'rubicon' },
+                    { text: "跳躍到公元前44年，找布魯圖斯", next: 'rome_44' }
+                ]
+            },
+            'rubicon': {
+                text: "公元前49年1月10日，盧比孔河畔。凱撒站在河岸邊，對著他的士兵們說：「我的戰友們，一旦跨過這條河，就是向羅馬宣戰。我們所有的錢都花光了，我無法支付你們的軍餉。」一名老兵走上前，將一袋硬幣放在凱撒腳下。其他人紛紛效仿。凱撒眼含熱淚：「那麼，骰子已經擲下！」",
+                svg: 'rubicon',
+                choices: [
+                    { text: "跟隨凱撒前往法薩盧斯戰役（公元前48年）", next: 'pharsalus' },
+                    { text: "跳躍到公元前44年3月14日，凱撒遇刺前夜", next: 'rome_44' }
+                ]
+            },
+            'pharsalus': {
+                text: "公元前48年，法薩盧斯。凱撒擊敗了龐培。你在龐培的帳篷裡看到了奢華的宴席。凱撒下令燒毀龐培的信件，不需要閱讀失敗者的秘密。他的佩劍就放在宴會桌旁。現在，你需要決定下一步。",
+                svg: 'pharsalus',
+                choices: [
+                    { text: "跳躍到公元前29年，尋找凱撒的繼承人", next: 'augustus', req: 'diploma', reqMsg: '你缺少「凱撒的通行證」，無法通過守衛！' },
+                    { text: "跳躍到公元前44年3月15日，刺殺當天", next: 'assassination' }
+                ]
+            },
+            'rome_44': {
+                text: "公元前44年3月14日，凱撒家中正在舉行晚宴。凱撒的妻子卡爾普尼亞（Calpurnia）神色不安，她請求凱撒明天不要去元老院，因為她做了噩夢。你鼓起勇氣說：「我也做了噩夢，凱撒。我夢見三月十五日會發生可怕的事。」凱撒卻笑道：「夢是迷信。就像那個占卜師的警告一樣。」",
+                svg: 'dinner',
+                choices: [
+                    { text: "跟隨凱撒前往元老院（3月15日）", next: 'assassination' },
+                    { text: "去尋找布魯圖斯", next: 'brutus_house' }
+                ]
+            },
+            'brutus_house': {
+                text: "你來到布魯圖斯的家門外。你偷聽到卡西烏斯正在極力說服布魯圖斯加入陰謀。「布魯圖斯，這是唯一的辦法！他想要稱王！」布魯圖斯顯得猶豫不決。你不小心弄出了聲響，卡西烏斯發現了你！你拼命逃跑，消失在人群中。你決定直接去元老院。",
+                svg: 'brutus',
+                choices: [
+                    { text: "前往元老院", next: 'assassination' }
+                ]
+            },
+            'assassination': {
+                text: "公元前44年3月15日，元老院。你被衛兵攔在門外。突然，裡面傳來慘叫聲。男人們手持沾血的匕首衝出來。你衝進大廳，看到凱撒倒在龐培的雕像下，身上多處刀傷。布魯圖斯也在其中。你悲痛地走近，但發現凱撒的佩劍不見了。",
+                svg: 'assassination',
+                choices: [
+                    { text: "留下參加凱撒的葬禮", next: 'funeral' },
+                    { text: "跳躍去尋找凱撒的繼承人（需要通行證）", next: 'augustus', req: 'diploma', reqMsg: '你沒有通行證，無法面見皇帝！' }
+                ]
+            },
+            'funeral': {
+                text: "公元前44年3月20日，羅馬廣場。馬克·安東尼發表了激動人心的悼詞，群眾陷入瘋狂，將怒火燒向刺殺者。占卜師斯普林納告訴你：「恐怖將統治一切，直到屋大維帶來和平。」你想知道屋大維是否會保留凱撒的劍。",
+                svg: 'funeral',
+                choices: [
+                    { text: "跳躍到公元前29年，面見屋大維（需要通行證）", next: 'augustus', req: 'diploma', reqMsg: '你缺少「凱撒的通行證」，無法通過守衛！' }
+                ]
+            },
+            'augustus': {
+                text: "公元前29年，羅馬。屋大維（奧古斯都）接見了你。他看起來虛弱但眼神堅定。你告訴他你在尋找凱撒的劍。屋大維說：「在我擊敗布魯圖斯和卡西烏斯後，我發誓要為我的養父建立一座戰神復仇者神廟，並將他的劍供奉在裡面。這把劍將成為他偉大功績的永恆象徵。」",
+                svg: 'augustus',
+                choices: [
+                    { text: "跳躍到公元2年，見證神廟落成", next: 'temple_ad2' }
+                ]
+            },
+            'temple_ad2': {
+                text: "公元2年，奧古斯都廣場。戰神復仇者神廟落成。奧古斯都親自將凱撒的劍放在祭壇上。你站在人群中，看著那把曾經改變歷史的劍。你的任務完成了——你找到了凱撒之劍的命運。",
+                svg: 'temple',
+                isEnding: true,
+                endingId: 'victory',
+                endingTitle: '任務完成：歷史的見證者',
+                choices: [
+                    { text: "重新開始時間旅行", next: 'start', reset: true }
+                ]
+            },
+            // 失敗/支線結局
+            'colosseum': {
+                text: "你在競技場遇到了一隻逃脫的豹子！人群陷入恐慌，你被推向了野獸。你必須立刻跳躍逃離！",
+                svg: 'colosseum',
+                choices: [
+                    { text: "跳躍到安全的地方", next: 'fail_caligula' }
+                ]
+            },
+            'fail_caligula': {
+                text: "你意外跳躍到了公元37年。你被帶到了卡利古拉（Caligula）面前。這位瘋狂的皇帝正在讓他的馬成為執政官。你忍不住笑了一聲。「你敢嘲笑皇帝？」卡利古拉尖叫，「把他丟進監獄，處死！」你在黑暗的牢房裡，必須再次跳躍。",
+                svg: 'caligula',
+                isEnding: true,
+                endingId: 'fail_caligula',
+                endingTitle: '失敗結局：冒犯瘋帝',
+                choices: [
+                    { text: "重新開始", next: 'start', reset: true }
+                ]
+            }
+        };
+
+        // --- SVG 圖像生成器 ---
+        const svgGenerator = {
+            assassins: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><path d="M20,150 L20,50 L40,50 L40,150" fill="#4a3b32"/><path d="M160,150 L160,50 L180,50 L180,150" fill="#4a3b32"/><circle cx="100" cy="40" r="30" fill="#4a3b32"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">陰謀的低語</text></svg>`,
+            meeting: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><circle cx="100" cy="50" r="20" fill="#d2b48c"/><path d="M80,150 L80,80 L120,80 L120,150" fill="#8b4513"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">結識西爾維烏斯</text></svg>`,
+            caesar_house: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><rect x="30" y="50" width="140" height="100" fill="#a0522d"/><polygon points="30,50 100,10 170,50" fill="#b8860b"/><rect x="80" y="90" width="40" height="60" fill="#4a3b32"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">凱撒的別墅</text></svg>`,
+            battle: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><path d="M50,150 L80,50 L100,70 L120,50 L150,150" fill="#8b4513"/><line x1="60" y1="30" x2="140" y2="140" stroke="#ccc" stroke-width="2"/><line x1="140" y1="30" x2="60" y2="140" stroke="#ccc" stroke-width="2"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">阿萊西亞戰役</text></svg>`,
+            diploma: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><rect x="40" y="40" width="120" height="80" fill="#f4e4c1" rx="5"/><circle cx="100" cy="80" r="20" fill="#b8860b"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">凱撒的通行證</text></svg>`,
+            rubicon: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><path d="M0,110 Q50,100 100,110 T200,110 L200,150 L0,150 Z" fill="#4682b4"/><path d="M80,50 L120,50 L110,100 L90,100 Z" fill="#d2b48c"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">盧比孔河</text></svg>`,
+            pharsalus: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><rect x="60" y="40" width="80" height="80" fill="#a0522d"/><polygon points="50,40 100,10 150,40" fill="#b8860b"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">法薩盧斯</text></svg>`,
+            dinner: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><circle cx="60" cy="60" r="15" fill="#d2b48c"/><circle cx="140" cy="60" r="15" fill="#d2b48c"/><rect x="80" y="80" width="40" height="40" fill="#8b4513"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">最後的晚宴</text></svg>`,
+            brutus: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><path d="M70,150 L70,70 L130,70 L130,150" fill="#8b4513"/><circle cx="100" cy="50" r="20" fill="#d2b48c"/><line x1="80" y1="70" x2="60" y2="100" stroke="#ccc" stroke-width="2"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">布魯圖斯</text></svg>`,
+            assassination: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><rect x="40" y="100" width="120" height="50" fill="#4a3b32"/><circle cx="100" cy="80" r="15" fill="#8b0000"/><line x1="80" y1="60" x2="60" y2="40" stroke="#ccc" stroke-width="2"/><line x1="120" y1="60" x2="140" y2="40" stroke="#ccc" stroke-width="2"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">三月十五日</text></svg>`,
+            funeral: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><path d="M50,100 Q100,50 150,100" fill="none" stroke="#b8860b" stroke-width="3"/><rect x="80" y="100" width="40" height="30" fill="#4a3b32"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">凱撒的葬禮</text></svg>`,
+            augustus: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><rect x="70" y="50" width="60" height="80" fill="#d2b48c"/><circle cx="100" cy="40" r="20" fill="#d2b48c"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">奧古斯都</text></svg>`,
+            temple: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><rect x="40" y="80" width="120" height="50" fill="#a0522d"/><rect x="50" y="40" width="20" height="40" fill="#f4e4c1"/><rect x="90" y="40" width="20" height="40" fill="#f4e4c1"/><rect x="130" y="40" width="20" height="40" fill="#f4e4c1"/><polygon points="30,40 100,10 170,40" fill="#b8860b"/><line x1="100" y1="80" x2="100" y2="60" stroke="#ccc" stroke-width="4"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">戰神復仇者神廟</text></svg>`,
+            colosseum: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><ellipse cx="100" cy="100" rx="70" ry="40" fill="#a0522d"/><ellipse cx="100" cy="100" rx="50" ry="25" fill="#2c1e16"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">羅馬競技場</text></svg>`,
+            caligula: `<svg viewBox="0 0 200 150"><rect width="200" height="150" fill="#2c1e16"/><circle cx="100" cy="50" r="25" fill="#d2b48c"/><path d="M80,100 L120,100 L130,150 L70,150 Z" fill="#8b0000"/><text x="100" y="130" fill="#b8860b" font-family="serif" font-size="14" text-anchor="middle">卡利古拉</text></svg>`
+        };
+
+        // --- 核心邏輯 ---
+        function initGame() {
+            renderScene(currentStoryId);
+            renderAchievements();
+            updateHistoryUI();
+        }
+
+        function renderScene(id) {
+            const scene = storyData[id];
+            if (!scene) return;
+
+            currentState = GameState.TYPING;
+            currentStoryId = id;
+
+            // 記錄歷史
+            if (historyLog.length === 0 || historyLog[historyLog.length - 1].id !== id) {
+                historyLog.push({ id: id, title: scene.svg });
+                updateHistoryUI();
+            }
+
+            // 處理進入事件
+            if (scene.onEnter) scene.onEnter();
+
+            // 更新圖像
+            const imgEl = document.getElementById('scene-image');
+            imgEl.innerHTML = svgGenerator[scene.svg] || svgGenerator['meeting'];
+            imgEl.classList.remove('fade-in');
+            void imgEl.offsetWidth; // 觸發重繪
+            imgEl.classList.add('fade-in');
+
+            // 打字機效果
+            const textEl = document.getElementById('story-text');
+            textEl.innerHTML = '';
+            currentFullText = scene.text;
+            let i = 0;
+            
+            if (typewriterInterval) clearInterval(typewriterInterval);
+            
+            // 自動滾動到底部
+            textEl.scrollTop = 0;
+
+            typewriterInterval = setInterval(() => {
+                textEl.innerHTML = currentFullText.substring(0, i) + '<span class="blink-star">|</span>';
+                i++;
+                if (i > currentFullText.length) {
+                    clearInterval(typewriterInterval);
+                    textEl.innerHTML = currentFullText;
+                    currentState = GameState.CHOOSING;
+                    renderChoices(scene);
+                }
+            }, 25); // 稍微加快打字速度
+
+            // 清空選項，直到打字完成
+            document.getElementById('choices-container').innerHTML = '<div style="color:var(--ink-light); font-style:italic;">閱讀故事中...</div>';
+        }
+
+        function skipTyping() {
+            if (currentState === GameState.TYPING) {
+                clearInterval(typewriterInterval);
+                document.getElementById('story-text').innerHTML = currentFullText;
+                currentState = GameState.CHOOSING;
+                renderChoices(storyData[currentStoryId]);
+            }
+        }
+
+        function renderChoices(scene) {
+            const container = document.getElementById('choices-container');
+            container.innerHTML = '';
+
+            if (scene.isEnding) {
+                // 解鎖成就
+                if (!achievements.includes(scene.endingId)) {
+                    achievements.push(scene.endingId);
+                    localStorage.setItem('caesar_achievements', JSON.stringify(achievements));
+                    renderAchievements();
+                    showToast(`解鎖成就：${scene.endingTitle}`);
+                }
+            }
+
+            scene.choices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = choice.text;
+                
+                // 檢查物品需求
+                if (choice.req && !inventory.includes(choice.req)) {
+                    btn.style.opacity = '0.6';
+                    btn.style.borderColor = 'var(--blood)';
+                }
+
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    
+                    if (choice.req && !inventory.includes(choice.req)) {
+                        playSound('error');
+                        showToast(choice.reqMsg || '你缺少必要的物品！');
+                        return;
+                    }
+
+                    playSound(choice.reset ? 'jump' : 'click');
+                    
+                    if (choice.reset) {
+                        inventory = [];
+                        historyLog = [];
+                        achievements = [];
+                        localStorage.removeItem('caesar_achievements');
+                        renderAchievements();
+                        updateHistoryUI();
+                    }
+
+                    // 切換狀態，禁用按鈕避免連點
+                    currentState = GameState.READING;
+                    document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+                    
+                    // 淡出效果
+                    document.getElementById('story-text').style.opacity = '0';
+                    document.getElementById('scene-image').style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        document.getElementById('story-text').style.opacity = '1';
+                        document.getElementById('scene-image').style.opacity = '1';
+                        renderScene(choice.next);
+                    }, 300);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        // --- UI 輔助功能 ---
+        function openModal(id) {
+            playSound('click');
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            playSound('click');
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function updateHistoryUI() {
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+            historyLog.forEach((log, index) => {
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.innerHTML = `<strong>第 ${index + 1} 步：</strong> ${storyData[log.id]?.choices[0]?.text || '未知區域'}`;
+                list.appendChild(div);
+            });
+        }
+
+        function renderAchievements() {
+            const list = document.getElementById('achievement-list');
+            list.innerHTML = '';
+            const allAchievements = [
+                { id: 'victory', name: '任務完成：歷史的見證者' },
+                { id: 'fail_caligula', name: '失敗結局：冒犯瘋帝' }
+            ];
+
+            allAchievements.forEach(ach => {
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                if (achievements.includes(ach.id)) {
+                    div.innerHTML = `✅ ${ach.name}`;
+                    div.style.color = 'var(--gold)';
+                } else {
+                    div.innerHTML = `🔒 ??? (未解鎖)`;
+                    div.style.color = '#888';
+                }
+                list.appendChild(div);
+            });
+        }
+
+        // --- 存檔/讀檔 ---
+        function saveGame() {
+            playSound('click');
+            const saveData = {
+                currentStoryId: currentStoryId,
+                inventory: inventory,
+                historyLog: historyLog,
+                achievements: achievements
+            };
+            localStorage.setItem('caesar_save', JSON.stringify(saveData));
+            showToast('遊戲已存檔！');
+        }
+
+        function loadGame() {
+            playSound('click');
+            const saved = localStorage.getItem('caesar_save');
+            if (saved) {
+                const data = JSON.parse(saved);
+                currentStoryId = data.currentStoryId;
+                inventory = data.inventory || [];
+                historyLog = data.historyLog || [];
+                achievements = data.achievements || [];
+                renderAchievements();
+                updateHistoryUI();
+                renderScene(currentStoryId);
+                showToast('存檔已讀取！');
+            } else {
+                playSound('error');
+                showToast('沒有找到存檔！');
+            }
+        }
+
+        // 初始化
+        window.onload = initGame;
+    </script>
+</body>
+</html>

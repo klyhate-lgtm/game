@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>時間機器：騎士之秘</title>
+    <style>
+        :root {
+            --bg-color: #2c2522;
+            --text-color: #f4ecd8;
+            --accent-color: #d4a373;
+            --btn-bg: #3e332e;
+            --btn-hover: #5a4b43;
+            --panel-bg: rgba(42, 35, 32, 0.95);
+            --border-color: #7a6352;
+            --font-main: 'Georgia', 'Times New Roman', serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 0%, #3b322c 0%, transparent 70%),
+                linear-gradient(to bottom, #1a1513, #2c2522);
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-bottom: 2px solid var(--border-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            letter-spacing: 2px;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background-color: var(--btn-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background-color: var(--btn-hover);
+            border-color: var(--accent-color);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .story-container {
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 20px rgba(0,0,0,0.4);
+            width: 100%;
+            min-height: 200px;
+            position: relative;
+        }
+
+        .story-location {
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background-color: var(--accent-color);
+            color: #1a1513;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .story-text {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+
+        .story-text p {
+            margin-bottom: 15px;
+        }
+
+        /* Options */
+        .options-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 15px;
+            /* 自訂捲軸樣式 */
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-color) var(--bg-color);
+        }
+        
+        .options-wrapper::-webkit-scrollbar {
+            height: 8px;
+        }
+        .options-wrapper::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+        .options-wrapper::-webkit-scrollbar-thumb {
+            background-color: var(--accent-color);
+            border-radius: 10px;
+        }
+
+        .options-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: nowrap;
+            align-items: center;
+            justify-content: center;
+            min-width: min-content;
+            padding: 10px;
+        }
+
+        .option-card {
+            background-color: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            width: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .option-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-color);
+            box-shadow: 0 5px 15px rgba(212, 163, 115, 0.3);
+        }
+
+        .option-icon {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+        }
+
+        .option-label {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            width: 100%;
+            border: 1px solid var(--border-color);
+        }
+
+        .hint-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background-color: var(--accent-color);
+            color: #000;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.8rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .hint-badge:hover {
+            background-color: #fff;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background-color: var(--panel-bg);
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        .modal-content h2 {
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .modal-content p, .modal-content ul {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        
+        .modal-content ul {
+            padding-left: 20px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-color);
+            background: none;
+            border: none;
+            padding: 5px;
+        }
+
+        .close-modal:hover {
+            color: var(--accent-color);
+        }
+
+        /* Ending Styles */
+        .ending-screen {
+            text-align: center;
+            padding: 50px 20px;
+        }
+        .ending-title {
+            font-size: 2rem;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px #000;
+        }
+        .game-over-title {
+            color: #e74c3c;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .options-container {
+                justify-content: flex-start;
+                padding: 10px 20px;
+            }
+            .option-card {
+                width: 180px;
+            }
+            .story-text {
+                font-size: 1rem;
+            }
+            header {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">時間機器：騎士之秘</div>
+        <div class="header-controls">
+            <button onclick="toggleModal('helpModal')">遊戲說明</button>
+            <button onclick="toggleModal('dataBankModal')">資料庫</button>
+            <button onclick="saveGame()">存檔</button>
+            <button onclick="loadGame()">讀檔</button>
+        </div>
+    </header>
+
+    <main id="game-container">
+        <!-- 動態內容將插入這裡 -->
+    </main>
+
+    <!-- 說明彈窗 -->
+    <div id="helpModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-modal" onclick="toggleModal('helpModal')">&times;</button>
+            <h2>遊戲說明</h2>
+            <p>這是一本時間旅行遊戲書。你的任務是搭乘時間機器回到 600 年前的英格蘭，成為一名騎士，並解開「嘉德勳章騎士團」名稱與座右銘的秘密。</p>
+            <h3>【時間旅行者四大鐵律】</h3>
+            <ul>
+                <li>1. 絕不能殺死任何人或動物。</li>
+                <li>2. 絕不能試圖改變歷史。不要把未來的東西留在過去。</li>
+                <li>3. 絕不能帶任何人一起穿越時空。避免以嚇人或引人懷疑的方式消失。</li>
+                <li>4. 必須遵守時間機器的指示，並從提供的選項中做出選擇。</li>
+            </ul>
+            <p>點擊選項卡片來推進故事。帶有 <strong>?</strong> 符號的卡片表示你可以查看提示。</p>
+        </div>
+    </div>
+
+    <!-- 資料庫彈窗 -->
+    <div id="dataBankModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-modal" onclick="toggleModal('dataBankModal')">&times;</button>
+            <h2>中世紀資料庫 (Data Bank)</h2>
+            <ul>
+                <li><strong>騎士與盔甲：</strong>騎士偏好騎馬作戰，全套盔甲稱為「Harness」。13世紀的英格蘭長弓是致命武器，但騎士通常鄙視弓箭手。</li>
+                <li><strong>黑死病：</strong>1340年代在歐洲爆發，由老鼠和跳蚤傳播，奪走了近三分之一的人口。</li>
+                <li><strong>嘉德勳章：</strong>由愛德華三世創立，成員會佩戴藍色吊襪帶，座右銘為「Honi soit qui mal y pense」（心懷邪念者蒙羞）。</li>
+                <li><strong>克雷西戰役：</strong>1346年英法大戰，英格蘭長弓手大敗法國騎士。</li>
+                <li><strong>亞瑟王：</strong>歷史上可能真有其人，是5世紀抵抗盎格魯-撒克遜人的不列顛領袖，但圓桌武士等傳說多為後世杜撰。</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 提示彈窗 -->
+    <div id="hintModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <button class="close-modal" onclick="toggleModal('hintModal')">&times;</button>
+            <h2>資料檔案提示</h2>
+            <p id="hintText"></p>
+        </div>
+    </div>
+
+    <!-- 隱藏的 SVG 圖示定義 -->
+    <svg style="display: none;">
+        <symbol id="icon-time" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" stroke="#d4a373" stroke-width="4" fill="none"/>
+            <polyline points="50,20 50,50 70,70" stroke="#d4a373" stroke-width="4" fill="none" stroke-linecap="round"/>
+        </symbol>
+        <symbol id="icon-combat" viewBox="0 0 100 100">
+            <path d="M20,80 L80,20 M30,20 L80,70 M20,30 L70,80" stroke="#d4a373" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="50" cy="50" r="10" fill="#d4a373"/>
+        </symbol>
+        <symbol id="icon-action" viewBox="0 0 100 100">
+            <polygon points="50,10 90,50 50,90 10,50" fill="none" stroke="#d4a373" stroke-width="4"/>
+            <circle cx="50" cy="50" r="15" fill="#d4a373"/>
+        </symbol>
+        <symbol id="icon-dialog" viewBox="0 0 100 100">
+            <path d="M10,20 L90,20 L90,70 L50,70 L30,90 L30,70 L10,70 Z" fill="none" stroke="#d4a373" stroke-width="4" stroke-linejoin="round"/>
+            <circle cx="30" cy="45" r="5" fill="#d4a373"/>
+            <circle cx="50" cy="45" r="5" fill="#d4a373"/>
+            <circle cx="70" cy="45" r="5" fill="#d4a373"/>
+        </symbol>
+    </svg>
+
+    <script>
+        // --- 遊戲資料 (狀態機節點) ---
+        const gameData = {
+            "start": {
+                title: "英格蘭，溫莎 (1344年4月28日)",
+                text: "你站在溫莎附近的泥土路上。遠處山丘上有一座城堡，下方平原上搭著巨大的帳篷。你身後傳來馬蹄聲。一匹大馬高高躍起，騎士被甩進了路邊的草叢裡。\n\n「侍從！」騎士虛弱地喊道。「侍從蘭德爾！」\n\n你走過去幫忙。「需要幫忙嗎，先生？」\n\n「感謝上帝！」你把他拉起來，盔甲發出鏗鏘聲。「告訴我——你看到那個巫師了嗎？他有著紫色的翅膀！」\n\n這只是你的時間機器造成的錯覺。這時，一個約14歲的男孩從樹後跳出來。「別聽他的，庫斯伯特爵士！那個巫師變成這個怪物的樣子了！」他指著你。",
+                options: [
+                    { text: "跟上庫斯伯特爵士去參加比武大會。", type: "dialog", next: "page18" },
+                    { text: "不理他們，獨自前往1357年的溫徹斯特。", type: "time", next: "page19" }
+                ]
+            },
+            "page18": {
+                title: "溫莎，比武大會",
+                text: "庫斯伯特爵士揍了蘭德爾的耳朵一頓，並讓你跟著他。你們來到了比武大會現場。你看到女王將手帕丟下，騎士們開始衝鋒。\n\n一位金髮女孩說：「我發誓不告訴任何人他是誰。但我給了他我的吊襪帶作為信物。」\n\n吊襪帶！這就是你來這裡尋找的東西。你問她關於「嘉德勳章騎士團」的事。\n\n「那是什麼？」她疑惑地問。顯然，這個騎士團此時還沒成立。\n\n突然，蘭德爾拿著長劍指著你：「你是個巫師！我要向你挑戰！選武器吧，長劍還是長棍？」",
+                options: [
+                    { text: "選擇長棍與蘭德爾決鬥。", type: "combat", next: "page49", hint: "你之前有學過怎麼用長棍嗎？" },
+                    { text: "跳躍時間到1349年。", type: "time", next: "page32_1349" }
+                ]
+            },
+            "page19": {
+                title: "溫徹斯特 (1357年5月20日)",
+                text: "你聽到遠處的歡呼聲和號角聲。你來到了城市廣場，人們大喊：「愛德華王子萬歲！」\n\n這是一場遊行！騎士們騎著馬穿過人群。一位穿著綠色短外套的男人說：「那是威爾斯親王愛德華，他從法國帶回了俘虜——法國國王約翰本人。」\n\n你看到王子手臂上戴著一條深藍色的吊襪帶。你問旁邊的皮革圍裙男孩：「他們為什麼戴那個？」\n\n「誰知道呢，」他說。「只有參加過克雷西戰役的騎士才能戴。我是盔甲學徒，如果你想學這門手藝，來找我。」\n\n綠色外套的男人說：「我是自耕農湯姆，國王的弓箭手。你需要工作的話，跟我來吧！」",
+                options: [
+                    { text: "跟著自耕農湯姆去農場工作。", type: "action", next: "page26" },
+                    { text: "跟著男孩去當盔甲學徒。", type: "action", next: "page23" }
+                ]
+            },
+            "page26": {
+                title: "莊園農場",
+                text: "你在烈日下跟著湯姆播種。管家走過來命令湯姆去為昆汀爵士耕地。湯姆很不滿，決定帶你去村莊綠地練習長弓。\n\n「小子，拿好這把弓，像我這樣拉開。」湯姆示範了一次，箭正中靶心。\n\n你跟著湯姆來到溫徹斯特城門。城門上插著罪犯的頭顱。湯姆的朋友開玩笑地朝市長的帽子射了一箭，結果惹怒了守衛。\n\n「把那個搗蛋鬼抓起來！」守衛指著你。你被關進了枷鎖裡。",
+                options: [
+                    { text: "在枷鎖裡待到晚上，然後跳躍時間回1357年。", type: "time", next: "page41_stocks" }
+                ]
+            },
+            "page23": {
+                title: "盔甲店 (1357年)",
+                text: "你在盔甲店工作了一週。這天，一位名叫奈傑爾的騎士來取盔甲。他手臂上戴著藍色的吊襪帶！\n\n「你長得很像我的一位老朋友，」他說。「但你太年輕了，沒參加過克雷西戰役吧？」\n\n他不小心說漏嘴了座右銘：「Honi soit qui mal y pense...」\n\n你的師父突然大吼：「夠了！回去工作！」你不小心打翻了酸液，師父氣得拿起棍子打你。\n\n「你敢逃跑，我就用燒紅的鐵塊在你額頭上烙印！」你趁機衝出店門，師父的人在後面追趕。",
+                options: [
+                    { text: "躲進左邊的大教堂尋求庇護。", type: "action", next: "page33_cathedral", hint: "中世紀的教堂是避難所。" },
+                    { text: "躲進右邊的商人公會堂。", type: "action", next: "page44_guildhall" }
+                ]
+            },
+            "page33_cathedral": {
+                title: "大教堂內",
+                text: "你躲進教堂。一個衣衫襤褸的乞丐對你說：「我也是逃犯，我已經在這裡待了三年，不敢出去。你運氣好，只要你不踏出大門，你就安全了。」\n\n你找到一間安靜的禮拜堂準備跳躍時間。該去哪裡呢？你想起王子遊行隊伍中有很多騎士，不如去和他們聊聊。",
+                options: [
+                    { text: "跳躍時間回到過去，尋找亞瑟王。", type: "time", next: "page74_arthur" },
+                    { text: "跳躍時間到1344年的溫莎。", type: "time", next: "page17_tournament" }
+                ]
+            },
+            "page44_guildhall": {
+                title: "公會堂",
+                text: "公會堂裡沒有你可以躲藏的群眾，只有幾個年輕人拿著木拍在打球。\n\n「找到你了！」盔甲店的人抓住你的手臂。「國王禁止學徒逃跑。你必須受罰，在枷鎖裡待上一天一夜！」",
+                options: [
+                    { text: "接受懲罰。", type: "action", next: "page41_stocks" }
+                ]
+            },
+            "page41_stocks": {
+                title: "枷鎖",
+                text: "你被鎖在木頭枷鎖裡。人們路過時對你丟東西嘲笑。直到夜幕降臨，四下無人時，你才得以逃脫。",
+                options: [
+                    { text: "跳回1357年的溫徹斯特。", type: "time", next: "page19" },
+                    { text: "跳回1344年的溫莎。", type: "time", next: "page17_tournament" }
+                ]
+            },
+            "page32_1349": {
+                title: "溫莎 (1349年5月15日)",
+                text: "你發現自己身處黑死病肆虐的時期。街上推著堆滿屍體的推車。廣場上有一群人在瘋狂跳舞，他們相信這樣就不會染病。\n\n你必須盡快離開。",
+                options: [
+                    { text: "跳躍時間到1349年的冬天。", type: "time", next: "page38_winter" },
+                    { text: "跳躍時間到1357年。", type: "time", next: "page19" }
+                ]
+            },
+            "page38_winter": {
+                title: "村莊 (1349年冬天)",
+                text: "因為冬天跳蚤不活躍，瘟疫暫時平息了。但這個村莊似乎成了死城。你被一群飢餓的野狗包圍了！",
+                options: [
+                    { text: "跳躍時間往前7年（1356年）。", type: "time", next: "page17_tournament" }
+                ]
+            },
+            "page17_tournament": {
+                title: "溫莎，比武大會",
+                text: "你回到比武大會。庫斯伯特爵士正穿著厚重的盔甲準備比武。他請你幫忙穿上盔甲。\n\n「你看到那個藍十字盾牌的法國騎士蓋伊爵士了嗎？我發誓，在打敗他之前，我絕不洗澡、不剪頭髮！」\n\n庫斯伯特輸了比賽，丟失了馬匹和盔甲。他的侍從蘭德爾趁機指控你是巫師。\n\n庫斯伯特爵士說：「你要和他決鬥證明自己，還是接受水神判？」",
+                options: [
+                    { text: "接受與蘭德爾的長棍決鬥。", type: "combat", next: "page49", hint: "還記得長棍要怎麼拿嗎？" },
+                    { text: "接受水神判。", type: "action", next: "page52_water" }
+                ]
+            },
+            "page52_water": {
+                title: "水神判",
+                text: "你被綁住手腳扔進池塘。如果你浮起來，就會被當成巫師燒死；如果沉下去，就是無辜的，但會淹死。\n\n你在水里掙扎，決定立刻跳躍時間。",
+                options: [
+                    { text: "跳躍到1349年。", type: "time", next: "page32_1349" },
+                    { text: "跳躍到1357年。", type: "time", next: "page19" }
+                ]
+            },
+            "page49": {
+                title: "長棍決鬥",
+                text: "你想起在盔甲店學過的長棍技巧。蘭德爾雖然強壯，但太過自信。你利用靈活的步法閃避他的攻擊，並看穿了他的動作模式。\n\n當他舉起長棍準備劈下時，你迅速側身，一棍擊中他的肚子，將他打倒在地！\n\n觀眾為你歡呼。一位金髮男孩（黑太子愛德華）走上前來：「好身手！你願意成為我的侍從嗎？」\n\n這可是成為騎士的大好機會！",
+                options: [
+                    { text: "答應成為王子的侍從。", type: "action", next: "page58_squire", hint: "這位王子未來會成為著名的黑太子。" },
+                    { text: "拒絕他，你想找其他年長的騎士。", type: "action", next: "page60_refuse" }
+                ]
+            },
+            "page58_squire": {
+                title: "成為侍從",
+                text: "你加入了愛德華王子的麾下。你跟著騎士們來到山丘上，國王愛德華三世宣布他將重啟亞瑟王的「圓桌騎士」計畫。\n\n你跟著奈傑爾（另一位侍從）開始了訓練。他教你如何使用長矛刺擊木樁，還讓你穿上沉重的盔甲騎馬。雖然過程很辛苦，還被蘭德爾暗中捉弄，但你學到了很多。",
+                options: [
+                    { text: "繼續接受訓練，並參加獵鷹活動。", type: "action", next: "page64_falconry" }
+                ]
+            },
+            "page60_refuse": {
+                title: "拒絕王子",
+                text: "「什麼？你拒絕了威爾斯親王？」庫斯伯特爵士大吃一驚。\n\n其他騎士憤怒地把你趕走。你意識到自己在1344年已經混不下去了。\n\n「既然國王想重啟圓桌騎士，不如回去找亞瑟王問問座右銘的意義？」",
+                options: [
+                    { text: "跳躍時間回到1000年前尋找亞瑟王。", type: "time", next: "page74_arthur" }
+                ]
+            },
+            "page64_falconry": {
+                title: "獵鷹與爵士",
+                text: "你跟著瓊安女士和沃爾特·德·曼尼爵士去獵鷹。曼尼爵士是一位極具騎士精神的傳奇人物。\n\n「國王派我去法國布列塔尼幫助受困的女伯爵，」他說。\n\n你意識到，如果要成為騎士，必須累積戰功。\n\n過了一段時間，你決定跳躍時間去看看未來的發展。",
+                options: [
+                    { text: "跳回1000年前找亞瑟王。", type: "time", next: "page74_arthur" },
+                    { text: "跳到兩年後的1346年（克雷西戰役前）。", type: "time", next: "page67_crecy" }
+                ]
+            },
+            "page74_arthur": {
+                title: "不列顛 (公元490年)",
+                text: "你來到一條染血的河邊。一個士兵用長矛指著你：「你是盎格魯人、撒克遜人，還是不列顛人？」\n\n「我是吟遊詩人。」你說。\n\n士兵帶你去見領袖阿爾托留斯（Artorius，可能就是亞瑟王）。他正在大廳裡喝酒。你被迫拿起豎琴為他表演。\n\n你決定唱一首關於「圓桌騎士」和座右銘的歌來試探他。",
+                options: [
+                    { text: "唱一首關於亞瑟王和圓桌的歌。", type: "dialog", next: "page77_song", hint: "阿爾托留斯似乎不懂什麼是圓桌。" }
+                ]
+            },
+            "page77_song": {
+                title: "吟遊詩人",
+                text: "你唱道：「亞瑟王喝了一大口酒，說『心懷邪念者蒙羞』！」\n\n阿爾托留斯一臉困惑：「邪惡給誰？誰心懷邪念？這國王到底是誰？」\n\n當你告訴他亞瑟是「英格蘭之王」時，他勃然大怒：「英格蘭！我們的敵人！把這個蠢貨趕出去！」\n\n你被趕出大廳。看來這個時代的人完全不知道這個座右銘。",
+                options: [
+                    { text: "跳躍時間回到850年後的愛德華時代。", type: "time", next: "page67_crecy" }
+                ]
+            },
+            "page67_crecy": {
+                title: "克雷西戰役前夕 (1346年8月26日)",
+                text: "你站在克雷西附近的山丘下。一支軍隊在山頂（英格蘭），另一支軍隊正在越過田野逼近（法國）。\n\n英格蘭的旗幟上有金獅和百合花。法國的旗幟是藍底金百合。你該加入哪一邊？",
+                options: [
+                    { text: "加入山頂的英格蘭軍隊。", type: "combat", next: "page86_english", hint: "愛德華三世是英格蘭國王。" },
+                    { text: "加入田野中的法國軍隊。", type: "combat", next: "page80_french" }
+                ]
+            },
+            "page80_french": {
+                title: "法國軍隊",
+                text: "你被法軍徵召去搬運箭矢。法軍的弩手動作緩慢，而且軍隊陣型混亂。\n\n英格蘭長弓手射出漫天的箭雨，法軍死傷慘重。法軍騎士甚至開始踐踏自己的弩手。\n\n「這太可怕了！」你決定立刻跳躍時間逃離這裡。",
+                options: [
+                    { text: "跳回1000年前尋找亞瑟王。", type: "time", next: "page74_arthur" }
+                ]
+            },
+            "page86_english": {
+                title: "英格蘭軍隊",
+                text: "你爬上山丘，發現英格蘭軍隊組織嚴密。你遇到了自耕農湯姆，他正準備操作一門新式火砲。\n\n「你來得正好，幫我把這顆石頭塞進去！」\n\n湯姆點燃火藥，結果火砲爆炸，把你震暈了。你在營地醒來。",
+                options: [
+                    { text: "感謝湯姆，並去找騎士們。", type: "action", next: "page97_knights" }
+                ]
+            },
+            "page97_knights": {
+                title: "英格蘭騎士陣線",
+                text: "你找到了奈傑爾！他給你一套備用盔甲。\n\n戰鬥異常激烈，法國騎士不斷衝鋒。王子愛德華的旗幟倒了！",
+                options: [
+                    { text: "衝進戰場撿起王子的旗幟。", type: "combat", next: "page104_banner", hint: "騎士必須勇敢，保護旗幟是極大的榮耀。" },
+                    { text: "跑回國王的預備隊求援。", type: "dialog", next: "page100_king" }
+                ]
+            },
+            "page100_king": {
+                title: "國王的預備隊",
+                text: "你跑向燃燒的風車，找到愛德華三世。\n\n「陛下，王子需要增援！」\n\n「我兒子死了嗎？他的旗幟倒了嗎？」國王問。\n\n「沒有，他還在戰鬥。」\n\n「那就不要派人去。讓他去贏得他的騎士稱號吧！」\n\n你沒機會問座右銘的事。你跑回戰場。",
+                options: [
+                    { text: "回到戰場，撿起王子的旗幟。", type: "combat", next: "page104_banner" }
+                ]
+            },
+            "page104_banner": {
+                title: "撿起旗幟",
+                text: "你衝進混戰中，和奈傑爾一起撿起王子的旗幟。英軍士氣大振！\n\n戰鬥結束後，黑太子愛德華對你說：「我看見有兩位侍從勇敢地衝進戰場奪回我的旗幟。跪下！」\n\n王子用劍輕觸你的肩膀：「起來吧，騎士！」\n\n你終於成為騎士了！",
+                options: [
+                    { text: "跳躍到兩年後的溫莎城堡（1348年）。", type: "time", next: "page108_windsor", hint: "去尋找座右銘的最終答案。" }
+                ]
+            },
+            "page108_windsor": {
+                title: "溫莎城堡 (1348年4月23日)",
+                text: "你回到溫莎城堡。國王正在舉辦盛大的舞會。你在門口遇到了奈傑爾（現在也是爵士了），他帶你進去。\n\n舞會上，國王愛德華三世從地上撿起了一條藍色的吊襪帶。周圍的人發出竊笑。\n\n國王高舉吊襪帶，大聲說道：「心懷邪念者蒙羞！（Honi soit qui mal y pense）！這將是我們騎士團的象徵！明天，我將挑選三十位最尊貴的騎士組成新的圓桌騎士團！」\n\n原來如此！這就是嘉德勳章和座右銘的由來！\n\n這時，法國俘虜蓋伊爵士走過來。你靈機一動，安排庫斯伯特爵士（他發誓不洗澡直到打敗蓋伊）和蓋伊爵士下棋。庫斯伯特贏了！他終於可以洗澡了。\n\n你看著這一切，準備跳回自己的時代。\n\n恭喜你，完成了任務！",
+                options: [
+                    { text: "任務完成！返回現代。", type: "ending", next: "end_win" }
+                ]
+            },
+            "end_win": {
+                title: "任務完成",
+                text: "你解開了嘉德勳章的秘密，也成為了一名真正的騎士。時間機器帶你回到了現代。",
+                isEnding: true,
+                endingType: "win"
+            }
+        };
+
+        // --- 提示資料 (Data File) ---
+        const hints = {
+            "page18": "根據中世紀的規矩，如果你想成為騎士，就必須勇敢面對挑戰。",
+            "page23": "中世紀的教堂是神聖的避難所，罪犯躲進去，守衛是不能進去抓人的。",
+            "page49": "你之前在盔甲店當學徒時，跟著理查德學過如何使用長棍。",
+            "page86_english": "如果待在火砲旁邊，可能會有危險。",
+            "page104_banner": "騎士精神要求你必須保護王子的旗幟，這是無上的榮耀。"
+        };
+
+        // --- 狀態管理 ---
+        let currentNodeId = "start";
+        let historyStack = []; // 用於可能的「返回」功能 (選用)
+
+        // --- DOM 元素 ---
+        const gameContainer = document.getElementById('game-container');
+
+        // --- 核心渲染函數 ---
+        function renderNode(nodeId) {
+            const node = gameData[nodeId];
+            if (!node) {
+                console.error("找不到節點:", nodeId);
+                return;
+            }
+
+            // 更新當前狀態
+            currentNodeId = nodeId;
+
+            // 建立 HTML 結構
+            let html = `
+                <div class="story-container">
+                    <div class="story-location">${node.title}</div>
+                    <div class="story-text">
+                        ${node.text.split('\n').map(p => p ? `<p>${p}</p>` : '').join('')}
+                    </div>
+                </div>
+            `;
+
+            if (node.isEnding) {
+                html += `
+                    <div class="ending-screen">
+                        <h1 class="ending-title ${node.endingType === 'gameover' ? 'game-over-title' : ''}">
+                            ${node.endingType === 'win' ? '任務完成！' : '任務失敗...'}
+                        </h1>
+                        <button onclick="resetGame()" style="margin-top: 20px; font-size: 1.2rem; padding: 10px 30px;">重新開始</button>
+                    </div>
+                `;
+            } else {
+                html += `<div class="options-wrapper"><div class="options-container">`;
+                
+                node.options.forEach((opt, index) => {
+                    // 決定圖示
+                    let iconSvg = '';
+                    if (opt.type === 'time') iconSvg = '<svg class="option-icon"><use href="#icon-time"/></svg>';
+                    else if (opt.type === 'combat') iconSvg = '<svg class="option-icon"><use href="#icon-combat"/></svg>';
+                    else if (opt.type === 'action') iconSvg = '<svg class="option-icon"><use href="#icon-action"/></svg>';
+                    else iconSvg = '<svg class="option-icon"><use href="#icon-dialog"/></svg>';
+
+                    // 決定提示標籤
+                    let hintBadge = '';
+                    if (opt.hint) {
+                        hintBadge = `<div class="hint-badge" onclick="event.stopPropagation(); showHint('${opt.hint}')">?</div>`;
+                    }
+
+                    html += `
+                        <div class="option-card" onclick="handleOptionClick('${opt.next}')">
+                            ${hintBadge}
+                            ${iconSvg}
+                            <div class="option-label">${opt.text}</div>
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+
+            gameContainer.innerHTML = html;
+            
+            // 確保水平捲軸重置到最左邊
+            const wrapper = document.querySelector('.options-wrapper');
+            if (wrapper) wrapper.scrollLeft = 0;
+        }
+
+        // --- 事件處理 ---
+        function handleOptionClick(nextNodeId) {
+            // 這裡可以加入狀態機的驗證邏輯，確保不會隨意跳轉
+            if (gameData[nextNodeId]) {
+                renderNode(nextNodeId);
+            } else {
+                alert("錯誤：找不到對應的劇情節點！");
+            }
+        }
+
+        // --- 彈窗控制 ---
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function showHint(text) {
+            document.getElementById('hintText').innerText = text;
+            toggleModal('hintModal');
+        }
+
+        // --- 存讀檔功能 ---
+        function saveGame() {
+            localStorage.setItem('timeMachineSave', currentNodeId);
+            alert("遊戲進度已儲存！");
+        }
+
+        function loadGame() {
+            const savedNode = localStorage.getItem('timeMachineSave');
+            if (savedNode && gameData[savedNode]) {
+                renderNode(savedNode);
+                alert("遊戲進度已載入！");
+            } else {
+                alert("找不到存檔！");
+            }
+        }
+
+        // --- 重置遊戲 ---
+        function resetGame() {
+            renderNode("start");
+        }
+
+        // --- 初始化 ---
+        window.onload = () => {
+            renderNode("start");
+            
+            // 點擊彈窗外部關閉
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) {
+                        overlay.style.display = 'none';
+                    }
+                });
+            });
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人質談判：終極完全版</title>
+    <style>
+        :root {
+            --bg-color: #121212; --panel-bg: #1e1e1e; --text-color: #e0e0e0;
+            --accent-color: #d32f2f; --success-color: #388e3c; --warning-color: #f57c00;
+            --card-bg: #2c2c2c; --card-text: #f5f5f5; --threat-s: #4caf50; --threat-k: #f44336;
+            --misha-bored: #607d8b; --misha-scared: #e91e63; --anon-color: #00bcd4;
+            --val-color: #ff9800; --sami-color: #ffeb3b; --jackson-color: #03a9f4;
+            --pedersen-color: #9e9e9e; --cult-color: #795548; --gonzala-color: #4caf50;
+            --seaver-color: #8bc34a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color);
+            margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+        }
+
+        /* 頂部狀態列 */
+        #top-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background-color: var(--panel-bg); border-bottom: 2px solid #333; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10; }
+        .stats { display: flex; gap: 10px; font-weight: bold; flex-wrap: wrap; }
+        .stat-box { display: flex; flex-direction: column; align-items: center; background: #111; padding: 5px 10px; border-radius: 8px; border: 1px solid #444; min-width: 55px; }
+        .stat-value { font-size: 1.2rem; color: #fff; margin-top: 3px; }
+        .threat-S { color: var(--threat-s); } .threat-K { color: var(--threat-k); }
+
+        /* 按鈕 */
+        button { background-color: #333; color: white; border: 1px solid #555; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; }
+        button:hover:not(:disabled) { background-color: #444; border-color: #777; }
+        button:active:not(:disabled) { transform: scale(0.96); }
+        button:disabled { background-color: #1a1a1a; color: #555; cursor: not-allowed; border-color: #333; }
+        .btn-primary { background-color: #1976d2; border-color: #1565c0; } .btn-primary:hover:not(:disabled) { background-color: #2196f3; }
+        .btn-danger { background-color: var(--accent-color); border-color: #b71c1c; }
+        .btn-achievement { background-color: #ffb300; color: #000; border-color: #ff8f00; }
+        .btn-achievement:hover:not(:disabled) { background-color: #ffca28; }
+
+        /* 主遊戲區佈局 */
+        #main-container { display: flex; flex: 1; overflow: hidden; }
+        #game-board { flex: 1; display: flex; flex-direction: column; padding: 10px; gap: 10px; overflow-y: auto; }
+
+        /* 日誌面板 */
+        #log-panel { width: 320px; background: #181818; border-left: 2px solid #333; display: flex; flex-direction: column; }
+        #log-title { padding: 10px; background: #222; font-weight: bold; color: #ffd54f; text-align: center; border-bottom: 1px solid #444; }
+        #log-content { flex: 1; padding: 10px; overflow-y: auto; font-size: 0.85rem; line-height: 1.5; color: #bbb; display: flex; flex-direction: column-reverse; }
+        .log-item { border-bottom: 1px dashed #333; padding: 5px 0; }
+        .log-success { color: #81c784; } .log-fail { color: #e57373; } .log-system { color: #64b5f6; }
+        .log-achievement { color: #ffb300; font-weight: bold; }
+
+        /* 綁匪與需求區 */
+        #kidnapper-area { display: flex; gap: 20px; justify-content: center; align-items: flex-start; min-height: 280px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid #333; flex-wrap: wrap; }
+
+        /* 特殊狀態面板 */
+        .special-panel { background: #222; border: 2px solid var(--anon-color); border-radius: 10px; padding: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 220px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        .special-panel h4 { margin: 0; color: #fff; text-align: center;}
+        
+        .code-segments { display: flex; gap: 5px; margin-top: 10px; }
+        .code-seg { width: 40px; height: 20px; background: #d32f2f; border-radius: 4px; border: 1px solid #555; transition: background 0.3s; }
+        .code-seg.warning { background: var(--warning-color); } .code-seg.green { background: var(--success-color); }
+
+        .pain-meter { display: flex; gap: 5px; margin-top: 10px; }
+        .pain-level { width: 20px; height: 20px; border-radius: 50%; background: #333; border: 1px solid #555; }
+        .pain-level.active { background: var(--sami-color); box-shadow: 0 0 10px var(--sami-color); }
+        .pain-level.danger { background: var(--accent-color); box-shadow: 0 0 10px var(--accent-color); }
+
+        .stockholm-slots { display: flex; gap: 5px; margin-top: 10px; }
+        .stockholm-slot { width: 30px; height: 30px; border-radius: 50%; background: #444; border: 2px solid #777; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #fff; }
+        .stockholm-slot.filled { background: var(--jackson-color); border-color: #fff; }
+
+        .location-box { background: #111; border: 2px solid var(--gonzala-color); border-radius: 8px; padding: 10px; margin-top: 10px; width: 100%; text-align: center; }
+
+        /* 西佛沼澤地圖 */
+        .map-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin-top: 10px; }
+        .map-token { width: 50px; height: 50px; background: #444; border: 2px solid #777; border-radius: 5px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-weight: bold; color: #fff; transition: all 0.2s; }
+        .map-token:hover { background: #555; transform: scale(1.05); }
+        .map-token.revealed { cursor: default; pointer-events: none; }
+        .map-token.son { background: #1976d2; border-color: #fff; }
+        .map-token.daughter { background: #d32f2f; border-color: #fff; }
+        .map-token.empty { background: #333; color: #777; }
+
+        /* 卡牌 */
+        .card { width: 160px; height: 230px; background: linear-gradient(135deg, #3a3a3a 0%, #222 100%); border-radius: 10px; display: flex; flex-direction: column; box-shadow: 0 4px 8px rgba(0,0,0,0.6); position: relative; border: 2px solid #555; transition: transform 0.2s; user-select: none; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0,0,0,0.8); }
+        .card-header { background: rgba(0,0,0,0.85); color: #fff; padding: 8px; text-align: center; font-size: 0.9rem; font-weight: bold; border-top-left-radius: 8px; border-top-right-radius: 8px; border-bottom: 1px solid #444; }
+        .card-body { flex: 1; padding: 10px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; font-size: 0.85rem; text-align: center; color: var(--card-text); line-height: 1.5; }
+        .card-footer { background: rgba(0,0,0,0.9); color: #aaa; padding: 6px; font-size: 0.8rem; text-align: center; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; position: absolute; bottom: 0; width: 100%; box-sizing: border-box; }
+        .card-cost { position: absolute; top: -10px; left: -10px; background: #1976d2; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 1.1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.6); z-index: 4; border: 2px solid #fff; }
+
+        /* 特殊卡牌 */
+        .card.kidnapper { border-color: var(--accent-color); background: linear-gradient(135deg, #4a1414 0%, #1a0505 100%); }
+        .card.kidnapper .card-body { color: #ffcdd2; }
+        
+        .card.demand { border-color: var(--warning-color); background: linear-gradient(135deg, #4a2e14 0%, #1a0e05 100%); cursor: pointer; }
+        .card.demand:hover { border-color: #ffb300; box-shadow: 0 0 15px rgba(255, 179, 0, 0.4); }
+        .card.demand .card-body { color: #ffe0b2; }
+        .card.demand .card-cost { background: var(--warning-color); }
+
+        .card.escape { border-color: var(--accent-color); background: linear-gradient(135deg, #5c1a1a 0%, #2a0505 100%); cursor: pointer; }
+        .card.escape:hover { border-color: #f44336; box-shadow: 0 0 15px rgba(244, 67, 54, 0.4); }
+        .card.escape .card-body { color: #ffcdd2; }
+        .card.escape .card-cost { background: var(--accent-color); }
+
+        .card.paranoia { border-color: #9c27b0; background: linear-gradient(135deg, #4a148c 0%, #1a0533 100%); width: 160px; height: 240px; }
+        .card.paranoia .card-body { color: #e1bee7; font-size: 0.8rem; }
+
+        /* 效果文字區塊 */
+        .effect-box { margin-top: 10px; width: 100%; font-size: 0.8rem; text-align: left; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; }
+        .effect-success { color: #81c784; border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 5px; }
+        .effect-fail { color: #e57373; }
+
+        /* 水平滾動容器 */
+        .deck-area { display: flex; flex-direction: column; gap: 5px; }
+        .row-title { font-size: 1.1rem; font-weight: bold; color: #888; margin-bottom: 5px; display: flex; justify-content: space-between; padding: 0 10px; }
+        .scroll-container { display: flex; gap: 15px; overflow-x: auto; padding: 15px 10px; align-items: center; min-height: 250px; background: rgba(0,0,0,0.2); border-radius: 10px; border: 1px inset #333; }
+        .scroll-container::-webkit-scrollbar { height: 10px; } .scroll-container::-webkit-scrollbar-thumb { background: #555; border-radius: 5px; } .scroll-container::-webkit-scrollbar-track { background: #111; }
+
+        /* 骰子面板 */
+        #dice-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 15, 15, 0.98); padding: 30px; border-radius: 15px; border: 2px solid #444; display: none; flex-direction: column; align-items: center; gap: 20px; z-index: 1000; box-shadow: 0 20px 50px rgba(0,0,0,0.9); text-align: center; }
+        .dice-container { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 500px; }
+        .die { width: 50px; height: 50px; background: #fff; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.6rem; font-weight: bold; color: #333; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.2); }
+        .die.success { background: #4caf50; color: white; } .die.fail { background: #9e9e9e; color: #fff; }
+        .die.crit-1 { background: #d32f2f; color: white; box-shadow: 0 0 15px #d32f2f; } .die.crit-6 { background: #1976d2; color: white; box-shadow: 0 0 15px #1976d2; }
+
+        /* 彈窗 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--panel-bg); padding: 30px; border-radius: 12px; max-width: 800px; max-height: 85vh; overflow-y: auto; border: 1px solid #555; box-shadow: 0 10px 40px rgba(0,0,0,0.9); }
+        .modal-content h2 { color: var(--accent-color); margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        .modal-content p { line-height: 1.6; color: #ccc; }
+        .modal-actions { margin-top: 25px; display: flex; justify-content: flex-end; gap: 15px; }
+
+        /* 成就列表 */
+        .achievement-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .achievement-item { background: #222; border: 1px solid #444; padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px; opacity: 0.5; }
+        .achievement-item.unlocked { opacity: 1; border-color: #ffb300; background: #2a2515; }
+        .achievement-icon { font-size: 1.5rem; }
+        .achievement-info h4 { margin: 0; color: #fff; font-size: 0.95rem; }
+        .achievement-info p { margin: 5px 0 0 0; font-size: 0.8rem; color: #aaa; }
+
+        #game-message { text-align: center; font-size: 1.1rem; color: #ffd54f; min-height: 28px; font-weight: bold; padding: 5px; background: rgba(0,0,0,0.4); border-radius: 5px; transition: opacity 0.3s; }
+        .hidden { display: none !important; }
+        
+        /* 選擇角色彈窗 */
+        #start-modal .modal-content { max-width: 1600px; }
+        .character-selection { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+        .character-card { flex: 1; min-width: 180px; max-width: 220px; padding: 15px; border: 2px solid #555; border-radius: 10px; background: #222; cursor: pointer; transition: all 0.2s; text-align: center; }
+        .character-card:hover { border-color: var(--accent-color); background: #2a1a1a; transform: translateY(-5px); }
+        .character-card h3 { margin-top: 0; color: #fff; font-size: 1.1rem; }
+        .character-card p { font-size: 0.85rem; color: #aaa; }
+
+        .choice-buttons { display: flex; gap: 10px; margin-top: 15px; justify-content: center; }
+        
+        /* 成就通知彈窗 */
+        #achievement-popup { position: fixed; top: 20px; right: -400px; background: #ffb300; color: #000; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(255, 179, 0, 0.5); z-index: 3000; transition: right 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; gap: 15px; }
+        #achievement-popup.show { right: 20px; }
+        #achievement-popup h4 { margin: 0; font-size: 1rem; }
+        #achievement-popup p { margin: 5px 0 0 0; font-size: 0.85rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- 起始選擇視窗 -->
+    <div id="start-modal" class="modal" style="display: flex;">
+        <div class="modal-content">
+            <h2>選擇你的談判對象</h2>
+            <div class="character-selection">
+                <div class="character-card" onclick="startGame('akheni')">
+                    <h3>阿肯尼</h3><p>人質：7 / 威脅：4<br>滿足主要需求投降</p>
+                </div>
+                <div class="character-card" onclick="startGame('donna')">
+                    <h3>唐娜</h3><p>人質：12 / 威脅：2<br>雙1撕票，雙6救人</p>
+                </div>
+                <div class="character-card" onclick="startGame('misha')" style="border-color: #9c27b0;">
+                    <h3>米莎</h3><p>人質：11 / 威脅：5<br>偏執狀態</p>
+                </div>
+                <div class="character-card" onclick="startGame('anonymous')" style="border-color: var(--anon-color);">
+                    <h3>匿名者</h3><p>人質：11 / 威脅：4<br>炸彈拆除</p>
+                </div>
+                <div class="character-card" onclick="startGame('valerie')" style="border-color: var(--val-color);">
+                    <h3>瓦萊麗</h3><p>人質：8 / 威脅：4<br>競爭對手</p>
+                </div>
+                <div class="character-card" onclick="startGame('sami')" style="border-color: var(--sami-color);">
+                    <h3>薩米 X</h3><p>人質：8 / 威脅：2<br>偏頭痛</p>
+                </div>
+                <div class="character-card" onclick="startGame('jackson')" style="border-color: var(--jackson-color);">
+                    <h3>傑克遜</h3><p>人質：9 / 威脅：3<br>不能死人質</p>
+                </div>
+                <div class="character-card" onclick="startGame('pedersen')" style="border-color: var(--pedersen-color);">
+                    <h3>佩德森兄弟</h3><p>人質：9 / 威脅：5<br>雙人切換</p>
+                </div>
+                <div class="character-card" onclick="startGame('cult')" style="border-color: var(--cult-color);">
+                    <h3>汽車界</h3><p>人質：9 / 威脅：4<br>動態牌堆</p>
+                </div>
+                <div class="character-card" onclick="startGame('gonzala')" style="border-color: var(--gonzala-color);">
+                    <h3>貢薩拉</h3><p>人質：9 / 威脅：3<br>公交追逐</p>
+                </div>
+                <div class="character-card" onclick="startGame('seaver')" style="border-color: var(--seaver-color);">
+                    <h3>西佛家族</h3><p>人質：9 / 威脅：3<br>雙人綁匪、地圖搜索</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頂部狀態列 -->
+    <div id="top-bar" class="hidden">
+        <div class="stats">
+            <div class="stat-box"><span>回合</span><span class="stat-value" id="stat-turn">1</span></div>
+            <div class="stat-box"><span>人質池</span><span class="stat-value" id="stat-hostages">0</span></div>
+            <div class="stat-box"><span>獲救</span><span class="stat-value" style="color: var(--success-color);" id="stat-rescued">0</span></div>
+            <div class="stat-box"><span>死亡</span><span class="stat-value" style="color: var(--accent-color);" id="stat-casualties">0</span></div>
+            <div class="stat-box"><span>威脅</span><span class="stat-value" id="stat-threat">0</span></div>
+            <div class="stat-box"><span>談話點</span><span class="stat-value" style="color: #64b5f6;" id="stat-cp">0</span></div>
+            <div class="stat-box"><span>剩餘恐怖卡</span><span class="stat-value" style="color: #e57373;" id="stat-terror-count">0</span></div>
+            <div class="stat-box"><span>階段</span><span class="stat-value" id="stat-phase" style="font-size: 0.9rem;">-</span></div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="openAchievements()" class="btn-achievement">🏆 成就</button>
+            <button onclick="openRules()">規則</button>
+            <button onclick="saveGame()">存檔</button>
+            <button onclick="loadGame()">讀檔</button>
+            <button onclick="resetGame()" class="btn-danger">重新開始</button>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div id="main-container" class="hidden">
+        <div id="game-board">
+            <div id="game-message">準備開始...</div>
+            <div id="kidnapper-area" class="scroll-container"></div>
+            
+            <div class="deck-area">
+                <div class="row-title"><span>可用牌區 (花費階段點擊購買)</span></div>
+                <div id="available-cards" class="scroll-container"></div>
+            </div>
+
+            <div class="deck-area">
+                <div class="row-title"><span>你的手牌 (談話階段點擊打出)</span><span id="hand-count">0 / 10</span></div>
+                <div id="hand-cards" class="scroll-container"></div>
+            </div>
+
+            <div style="display: flex; justify-content: center; gap: 20px; padding: 15px; border-top: 1px solid #333; background: var(--panel-bg); margin-top: auto;">
+                <button id="btn-end-talk" class="btn-primary" onclick="endTalkPhase()">結束談話階段</button>
+                <button id="btn-end-spend" class="btn-primary hidden" onclick="endSpendPhase()">結束花費階段</button>
+                <button id="btn-draw-terror" class="btn-danger hidden" onclick="drawTerrorCard()">抽取恐怖卡</button>
+            </div>
+        </div>
+
+        <!-- 日誌面板 -->
+        <div id="log-panel">
+            <div id="log-title">📜 遊戲戰報記錄</div>
+            <div id="log-content"></div>
+        </div>
+    </div>
+
+    <!-- 骰子面板 -->
+    <div id="dice-panel">
+        <h2 style="margin: 0; color: white;" id="dice-title">擲骰</h2>
+        <div class="dice-container" id="dice-results"></div>
+        <div id="dice-summary" style="font-size: 1.1rem; font-weight: bold; color: #ffd54f; line-height:1.5;"></div>
+        <button id="btn-close-dice" onclick="resolveDiceRoll()" class="btn-primary" disabled>結算結果</button>
+    </div>
+
+    <!-- 偏執選擇彈窗 -->
+    <div id="paranoia-modal" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <h2 style="color: #9c27b0;">米莎的偏執狀態</h2>
+            <p>花費階段開始時，你必須花費 1 個談話點，<strong>或者</strong>為偏執症擲骰。</p>
+            <div class="choice-buttons">
+                <button id="btn-pay-paranoia" class="btn-primary" onclick="payParanoia()">花費 1 點談話點</button>
+                <button id="btn-roll-paranoia" class="btn-danger" onclick="rollParanoia()">進行偏執擲骰</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 炸彈拆除彈窗 -->
+    <div id="bomb-modal" class="modal">
+        <div class="modal-content" style="text-align: center; border-color: var(--anon-color);">
+            <h2 style="color: var(--anon-color);">破解代碼段</h2>
+            <p>花費 2 點談話點來進行拆彈擲骰。若成功，將一個警告標記移至綠區。</p>
+            <p>當前談話點：<span id="bomb-cp" style="color:#ffd54f; font-weight:bold;"></span></p>
+            <div class="choice-buttons">
+                <button id="btn-pay-bomb" class="btn-primary" onclick="doBombRoll()">花費 2 點並擲骰</button>
+                <button class="btn-danger" onclick="closeBombModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成就彈窗 -->
+    <div id="achievements-modal" class="modal">
+        <div class="modal-content">
+            <h2>🏆 職業成就附錄</h2>
+            <p>完成特定條件即可解鎖成就，進度會自動保存在瀏覽器中。</p>
+            <ul class="achievement-list" id="achievement-list"></ul>
+            <div class="modal-actions">
+                <button onclick="closeAchievements()" class="btn-primary">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成就彈出通知 -->
+    <div id="achievement-popup">
+        <div style="font-size: 2rem;">🏆</div>
+        <div>
+            <h4>成就解鎖！</h4>
+            <p id="achievement-popup-text">...</p>
+        </div>
+    </div>
+
+    <!-- 規則彈窗 -->
+    <div id="rules-modal" class="modal">
+        <div class="modal-content">
+            <h2>遊戲玩法說明</h2>
+            <p><strong>遊戲目標：</strong>解救人質。獲得勝利需要：人質池沒有剩餘人質、至少半數人質活著獲救、綁匪被抓捕或擊殺。</p>
+            <p><strong>失敗條件：</strong>一半以上人質被撕票、綁匪逃脫、無法摸取恐怖卡。</p>
+            <hr style="border-color: #444;">
+            <h3>回合流程</h3>
+            <p><strong>1. 談話階段：</strong>打出談話卡。擲出等同當前威脅等級數量的骰子（S=0, K=7）。5和6為成功；4可以透過額外棄掉2張手牌轉化為成功。</p>
+            <p><strong>2. 花費階段：</strong>使用本回合獲得的談話點，購買可用牌區的卡牌。手牌上限 10 張。</p>
+            <p><strong>3. 恐怖階段：</strong>抽一張恐怖卡並結算效果，之後進入下一回合。</p>
+            <div class="modal-actions">
+                <button onclick="closeRules()" class="btn-primary">我明白了</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- 狀態機定義 ---
+    const PHASES = { SETUP: 'SETUP', TALK: 'TALK', SPEND: 'SPEND', TERROR: 'TERROR', GAME_OVER: 'GAME_OVER' };
+
+    // --- 成就系統定義 ---
+    const ACHIEVEMENTS_DB = {
+        'base_win': { name: '初次勝利', desc: '贏得任意一場遊戲。' },
+        'base_no_casualties': { name: '零傷亡', desc: '在沒有任何 人質被撕票 (0傷亡) 的情況下獲勝。' },
+        'base_rescue_5': { name: '神救援', desc: '在一回合內拯救 5 名或更多人質。' },
+        'base_threat_k': { name: '懸崖勒馬', desc: '在威脅等級為 K 時拯救人質。' },
+        'akheni_win': { name: '阿肯尼的終結', desc: '擊敗阿肯尼·馬酥阿。' },
+        'donna_win': { name: '唐娜的救贖', desc: '擊敗唐娜·斯卡伯勒。' },
+        'donna_threat5': { name: '危機邊緣', desc: '在威脅等級為 5 時擊敗唐娜。' },
+        'misha_win': { name: '名人落幕', desc: '擊敗米莎·科斯基寧。' },
+        'jackson_win': { name: '真相大白', desc: '擊敗傑克遜上尉。' },
+        'jackson_stockholm': { name: '斯德哥爾摩症候群', desc: '在記錄卡上有 3 名或更多人的情況下擊敗傑克遜。' },
+        'anon_win': { name: '反駭客', desc: '擊敗匿名者。' },
+        'valerie_win': { name: '頂尖對決', desc: '擊敗瓦萊麗·斯通。' },
+        'sami_win': { name: '止痛成功', desc: '擊敗薩米 X。' },
+        'pedersen_win': { name: '黑幫覆滅', desc: '擊敗佩德森兄弟。' },
+        'cult_win': { name: '驅散邪教', desc: '擊敗汽車界。' },
+        'gonzala_win': { name: '攔停公車', desc: '擊敗貢薩拉。' },
+        'seaver_win': { name: '家庭破碎', desc: '擊敗西佛家族。' }
+    };
+
+    let unlockedAchievements = JSON.parse(localStorage.getItem('hostageAchievements')) || {};
+
+    // --- 翻譯字典 ---
+    const TERMS = {
+        'cp+': '獲得 {n} 談話點', 'cp-': '失去 {n} 談話點', 'threat+': '威脅等級 +{n}', 'threat-': '威脅等級 -{n}',
+        'kill+': '撕票 {n} 名人質', 'rescue+': '解救 {n} 名人質', 'dice+': '本次擲骰增加 {n} 顆骰子', 'dice-': '本次擲骰減少 {n} 顆骰子',
+        'kill_kidnapper': '擊殺綁匪', 'convert_4': '本次擲骰的 4 可視為 5', 'discard_self': '將此卡移出遊戲',
+    };
+
+    function translateEffect(str) {
+        if (!str) return '無';
+        let parts = str.split('_');
+        let results = [];
+        parts.forEach(p => {
+            for (let key in TERMS) {
+                if (p.startsWith(key) && key !== 'cp+' && key !== 'cp-') {
+                    let num = p.replace(key, '');
+                    results.push(TERMS[key].replace('{n}', num));
+                    return;
+                }
+            }
+            if (p.startsWith('cp+')) results.push(TERMS['cp+'].replace('{n}', p.replace('cp+', '')));
+            else if (p.startsWith('cp-')) results.push(TERMS['cp-'].replace('{n}', p.replace('cp-', '')));
+        });
+        return results.join('，');
+    }
+
+    // --- 卡牌資料庫 ---
+    const TALK_CARDS_DB = [
+        { id: 't1', name: '你想要什麼？', cost: 0, effects: { success: 'cp+2', fail: 'threat+1' } },
+        { id: 't2', name: '保持冷靜', cost: 0, effects: { success: 'threat-1', fail: 'threat+1' } },
+        { id: 't3', name: '聊聊吧...', cost: 2, effects: { success: 'cp+3', fail: 'cp+1' } },
+        { id: 't4', name: '小房間', cost: 2, effects: { success: 'rescue+1', fail: 'kill+1' } },
+        { id: 't5', name: '空投支票', cost: 4, effects: { success: 'cp+2', fail: 'dice-1_kill+1' } },
+        { id: 't6', name: '大離間', cost: 6, effects: { success: 'rescue+3_threat+2', fail: 'kill+2_threat+2' } },
+        { id: 't7', name: '狙擊手，射擊！', cost: 7, effects: { success: 'kill_kidnapper', fail: 'kill+2_threat+2' } },
+        { id: 't8', name: '我是來談話的', cost: 5, effects: { success: 'dice+2', fail: 'discard_self' } },
+        { id: 't9', name: '你需要信任我', cost: 2, effects: { success: 'convert_4', fail: 'threat+1_cp+1' } },
+        { id: 's1', name: '注意我的聲音！', cost: 1, effects: { success: 'reduce_pain_2', fail: 'reduce_pain_1' }, isSamiOnly: true },
+        { id: 'j1', name: '上尉，你肯定不想這樣！', cost: 1, effects: { success: 'protect_hostage', fail: 'protect_hostage' }, isJacksonOnly: true }
+    ];
+
+    const TERROR_CARDS_DB = [
+        { name: '情況惡化了', effect: 'threat+1', desc: '威脅等級 +1' },
+        { name: '我很生氣', effect: 'threat+2', desc: '威脅等級 +2' },
+        { name: '毫無進展', effect: 'kill+1', desc: '綁匪撕票 1 名人質' },
+        { name: '人質嘗試逃跑', effect: 'roll_kill', desc: '進行一次威脅擲骰。失敗：撕票1人質。' },
+        { name: '不要考驗我的耐心', effect: 'roll_threat', desc: '擲1顆骰子。點數大於當前威脅：威脅+1。' }
+    ];
+
+    const MISHA_TRIVIAL_DEMANDS = [
+        { name: '瑣碎需求：給我葡萄酒', effect: 'misha_trivial_wine', desc: '滿足(-1威脅，置於米莎下)。懲罰：米莎下有卡則抽1紅卡。' },
+        { name: '瑣碎需求：永不放棄你', effect: 'misha_trivial_song', desc: '滿足(-1威脅，置於米莎下)。' },
+        { name: '瑣碎需求：最新藍牙耳機', effect: 'misha_trivial_headphones', desc: '無法滿足。米莎下每有一個需求，+1威脅。解決後：棄掉米莎下所有需求。' }
+    ];
+
+    const ANON_TERROR_CARDS = [
+        { name: '抓住你...', effect: 'anon_gotcha', desc: '將一個已破譯的綠區代碼段，變回未破譯狀態 (變回紅色)。' },
+        { name: '你能給我什麼？', effect: 'anon_what_give', desc: '展示一張黑客需求，並立刻抽取下一張紅色恐怖卡。' },
+        { name: 'Dox 臥底 (黑客需求)', effect: 'anon_dox', desc: '每個恐怖階段結束時進行威脅擲骰，失敗撕票 1 人。' },
+        { name: '時間到.exe (黑客需求)', effect: 'anon_timeup', desc: '花費 2 點並丟棄 2 張手牌，進行兩次拆彈擲骰。' }
+    ];
+
+    const SAMI_TERROR_CARDS = [
+        { name: '螞蟻在我的皮膚下爬行', effect: 'sami_ants', desc: '將偏頭痛級別提高 1 並執行效果。' },
+        { name: '次要需求：香菸', effect: 'sami_demand_smoke', desc: '滿足：擲骰+1，但談話結算後棄1張牌。' },
+        { name: '次要需求：食物', effect: 'sami_demand_food', desc: '滿足：忽略1個骷髏，但移除所有0費卡。' },
+        { name: '次要需求：巧克力', effect: 'sami_demand_choco', desc: '滿足：獲得4/2點，但威脅+1。' }
+    ];
+
+    const GONZALA_TERROR_CARDS = [
+        { name: '他在移動', effect: 'gonzala_move', desc: '公交車停下，翻轉公交卡。忽略地點卡效果。' }
+    ];
+
+    const SEAVER_TERROR_CARDS = [
+        { name: '我想見桑德拉！', effect: 'seaver_sandra', desc: '如果所有桑德拉對話卡移除，+2威脅。否則增加1名人質。' },
+        { name: '蒂娜在逃跑', effect: 'seaver_run', desc: '除非搜索到蒂娜標記，否則無法逮捕蒂娜。' },
+        { name: '我在告訴你他們在哪', effect: 'seaver_key', desc: '展示隱藏標記，兩個孩子找到後威脅移至K。' }
+    ];
+
+    const KIDNAPPERS = {
+        akheni: { name: '阿肯尼·馬酥阿', hostages: 7, threat: 4, special: '無', type: 'base', 
+            majorDemands: [
+                { name: '一千万美金支票', cost: 4, desc: '獎勵：他釋放 1 名人質。' },
+                { name: '提供武器', cost: 4, desc: '獎勵：他釋放 1 名人質。' },
+                { name: '釋放犯人', cost: 4, desc: '獎勵：他釋放 1 名人質。' }
+            ],
+            escapeDemands: [ { name: '逃跑需求：巴士', cost: 4, desc: '懲罰：綁匪在本次談話結束後逃跑。' } ]
+        },
+        donna: { name: '唐娜·斯卡伯勒', hostages: 12, threat: 2, special: '出現兩個1撕票；兩個6救人。', type: 'base', 
+            majorDemands: [
+                { name: '升職', cost: 4, desc: '懲罰：每個恐怖階段額外抽1張紅卡。' },
+                { name: '一千万美金支票', cost: 4, desc: '懲罰：減少一顆骰子(最少1顆)。' },
+                { name: '解雇領導', cost: 4, desc: '懲罰：每回合開始 -2 談話點。' }
+            ],
+            escapeDemands: [ { name: '逃跑需求：撤離直升機', cost: 2, desc: '懲罰：綁匪在本次談話結束後逃跑。' } ]
+        },
+        misha: { name: '米莎·科斯基寧', hostages: 11, threat: 5, special: '偏執雙面狀態，花費階段需花費或擲骰。', type: 'misha', 
+            majorDemands: [
+                { name: '驅散抗議者', cost: 5, desc: '獎勵：偏執擲骰點數 +1。' },
+                { name: '社交媒體直播', cost: 5, desc: '獎勵：忽略特殊規則 (不用偏執擲骰)。' }
+            ],
+            escapeDemands: [ { name: '逃跑需求：警察護送', cost: 4, desc: '懲罰：綁匪在本次談話結束後逃跑。' } ]
+        },
+        anonymous: { name: '匿名者', hostages: 11, threat: 4, special: '無法被擊殺。必須破解3個代碼段拆除炸彈後才能逮捕。', type: 'anonymous', 
+            majorDemands: [ { name: '黑客需求：清除數據', cost: 4, desc: '丟棄2張手牌來滿足：擲3個骰子，每個成功營救1名人質。' } ],
+            escapeDemands: [ { name: '時間到！.exe', cost: 2, desc: '懲罰：綁匪在本次談話結束後逃跑。' } ]
+        },
+        valerie: { name: '瓦萊麗·斯通', hostages: 8, threat: 4, special: '競爭擲骰。開局抽 1 張對手卡。', type: 'valerie', 
+            majorDemands: [
+                { name: '主要需求：公眾認可', cost: 3, desc: '將最多2張談話卡加入手牌。懲罰：每回合開始進行競爭擲骰。' },
+                { name: '主要需求：讓我們結束這一切', cost: 4, desc: '滿足後：綁匪殺了你，你輸掉遊戲。' }
+            ],
+            escapeDemands: [ { name: '逃跑需求：快艇', cost: 4, desc: '懲罰：綁匪在本次談話結束後逃跑。' } ]
+        },
+        sami: { name: '薩米 X', hostages: 8, threat: 2, special: '偏頭痛狀態(每回合開始痛度+1)。痛度>0時無法滿足需求。', type: 'sami', 
+            majorDemands: [
+                { name: '豁免我的女友', cost: 4, desc: '獎勵：營救2人質或降2威脅。' },
+                { name: '快速復吸', cost: 4, desc: '獎勵：降2威脅或救1人。' }
+            ],
+            escapeDemands: [ { name: '逃跑需求：想辦法幫我擺脫這一切', cost: 4, desc: '懲罰：綁匪在本次談話結束後逃跑。' } ]
+        },
+        jackson: { name: '傑克遜上尉', hostages: 9, threat: 3, special: '不能被擊殺。任何人質被殺，你立刻輸掉遊戲。', type: 'jackson', 
+            majorDemands: [ { name: '主要需求：尋找謀殺真兇的證據', cost: 3, desc: '將 1 名人質從斯德哥爾摩記錄卡移回人質池。無懲罰，可多次滿足。' } ],
+            escapeDemands: [ { name: '逃跑需求：擺脫這一切', cost: 4, desc: '懲罰：綁匪在本次談話結束後逃跑。' } ]
+        },
+        pedersen: { name: '羅爾夫·佩德森', hostages: 9, threat: 5, special: '雙人綁匪。羅爾夫死後多爾夫加入。', type: 'pedersen', 
+            majorDemands: [
+                { name: '繼續沉默', cost: 6, desc: '滿足後：查看牌庫頂3張恐怖卡並按順序放回。' },
+                { name: '歸還毒品', cost: 2, desc: '滿足後：解救1人，或降1威脅，或花4點兩者皆得。' }
+            ],
+            escapeDemands: [ { name: '逃跑需求：裝甲車', cost: 4, desc: '懲罰：綁匪在本次談話結束後逃跑。' } ]
+        },
+        cult: { name: '汽車界教徒 (當前)', hostages: 9, threat: 4, special: '交火檢查。恐怖階段結束時更換教徒。', type: 'cult', 
+            majorDemands: [ { name: '信仰需求：釋放人質', cost: 4, desc: '花費 4 點滿足。' } ],
+            escapeDemands: [ { name: '逃跑需求：總統特赦', cost: 2, desc: '懲罰：綁匪在本次談話結束後逃跑。' } ]
+        },
+        gonzala: { name: '貢薩拉·赫雷拉', hostages: 9, threat: 3, special: '行駛中無敵。每個談話階段開始威脅-1。', type: 'gonzala', 
+            majorDemands: [ { name: '主要需求：逃跑車輛', cost: 4, desc: '滿足後：本回合不需要交火檢查。懲罰：綁匪逃跑。' } ],
+            escapeDemands: [ { name: '逃跑需求：撤離直升機', cost: 2, desc: '懲罰：綁匪在本次談話結束後逃跑。' } ]
+        },
+        seaver: { name: '克萊德 & 蒂娜·西佛', hostages: 9, threat: 3, special: '雙人綁匪。克萊德在場時蒂娜無敵。地圖搜索。', type: 'seaver', 
+            majorDemands: [ { name: '主要需求：克萊德的抱怨', cost: 4, desc: '花費 4 點滿足。' } ],
+            escapeDemands: [ { name: '逃跑需求：桑德拉的車', cost: 4, desc: '懲罰：綁匪在本次談話結束後逃跑。' } ]
+        }
+    };
+
+    // --- 遊戲狀態 ---
+    let gameState = {
+        phase: PHASES.SETUP, threat: 0, conversationPoints: 0, hostages: 0, rescued: 0, casualties: 0,
+        hand: [], availableCards: [], terrorDeck: [], playedThisTurn: [],
+        currentKidnapper: null, demands: [], turn: 1, diceModifier: 0, convertFour: false,
+        mishaParanoia: 'bored', mishaSatisfiedDemands: [], mishaIgnoreSpecial: false, mishaParanoiaBuff: 0,
+        bombCodes: ['red', 'red', 'red'], rescuedSinceLastCode: 0,
+        valerieRivals: [], currentRival: null, isCompeting: false,
+        samiPainLevel: 1, samiPendingDiscard: false,
+        stockholmHostages: 0,
+        pedersenState: 'rolf',
+        cultDeck: [], cultIndex: 0,
+        busMoving: true, currentLocation: null,
+        clydeAlive: true, tinaAlive: true, tinaFound: false, mapTokens: ['hidden', 'hidden', 'hidden'],
+        isGameOver: false, doxActive: false,
+        turnRescues: 0, currentCharacterId: '',
+        donnaPenalty: null // 新增唐娜懲罰標記
+    };
+
+    // --- 初始化 ---
+    function startGame(characterKey) {
+        const char = KIDNAPPERS[characterKey];
+        
+        let terrorPool = [];
+        const criticalEventCard = { name: '關鍵事件：最後通牒', effect: 'critical_event', desc: '遊戲進入最後階段！所有人質危在旦夕。' };
+
+        if (char.type === 'misha') {
+            let trivialPool = [...MISHA_TRIVIAL_DEMANDS];
+            for(let i=0; i<4; i++) {
+                let idx = Math.floor(Math.random() * trivialPool.length);
+                terrorPool.push(trivialPool[idx]);
+            }
+            for(let i=0; i<7; i++) {
+                terrorPool.push({...TERROR_CARDS_DB[Math.floor(Math.random() * TERROR_CARDS_DB.length)]});
+            }
+        } else if (char.type === 'anonymous') {
+            terrorPool.push(ANON_TERROR_CARDS.find(c => c.effect === 'anon_what_give'));
+            terrorPool.push(ANON_TERROR_CARDS.find(c => c.effect === 'anon_what_give'));
+            terrorPool.push(ANON_TERROR_CARDS.find(c => c.effect === 'anon_dox'));
+            terrorPool.push(ANON_TERROR_CARDS.find(c => c.effect === 'anon_timeup'));
+            for(let i=0; i<6; i++) {
+                terrorPool.push({...TERROR_CARDS_DB[Math.floor(Math.random() * TERROR_CARDS_DB.length)]});
+            }
+        } else {
+            for(let i=0; i<10; i++) {
+                terrorPool.push({...TERROR_CARDS_DB[Math.floor(Math.random() * TERROR_CARDS_DB.length)]});
+            }
+            if (char.type === 'sami') terrorPool.push(...SAMI_TERROR_CARDS);
+            if (char.type === 'gonzala') terrorPool.push(...GONZALA_TERROR_CARDS);
+            if (char.type === 'seaver') terrorPool.push(...SEAVER_TERROR_CARDS);
+        }
+
+        terrorPool.sort(() => Math.random() - 0.5);
+        terrorPool.unshift(criticalEventCard);
+
+        let availableCardsPool = TALK_CARDS_DB.filter(c => {
+            if (c.isSamiOnly && char.type !== 'sami') return false;
+            if (c.isJacksonOnly && char.type !== 'jackson') return false;
+            return true;
+        });
+
+        if (char.type === 'seaver') {
+            availableCardsPool.push({ id: 'sea1', name: '桑德拉對話：還記得我們...', cost: 2, effects: { success: 'cp+2', fail: 'threat+1' } });
+            availableCardsPool.push({ id: 'sea2', name: '桑德拉對話：我能解決這問題', cost: 1, effects: { success: 'threat-1', fail: 'threat+1' } });
+        }
+
+        let cultDeck = [];
+        if (char.type === 'cult') {
+            cultDeck = [
+                { name: '憤怒的教徒', effect: 'threat+1' }, { name: '傲慢的教徒', effect: 'cp-2' },
+                { name: '不耐煩的教徒', effect: 'end_talk' }, { name: '好戰的教徒', effect: 'extra_firefight' },
+                { name: '善良的教徒', effect: 'convert_4_discount' }, { name: '防禦型教徒', effect: 'discard_persuasion' }
+            ];
+            cultDeck.sort(() => Math.random() - 0.5);
+        }
+
+        let startingDemands = [];
+        if (char.majorDemands && char.majorDemands.length > 0) {
+            let major = char.majorDemands[Math.floor(Math.random() * char.majorDemands.length)];
+            startingDemands.push({ ...major, type: 'major', id: 'demand_major' });
+        }
+        if (char.escapeDemands && char.escapeDemands.length > 0) {
+            let escape = char.escapeDemands[Math.floor(Math.random() * char.escapeDemands.length)];
+            startingDemands.push({ ...escape, type: 'escape', id: 'demand_escape' });
+        }
+
+        gameState = {
+            phase: PHASES.TALK, threat: char.threat, conversationPoints: 0,
+            hostages: char.hostages, rescued: 0, casualties: 0,
+            hand: [], availableCards: [...availableCardsPool],
+            terrorDeck: terrorPool,
+            playedThisTurn: [],
+            currentKidnapper: { name: char.name, type: char.type, special: char.special },
+            demands: startingDemands,
+            turn: 1, diceModifier: 0, convertFour: false,
+            mishaParanoia: 'bored', mishaSatisfiedDemands: [], mishaIgnoreSpecial: false, mishaParanoiaBuff: 0,
+            bombCodes: ['red', 'red', 'red'], rescuedSinceLastCode: 0,
+            valerieRivals: [
+                { name: '你的閒聊騙不了我', effect: '打出「聊聊吧」時觸發競爭' },
+                { name: '還沒看到我生氣呢', effect: '威脅上升時觸發競爭' },
+                { name: '不是個出色的談判者', effect: '人質被撕票時觸發競爭' }
+            ], currentRival: null, isCompeting: false,
+            samiPainLevel: 1, samiPendingDiscard: false,
+            stockholmHostages: char.type === 'jackson' ? 1 : 0,
+            pedersenState: 'rolf', cultDeck: cultDeck, cultIndex: 0,
+            busMoving: true, currentLocation: null,
+            clydeAlive: true, tinaAlive: true, tinaFound: false, 
+            mapTokens: ['son', 'daughter', 'empty'].sort(() => Math.random() - 0.5),
+            isGameOver: false, doxActive: false,
+            turnRescues: 0, currentCharacterId: characterKey,
+            donnaPenalty: null
+        };
+
+        if (char.type === 'jackson') gameState.hostages -= 1;
+        if (char.type === 'valerie') gameState.currentRival = gameState.valerieRivals.splice(Math.floor(Math.random() * gameState.valerieRivals.length), 1)[0];
+        if (char.type === 'cult') {
+            gameState.currentKidnapper.name = cultDeck[0].name;
+            gameState.currentKidnapper.special = `特殊效果：${cultDeck[0].effect}`;
+        }
+        if (char.type === 'gonzala') {
+            const locations = ['城市', '沙漠', '森林', '懸崖'];
+            gameState.currentLocation = locations[Math.floor(Math.random() * locations.length)];
+        }
+
+        const zeroCostCards = availableCardsPool.filter(c => c.cost === 0);
+        gameState.hand = [...zeroCostCards];
+        gameState.availableCards = availableCardsPool.filter(c => c.cost !== 0);
+
+        document.getElementById('start-modal').style.display = 'none';
+        document.getElementById('top-bar').classList.remove('hidden');
+        document.getElementById('main-container').classList.remove('hidden');
+        
+        document.getElementById('log-content').innerHTML = '';
+        addLog(`談判開始！對象是 ${gameState.currentKidnapper.name}，人質 ${gameState.hostages} 人。`, 'system');
+        addLog(`恐怖牌堆已建立，共 ${gameState.terrorDeck.length} 張。`, 'system');
+        
+        updateUI();
+        setMessage(`談話階段開始，請打出手牌。`);
+    }
+
+    function drawCard() {
+        if (gameState.availableCards.length > 0 && gameState.hand.length < 10) {
+            let idx = Math.floor(Math.random() * gameState.availableCards.length);
+            gameState.hand.push(gameState.availableCards.splice(idx, 1)[0]);
+        }
+    }
+
+    // --- UI 更新 ---
+    function updateUI() {
+        if (gameState.isGameOver) return;
+
+        document.getElementById('stat-turn').innerText = gameState.turn;
+        document.getElementById('stat-hostages').innerText = gameState.hostages;
+        document.getElementById('stat-rescued').innerText = gameState.rescued;
+        document.getElementById('stat-casualties').innerText = gameState.casualties;
+        document.getElementById('stat-terror-count').innerText = gameState.terrorDeck.length;
+        
+        let tDisp = gameState.threat === 0 ? 'S' : (gameState.threat >= 7 ? 'K' : gameState.threat);
+        let tElem = document.getElementById('stat-threat');
+        tElem.innerText = tDisp;
+        tElem.className = 'stat-value ' + (gameState.threat === 0 ? 'threat-S' : (gameState.threat >= 7 ? 'threat-K' : ''));
+
+        document.getElementById('stat-cp').innerText = gameState.conversationPoints;
+        document.getElementById('stat-phase').innerText = 
+            gameState.phase === PHASES.TALK ? '談話' : gameState.phase === PHASES.SPEND ? '花費' : gameState.phase === PHASES.TERROR ? '恐怖' : '結束';
+
+        document.getElementById('btn-end-talk').classList.toggle('hidden', gameState.phase !== PHASES.TALK);
+        document.getElementById('btn-end-spend').classList.toggle('hidden', gameState.phase !== PHASES.SPEND);
+        document.getElementById('btn-draw-terror').classList.toggle('hidden', gameState.phase !== PHASES.TERROR);
+
+        const kArea = document.getElementById('kidnapper-area');
+        kArea.innerHTML = '';
+        
+        if (gameState.currentKidnapper) {
+            if (gameState.currentKidnapper.type === 'seaver') {
+                let clydeStatus = gameState.clydeAlive ? '存活' : '已死亡';
+                let tinaStatus = gameState.tinaAlive ? '存活' : '已死亡';
+                let tinaProtect = gameState.clydeAlive ? '克萊德在場，蒂娜無敵' : '';
+                
+                kArea.innerHTML += `<div class="card kidnapper" style="border-color:var(--seaver-color);"><div class="card-header">克萊德 (${clydeStatus})</div><div class="card-body">必須擊殺/逮捕。</div></div>`;
+                kArea.innerHTML += `<div class="card kidnapper" style="border-color:var(--seaver-color);"><div class="card-header">蒂娜 (${tinaStatus})</div><div class="card-body">${tinaProtect}</div></div>`;
+                
+                let mapHTML = '';
+                gameState.mapTokens.forEach((token, idx) => {
+                    if (token === 'hidden') mapHTML += `<div class="map-token" onclick="revealMapToken(${idx})">?</div>`;
+                    else if (token === 'son') mapHTML += `<div class="map-token son revealed">兒子</div>`;
+                    else if (token === 'daughter') mapHTML += `<div class="map-token daughter revealed">女兒</div>`;
+                    else mapHTML += `<div class="map-token empty revealed">空</div>`;
+                });
+                
+                kArea.innerHTML += `<div class="special-panel" style="border-color:var(--seaver-color); width:260px;">
+                    <h4>🗺️ 貝爾克沼澤</h4>
+                    <div class="map-container">${mapHTML}</div>
+                </div>`;
+            } else {
+                kArea.innerHTML += createCardHTML({...gameState.currentKidnapper, cost: '匪', bodyText: `特殊規則：${gameState.currentKidnapper.special}`}, 'kidnapper');
+            }
+
+            if (gameState.currentKidnapper.type === 'misha') {
+                let faceName = gameState.mishaParanoia === 'bored' ? '無聊' : '恐懼';
+                let colorClass = gameState.mishaParanoia === 'bored' ? 'paranoia-bored' : 'paranoia-scared';
+                kArea.innerHTML += `<div class="card paranoia ${colorClass}"><div class="card-header">偏執：${faceName}</div><div class="card-body">1:翻面/2:撕票/3:棄卡<br>4:無事/5:+2點/6:救人</div><div class="card-footer">已滿足：${gameState.mishaSatisfiedDemands.length}</div></div>`;
+            }
+            if (gameState.currentKidnapper.type === 'anonymous') {
+                let codesHTML = gameState.bombCodes.map(c => `<div class="code-seg ${c}"></div>`).join('');
+                let doxHTML = gameState.doxActive ? `<p style="color:#f44336; font-size:0.8rem; margin:0;">⚠️ Dox 臥底生效中</p>` : '';
+                kArea.innerHTML += `<div class="special-panel"><h4>💣 炸彈</h4>${doxHTML}<div class="code-segments">${codesHTML}</div><button class="btn-primary" onclick="openBombModal()">嘗試拆彈(2點)</button></div>`;
+            }
+            if (gameState.currentKidnapper.type === 'valerie') {
+                let rivalHTML = gameState.currentRival ? `<div style="background:#333; padding:10px; border-radius:5px; text-align:center;"><span style="color:var(--val-color);">對手：${gameState.currentRival.name}</span></div>` : `<div>無對手</div>`;
+                kArea.innerHTML += `<div class="special-panel valerie"><h4>⚔️ 競爭</h4>${rivalHTML}</div>`;
+            }
+            if (gameState.currentKidnapper.type === 'sami') {
+                let painHTML = '';
+                for(let i=1; i<=4; i++) painHTML += `<div class="pain-level ${i <= gameState.samiPainLevel ? 'active' : ''} ${i === 4 ? 'danger' : ''}">${i}</div>`;
+                kArea.innerHTML += `<div class="special-panel sami"><h4>🤕 偏頭痛</h4><div class="pain-meter">${painHTML}</div><p style="color:${gameState.samiPainLevel > 0 ? '#e57373' : '#81c784'};">${gameState.samiPainLevel > 0 ? '無法滿足需求' : '可滿足需求'}</p></div>`;
+            }
+            if (gameState.currentKidnapper.type === 'jackson') {
+                let slotsHTML = '';
+                for(let i=1; i<=5; i++) slotsHTML += `<div class="stockholm-slot ${i <= gameState.stockholmHostages ? 'filled' : ''}">${i}</div>`;
+                kArea.innerHTML += `<div class="special-panel jackson"><h4>🏥 記錄卡</h4><div class="stockholm-slots">${slotsHTML}</div></div>`;
+            }
+            if (gameState.currentKidnapper.type === 'pedersen') {
+                let pStatus = gameState.pedersenState === 'rolf' ? '羅爾夫' : '多爾夫 (極度危險)';
+                kArea.innerHTML += `<div class="special-panel" style="border-color:var(--pedersen-color);"><h4>👥 佩德森</h4><p>當前：${pStatus}</p></div>`;
+            }
+            if (gameState.currentKidnapper.type === 'gonzala') {
+                let busStatus = gameState.busMoving ? '行駛中 (無敵, -1威脅)' : `停止 (${gameState.currentLocation}生效)`;
+                kArea.innerHTML += `<div class="special-panel gonzala"><h4>🚌 公交車</h4><p style="color:${gameState.busMoving ? '#81c784' : '#e57373'}">${busStatus}</p><div class="location-box">地點：${gameState.currentLocation}</div></div>`;
+            }
+        }
+        
+        gameState.demands.forEach((d, i) => {
+            let cardClass = d.type === 'escape' ? 'escape' : 'demand';
+            kArea.innerHTML += createCardHTML({...d, bodyText: d.desc}, cardClass, i);
+        });
+
+        const aArea = document.getElementById('available-cards');
+        aArea.innerHTML = '';
+        gameState.availableCards.forEach(c => aArea.innerHTML += createCardHTML(c, 'available'));
+
+        const hArea = document.getElementById('hand-cards');
+        hArea.innerHTML = '';
+        gameState.hand.forEach((c, i) => hArea.innerHTML += createCardHTML(c, 'hand', i));
+        document.getElementById('hand-count').innerText = `${gameState.hand.length} / 10`;
+    }
+
+    function createCardHTML(card, location, index = -1) {
+        let costHtml = (location === 'hand' || location === 'available') ? `<div class="card-cost">${card.cost}</div>` : '';
+        if (location === 'demand' || location === 'escape') costHtml = `<div class="card-cost" style="background:${location === 'escape' ? 'var(--accent-color)' : 'var(--warning-color)'};">${card.cost}</div>`;
+        
+        let effectText = card.bodyText || '';
+        if (card.effects) {
+            effectText = `<div class="effect-box"><div class="effect-success"><strong>成功:</strong> ${translateEffect(card.effects.success)}</div><div class="effect-fail"><strong>失敗:</strong> ${translateEffect(card.effects.fail)}</div></div>`;
+        }
+
+        let clickAction = '';
+        let dimStyle = '';
+        
+        if (location === 'hand' && gameState.phase === PHASES.TALK) clickAction = `onclick="playCard(${index})"`;
+        else if (location === 'available' && gameState.phase === PHASES.SPEND) clickAction = `onclick="buyCard('${card.id}')"`;
+        else if ((location === 'demand' || location === 'escape') && gameState.phase === PHASES.TALK) clickAction = `onclick="payDemand(${index})"`;
+        else if (location === 'hand' || location === 'available' || location === 'demand' || location === 'escape') {
+            if (!((location === 'demand' || location === 'escape') && gameState.phase === PHASES.TALK)) dimStyle = 'style="opacity: 0.5; cursor: not-allowed;"';
+        }
+
+        let footerText = '';
+        if (location === 'hand' && gameState.phase === PHASES.TALK) footerText = '點擊打出';
+        if (location === 'available' && gameState.phase === PHASES.SPEND) footerText = '點擊購買';
+        if ((location === 'demand' || location === 'escape') && gameState.phase === PHASES.TALK) footerText = '點擊花費點數滿足';
+
+        return `<div class="card ${location}" ${clickAction} ${dimStyle}><div class="card-cost">${card.cost}</div><div class="card-header">${card.name}</div><div class="card-body">${effectText}</div><div class="card-footer">${footerText}</div></div>`;
+    }
+
+    // --- 成就系統邏輯 ---
+    function unlockAchievement(id) {
+        if (!unlockedAchievements[id]) {
+            unlockedAchievements[id] = true;
+            localStorage.setItem('hostageAchievements', JSON.stringify(unlockedAchievements));
+            const data = ACHIEVEMENTS_DB[id];
+            const popup = document.getElementById('achievement-popup');
+            document.getElementById('achievement-popup-text').innerText = data.name;
+            popup.classList.add('show');
+            setTimeout(() => popup.classList.remove('show'), 3000);
+            addLog(`🏆 解鎖成就：${data.name}`, 'achievement');
+            renderAchievements();
+        }
+    }
+
+    function renderAchievements() {
+        const list = document.getElementById('achievement-list');
+        list.innerHTML = '';
+        for (let key in ACHIEVEMENTS_DB) {
+            let data = ACHIEVEMENTS_DB[key];
+            let isUnlocked = unlockedAchievements[key];
+            list.innerHTML += `
+                <li class="achievement-item ${isUnlocked ? 'unlocked' : ''}">
+                    <div class="achievement-icon">${isUnlocked ? '🏆' : '🔒'}</div>
+                    <div class="achievement-info"><h4>${data.name}</h4><p>${data.desc}</p></div>
+                </li>
+            `;
+        }
+    }
+
+    function openAchievements() { renderAchievements(); document.getElementById('achievements-modal').style.display = 'flex'; }
+    function closeAchievements() { document.getElementById('achievements-modal').style.display = 'none'; }
+
+    // --- 日誌系統 ---
+    function addLog(msg, type = 'normal') {
+        const logContent = document.getElementById('log-content');
+        const item = document.createElement('div');
+        item.className = `log-item log-${type}`;
+        item.innerHTML = `> ${msg}`;
+        logContent.prepend(item);
+    }
+
+    // --- 核心操作 ---
+    function playCard(index) {
+        if (gameState.phase !== PHASES.TALK) return;
+        const card = gameState.hand[index];
+        
+        if (gameState.currentKidnapper.type === 'valerie' && card.name === '聊聊吧...') triggerValerieCompetition('打出「聊聊吧...」');
+        if (gameState.currentKidnapper.type === 'cult' && (card.effects.success.includes('rescue') || card.effects.fail.includes('rescue'))) {
+            setMessage("打出說服卡，正在進行交火檢查...");
+            addLog(`嘗試打出說服卡，進行交火檢查...`, 'system');
+            rollDice((success) => {
+                if (!success) { addLog(`交火檢查失敗！受到傷害，撕票1人。`, 'fail'); killHostage(1); }
+                else addLog(`交火檢查成功，安全打出說服卡。`, 'success');
+                resolveCardPlay(card, index);
+            }, null, '交火檢查');
+            return;
+        }
+        resolveCardPlay(card, index);
+    }
+
+    function resolveCardPlay(card, index) {
+        gameState.hand.splice(index, 1);
+        gameState.playedThisTurn.push(card);
+        updateUI();
+        setMessage(`打出「${card.name}」，正在進行威脅擲骰...`);
+        addLog(`打出卡牌【${card.name}】`, 'system');
+        rollDice((success) => resolveCardEffect(card, success));
+    }
+
+    function buyCard(cardId) {
+        if (gameState.phase !== PHASES.SPEND) return;
+        const cIdx = gameState.availableCards.findIndex(c => c.id === cardId);
+        if (cIdx === -1) return;
+        const card = gameState.availableCards[cIdx];
+        
+        if (gameState.conversationPoints >= card.cost) {
+            if (gameState.hand.length >= 10) { alert("手牌已達上限 10 張！"); return; }
+            gameState.conversationPoints -= card.cost;
+            gameState.availableCards.splice(cIdx, 1);
+            gameState.hand.push(card);
+            updateUI();
+            setMessage(`購買了「${card.name}」，剩餘點數 ${gameState.conversationPoints}。`);
+            addLog(`花費 ${card.cost} 點購買【${card.name}】`, 'system');
+        } else setMessage("談話點不足！");
+    }
+
+    function payDemand(index) {
+        if (gameState.phase !== PHASES.TALK) return;
+        const demand = gameState.demands[index];
+        
+        if (gameState.currentKidnapper.type === 'sami' && gameState.samiPainLevel > 0) {
+            setMessage("薩米正在偏頭痛，無法滿足任何需求！請先幫他緩解疼痛。");
+            addLog(`嘗試滿足需求失敗：薩米正在偏頭痛！`, 'fail');
+            return;
+        }
+
+        if (gameState.conversationPoints >= demand.cost) {
+            if (demand.type === 'escape') {
+                triggerGameOver(false, `你滿足了【${demand.name}】，綁匪趁機逃跑了！`);
+                return;
+            }
+
+            if (demand.name.includes('結束這一切')) { triggerGameOver(false, "你滿足了瓦萊麗的瘋狂要求，她殺了你！"); return; }
+
+            gameState.conversationPoints -= demand.cost;
+            setMessage(`成功滿足需求：「${demand.name}」！`);
+            addLog(`🎉 成功滿足需求【${demand.name}】！`, 'success');
+            
+            if (gameState.currentKidnapper.name === '阿肯尼·馬酥阿') rescueHostage(1);
+            else if (gameState.currentKidnapper.type === 'donna') {
+                if (demand.name === '升職') { gameState.donnaPenalty = 'extra_terror'; addLog(`懲罰生效：之後每個恐怖階段額外抽1張紅卡。`, 'fail'); }
+                if (demand.name === '一千万美金支票') { gameState.donnaPenalty = 'minus_dice'; addLog(`懲罰生效：之後擲骰減少一顆骰子(最少1顆)。`, 'fail'); }
+                if (demand.name === '解雇領導') { gameState.donnaPenalty = 'minus_cp'; addLog(`懲罰生效：每回合開始 -2 談話點。`, 'fail'); }
+            }
+            else if (gameState.currentKidnapper.type === 'misha') {
+                gameState.mishaSatisfiedDemands.push(demand);
+                if (demand.name === '驅散抗議者') gameState.mishaParanoiaBuff += 1;
+                if (demand.name === '社交媒體直播') gameState.mishaIgnoreSpecial = true;
+            } else if (gameState.currentKidnapper.type === 'sami') {
+                if (demand.name === '豁免我的女友') rescueHostage(2);
+                if (demand.name === '快速復吸') changeThreat(-2);
+                if (demand.name.includes('香菸')) { gameState.samiPendingDiscard = true; addLog(`香菸懲罰：下次談話結算後棄1張牌。`, 'system'); }
+                if (demand.name.includes('食物')) { 
+                    gameState.availableCards = gameState.availableCards.filter(c => c.cost !== 0); 
+                    addLog(`食物懲罰：所有 0 費談話卡被移出遊戲。`, 'fail');
+                }
+                if (demand.name.includes('巧克力')) { changeThreat(1); addLog(`巧克力懲罰：威脅 +1。`, 'fail'); }
+            } else if (gameState.currentKidnapper.type === 'jackson') {
+                if (gameState.stockholmHostages > 0) {
+                    gameState.stockholmHostages--; gameState.hostages++;
+                    addLog(`成功找到證據，將 1 名人質移回人質池。`, 'success');
+                }
+                updateUI(); return; 
+            } else if (gameState.currentKidnapper.type === 'pedersen') {
+                if (demand.name === '繼續沉默') addLog(`查看了牌庫頂端。`, 'system');
+                if (demand.name === '歸還毒品') rescueHostage(1);
+            } else if (gameState.currentKidnapper.type === 'seaver') {
+                addLog(`克萊德滿足了需求，但他絕對不會輕易投降。`, 'system');
+            }
+            
+            gameState.demands.splice(index, 1);
+            
+            let remainingMajorDemands = gameState.demands.filter(d => d.type === 'major');
+            if (remainingMajorDemands.length === 0 && !['valerie', 'jackson', 'pedersen', 'cult', 'gonzala', 'seaver', 'sami', 'donna'].includes(gameState.currentKidnapper.type)) {
+                addLog(`綁匪的所有主要需求都被滿足了，他決定投降！`, 'success');
+                setTimeout(() => triggerGameOver(true, "綁匪滿足了所有需求，宣佈投降！"), 1000);
+            }
+            
+            updateUI();
+        } else setMessage(`談話點不足！`);
+    }
+
+    // --- 西佛專屬：地圖搜索 ---
+    function revealMapToken(index) {
+        if (gameState.phase !== PHASES.TALK) { setMessage("只能在談話階段搜索！"); return; }
+        if (gameState.mapTokens[index] !== 'hidden') return;
+
+        let result = gameState.mapTokens[index];
+        if (result === 'hidden') result = 'empty';
+        gameState.mapTokens[index] = 'revealed';
+        
+        if (result === 'son') { addLog(`🔍 找到了西佛兒子！成功救出人質。`, 'success'); rescueHostage(1); }
+        else if (result === 'daughter') { addLog(`🔍 找到了西佛女兒！成功救出人質。`, 'success'); rescueHostage(1); }
+        else addLog(`🔍 什麼也沒找到。`, 'system');
+        updateUI(); checkGameOver();
+    }
+
+    // --- 特殊機制 ---
+    function triggerValerieCompetition(reason) {
+        if (gameState.isCompeting) return;
+        gameState.isCompeting = true;
+        addLog(`🚨 觸發競爭！原因：${reason}`, 'fail');
+        setTimeout(() => {
+            rollDice((success) => {
+                if (!success) {
+                    addLog(`競爭失敗！丟棄 2 張手牌。`, 'fail');
+                    for(let i=0; i<2; i++) if(gameState.hand.length > 0) gameState.playedThisTurn.push(gameState.hand.pop());
+                } else addLog(`競爭成功！`, 'success');
+                updateUI(); gameState.isCompeting = false;
+            }, null, '競爭擲骰', -1);
+        }, 500);
+    }
+
+    function openBombModal() {
+        if (gameState.conversationPoints < 2) { alert("你需要 2 點談話點！"); return; }
+        document.getElementById('bomb-cp').innerText = gameState.conversationPoints;
+        document.getElementById('bomb-modal').style.display = 'flex';
+    }
+    function closeBombModal() { document.getElementById('bomb-modal').style.display = 'none'; }
+    function doBombRoll() {
+        closeBombModal(); gameState.conversationPoints -= 2;
+        addLog(`花費 2 點嘗試拆彈...`, 'system');
+        rollDice((success) => {
+            if (success) {
+                let idx = gameState.bombCodes.indexOf('warning');
+                if (idx !== -1) { gameState.bombCodes[idx] = 'green'; addLog(`拆彈成功！代碼段變綠。`, 'success'); }
+            } else addLog(`拆彈失敗。`, 'fail');
+            updateUI(); checkGameOver();
+        });
+    }
+
+    // --- 擲骰系統 ---
+    let diceCallback = null;
+    function rollDice(callback, customCount = null, title = '威脅擲骰', extraMod = 0) {
+        diceCallback = callback;
+        let count = customCount !== null ? customCount : Math.max(0, gameState.threat + gameState.diceModifier + extraMod);
+        
+        // 唐娜懲罰：減少骰子
+        if (gameState.currentKidnapper.type === 'donna' && gameState.donnaPenalty === 'minus_dice' && title === '威脅擲骰') {
+            count = Math.max(1, count - 1);
+            addLog(`唐娜懲罰生效：擲骰減少 1 顆。`, 'fail');
+        }
+        if (count < 1) count = 1;
+        
+        const panel = document.getElementById('dice-panel');
+        const resContainer = document.getElementById('dice-results');
+        const summary = document.getElementById('dice-summary');
+        const btn = document.getElementById('btn-close-dice');
+        
+        document.getElementById('dice-title').innerText = title;
+        panel.style.display = 'flex'; resContainer.innerHTML = ''; summary.innerText = '擲骰中...'; btn.disabled = true;
+
+        if (gameState.diceModifier !== 0) {
+            addLog(`【擲骰修正】本次擲骰包含了 ${gameState.diceModifier > 0 ? '+' : ''}${gameState.diceModifier} 顆骰子的加成。`, 'system');
+        }
+
+        for (let i = 0; i < count; i++) {
+            const d = document.createElement('div'); d.className = 'die'; resContainer.appendChild(d);
+        }
+
+        setTimeout(() => {
+            let diceEls = resContainer.querySelectorAll('.die');
+            let success = 0, ones = 0, sixes = 0, fours = 0, rolls = [];
+
+            for (let i = 0; i < count; i++) {
+                let r = Math.floor(Math.random() * 6) + 1;
+                if (r === 4 && gameState.convertFour) r = 5;
+                rolls.push(r);
+                
+                if (r === 1) ones++; if (r === 6) sixes++; if (r === 4) fours++;
+                if (r === 5 || r === 6) { success++; diceEls[i].classList.add('success'); }
+                else if (r === 1) { diceEls[i].classList.add('crit-1'); }
+                else { diceEls[i].classList.add('fail'); }
+                diceEls[i].innerText = r;
+            }
+
+            let conv = 0;
+            if (customCount === null && !title.includes('競爭') && !title.includes('交火')) {
+                conv = Math.min(fours, Math.floor(gameState.hand.length / 2));
+                if (conv > 0) {
+                    success += conv;
+                    for(let i=0; i<conv*2; i++) if(gameState.hand.length>0) gameState.playedThisTurn.push(gameState.hand.pop());
+                }
+            }
+
+            let summaryText = `成功：${success} 顆 (4 轉化：${conv})`;
+            addLog(`${title} [${rolls.join(', ')}]：${success} 成功`, success > 0 ? 'success' : 'fail');
+
+            if (gameState.currentKidnapper.name === '唐娜·斯卡伯勒' && customCount === null) {
+                if (ones >= 2) { summaryText += `<br><span style="color:#f44336;">唐娜特殊規則：2個1！撕票1人！</span>`; killHostage(1); }
+                if (sixes >= 2) { summaryText += `<br><span style="color:#4caf50;">唐娜特殊規則：2個6！救人1人！</span>`; rescueHostage(1); }
+            }
+
+            summary.innerHTML = summaryText; btn.disabled = false;
+            diceCallback._result = success > 0; diceCallback._rolls = rolls; updateUI();
+        }, 600);
+    }
+
+    function resolveDiceRoll() {
+        document.getElementById('dice-panel').style.display = 'none';
+        gameState.diceModifier = 0; gameState.convertFour = false;
+        if (diceCallback) { diceCallback(diceCallback._result, diceCallback._rolls); diceCallback = null; }
+    }
+
+    // --- 回合推進 ---
+    function endTalkPhase() {
+        if (gameState.phase !== PHASES.TALK) return;
+        if (gameState.currentKidnapper.type === 'misha' && !gameState.mishaIgnoreSpecial) {
+            document.getElementById('btn-pay-paranoia').disabled = gameState.conversationPoints < 1;
+            document.getElementById('btn-pay-paranoia').innerText = `花費 1 點談話點 (目前 ${gameState.conversationPoints} 點)`;
+            document.getElementById('paranoia-modal').style.display = 'flex';
+            return;
+        }
+        enterSpendPhase();
+    }
+
+    function enterSpendPhase() {
+        gameState.phase = PHASES.SPEND;
+        setMessage("進入花費階段。請點擊可用牌區購買卡牌。");
+        addLog(`--- 進入花費階段 ---`, 'system');
+        updateUI();
+    }
+
+    function endSpendPhase() {
+        if (gameState.phase !== PHASES.SPEND) return;
+        
+        // 唐娜懲罰：扣談話點在回合開始扣
+        gameState.conversationPoints = 0;
+        gameState.availableCards.push(...gameState.playedThisTurn);
+        gameState.playedThisTurn = [];
+        gameState.phase = PHASES.TERROR;
+        setMessage("進入恐怖階段。請抽一張恐怖卡。");
+        addLog(`--- 進入恐怖階段 ---`, 'system');
+        
+        if (gameState.samiPendingDiscard && gameState.hand.length > 0) {
+            gameState.playedThisTurn.push(gameState.hand.pop());
+            addLog(`香菸懲罰生效：丟棄了 1 張手牌。`, 'fail');
+            gameState.samiPendingDiscard = false;
+        }
+        
+        if (gameState.turnRescues >= 5) {
+            unlockAchievement('base_rescue_5');
+        }
+        
+        updateUI();
+    }
+
+    // --- 恐怖階段 ---
+    function drawTerrorCard() {
+        if (gameState.phase !== PHASES.TERROR) return;
+        if (gameState.terrorDeck.length === 0) { triggerGameOver(false, "恐怖牌堆已空，綁匪逃脫了！"); return; }
+
+        const card = gameState.terrorDeck.pop();
+        setMessage(`抽到恐怖卡：「${card.name}」`);
+        addLog(`抽取恐怖卡：【${card.name}】 - ${card.desc}`, 'system');
+        
+        if (card.effect === 'critical_event') {
+            addLog(`⚠️ 關鍵事件爆發！這是最後一回合，你必須在此回合定勝負！`, 'fail');
+            gameState.demands.push({ name: '緊急：阻止屠殺', cost: 5, desc: '滿足此需求以安撫綁匪。', type: 'major' });
+            updateUI();
+            setTimeout(startNewTurn, 2000);
+            return;
+        }
+
+        if (card.effect === 'roll_kill') {
+            addLog(`恐怖卡結算：需要進行一次擲骰，失敗將撕票。`, 'fail');
+            rollDice((success) => {
+                if (!success) {
+                    addLog(`擲骰失敗！人質被撕票。`, 'fail');
+                    killHostage(1);
+                } else {
+                    addLog(`擲骰成功！人質安然無恙。`, 'success');
+                }
+                updateUI(); checkGameOver();
+                if (gameState.phase !== PHASES.GAME_OVER) setTimeout(startNewTurn, 1500);
+            }, null, '恐怖卡擲骰');
+            return;
+        }
+        if (card.effect === 'roll_threat') {
+            addLog(`恐怖卡結算：擲1顆骰子，如果大於當前威脅，威脅+1。`, 'system');
+            rollDice((success, rolls) => {
+                let r = rolls[0];
+                if (r > gameState.threat) {
+                    addLog(`擲出 ${r} > 威脅 ${gameState.threat}，威脅 +1！`, 'fail');
+                    changeThreat(1);
+                } else {
+                    addLog(`擲出 ${r} <= 威脅 ${gameState.threat}，無事發生。`, 'success');
+                }
+                updateUI(); checkGameOver();
+                if (gameState.phase !== PHASES.GAME_OVER) setTimeout(startNewTurn, 1500);
+            }, 1, '恐怖卡擲骰');
+            return;
+        }
+
+        if (card.effect.startsWith('misha_trivial')) { handleMishaTrivialDemand(card); return; }
+        if (card.effect === 'anon_gotcha') {
+            let idx = gameState.bombCodes.indexOf('green');
+            if (idx !== -1) { gameState.bombCodes[idx] = 'red'; addLog(`【抓住你...】：代碼段被駭回紅色！`, 'fail'); }
+            else addLog(`【抓住你...】：無事發生。`, 'system');
+            startNewTurn(); return;
+        }
+        if (card.effect === 'anon_what_give') { addLog(`【你能給我什麼？】：抽下一張恐怖卡！`, 'fail'); setTimeout(drawTerrorCard, 1500); return; }
+        if (card.effect === 'anon_dox') {
+            gameState.doxActive = true; addLog(`【Dox臥底】生效：每個恐怖階段結束需擲骰，失敗撕票。`, 'fail');
+            startNewTurn(); return;
+        }
+        if (card.effect === 'anon_timeup') {
+            if (gameState.conversationPoints >= 2 && gameState.hand.length >= 2) {
+                gameState.conversationPoints -= 2;
+                gameState.playedThisTurn.push(gameState.hand.pop(), gameState.hand.pop());
+                addLog(`【時間到.exe】：花費2點棄2牌，進行兩次拆彈擲骰。`, 'system');
+                rollDice((success) => {
+                    if (success) { let idx = gameState.bombCodes.indexOf('warning'); if (idx !== -1) gameState.bombCodes[idx] = 'green'; }
+                    rollDice((success2) => {
+                        if (success2) { let idx = gameState.bombCodes.indexOf('warning'); if (idx !== -1) gameState.bombCodes[idx] = 'green'; }
+                        startNewTurn();
+                    });
+                });
+                return;
+            } else {
+                addLog(`【時間到.exe】：點數或手牌不足，直接爆炸！`, 'fail');
+                triggerGameOver(false, "炸彈引爆！");
+                return;
+            }
+        }
+        if (card.effect === 'gonzala_move') {
+            gameState.busMoving = false; addLog(`【他在移動】：公交車停下！地點效果生效。`, 'fail');
+            if (gameState.currentLocation === '城市') { gameState.hostages++; addLog(`城市效果：人質 +1。`, 'fail'); }
+            if (gameState.currentLocation === '沙漠') { gameState.conversationPoints = 0; addLog(`沙漠效果：談話點歸零。`, 'fail'); }
+            startNewTurn(); return;
+        }
+        if (card.effect.startsWith('sami_demand_')) {
+            let demandName = card.name.replace('次要需求：', '');
+            let cost = demandName === '香菸' ? 3 : (demandName === '食物' ? 3 : 2);
+            gameState.demands.push({ name: `次要需求：${demandName}`, cost: cost, desc: '滿足後獲得獎勵，但伴隨懲罰。', type: 'major' });
+            addLog(`增加了新的次要需求！`, 'system');
+            startNewTurn(); return;
+        }
+        if (card.effect === 'sami_ants') {
+            gameState.samiPainLevel++;
+            addLog(`【螞蟻...】：偏頭痛級別上升至 ${gameState.samiPainLevel}！`, 'fail');
+            if (gameState.samiPainLevel >= 4) { triggerGameOver(false, "薩米因爆炸性疼痛殺死了人質！"); return; }
+            startNewTurn(); return;
+        }
+
+        if (card.effect === 'seaver_sandra') {
+            addLog(`【我想見桑德拉！】：人質池增加了 1 名人質。`, 'fail');
+            gameState.hostages++;
+            startNewTurn(); return;
+        }
+        if (card.effect === 'seaver_run') {
+            gameState.tinaFound = true;
+            addLog(`【蒂娜在逃跑】：除非搜索到標記，否則她現在可以被逮捕/擊殺了。`, 'system');
+            startNewTurn(); return;
+        }
+        if (card.effect === 'seaver_key') {
+            addLog(`【我會告訴你他們在哪】：展示了地圖標記。`, 'system');
+            gameState.mapTokens = gameState.mapTokens.map(t => t === 'hidden' ? 'revealed' : t);
+            startNewTurn(); return;
+        }
+
+        if (card.effect === 'threat+1') changeThreat(1);
+        else if (card.effect === 'threat+2') changeThreat(2);
+        else if (card.effect === 'kill+1') killHostage(1);
+        
+        if (gameState.currentKidnapper.type === 'cult') {
+            gameState.cultIndex++;
+            if (gameState.cultIndex >= gameState.cultDeck.length) gameState.cultIndex = 0;
+            let newCult = gameState.cultDeck[gameState.cultIndex];
+            gameState.currentKidnapper.name = newCult.name;
+            gameState.currentKidnapper.special = `特殊效果：${newCult.effect}`;
+            addLog(`汽車界教徒輪替，現在是【${newCult.name}】！`, 'system');
+            if (newCult.effect === 'threat+1') changeThreat(1);
+            if (newCult.effect === 'cp-2') gameState.conversationPoints = Math.max(0, gameState.conversationPoints - 2);
+        }
+
+        if (gameState.currentKidnapper.type === 'valerie' && (card.effect.includes('threat+') || card.effect.includes('kill+'))) {
+            triggerValerieCompetition('恐怖卡導致變化');
+        }
+        
+        if (gameState.doxActive && gameState.currentKidnapper.type === 'anonymous') {
+            addLog(`Dox臥底結算：進行威脅擲骰...`, 'system');
+            rollDice((success) => {
+                if (!success) { addLog(`Dox擲骰失敗，撕票 1 人！`, 'fail'); killHostage(1); }
+                else addLog(`Dox擲骰成功，安然無恙。`, 'success');
+                updateUI(); checkGameOver();
+                if (gameState.phase !== PHASES.GAME_OVER) setTimeout(startNewTurn, 1500);
+            });
+            return;
+        }
+        
+        updateUI(); checkGameOver();
+        if (gameState.phase !== PHASES.GAME_OVER) setTimeout(startNewTurn, 1500);
+    }
+
+    function handleMishaTrivialDemand(card) {
+        if (card.effect === 'misha_trivial_headphones') {
+            changeThreat(gameState.mishaSatisfiedDemands.length); gameState.mishaSatisfiedDemands = [];
+        } else {
+            if (gameState.conversationPoints >= 1) {
+                gameState.conversationPoints -= 1; changeThreat(-1); gameState.mishaSatisfiedDemands.push(card);
+            }
+        }
+        updateUI(); checkGameOver(); if (gameState.phase !== PHASES.GAME_OVER) setTimeout(startNewTurn, 1500);
+    }
+
+    function startNewTurn() {
+        if (gameState.isGameOver) return;
+        gameState.turn++;
+        gameState.phase = PHASES.TALK;
+        gameState.turnRescues = 0;
+        
+        if (gameState.currentKidnapper.type === 'sami') {
+            gameState.samiPainLevel++;
+            addLog(`薩米的偏頭痛級別上升至 ${gameState.samiPainLevel}。`, 'fail');
+            if (gameState.samiPainLevel >= 4) { triggerGameOver(false, "薩米因爆炸性疼痛殺死了人質！"); return; }
+        }
+        if (gameState.currentKidnapper.type === 'valerie' && !gameState.currentRival && gameState.valerieRivals.length > 0) {
+            gameState.currentRival = gameState.valerieRivals.splice(Math.floor(Math.random() * gameState.valerieRivals.length), 1)[0];
+        }
+        if (gameState.currentKidnapper.type === 'gonzala' && gameState.busMoving) {
+            changeThreat(-1); addLog(`公交車行駛中：威脅 -1。`, 'success');
+        }
+        // 唐娜懲罰：回合開始扣點
+        if (gameState.currentKidnapper.type === 'donna' && gameState.donnaPenalty === 'minus_cp') {
+            gameState.conversationPoints = Math.max(0, gameState.conversationPoints - 2);
+            addLog(`唐娜懲罰生效：回合開始 -2 談話點。`, 'fail');
+        }
+
+        drawCard();
+        addLog(`新回合開始，補充了 1 張手牌。`, 'system');
+        setMessage(`第 ${gameState.turn} 回合開始，進入談話階段。`);
+        addLog(`--- 第 ${gameState.turn} 回合開始 ---`, 'system');
+        updateUI();
+    }
+
+    // --- 效果結算 ---
+    function resolveCardEffect(card, isSuccess) {
+        const eff = isSuccess ? card.effects.success : card.effects.fail;
+        const resultStr = isSuccess ? '成功' : '失敗';
+        
+        if (!eff) { addLog(`【${card.name}】沒有觸發效果。`); } 
+        else {
+            let effectLogs = [];
+            if (eff === 'kill_kidnapper') {
+                handleKillKidnapper();
+                effectLogs.push(`擊殺綁匪`);
+            } else {
+                eff.split('_').forEach(e => {
+                    if (e.startsWith('cp+')) { let n = parseInt(e.split('+')[1]); gameState.conversationPoints += n; effectLogs.push(`談話點 +${n}`); }
+                    else if (e.startsWith('threat+')) { let n = parseInt(e.split('+')[1]); changeThreat(n); effectLogs.push(`威脅 +${n}`); }
+                    else if (e.startsWith('threat-')) { let n = parseInt(e.split('-')[1]); changeThreat(-n); effectLogs.push(`威脅 -${n}`); }
+                    else if (e.startsWith('kill+')) { let n = parseInt(e.split('+')[1]); killHostage(n); effectLogs.push(`撕票 ${n} 人`); }
+                    else if (e.startsWith('rescue+')) { let n = parseInt(e.split('+')[1]); rescueHostage(n); effectLogs.push(`解救 ${n} 人`); }
+                    else if (e.startsWith('dice+')) { let n = parseInt(e.split('+')[1]); gameState.diceModifier += n; effectLogs.push(`下次擲骰 +${n} 骰`); }
+                    else if (e.startsWith('dice-')) { let n = parseInt(e.split('-')[1]); gameState.diceModifier -= n; effectLogs.push(`下次擲骰 -${n} 骰`); }
+                    else if (e === 'convert_4') { gameState.convertFour = true; effectLogs.push(`4 可視為 5`); }
+                    else if (e.startsWith('reduce_pain_')) {
+                        let n = parseInt(e.split('_')[2]); gameState.samiPainLevel = Math.max(0, gameState.samiPainLevel - n); effectLogs.push(`疼痛 -${n}`);
+                    }
+                });
+            }
+            addLog(`【${card.name}】觸發${resultStr}效果：${effectLogs.join('，')}`, isSuccess ? 'success' : 'fail');
+        }
+        
+        if (gameState.currentKidnapper.type === 'valerie' && (eff.includes('rescue+') || eff.includes('kill+'))) triggerValerieCompetition('人質狀態變化');
+
+        setMessage(`「${card.name}」結算完畢。`);
+        updateUI(); checkGameOver();
+    }
+
+    function changeThreat(amt) {
+        let nt = gameState.threat + amt;
+        if (amt > 0 && gameState.threat >= 7) { killHostage(amt); return; }
+        if (amt < 0 && gameState.threat <= 0) { rescueHostage(Math.abs(amt)); return; }
+        if (nt > 7) { killHostage(nt - 7); gameState.threat = 7; } 
+        else if (nt < 0) { rescueHostage(0 - nt); gameState.threat = 0; } 
+        else { gameState.threat = nt; }
+    }
+
+    function killHostage(amt) {
+        for(let i=0; i<amt; i++) {
+            if (gameState.hostages > 0) { 
+                if (gameState.currentKidnapper.type === 'jackson') {
+                    let defendIdx = gameState.hand.findIndex(c => c.id === 'j1');
+                    if (defendIdx !== -1) {
+                        gameState.hand.splice(defendIdx, 1); gameState.stockholmHostages++;
+                        addLog(`觸發【上尉，你肯定不想這樣！】：阻止撕票，人質移入記錄卡。`, 'success');
+                        continue;
+                    } else { triggerGameOver(false, "傑克遜的局，任何人質死亡都會導致失敗！"); return; }
+                }
+                gameState.hostages--; gameState.casualties++; 
+            }
+        }
+    }
+
+    function rescueHostage(amt) {
+        for(let i=0; i<amt; i++) {
+            if (gameState.hostages > 0) { 
+                gameState.hostages--; gameState.rescued++; 
+                gameState.turnRescues++;
+                if (gameState.currentKidnapper.type === 'anonymous') {
+                    gameState.rescuedSinceLastCode++;
+                    if (gameState.rescuedSinceLastCode >= 2) {
+                        gameState.rescuedSinceLastCode = 0;
+                        let idx = gameState.bombCodes.indexOf('red');
+                        if (idx !== -1) gameState.bombCodes[idx] = 'warning';
+                    }
+                }
+            }
+        }
+    }
+
+    function handleKillKidnapper() {
+        if (['anonymous', 'jackson'].includes(gameState.currentKidnapper.type)) { addLog(`該綁匪無法被擊殺！`, 'fail'); return; }
+        if (gameState.currentKidnapper.type === 'gonzala' && gameState.busMoving) { addLog(`貢薩拉在行駛中無法被擊殺！`, 'fail'); return; }
+        
+        if (gameState.currentKidnapper.type === 'pedersen' && gameState.pedersenState === 'rolf') {
+            gameState.pedersenState = 'dolf'; gameState.currentKidnapper.name = '多爾夫·佩德森'; gameState.currentKidnapper.special = '極度殘暴。立即殺死所有活著的人質，威脅強制設為 5。';
+            addLog(`羅爾夫被擊殺！多爾夫登場，他立即殺死了所有活著的人質！`, 'fail');
+            gameState.casualties += gameState.hostages; gameState.hostages = 0; gameState.threat = 5;
+            gameState.demands = [{ name: '逃跑需求：隱藏', cost: 5, desc: '未知', type: 'escape' }];
+            updateUI(); checkGameOver(); return;
+        }
+
+        if (gameState.currentKidnapper.type === 'seaver') {
+            if (gameState.clydeAlive) {
+                gameState.clydeAlive = false; addLog(`你擊殺了克萊德！`, 'success');
+            } else if (gameState.tinaAlive) {
+                if (gameState.tinaFound) {
+                    gameState.tinaAlive = false; addLog(`你擊殺了蒂娜！`, 'success');
+                } else {
+                    addLog(`蒂娜在逃跑中，除非搜索到標記，否則無法擊殺她！`, 'fail');
+                    return;
+                }
+            }
+            if (!gameState.clydeAlive && !gameState.tinaAlive) {
+                triggerGameOver(true, "成功擊殺西佛家族的雙人綁匪！"); return;
+            }
+            updateUI(); return;
+        }
+
+        if (gameState.hostages === 0) { triggerGameOver(true, "綁匪被擊殺且人質池已空！"); return; }
+        else {
+            gameState.currentKidnapper = { name: '二把手', type: 'base', special: '無法被擊殺。無人質時投降。', isSecond: true };
+            addLog(`綁匪被擊殺，但還有人質，【二把手】出現了！`, 'system');
+        }
+    }
+
+    // --- 勝負判定與成就 ---
+    function checkGameOver() {
+        if (gameState.isGameOver) return;
+
+        if (gameState.currentKidnapper.type === 'jackson' && gameState.casualties > 0) { triggerGameOver(false, "傑克遜的局，任何人質死亡都算失敗！"); return; }
+        if (gameState.currentKidnapper.type === 'jackson' && gameState.stockholmHostages >= 5) { triggerGameOver(false, "記錄卡累積 5 人，失敗！"); return; }
+
+        if (gameState.currentKidnapper.type === 'seaver') {
+            if (!gameState.clydeAlive && !gameState.tinaAlive) { triggerGameOver(true, "西佛家族已被解決！"); return; }
+            if (!gameState.clydeAlive && gameState.tinaAlive && !gameState.tinaFound) { triggerGameOver(false, "克萊德死亡後，蒂娜帶著未獲救的孩子逃跑了！"); return; }
+        }
+
+        let maxCasualties = 3;
+        if (gameState.currentKidnapper.name === '唐娜·斯卡伯勒') maxCasualties = 6;
+        else if (gameState.currentKidnapper.name === '米莎·科斯基寧') maxCasualties = 5;
+        else if (gameState.currentKidnapper.name.includes('佩德森')) maxCasualties = 4;
+        else if (gameState.currentKidnapper.type === 'seaver') maxCasualties = 4;
+        
+        if (gameState.casualties > maxCasualties && gameState.currentKidnapper.type !== 'jackson') { triggerGameOver(false, "一半以上的人質被撕票，談判失敗！"); return; }
+        if (gameState.hostages === 0 && gameState.casualties <= maxCasualties && !['jackson', 'seaver'].includes(gameState.currentKidnapper.type)) { triggerGameOver(true, "人質池已空，成功解救人質！"); return; }
+    }
+
+    function triggerGameOver(isWin, msg) {
+        gameState.phase = PHASES.GAME_OVER; gameState.isGameOver = true; updateUI(); setMessage(msg);
+        addLog(`遊戲結束：${msg} (${isWin ? '勝利' : '失敗'})`, isWin ? 'success' : 'fail');
+        
+        if (isWin) {
+            unlockAchievement('base_win');
+            if (gameState.casualties === 0) unlockAchievement('base_no_casualties');
+            if (gameState.threat === 7) unlockAchievement('base_threat_k');
+            
+            const charId = gameState.currentCharacterId;
+            if (charId === 'akheni') unlockAchievement('akheni_win');
+            if (charId === 'donna') {
+                unlockAchievement('donna_win');
+                if (gameState.threat === 5) unlockAchievement('donna_threat5');
+            }
+            if (charId === 'misha') unlockAchievement('misha_win');
+            if (charId === 'jackson') {
+                unlockAchievement('jackson_win');
+                if (gameState.stockholmHostages >= 3) unlockAchievement('jackson_stockholm');
+            }
+            if (charId === 'anonymous') unlockAchievement('anon_win');
+            if (charId === 'valerie') unlockAchievement('valerie_win');
+            if (charId === 'sami') unlockAchievement('sami_win');
+            if (charId === 'pedersen') unlockAchievement('pedersen_win');
+            if (charId === 'cult') unlockAchievement('cult_win');
+            if (charId === 'gonzala') unlockAchievement('gonzala_win');
+            if (charId === 'seaver') unlockAchievement('seaver_win');
+        }
+
+        alert(msg + (isWin ? "\n\n你贏得了遊戲！" : "\n\n你輸掉了遊戲！"));
+    }
+
+    // --- 系統輔助 ---
+    function setMessage(msg) { document.getElementById('game-message').innerText = msg; }
+    function resetGame() { if (confirm("確定要重新開始嗎？")) location.reload(); }
+    function openRules() { document.getElementById('rules-modal').style.display = 'flex'; }
+    function closeRules() { document.getElementById('rules-modal').style.display = 'none'; }
+
+    function saveGame() {
+        if (gameState.phase === PHASES.SETUP) return alert("遊戲尚未開始！");
+        localStorage.setItem('hostageSave', JSON.stringify(gameState));
+        alert("遊戲已成功存檔！");
+    }
+    function loadGame() {
+        const saved = localStorage.getItem('hostageSave');
+        if (saved) {
+            gameState = JSON.parse(saved); gameState.isGameOver = false;
+            document.getElementById('start-modal').style.display = 'none';
+            document.getElementById('top-bar').classList.remove('hidden');
+            document.getElementById('main-container').classList.remove('hidden');
+            updateUI();
+            addLog("【系統】讀取存檔成功。", 'system');
+        } else alert("沒有找到存檔！");
+    }
+
+    // 米莎偏執
+    function payParanoia() { if (gameState.conversationPoints >= 1) { gameState.conversationPoints -= 1; document.getElementById('paranoia-modal').style.display = 'none'; enterSpendPhase(); } }
+    function rollParanoia() {
+        document.getElementById('paranoia-modal').style.display = 'none';
+        rollDice((success, rolls) => {
+            let r = Math.min(6, rolls[0] + gameState.mishaParanoiaBuff);
+            let face = gameState.mishaParanoia;
+            if (face === 'bored') {
+                if(r===1){ gameState.mishaParanoia='scared'; addLog(`偏執結果：翻面至恐懼！`, 'fail'); }
+                else if(r===2){ killHostage(1); addLog(`偏執結果：撕票 1 人！`, 'fail'); }
+                else if(r===5){ gameState.conversationPoints += 2; addLog(`偏執結果：+2 談話點。`, 'success'); }
+                else if(r===6){ rescueHostage(1); addLog(`偏執結果：解救 1 人！`, 'success'); }
+            } else {
+                if(r<=2){ killHostage(1); addLog(`偏執結果：撕票 1 人！`, 'fail'); }
+                else if(r===3){ 
+                    changeThreat(1); addLog(`偏執結果：威脅 +1，並再次為偏執擲骰！`, 'fail');
+                    setTimeout(() => { rollParanoia(); }, 1000); // 遞迴呼叫
+                    return; // 中斷，等下一次擲骰
+                }
+                else if(r===4){ 
+                    addLog(`偏執結果：展示下一張紅色恐怖卡並結算。`, 'fail'); 
+                    setTimeout(() => { drawTerrorCard(); }, 1000);
+                    return;
+                }
+                else if(r===5){ changeThreat(-1); addLog(`偏執結果：威脅 -1。`, 'success'); }
+                else if(r===6){ gameState.conversationPoints += 3; addLog(`偏執結果：+3 談話點！`, 'success'); }
+            }
+            updateUI(); checkGameOver(); if (gameState.phase !== PHASES.GAME_OVER) setTimeout(enterSpendPhase, 1500);
+        }, 1, '偏執擲骰');
+    }
+</script>
+</body>
+</html>

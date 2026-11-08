@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>偵探俱樂部2：古董商</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --primary-color: #d32f2f;
+            --secondary-color: #424242;
+            --accent-color: #fbc02d;
+            --card-bg: #2a2a2a;
+            --border-color: #555;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { background-color: var(--secondary-color); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary-color); flex-shrink: 0; }
+        header h1 { font-size: 1.5rem; color: var(--accent-color); text-shadow: 1px 1px 2px #000; }
+        .controls button { background-color: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 5px 10px; margin-left: 10px; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .controls button:hover { background-color: var(--border-color); }
+        #game-container { flex: 1; display: flex; flex-direction: column; padding: 20px; max-width: 900px; margin: 0 auto; width: 100%; overflow-y: auto; position: relative; }
+        #story-text { background-color: var(--card-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px; line-height: 1.6; font-size: 1.1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        #story-text strong { color: var(--accent-color); }
+        #story-text .penalty { color: var(--primary-color); font-weight: bold; }
+        #choices-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .choice-btn { background-color: var(--secondary-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 15px; text-align: left; font-size: 1rem; cursor: pointer; border-radius: 6px; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .choice-btn:hover:not(:disabled) { background-color: #555; border-color: var(--accent-color); }
+        .choice-btn:disabled { opacity: 0.5; cursor: not-allowed; background-color: #2a2a2a; }
+        #evidence-bar { background-color: var(--secondary-color); border-top: 2px solid var(--border-color); padding: 10px 0; flex-shrink: 0; overflow-x: auto; overflow-y: hidden; white-space: nowrap; display: flex; align-items: center; height: 160px; }
+        #evidence-bar::-webkit-scrollbar { height: 8px; }
+        #evidence-bar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        .evidence-container { display: flex; gap: 15px; padding: 0 20px; margin: 0 auto; }
+        .evidence-card { width: 120px; height: 130px; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; position: relative; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.5); transition: transform 0.2s; cursor: pointer; flex-shrink: 0; }
+        .evidence-card:hover { transform: translateY(-5px); }
+        .evidence-card .svg-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -60%); width: 80px; height: 80px; }
+        .evidence-label { width: 100%; background: rgba(0, 0, 0, 0.8); color: var(--text-color); padding: 5px; text-align: center; font-size: 0.8rem; border-top: 1px solid var(--border-color); z-index: 2; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background-color: var(--bg-color); padding: 30px; border-radius: 10px; border: 2px solid var(--primary-color); max-width: 600px; width: 90%; text-align: center; }
+        .modal-content h2 { color: var(--accent-color); margin-bottom: 15px; }
+        .modal-content p { margin-bottom: 10px; line-height: 1.5; }
+        .modal-content button { margin-top: 20px; padding: 10px 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        .modal-content button:hover { background-color: #b71c1c; }
+        .score-display { font-weight: bold; color: var(--accent-color); font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>偵探俱樂部2：古董商</h1>
+        <div class="controls">
+            <span class="score-display">分數: <span id="score">0</span></span>
+            <button onclick="openModal('help')">遊戲說明</button>
+            <button onclick="saveGame()">存檔</button>
+            <button onclick="loadGame()">讀檔</button>
+        </div>
+    </header>
+
+    <main id="game-container">
+        <div id="story-text"></div>
+        <div id="choices-container"></div>
+    </main>
+
+    <div id="evidence-bar">
+        <div class="evidence-container" id="evidence-list"></div>
+    </div>
+
+    <div class="modal-overlay" id="modal-help">
+        <div class="modal-content">
+            <h2>遊戲說明</h2>
+            <p>歡迎來到偵探俱樂部！你將扮演年輕的偵探 Bodger Pancetta。</p>
+            <p>閱讀故事，做出選擇，並收集關鍵證物來解開謎題。</p>
+            <p>請注意：選錯答案會遭到「砸派」懲罰，並扣除分數！</p>
+            <button onclick="closeModal('help')">開始遊戲</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-evidence">
+        <div class="modal-content">
+            <h2 id="ev-title">證物</h2>
+            <p id="ev-desc"></p>
+            <button onclick="closeModal('evidence')">關閉</button>
+        </div>
+    </div>
+
+    <script>
+        let state = { currentNode: 'start', score: 0, inventory: [], maxScore: 30 };
+        const nodes = {
+            'start': {
+                text: "歡迎來到偵探俱樂部！我是你的隊長 Casey。我們剛剛接到一個大案子，一位名叫 Quirke 的古董商被懷疑是神出鬼沒的『偽造師』。不過他剛剛被警方攔下，因為他的車上放著一幅被偷的名畫《田園風光》。<br><br>局長 Peters（Casey的父親）非常得意，他覺得自己抓到了犯人。但是，我們覺得事情沒有這麼簡單... 你覺得呢？",
+                choices: [
+                    { text: "檢查那幅畫（前往段落 31）", next: 'node_31', type: 'normal' },
+                    { text: "調查警方的逮捕過程（前往段落 17）", next: 'fail_1', type: 'fail', penalty: 1 },
+                    { text: "放棄調查，去賽車（前往段落 49）", next: 'fail_2', type: 'fail', penalty: 5 }
+                ]
+            },
+            'node_31': {
+                text: "你走近那幅畫。畫中描繪了農家風光、動物和農舍。Casey 的父親讀著書上的描述：『畫中有六隻鵝、兩個小孩、三個男人、一個女孩...』。<br><br>你仔細看著畫作，發現了不對勁的地方！",
+                choices: [
+                    { text: "畫中的鵝只有五隻！", next: 'node_26', type: 'success', score: 4 },
+                    { text: "畫中的男人只有兩個！", next: 'fail_3', type: 'fail', penalty: 1 },
+                    { text: "畫中的農舍是紅色的！", next: 'fail_4', type: 'fail', penalty: 1 }
+                ]
+            },
+            'node_26': {
+                text: "太棒了！你發現了真相：這幅畫是<b>偽造的</b>！Quirke 根本沒有偷真畫，他故意把假畫放在一個無辜者的車上，讓警方以為破案了，從而轉移注意力。<br><br>現在我們知道 Quirke 是個狡猾的傢伙。Casey 提議我們去公園跟蹤他，看他到底在耍什麼把戲。",
+                choices: [
+                    { text: "前往公園（前往段落 36）", next: 'node_36', type: 'normal' }
+                ]
+            },
+            'node_36': {
+                text: "我們來到公園，躲在遊樂園的塔樓上觀察。只見 Quirke 行為怪異：他先是用手杖戳地上的泥巴，還把一位畫家的畫架撞倒。接著，他把一個小孩的冰淇淋拍掉，然後又買了一個新的給他。最後，他看了看手錶，似乎在確認時間。<br><br>他為什麼要這樣做？",
+                choices: [
+                    { text: "他瘋了，我們應該避開他。", next: 'fail_5', type: 'fail', penalty: 1 },
+                    { text: "他在製造不在場證明！", next: 'node_alibi', type: 'success', score: 5 },
+                    { text: "他在等人接頭。", next: 'fail_6', type: 'fail', penalty: 1 }
+                ]
+            },
+            'node_alibi': {
+                text: "沒錯！Quirke 故意在公園裡做出各種引人注目的怪異行為，讓所有人都記得他在「下午一點到兩點」之間待在公園裡。這樣一來，當真正的竊案發生時（地點可能在展覽館），他就有完美的不在場證明！<br><br>我們必須找到他真正犯案的證據。Casey 提議我們去展覽館調查那具木乃伊。",
+                choices: [
+                    { text: "前往展覽館調查木乃伊（前往段落 19）", next: 'node_19', type: 'normal' }
+                ]
+            },
+            'node_19': {
+                text: "在展覽館裡，我們看到一具被放在打開的棺木中的木乃伊。Fagiolina 覺得這具木乃伊看起來很不對勁。真正的木乃伊應該保存在密封的棺木中，不可能這樣隨便展示。<br><br>我們該如何驗證木乃伊的真偽？",
+                choices: [
+                    { text: "關上棺木的蓋子，看看裡面會不會有人敲門求救。", next: 'node_mummy', type: 'success', score: 5 },
+                    { text: "用手指戳戳看。", next: 'fail_7', type: 'fail', penalty: 1 },
+                    { text: "大聲尖叫。", next: 'fail_8', type: 'fail', penalty: 1 }
+                ]
+            },
+            'node_mummy': {
+                text: "天才般的想法！當我們關上棺木蓋子後不久，裡面傳來了急促的敲打聲。這根本不是木乃伊，而是由 Quirke 的同夥假扮的！他們打算利用這個假木乃伊來運送偷來的古董。<br><br>就在我們準備去報警時，我們發現了 Quirke 遺落的手杖。",
+                choices: [
+                    { text: "檢查手杖（前往段落 35）", next: 'node_cane', type: 'normal' }
+                ]
+            },
+            'node_cane': {
+                text: "你仔細觀察這根手杖，發現它底部有雙層圓圈的痕跡。Casey 想到，Quirke 之前在公園裡曾用這根手杖在未乾的水泥地上戳來戳去。<br><br>這根手杖有什麼秘密？",
+                choices: [
+                    { text: "手杖是空心的，裡面可能藏有泥土或水泥！", next: 'node_cane_evidence', type: 'success', score: 6 },
+                    { text: "手杖是實心的，只是用來打人。", next: 'fail_9', type: 'fail', penalty: 2 }
+                ]
+            },
+            'node_cane_evidence': {
+                text: "我們用吸管從手杖的空洞中取出了樣本。裡面有水泥、泥土和油漆的混合物！這證明 Quirke 曾在 Cricco（那位被誣陷的工人）的工地附近徘徊，並把假證物埋在水泥下。<br><br>現在我們要去破解最後一個謎題：Quirke 是如何把這些古董從密室（展覽廳）裡運出去的？",
+                choices: [
+                    { text: "趁機把東西藏在垃圾桶裡運出去。", next: 'node_trash', type: 'success', score: 5 },
+                    { text: "從窗戶丟出去。", next: 'fail_10', type: 'fail', penalty: 2 },
+                    { text: "藏在木乃伊的棺木裡。", next: 'fail_11', type: 'fail', penalty: 1 }
+                ]
+            },
+            'node_trash': {
+                text: "完美！你破解了「密室之謎」。Quirke 的同夥穿著木乃伊裝，在工人 Cricco 清理垃圾時，將古董藏在垃圾桶裡運出去。這就是為什麼警方在展覽廳裡搜不到任何東西。<br><br>現在，我們有足夠的證據可以逮捕 Quirke 了！",
+                choices: [{ text: "前往結局", next: 'finale', type: 'normal' }]
+            },
+            'finale': {
+                text: "局長 Peters 根據我們提供的證據，成功逮捕了 Quirke 和他的同夥。Casey 的父親雖然有點尷尬，但還是稱讚了我們。<br><br>任務完成！你總共獲得了 " + state.score + " 分。",
+                choices: [{ text: "重新開始", next: 'start', type: 'reset' }]
+            },
+            'fail_1': { text: "<span class='penalty'>你選錯了！</span>調查逮捕過程無法發現畫作的問題。你被扣了 1 分。", choices: [{ text: "重試", next: 'start', type: 'normal' }] },
+            'fail_2': { text: "<span class='penalty'>你因為去賽車而錯過了破案的黃金時間！</span>你被扣了 5 分。", choices: [{ text: "重試", next: 'start', type: 'normal' }] },
+            'fail_3': { text: "<span class='penalty'>你選錯了！</span>畫中男人數量是對的，這不是破綻。你被扣了 1 分。", choices: [{ text: "重試", next: 'node_31', type: 'normal' }] },
+            'fail_4': { text: "<span class='penalty'>你選錯了！</span>農舍的顏色不是關鍵。你被扣了 1 分。", choices: [{ text: "重試", next: 'node_31', type: 'normal' }] },
+            'fail_5': { text: "<span class='penalty'>你選錯了！</span>Quirke 不是瘋了。你被扣了 1 分。", choices: [{ text: "重試", next: 'node_36', type: 'normal' }] },
+            'fail_6': { text: "<span class='penalty'>你選錯了！</span>他並不是在等人接頭。你被扣了 1 分。", choices: [{ text: "重試", next: 'node_36', type: 'normal' }] },
+            'fail_7': { text: "<span class='penalty'>你戳了木乃伊，結果被管理員罵了一頓，而且什麼也沒發現。你被扣了 1 分。", choices: [{ text: "重試", next: 'node_19', type: 'normal' }] },
+            'fail_8': { text: "<span class='penalty'>你的尖叫聲引來了所有人，卻讓 Quirke 的同夥察覺到我們在調查。你被扣了 1 分。", choices: [{ text: "重試", next: 'node_19', type: 'normal' }] },
+            'fail_9': { text: "<span class='penalty'>你選錯了！</span>手杖其實是空心的。你被扣了 2 分。", choices: [{ text: "重試", next: 'node_cane', type: 'normal' }] },
+            'fail_10': { text: "<span class='penalty'>你選錯了！</span>窗戶都被封死了。你被扣了 2 分。", choices: [{ text: "重試", next: 'node_cane_evidence', type: 'normal' }] },
+            'fail_11': { text: "<span class='penalty'>你選錯了！</span>木乃伊棺木是空的，東西早就被運走了。你被扣了 1 分。", choices: [{ text: "重試", next: 'node_cane_evidence', type: 'normal' }] }
+        };
+
+        const evidenceData = {
+            'painting': { name: '田園風光畫作', desc: '真畫有六隻鵝，假畫只有五隻。證明 Quirke 使用了掉包計。', svg: `<svg viewBox="0 0 100 100"><rect x="10" y="20" width="80" height="60" fill="#8B4513" stroke="#D2B48C" stroke-width="4"/><circle cx="30" cy="40" r="10" fill="#FFD700"/><path d="M 20 70 L 40 50 L 60 70 Z" fill="#228B22"/><circle cx="70" cy="45" r="8" fill="#FFF"/></svg>` },
+            'cane': { name: 'Quirke 的手杖', desc: '中空的手杖，裡面藏有水泥、泥土和油漆的樣本，是關鍵證據。', svg: `<svg viewBox="0 0 100 100"><rect x="45" y="10" width="10" height="80" fill="#654321" rx="3"/><circle cx="50" cy="90" r="8" fill="#333"/><circle cx="50" cy="90" r="5" fill="#654321"/></svg>` },
+            'mummy': { name: '假木乃伊', desc: '其實是活人假扮的，用來轉移注意力並偷運古董。', svg: `<svg viewBox="0 0 100 100"><rect x="30" y="10" width="40" height="80" fill="#F5F5DC" rx="10"/><circle cx="40" cy="30" r="4" fill="#000"/><circle cx="60" cy="30" r="4" fill="#000"/><line x1="30" y1="50" x2="70" y2="50" stroke="#000" stroke-width="2"/><line x1="30" y1="60" x2="70" y2="60" stroke="#000" stroke-width="2"/><line x1="30" y1="70" x2="70" y2="70" stroke="#000" stroke-width="2"/></svg>` },
+            'trash': { name: '垃圾桶', desc: 'Quirke 利用工人清理垃圾時，將古董藏在垃圾桶裡運出密室。', svg: `<svg viewBox="0 0 100 100"><rect x="20" y="30" width="60" height="60" fill="#555" rx="5"/><rect x="15" y="20" width="70" height="10" fill="#777" rx="2"/><path d="M 30 30 L 30 20 L 70 20 L 70 30" fill="none" stroke="#999" stroke-width="4"/></svg>` }
+        };
+
+        const storyTextEl = document.getElementById('story-text');
+        const choicesEl = document.getElementById('choices-container');
+        const scoreEl = document.getElementById('score');
+        const evidenceListEl = document.getElementById('evidence-list');
+
+        function init() {
+            renderNode(state.currentNode);
+            updateScoreUI();
+            renderEvidence();
+			state.currentNode = 'start';
+        }
+
+        function renderNode(nodeId) {
+            const node = nodes[nodeId];
+            if (!node) return;
+            let text = node.text;
+            if (nodeId === 'finale') text = text.replace(state.score, state.score + " 分");
+            storyTextEl.innerHTML = text;
+
+            choicesEl.innerHTML = '';
+            if (node.choices) {
+                node.choices.forEach(choice => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.innerHTML = `<span>${choice.text}</span>`;
+                    btn.onclick = () => handleChoice(choice);
+                    choicesEl.appendChild(btn);
+                });
+            }
+            state.currentNode = nodeId;
+        }
+
+        function handleChoice(choice) {
+            document.querySelectorAll('.choice-btn').forEach(btn => btn.disabled = true);
+
+            if (choice.type === 'success') {
+                state.score += choice.score || 0;
+            } else if (choice.type === 'fail') {
+                state.score = Math.max(0, state.score - choice.penalty);
+            } else if (choice.type === 'reset') {
+                state = { currentNode: 'start', score: 0, inventory: [], maxScore: 30 };
+            }
+
+            if (choice.next === 'node_26') addEvidence('painting');
+            if (choice.next === 'node_mummy') addEvidence('mummy');
+            if (choice.next === 'node_cane') addEvidence('cane');
+            if (choice.next === 'node_trash') addEvidence('trash');
+
+            updateScoreUI();
+            renderEvidence();
+            
+            if (choice.next === 'start') {
+                init();
+            } else {
+                renderNode(choice.next);
+            }
+        }
+
+        function addEvidence(id) {
+            if (!state.inventory.includes(id)) {
+                state.inventory.push(id);
+            }
+        }
+
+        function renderEvidence() {
+            evidenceListEl.innerHTML = '';
+            if (state.inventory.length === 0) {
+                evidenceListEl.innerHTML = '<div style="color:#777; padding: 20px;">尚未收集到任何證物</div>';
+                return;
+            }
+            state.inventory.forEach(id => {
+                const ev = evidenceData[id];
+                const card = document.createElement('div');
+                card.className = 'evidence-card';
+                card.innerHTML = `<div class="svg-icon">${ev.svg}</div><div class="evidence-label">${ev.name}</div>`;
+                card.onclick = () => showEvidenceDetail(id);
+                evidenceListEl.appendChild(card);
+            });
+        }
+
+        function showEvidenceDetail(id) {
+            const ev = evidenceData[id];
+            document.getElementById('ev-title').innerText = ev.name;
+            document.getElementById('ev-desc').innerText = ev.desc;
+            openModal('evidence');
+        }
+
+        function updateScoreUI() { scoreEl.innerText = state.score; }
+        function openModal(id) { document.getElementById(`modal-${id}`).classList.add('active'); }
+        function closeModal(id) { document.getElementById(`modal-${id}`).classList.remove('active'); }
+
+        function saveGame() {
+            localStorage.setItem('detectiveSave', JSON.stringify(state));
+            alert('遊戲已存檔！');
+        }
+        function loadGame() {
+            const saved = localStorage.getItem('detectiveSave');
+            if (saved) {
+                state = JSON.parse(saved);
+                updateScoreUI();
+                renderEvidence();
+                renderNode(state.currentNode);
+                alert('遊戲已讀取！');
+            } else { alert('沒有找到存檔！'); }
+        }
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>時空機器19：潘丘·維拉的死亡面具</title>
+    <style>
+        /* 1. 視覺與復古主題樣式 (羊皮紙、暗角、襯線字) */
+        :root {
+            --bg-color: #f4e8c1;
+            --panel-bg: rgba(244, 232, 193, 0.85);
+            --border-color: #5c3a21;
+            --text-color: #2b1810;
+            --accent-color: #8b0000;
+            --hover-color: #a52a2a;
+            --disabled-color: #8c8275;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2b1d14;
+            background-image: 
+                radial-gradient(circle, transparent 40%, rgba(0,0,0,0.8) 100%),
+                linear-gradient(to bottom, #d9c59a, #b89b5f);
+            color: var(--text-color);
+            font-family: "Georgia", "Times New Roman", serif, "Noto Serif CJK TC";
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 主容器 */
+        #game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            background: var(--bg-color);
+            border-left: 2px solid var(--border-color);
+            border-right: 2px solid var(--border-color);
+        }
+
+        /* 頂部資訊面板 (動態進度與歷史) */
+        header {
+            background: #3a2212;
+            color: #f4e8c1;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #1a0f08;
+            font-size: 0.9em;
+        }
+
+        .header-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #e6c687;
+        }
+
+        /* 手機友善卡牌橫向滾動陣列 (Flexbox 不換行 overflow-x) */
+        #inventory-bar {
+            background: #4a2e1b;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid var(--border-color);
+            min-height: 110px;
+        }
+
+        #inventory-bar::-webkit-scrollbar {
+            height: 6px;
+        }
+        #inventory-bar::-webkit-scrollbar-thumb {
+            background: #8b5a2b;
+            border-radius: 3px;
+        }
+
+        .card {
+            flex: 0 0 80px;
+            height: 95px;
+            background: #ebd2b0;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px;
+            position: relative;
+            box-shadow: 2px 2px 5px var(--shadow-color);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+        }
+
+        .card svg {
+            width: 40px;
+            height: 40px;
+            margin-top: 4px;
+        }
+
+        .card-label {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            font-size: 0.65em;
+            text-align: center;
+            padding: 2px 0;
+            border-radius: 0 0 3px 3px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 中間視覺與劇情展演區 */
+        #main-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* SVG 插畫與場景容器 */
+        #scene-visual {
+            width: 100%;
+            height: 180px;
+            background: #23160c;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 15px #000;
+        }
+
+        /* 閃爍與動畫 */
+        @keyframes pulseGlow {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        .animated-svg {
+            animation: pulseGlow 3s infinite ease-in-out;
+        }
+
+        /* 打字機故事文字框 */
+        #story-box {
+            background: rgba(255, 248, 220, 0.6);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 1.05em;
+            line-height: 1.6;
+            min-height: 110px;
+            cursor: pointer;
+            position: relative;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+        }
+
+        #story-box::after {
+            content: "（點擊快速顯示全文）";
+            position: absolute;
+            bottom: 3px;
+            right: 8px;
+            font-size: 0.7em;
+            color: #777;
+        }
+
+        /* 選項按鈕區 (狀態機控制) */
+        #choices-container {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .choice-btn {
+            background: linear-gradient(to bottom, #8b3a2b, #5c2217);
+            color: #f4e8c1;
+            border: 1px solid #3a110a;
+            padding: 12px 15px;
+            font-size: 0.95em;
+            font-family: inherit;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+            box-shadow: 0 3px 5px var(--shadow-color);
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .choice-btn:hover:not(:disabled) {
+            background: linear-gradient(to bottom, #a54635, #732a1e);
+            transform: translateX(3px);
+        }
+
+        .choice-btn:active:not(:disabled) {
+            transform: translateY(1px);
+            box-shadow: 0 1px 2px var(--shadow-color);
+        }
+
+        .choice-btn:disabled {
+            background: #6e655f;
+            color: #a8a098;
+            cursor: not-allowed;
+            border-color: #4a4440;
+            box-shadow: none;
+            opacity: 0.7;
+        }
+
+        /* 底部導航列 (手機友善單手操作) */
+        footer {
+            background: #2b1810;
+            border-top: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 5px;
+        }
+
+        .nav-btn {
+            background: #4a2e1b;
+            color: #ebd2b0;
+            border: 1px solid #7a4e2e;
+            padding: 8px 12px;
+            font-size: 0.85em;
+            border-radius: 4px;
+            cursor: pointer;
+            flex: 1;
+            margin: 0 4px;
+            text-align: center;
+        }
+        .nav-btn:hover {
+            background: #633e24;
+        }
+
+        /* 彈窗 UI (說明、歷史時間線、成就、Toast) */
+        .modal-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-body {
+            background: var(--bg-color);
+            border: 3px solid var(--border-color);
+            width: 90%;
+            max-width: 550px;
+            max-height: 80%;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 0 0 20px #000;
+            position: relative;
+        }
+
+        .modal-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 5px;
+            margin-top: 0;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--border-color);
+            cursor: pointer;
+        }
+
+        /* Toast 智慧提示 */
+        #toast {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(139, 0, 0, 0.95);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 歷史時間線列表 */
+        .timeline-item {
+            padding: 6px 0;
+            border-bottom: 1px dashed #a58d6f;
+            font-size: 0.9em;
+        }
+        .timeline-year {
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-right: 8px;
+        }
+
+        /* 淡入淡出動畫 */
+        .fade-transition {
+            transition: opacity 0.3s ease;
+        }
+        .fade-out {
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- 智慧提示 (Toast) -->
+    <div id="toast">提示訊息</div>
+
+    <!-- 頂部資訊面板 -->
+    <header>
+        <span class="header-title">時空機器 #19</span>
+        <span id="current-location">地點：1923 帕拉爾 (Parral)</span>
+        <span id="audio-toggle" style="cursor:pointer;" onclick="toggleAudio()">🔊 音效: 開</span>
+    </header>
+
+    <!-- 卡牌背包 / 狀態欄 (Flexbox 水平軸滾動) -->
+    <div id="inventory-bar">
+        <!-- 卡牌將由 JS 動態生成渲染 -->
+    </div>
+
+    <!-- 主遊戲舞台 -->
+    <div id="main-stage">
+        <!-- SVG 場景插圖 -->
+        <div id="scene-visual">
+            <svg id="svg-canvas" viewBox="0 0 300 150" width="100%" height="100%">
+                <!-- 動態 SVG 視覺渲染 -->
+            </svg>
+        </div>
+
+        <!-- 打字機劇情文本 -->
+        <div id="story-box" onclick="completeTypewriter()">
+            <div id="story-text">載入中...</div>
+        </div>
+
+        <!-- 狀態機選項按鈕 -->
+        <div id="choices-container">
+            <!-- 動態按鈕 -->
+        </div>
+    </div>
+
+    <!-- 底部導航列 (手機單手操作) -->
+    <footer>
+        <button class="nav-btn" onclick="openModal('help-modal')">📖 玩法說明</button>
+        <button class="nav-btn" onclick="openModal('history-modal')">📜 歷史時間線</button>
+        <button class="nav-btn" onclick="openModal('achieve-modal')">🏆 結局圖鑑</button>
+        <button class="nav-btn" onclick="saveGame()">💾 存檔</button>
+        <button class="nav-btn" onclick="loadGame()">📂 讀檔</button>
+    </footer>
+
+    <!-- 彈窗：玩法說明 -->
+    <div id="help-modal" class="modal-overlay">
+        <div class="modal-body">
+            <button class="close-btn" onclick="closeModal('help-modal')">×</button>
+            <h3 class="modal-title">任務指南與時空定律</h3>
+            <p><strong>任務目標：</strong>前往 20 世紀初墨西哥革命時期，尋找英雄潘丘·維拉的「死亡面具」，並將其妥善隱藏保護，避免被敵軍摧毀。</p>
+            <p><strong>時空旅行四大守則：</strong></p>
+            <ol>
+                <li>絕對不可殺害任何人或動物。</li>
+                <li>絕不可改變歷史，不可留存未來物品於過去。</li>
+                <li>不可帶著任何人進行時空跳躍。</li>
+                <li>必須嚴格遵守時空機器的指令與選項。</li>
+            </ol>
+            <p><strong>提示：</strong>某些選擇需要特定卡牌道具或身份證明（如 Dorado 金色臂章）。若點擊被鎖定的選項，系統將提示您所缺少的關鍵物品。</p>
+        </div>
+    </div>
+
+    <!-- 彈窗：歷史時間線 -->
+    <div id="history-modal" class="modal-overlay">
+        <div class="modal-body">
+            <button class="close-btn" onclick="closeModal('history-modal')">×</button>
+            <h3 class="modal-title">時空探索軌跡</h3>
+            <div id="timeline-list">
+                <!-- 動態生成時間線記錄 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 彈窗：成就與結局圖鑑 -->
+    <div id="achieve-modal" class="modal-overlay">
+        <div class="modal-body">
+            <button class="close-btn" onclick="closeModal('achieve-modal')">×</button>
+            <h3 class="modal-title">結局與解鎖圖鑑</h3>
+            <ul id="achievement-list" style="padding-left: 20px; line-height: 1.8;">
+                <!-- 動態生成成就 -->
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ==========================================================================
+       2. Web Audio API 音效合成器 (無須外部資源)
+       ========================================================================== */
+    let audioEnabled = true;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new AudioCtx();
+    }
+
+    function playSound(type) {
+        if (!audioEnabled) return;
+        initAudio();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'click') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.08);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+            osc.start(now);
+            osc.stop(now + 0.08);
+        } else if (type === 'jump') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.linearRampToValueAtTime(600, now + 0.25);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+            osc.start(now);
+            osc.stop(now + 0.25);
+        } else if (type === 'error') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(120, now);
+            osc.frequency.setValueAtTime(80, now + 0.1);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now);
+            osc.stop(now + 0.2);
+        } else if (type === 'win') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.setValueAtTime(450, now + 0.1);
+            osc.frequency.setValueAtTime(600, now + 0.2);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        }
+    }
+
+    function toggleAudio() {
+        audioEnabled = !audioEnabled;
+        document.getElementById('audio-toggle').innerText = audioEnabled ? "🔊 音效: 開" : "🔇 音效: 關";
+    }
+
+    /* ==========================================================================
+       3. 卡牌 SVG 圖像生成器 (替代 Base64)
+       ========================================================================== */
+    const CARD_SVGS = {
+        outfit: `<svg viewBox="0 0 50 50"><path d="M15,10 L35,10 L40,45 L10,45 Z" fill="#b89b5f"/><path d="M20,10 L25,20 L30,10" fill="none" stroke="#5c3a21" stroke-width="2"/><ellipse cx="25" cy="8" rx="18" ry="4" fill="#8b5a2b"/></svg>`,
+        telegram: `<svg viewBox="0 0 50 50"><rect x="5" y="12" width="40" height="26" fill="#f4e8c1" stroke="#5c3a21" stroke-width="2"/><line x1="10" y1="20" x2="40" y2="20" stroke="#333" stroke-width="2" stroke-dasharray="2,2"/><line x1="10" y1="26" x2="35" y2="26" stroke="#333" stroke-width="2"/><line x1="10" y1="32" x2="25" y2="32" stroke="#333" stroke-width="2"/></svg>`,
+        pigeon: `<svg viewBox="0 0 50 50"><path d="M10,25 Q25,10 35,20 Q45,25 38,35 Q25,40 10,25 Z" fill="#fff" stroke="#ccc"/><circle cx="32" cy="18" r="2" fill="#000"/><path d="M35,20 L42,22 L36,25 Z" fill="#ffa500"/></svg>`,
+        dynamite: `<svg viewBox="0 0 50 50"><rect x="15" y="15" width="8" height="28" fill="#b22222"/><rect x="26" y="15" width="8" height="28" fill="#b22222"/><path d="M19,15 Q25,5 30,10" fill="none" stroke="#000" stroke-width="2"/><circle cx="30" cy="10" r="3" fill="#ffa500" class="animated-svg"/></svg>`,
+        money: `<svg viewBox="0 0 50 50"><rect x="8" y="15" width="34" height="20" fill="#85bb65" stroke="#2e5618" stroke-width="2"/><circle cx="25" cy="25" r="5" fill="none" stroke="#2e5618" stroke-width="2"/><text x="25" y="28" font-size="8" text-anchor="middle" fill="#2e5618">$</text></svg>`,
+        armband: `<svg viewBox="0 0 50 50"><rect x="8" y="15" width="34" height="20" fill="#ffd700" stroke="#b8860b" stroke-width="2"/><polygon points="25,18 28,24 34,25 30,29 31,35 25,32 19,35 20,29 16,25 22,24" fill="#b8860b"/></svg>`,
+        mask: `<svg viewBox="0 0 50 50"><path d="M15,10 Q25,5 35,10 Q40,25 35,40 Q25,48 15,40 Q10,25 15,10 Z" fill="#f5f5dc" stroke="#999" stroke-width="2"/><ellipse cx="20" cy="20" rx="3" ry="2" fill="#666"/><ellipse cx="30" cy="20" rx="3" ry="2" fill="#666"/><path d="M20,32 Q25,36 30,32" fill="none" stroke="#666" stroke-width="2"/></svg>`
+    };
+
+    const CARDS_DATA = {
+        outfit: { name: "平民裝束", effect: "基礎偽裝", svg: CARD_SVGS.outfit },
+        telegram: { name: "赦免電報", effect: "拯救維拉", svg: CARD_SVGS.telegram },
+        pigeon: { name: "革命信鴿", effect: "傳達情報", svg: CARD_SVGS.pigeon },
+        dynamite: { name: "硝化甘油", effect: "開闢通路", svg: CARD_SVGS.dynamite },
+        money: { name: "維拉紙幣", effect: "已失效貨幣", svg: CARD_SVGS.money },
+        armband: { name: "Dorado臂章", effect: "維拉親衛證明", svg: CARD_SVGS.armband },
+        mask: { name: "死亡面具", effect: "任務核心目標", svg: CARD_SVGS.mask }
+    };
+
+    /* ==========================================================================
+       4. 遊戲狀態機 (State Machine) 與章節數據
+       ========================================================================== */
+    const GAME_STATES = {
+        // --- 1923 Parral 起點 ---
+        S1_PARRAL_1923: {
+            year: "1923",
+            location: "帕拉爾 (Parral)",
+            text: "你降落在 1923 年 7 月 20 日熱氣蒸騰的帕拉爾小巷中。潘丘·維拉剛剛遇刺身亡！憤怒的民眾發現了躲在巷口背後的你，懷疑你是政府派來的刺客，聲討著向你湧來！前方有兩名士兵攔住去路，側邊則是 Hidalgo 飯店後門。",
+            svg: `<rect width="300" height="150" fill="#5c4033"/><path d="M0,100 L300,100 L300,150 L0,150 Z" fill="#3a2212"/><circle cx="250" cy="40" r="15" fill="#ffd700" opacity="0.8"/><text x="150" y="80" font-size="16" fill="#f4e8c1" text-anchor="middle">1923 帕拉爾遇刺現場</text>`,
+            choices: [
+                { text: "向攔路士兵尋求求助", nextState: "S6_SOLDIERS_HELP" },
+                { text: "潛入 Hidalgo 飯店躲避", nextState: "S2_HOTEL_HIDE" }
+            ]
+        },
+        S2_HOTEL_HIDE: {
+            year: "1923",
+            location: "Hidalgo 飯店廚房",
+            text: "你溜進飯店廚房，一位手持肉刀的廚娘以為你是前來悼念維拉將軍的貧苦孩子，給了你一塊玉米餅，並引導你走向繁忙的大廳與樓梯間。你聽到軍官提到醫生正在樓上製作死亡面具！",
+            svg: `<rect width="300" height="150" fill="#4a2e1b"/><text x="150" y="80" font-size="16" fill="#ebd2b0" text-anchor="middle">Hidalgo 飯店內部</text>`,
+            choices: [
+                { text: "隨侍者偷偷上樓查看", nextState: "S3_DOCTOR_ROOM" },
+                { text: "進入小酒館 (Cantina) 探聽", nextState: "S8_CANTINA" }
+            ]
+        },
+        S6_SOLDIERS_HELP: {
+            year: "1923",
+            location: "帕拉爾小巷口",
+            text: "士兵搜查了你的全身確認沒有武器。士兵冷笑透露，上級已派人進入飯店準備摧毀剛製作完成的維拉死亡面具，以防止面具成為革命黨人的象徵！你必須阻止這一切。",
+            svg: `<rect width="300" height="150" fill="#3a2212"/><text x="150" y="80" font-size="16" fill="#ebd2b0" text-anchor="middle">巷口士兵警戒中</text>`,
+            choices: [
+                { text: "潛入 Hidalgo 飯店尋找醫生", nextState: "S2_HOTEL_HIDE" },
+                { text: "前往對面 Nordwald 雜貨店", nextState: "S18_STORE" }
+            ]
+        },
+        S18_STORE: {
+            year: "1923",
+            location: "Nordwald 雜貨店",
+            text: "老闆 Otto Nordwald 悼念著維拉。他表示如果能拿到死亡面具，他願意將其鎖入保險箱以保護這件國家寶藏，直到局勢平息。你承諾會想辦法幫忙。",
+            svg: `<rect width="300" height="150" fill="#5c3a21"/><text x="150" y="80" font-size="16" fill="#f4e8c1" text-anchor="middle">Nordwald 雜貨店</text>`,
+            choices: [
+                { text: "潛入 Hidalgo 飯店尋找面具", nextState: "S2_HOTEL_HIDE" }
+            ]
+        },
+        S3_DOCTOR_ROOM: {
+            year: "1923",
+            location: "維拉將軍遺體房間",
+            text: "你目睹醫生剛從維拉將軍臉上拓下膏質死亡面具！但隨後政府士兵破門而入聲明要破壞面具。醫生趁亂抱著醫療包從後方樓梯逃往小酒館地下室！",
+            svg: `<rect width="300" height="150" fill="#1a0f08"/><text x="150" y="80" font-size="16" fill="#fff" text-anchor="middle">遺體拓印現場</text>`,
+            choices: [
+                { text: "追隨醫生前往地下室", nextState: "S8_CANTINA" }
+            ]
+        },
+        S8_CANTINA: {
+            year: "1923",
+            location: "小酒館地下室",
+            text: "你在地下室追上了醫生。醫生緊抱面具戒備地喊道：『我只會將面具託付給維拉將軍親自信任的人！你有任何身為 Dorado（金色勇士親衛隊）的證明嗎？』",
+            svg: `<rect width="300" height="150" fill="#2b1810"/><text x="150" y="80" font-size="16" fill="#ffd700" text-anchor="middle">地下室對峙</text>`,
+            choices: [
+                { 
+                    text: "出示 Dorado 金色臂章", 
+                    reqItem: "armband", 
+                    reqMsg: "缺少「Dorado 金色臂章」！醫生不相信你，隨即遁入暗門。你必須穿越回過去獲得維拉的信任！",
+                    nextState: "S110_GET_MASK" 
+                },
+                { 
+                    text: "出示維拉發行的革命紙幣", 
+                    reqItem: "money", 
+                    reqMsg: "醫生搖頭：「革命紙幣早已淪為廢紙！」",
+                    nextState: "S92_MONEY_FAIL" 
+                },
+                { text: "跳躍至 1894 年尋找少年維拉", nextState: "S14_DURANGO_1894" },
+                { text: "跳躍至 1919 年尋找薩帕塔 (Zapata)", nextState: "S19_ZAPATA_1919" }
+            ]
+        },
+        S92_MONEY_FAIL: {
+            year: "1923",
+            location: "小酒館地下室",
+            text: "醫生看著紙幣冷笑：『這種紙幣全帕拉爾最窮的人家都有整箱！這無法證明你是將軍的親信！』隨即轉身消失在暗門中。你必須回到過去獲取真正的信任憑證。",
+            svg: `<rect width="300" height="150" fill="#3a110a"/><text x="150" y="80" font-size="16" fill="#ff6b6b" text-anchor="middle">驗證失敗</text>`,
+            choices: [
+                { text: "跳躍至 1894 年尋找少年維拉", nextState: "S14_DURANGO_1894" },
+                { text: "跳躍至 1912 年前往 Jiménez 拯救維拉", nextState: "S43_JIMENEZ_1912" }
+            ]
+        },
+
+        // --- 1894 Durango 章節 ---
+        S14_DURANGO_1894: {
+            year: "1894",
+            location: "Durango 玉米田",
+            text: "1894 年的 Durango 酷熱難耐。農夫們如奴隸般被監工鞭笞打罵。監工叫囂維拉只是個土匪且早已消失。你認識了少女 Martina Arango 與她的弟弟 Doroteo（即年輕時的潘丘·維拉）。",
+            svg: `<rect width="300" height="150" fill="#8b5a2b"/><text x="150" y="80" font-size="16" fill="#f4e8c1" text-anchor="middle">1894 Rancho del Rio 農場</text>`,
+            choices: [
+                { text: "留在農場觀察夜晚的變故", nextState: "S24_RANCH_NIGHT" },
+                { text: "跳躍至 1910 年維拉成為山賊時", nextState: "S28_BANDIT_1910" }
+            ]
+        },
+        S24_RANCH_NIGHT: {
+            year: "1894",
+            location: "Rancho del Rio 茅屋",
+            text: "夜晚莊園主前來強搶 Martina！Doroteo 為了保護姊姊在搏鬥中奪槍擊傷了莊園主。Doroteo 迫不得已逃入深山成為亡命之徒，並改名為潘丘·維拉。",
+            svg: `<rect width="300" height="150" fill="#1a0f08"/><text x="150" y="80" font-size="16" fill="#ebd2b0" text-anchor="middle">深夜槍響與逃亡</text>`,
+            choices: [
+                { text: "跳躍至 1912 年 Jiménez 刑場", nextState: "S43_JIMENEZ_1912" },
+                { text: "跳躍至 1913 年 El Paso 尋找維拉", nextState: "S65_ELPASO_1913" }
+            ]
+        },
+
+        // --- 1912 Jiménez 章節 ---
+        S43_JIMENEZ_1912: {
+            year: "1912",
+            location: "Jiménez 刑場",
+            text: "維拉被野心勃勃的聯邦將領 Huerta 陷害，即將被處以槍決！維拉已在牆邊站定。此時一名郵差孩子跌倒，手上握著馬德羅總統的急電！",
+            svg: `<rect width="300" height="150" fill="#4a2e1b"/><text x="150" y="80" font-size="16" fill="#ffd700" text-anchor="middle">1912 刑場危機</text>`,
+            choices: [
+                { text: "搶下電報並衝向軍官呈遞赦免令", nextState: "S44_SAVE_VILLA" }
+            ]
+        },
+        S44_SAVE_VILLA: {
+            year: "1912",
+            location: "Jiménez 刑場",
+            text: "軍官讀完電報大喊：『馬德羅總統赦免了維拉！』維拉保住一命。臨走前維拉對你眨眼：『你救了我的命，年輕的朋友！』【獲得：赦免電報卡牌】",
+            svg: `<rect width="300" height="150" fill="#2b5618"/><text x="150" y="80" font-size="16" fill="#fff" text-anchor="middle">成功拯救維拉！</text>`,
+            onEnter: () => addInventory('telegram'),
+            choices: [
+                { text: "跳躍至 1913 年 El Paso 與維拉會合", nextState: "S58_ELPASO_HOTEL" }
+            ]
+        },
+
+        // --- 1913 El Paso 章節 ---
+        S58_ELPASO_HOTEL: {
+            year: "1913",
+            location: "El Paso 破舊旅館",
+            text: "你在 El Paso 旅館找到了維拉。他正因馬德羅總統遇刺而悲痛不已，準備重新起兵。他交給你一隻信鴿傳遞軍情。【獲得：革命信鴿卡牌】",
+            svg: `<rect width="300" height="150" fill="#5c3a21"/><text x="150" y="80" font-size="16" fill="#ebd2b0" text-anchor="middle">El Paso 秘密據點</text>`,
+            onEnter: () => addInventory('pigeon'),
+            choices: [
+                { text: "跟隨軍隊參與 1914 Torreón 戰役", nextState: "S62_TORREON_1914" }
+            ]
+        },
+
+        // --- 1914 Torreón / Saltillo 章節 ---
+        S62_TORREON_1914: {
+            year: "1914",
+            location: "Torreón 鐵路樞紐",
+            text: "維拉的大軍攻下 Torreón。你遇到了好友 Antonio。維拉正為 Carranza 的無理命令而發火。Antonio 建議你一起參與 Saltillo 攻堅戰。",
+            svg: `<rect width="300" height="150" fill="#3a2212"/><text x="150" y="80" font-size="16" fill="#f4e8c1" text-anchor="middle">Torreón 大捷</text>`,
+            choices: [
+                { text: "前往 Saltillo 戰場支援 Antonio", nextState: "S47_SALTILLO_BATTLE" },
+                { text: "跳躍至 1914 奧哈斯卡里恩特斯會議", nextState: "S70_CONVENTION_1914" }
+            ]
+        },
+        S47_SALTILLO_BATTLE: {
+            year: "1914",
+            location: "Saltillo 戰場",
+            text: "敵軍機槍碉堡封鎖街道。Antonio 拿出炸藥：『我們爆破牆壁開闢室內通道！』你們成功消滅機槍巢炸開勝利通路！【獲得：硝化甘油炸藥卡牌】",
+            svg: `<rect width="300" height="150" fill="#8b0000"/><text x="150" y="80" font-size="16" fill="#fff" text-anchor="middle">爆破戰鬥！</text>`,
+            onEnter: () => addInventory('dynamite'),
+            choices: [
+                { text: "跳躍至 1915 年 León 決戰", nextState: "S76_LEON_1915" }
+            ]
+        },
+
+        // --- 1915 León 章節 (救奧布雷岡) ---
+        S76_LEON_1915: {
+            year: "1915",
+            location: "León 戰壕戰場",
+            text: "戰場一片血海。敵方將領奧布雷岡（Obregón）右臂被砲彈炸斷，倒在泥濘中絕望地試圖舉槍自盡！",
+            svg: `<rect width="300" height="150" fill="#1a0f08"/><text x="150" y="80" font-size="16" fill="#ff6b6b" text-anchor="middle">León 慘烈戰壕</text>`,
+            choices: [
+                { text: "奪下手槍並替奧布雷岡止血救他一命", nextState: "S85_SAVE_OBREGON" },
+                { text: "無視奧布雷岡並直接撤退", nextState: "S81_PARRAL_1915" }
+            ]
+        },
+        S85_SAVE_OBREGON: {
+            year: "1915",
+            location: "León 戰地救護站",
+            text: "你包紮了奧布雷岡的傷口並叫來救護人員。奧布雷岡極為感激：『你救了我的命！未來若有需要，我必回報！』這次善舉為日後的和平埋下伏筆。",
+            svg: `<rect width="300" height="150" fill="#2b5618"/><text x="150" y="80" font-size="16" fill="#fff" text-anchor="middle">拯救奧布雷岡</text>`,
+            choices: [
+                { text: "跳躍至 1917 年前往山洞探望受傷的維拉", nextState: "S103_VILLA_CAVE" }
+            ]
+        },
+
+        // --- 1917 山洞與和平交涉 ---
+        S103_VILLA_CAVE: {
+            year: "1917",
+            location: "山區秘密洞穴",
+            text: "維拉腿部中彈臥床。你告訴他美軍已撤退。維拉感嘆：『去首都告訴奧布雷岡，只要政府不再逼迫，我願放下武器！事成之後我封你為 Dorado！』",
+            svg: `<rect width="300" height="150" fill="#2b1810"/><text x="150" y="80" font-size="16" fill="#ebd2b0" text-anchor="middle">山洞秘密會面</text>`,
+            choices: [
+                { text: "前往首都向奧布雷岡轉達維拉的和平意願", nextState: "S100_PEACE_TALK" }
+            ]
+        },
+        S100_PEACE_TALK: {
+            year: "1917",
+            location: "墨西哥城奧布雷岡官邸",
+            text: "奧布雷岡認出了你這一位救命恩人，並欣然接受維拉的和平條件：『1920 年我當選總統後，將贈予維拉一座大莊園，實現和平！』",
+            svg: `<rect width="300" height="150" fill="#5c3a21"/><text x="150" y="80" font-size="16" fill="#ffd700" text-anchor="middle">和平協議達成</text>`,
+            choices: [
+                { text: "跳躍至 1920 年 Canutillo 莊園受封儀式", nextState: "S114_CANUTILLO_1920" }
+            ]
+        },
+
+        // --- 1920 解鎖 Dorado 臂章 ---
+        S114_CANUTILLO_1920: {
+            year: "1920",
+            location: "Canutillo 莊園",
+            text: "和平終於降臨！維拉與奧布雷岡握手言和。維拉在眾人歡呼聲中親自將『Dorado 金色臂章』套在你的手臂上：『感謝你，我的勇士！』【獲得：Dorado 金色臂章】",
+            svg: `<rect width="300" height="150" fill="#ffd700"/><text x="150" y="80" font-size="18" fill="#2b1810" font-weight="bold" text-anchor="middle">榮獲 Dorado 金色臂章！</text>`,
+            onEnter: () => addInventory('armband'),
+            choices: [
+                { text: "返回 1923 年 Parral 地下室找醫生交涉", nextState: "S8_CANTINA" }
+            ]
+        },
+
+        // --- 1923 成功取得面具與藏匿 ---
+        S110_GET_MASK: {
+            year: "1923",
+            location: "小酒館地下室",
+            text: "醫生看見你手臂上閃閃發光的 Dorado 金色臂章，肅然起敬：『你果然是將軍最信任的金色勇士！這面具就交給你了！』【獲得：維拉死亡面具】",
+            svg: `<rect width="300" height="150" fill="#2b5618"/><text x="150" y="80" font-size="16" fill="#fff" text-anchor="middle">成功取得死亡面具！</text>`,
+            onEnter: () => addInventory('mask'),
+            choices: [
+                { text: "護送面具至 Nordwald 雜貨店鎖入保險箱", nextState: "S112_SAFE_STORE" }
+            ]
+        },
+        S112_SAFE_STORE: {
+            year: "1923",
+            location: "Nordwald 雜貨店保險箱",
+            text: "你偽裝成駝背農夫將面具送達。Otto Nordwald 慎重地將面具放入鐵製保險箱內鎖緊！歷史被完整保護了！現在是時候回到現代確認結果了。",
+            svg: `<rect width="300" height="150" fill="#5c3a21"/><text x="150" y="80" font-size="16" fill="#ffd700" text-anchor="middle">面具安全入庫</text>`,
+            choices: [
+                { text: "跳躍回現代革命博物館確認結局", nextState: "S131_MUSEUM_END" }
+            ]
+        },
+
+        // --- 完美勝利結局 ---
+        S131_MUSEUM_END: {
+            year: "現代",
+            location: "墨西哥革命博物館",
+            text: "你站在現代博物館展櫃前，看著完美保存的潘丘·維拉死亡面具。館員告訴你，這面具 1930 年代在 Radford 學校被發現並完好歸還。你成功完成了時空任務！",
+            svg: `<rect width="300" height="150" fill="#004d40"/><text x="150" y="70" font-size="20" fill="#ffd700" font-weight="bold" text-anchor="middle">🏆 任務完美完成！</text><text x="150" y="100" font-size="14" fill="#fff" text-anchor="middle">Viva Villa! Viva la Revolución!</text>`,
+            onEnter: () => {
+                playSound('win');
+                unlockAchievement('TRUE_END', '完美結局：歷史保護者');
+            },
+            choices: [
+                { text: "重新開始冒險", nextState: "S1_PARRAL_1923" }
+            ]
+        }
+    };
+
+    /* ==========================================================================
+       5. 遊戲核心邏輯與 UI 管理
+       ========================================================================== */
+    let currentStateKey = "S1_PARRAL_1923";
+    let inventory = ["outfit"]; // 預設持有農民服裝
+    let historyTimeline = [];
+    let achievements = {};
+    let typewriterTimer = null;
+    let fullStoryText = "";
+
+    // 頁面初始化
+    window.onload = function() {
+        renderInventory();
+        gotoState(currentStateKey);
+    };
+
+    // 狀態轉移 (State Machine Machine Core)
+    function gotoState(stateKey) {
+        if (!GAME_STATES[stateKey]) return;
+
+        // 音效
+        playSound('jump');
+
+        currentStateKey = stateKey;
+        const state = GAME_STATES[stateKey];
+
+        // 記錄時間線
+        addTimelineRecord(state.year, state.location);
+
+        // 執行狀態觸發函數
+        if (state.onEnter) {
+            state.onEnter();
+        }
+
+        // 更新頂部位置
+        document.getElementById('current-location').innerText = `地點：${state.year} ${state.location}`;
+
+        // 更新 SVG 插畫 (淡入淡出效果)
+        const sceneVisual = document.getElementById('scene-visual');
+        sceneVisual.classList.add('fade-out');
+        setTimeout(() => {
+            document.getElementById('svg-canvas').innerHTML = state.svg;
+            sceneVisual.classList.remove('fade-out');
+        }, 150);
+
+        // 開始打字機故事文字
+        startTypewriter(state.text);
+
+        // 渲染狀態機選項按鈕
+        renderChoices(state.choices);
+    }
+
+    // 打字機效果實現
+    function startTypewriter(text) {
+        fullStoryText = text;
+        const textContainer = document.getElementById('story-text');
+        textContainer.innerText = "";
+        let index = 0;
+
+        if (typewriterTimer) clearInterval(typewriterTimer);
+
+        typewriterTimer = setInterval(() => {
+            if (index < text.length) {
+                textContainer.innerText += text.charAt(index);
+                index++;
+            } else {
+                clearInterval(typewriterTimer);
+                typewriterTimer = null;
+            }
+        }, 25);
+    }
+
+    function completeTypewriter() {
+        if (typewriterTimer) {
+            clearInterval(typewriterTimer);
+            typewriterTimer = null;
+            document.getElementById('story-text').innerText = fullStoryText;
+        }
+    }
+
+    // 選項按鈕渲染與防呆/智慧提示
+    function renderChoices(choices) {
+        const container = document.getElementById('choices-container');
+        container.innerHTML = "";
+
+        choices.forEach(choice => {
+            const btn = document.createElement('button');
+            btn.className = "choice-btn";
+            
+            // 檢查物品需求
+            const hasReq = !choice.reqItem || inventory.includes(choice.reqItem);
+
+            btn.innerHTML = `<span>${choice.text}</span> ${!hasReq ? '🔒' : '➔'}`;
+
+            btn.onclick = () => {
+                playSound('click');
+                if (!hasReq) {
+                    playSound('error');
+                    showToast(choice.reqMsg || "缺少必要道具！");
+                } else {
+                    gotoState(choice.nextState);
+                }
+            };
+
+            container.appendChild(btn);
+        });
+    }
+
+    // 卡牌背包系統渲染 (Flexbox 垂直置中與黑底標籤)
+    function addInventory(itemKey) {
+        if (!inventory.includes(itemKey)) {
+            inventory.push(itemKey);
+            renderInventory();
+            showToast(`獲得卡牌：${CARDS_DATA[itemKey].name}`);
+        }
+    }
+
+    function renderInventory() {
+        const bar = document.getElementById('inventory-bar');
+        bar.innerHTML = "";
+
+        inventory.forEach(key => {
+            const data = CARDS_DATA[key];
+            if (!data) return;
+
+            const card = document.createElement('div');
+            card.className = "card";
+            card.innerHTML = `
+                ${data.svg}
+                <div class="card-label">${data.name}</div>
+            `;
+            card.onclick = () => {
+                showToast(`【${data.name}】: ${data.effect}`);
+            };
+            bar.appendChild(card);
+        });
+    }
+
+    // 智慧提示 Toast
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2800);
+    }
+
+    // 時間線紀錄
+    function addTimelineRecord(year, loc) {
+        const entry = `${year} - ${loc}`;
+        if (!historyTimeline.includes(entry)) {
+            historyTimeline.push(entry);
+        }
+    }
+
+    function updateTimelineUI() {
+        const list = document.getElementById('timeline-list');
+        list.innerHTML = historyTimeline.map(item => `
+            <div class="timeline-item">
+                <span class="timeline-year">📍</span> ${item}
+            </div>
+        `).join('');
+    }
+
+    // 成就系統
+    function unlockAchievement(id, title) {
+        if (!achievements[id]) {
+            achievements[id] = title;
+            showToast(`🏆 解鎖成就：${title}`);
+        }
+    }
+
+    function updateAchievementUI() {
+        const list = document.getElementById('achievement-list');
+        const keys = Object.keys(achievements);
+        if (keys.length === 0) {
+            list.innerHTML = "<li>尚未解鎖任何結局成就。</li>";
+        } else {
+            list.innerHTML = keys.map(k => `<li><strong>${achievements[k]}</strong></li>`).join('');
+        }
+    }
+
+    // Modal 彈窗控制
+    function openModal(id) {
+        playSound('click');
+        if (id === 'history-modal') updateTimelineUI();
+        if (id === 'achieve-modal') updateAchievementUI();
+        document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+        playSound('click');
+        document.getElementById(id).classList.remove('active');
+    }
+
+    /* ==========================================================================
+       6. localStorage 存檔 / 讀檔系統
+       ========================================================================== */
+    function saveGame() {
+        const saveData = {
+            state: currentStateKey,
+            inventory: inventory,
+            timeline: historyTimeline,
+            achievements: achievements
+        };
+        localStorage.setItem('pancho_villa_save', JSON.stringify(saveData));
+        playSound('win');
+        showToast("💾 遊戲進度已成功儲存！");
+    }
+
+    function loadGame() {
+        const dataStr = localStorage.getItem('pancho_villa_save');
+        if (!dataStr) {
+            playSound('error');
+            showToast("⚠️ 找不到儲存紀錄！");
+            return;
+        }
+        try {
+            const saveData = JSON.parse(dataStr);
+            currentStateKey = saveData.state;
+            inventory = saveData.inventory || ["outfit"];
+            historyTimeline = saveData.timeline || [];
+            achievements = saveData.achievements || {};
+
+            renderInventory();
+            gotoState(currentStateKey);
+            showToast("📂 成功載入遊戲進度！");
+        } catch (e) {
+            showToast("⚠️ 讀檔失敗，存檔資料受損。");
+        }
+    }
+</script>
+</body>
+</html>

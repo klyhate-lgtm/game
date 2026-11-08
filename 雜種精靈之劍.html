@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>雜種精靈之劍 · 無限地牢</title>
+<style>
+  :root{
+    --bg:#0e0b08; --panel:#1a1410; --panel2:#221a13; --line:#3d3020;
+    --gold:#c9a227; --gold-dim:#7a6220; --text:#e6dcc8; --muted:#8a7c66;
+    --red:#b8453a; --green:#5f8a4a; --blue:#4a7a9a; --purple:#7a4a8a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{
+    background:radial-gradient(ellipse at 50% 0%,#1a120b 0%,#0e0b08 70%);
+    color:var(--text); font-family:"Noto Serif TC","Songti TC","PingFang TC",serif;
+    min-height:100vh; padding:12px; line-height:1.7; font-size:15px;
+  }
+  .app{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:290px 1fr;gap:14px;align-items:start;}
+  @media(max-width:840px){.app{grid-template-columns:1fr;}}
+
+  .side{
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);border-radius:12px;
+    padding:14px;position:sticky;top:12px;
+  }
+  .brand{font-size:12px;letter-spacing:3px;color:var(--gold-dim);font-weight:700;text-align:center;margin-bottom:10px;}
+  .brand b{display:block;font-size:17px;color:var(--gold);letter-spacing:2px;margin-top:2px;}
+
+  .stat{margin-bottom:10px;}
+  .stat .lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:3px;}
+  .stat .lbl b{color:var(--gold);font-size:13px;}
+  .bar{height:9px;border-radius:99px;background:#0a0806;overflow:hidden;border:1px solid var(--line);}
+  .bar > i{display:block;height:100%;transition:width .3s;}
+  .bar.elan > i{background:linear-gradient(90deg,#8a4a3a,#c96a4a);}
+  .bar.effort > i{background:linear-gradient(90deg,#3a6a4a,#6a9a5a);}
+  .fists-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:8px;}
+  .fists-row b{color:var(--gold);font-size:15px;}
+  .floor-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+  .floor-row b{color:var(--gold);font-size:15px;}
+
+  .sec-title{font-size:11px;letter-spacing:2px;color:var(--gold-dim);margin:14px 0 6px;font-weight:700;border-bottom:1px solid var(--line);padding-bottom:4px;}
+  .inv{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;}
+  .inv::-webkit-scrollbar{width:4px;}
+  .inv::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px;}
+  .inv-item{
+    display:flex;align-items:center;gap:6px;font-size:12.5px;
+    background:#140f0b;border:1px solid var(--line);border-radius:6px;
+    padding:4px 8px;cursor:help;color:var(--text);
+  }
+  .inv-item .ico{font-size:14px;}
+  .inv-item.eq{border-color:var(--gold-dim);background:#1e1810;}
+  .money{display:flex;gap:8px;font-size:12.5px;color:var(--muted);flex-wrap:wrap;}
+  .money span{background:#140f0b;border:1px solid var(--line);border-radius:6px;padding:3px 8px;}
+  .money b{color:var(--gold);}
+
+  .main{
+    background:linear-gradient(180deg,#1c1610,#141008);
+    border:1px solid var(--line);border-radius:12px;
+    padding:20px;min-height:70vh;
+    box-shadow:0 8px 30px rgba(0,0,0,.5);
+  }
+  .sec-num{font-size:12px;color:var(--gold-dim);letter-spacing:2px;margin-bottom:10px;font-weight:700;}
+  .sec-text p{margin-bottom:12px;}
+  .sec-text b{color:var(--gold);}
+  .sec-text em{color:var(--muted);font-style:normal;}
+
+  .choices{display:flex;flex-direction:column;gap:8px;margin-top:18px;}
+  .choice{
+    background:linear-gradient(180deg,#241a10,#1a120a);
+    border:1px solid var(--line);border-radius:9px;
+    padding:11px 16px;color:var(--gold);font-weight:600;
+    cursor:pointer;transition:.15s;font-family:inherit;font-size:14.5px;
+    text-align:left;
+  }
+  .choice:hover{background:linear-gradient(180deg,#332416,#241a10);border-color:var(--gold);}
+  .choice:active{transform:scale(.99);}
+  .choice:disabled{opacity:.4;cursor:not-allowed;}
+
+  .item-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;margin:14px 0;}
+  .pick{
+    background:#140f0b;border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;cursor:pointer;font-size:12.5px;transition:.15s;user-select:none;
+  }
+  .pick:hover{border-color:var(--gold-dim);}
+  .pick.on{border-color:var(--gold);background:#2a2010;box-shadow:0 0 10px rgba(201,162,39,.25);}
+  .pick .n{font-weight:700;color:var(--text);}
+  .pick .t{font-size:10.5px;color:var(--muted);margin-top:2px;}
+
+  .modal{
+    position:fixed;inset:0;background:rgba(0,0,0,.85);
+    display:none;align-items:center;justify-content:center;
+    padding:16px;z-index:100;backdrop-filter:blur(3px);
+  }
+  .modal.on{display:flex;}
+  .dialog{
+    background:linear-gradient(180deg,#221a12,#140f0a);
+    border:2px solid var(--gold-dim);border-radius:14px;
+    padding:22px;width:100%;max-width:460px;
+    box-shadow:0 20px 60px rgba(0,0,0,.8);
+    max-height:90vh;overflow-y:auto;
+  }
+  .dialog h3{color:var(--gold);font-size:18px;margin-bottom:4px;letter-spacing:1px;}
+  .dialog .sub{font-size:12.5px;color:var(--muted);margin-bottom:14px;}
+  .dice-area{
+    background:#0a0806;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin-bottom:12px;min-height:70px;
+    display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;
+  }
+  .d6{
+    width:44px;height:44px;background:#f0e6d0;border-radius:8px;
+    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    padding:6px;box-shadow:0 3px 8px rgba(0,0,0,.5);
+    animation:rollIn .4s ease-out;
+  }
+  @keyframes rollIn{from{transform:rotate(-180deg) scale(.4);opacity:0;}to{transform:none;opacity:1;}}
+  .d6 .dot{background:#2a1a0a;border-radius:50%;transform:scale(.6);}
+  .d6.enemy{background:#d8b0a0;}
+  .d6.enemy .dot{background:#5a1a0a;}
+
+  .hassle-info{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:12.5px;}
+  .hassle-info span{background:#140f0b;border:1px solid var(--line);border-radius:6px;padding:3px 9px;}
+  .hassle-info b{color:var(--gold);}
+
+  .effort-slider{margin:12px 0;}
+  .effort-slider label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:6px;}
+  .effort-slider label b{color:var(--gold);font-size:15px;}
+  input[type=range]{width:100%;-webkit-appearance:none;height:8px;border-radius:99px;background:linear-gradient(90deg,#3a6a4a,#8a4a3a);outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--gold);border:2px solid #5a4010;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.6);}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--gold);border:2px solid #5a4010;cursor:pointer;}
+
+  .roll-result{text-align:center;font-size:14px;margin:10px 0;min-height:24px;}
+  .roll-result.good{color:#8ac97a;font-weight:700;font-size:16px;}
+  .roll-result.bad{color:#e08a7a;font-weight:700;font-size:16px;}
+
+  .btn{
+    background:linear-gradient(180deg,#3a2c18,#2a2010);
+    border:1px solid var(--gold-dim);color:var(--gold);
+    padding:10px 20px;border-radius:9px;font-size:14px;font-weight:700;
+    cursor:pointer;font-family:inherit;transition:.15s;width:100%;
+  }
+  .btn:hover{background:#4a3820;border-color:var(--gold);}
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  .log{
+    margin-top:18px;border-top:1px solid var(--line);padding-top:12px;
+    font-size:12.5px;color:var(--muted);max-height:140px;overflow-y:auto;
+  }
+  .log div{padding:2px 0;}
+  .log .g{color:#8ac97a;} .log .r{color:#e08a7a;} .log .y{color:var(--gold);}
+
+  .end-screen{text-align:center;padding:30px 10px;}
+  .end-screen h2{color:var(--gold);font-size:24px;margin-bottom:12px;letter-spacing:3px;}
+  .end-screen p{color:var(--muted);max-width:480px;margin:0 auto 20px;}
+
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);
+    background:rgba(20,15,10,.96);border:1px solid var(--gold-dim);
+    color:var(--gold);padding:9px 22px;border-radius:99px;font-size:13px;
+    opacity:0;pointer-events:none;transition:.25s;z-index:200;font-weight:600;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand">THE SWORD OF THE<b>雜種精靈之劍</b></div>
+
+    <div class="stat">
+      <div class="lbl">銳氣 ÉLAN <b><span id="s-elan">-</span>/<span id="s-elanmax">-</span></b></div>
+      <div class="bar elan"><i id="b-elan" style="width:100%"></i></div>
+    </div>
+    <div class="stat">
+      <div class="lbl">毅力 EFFORT <b><span id="s-effort">-</span>/<span id="s-effortmax">-</span></b></div>
+      <div class="bar effort"><i id="b-effort" style="width:100%"></i></div>
+    </div>
+    <div class="fists-row"><span>鐵拳 FISTS</span><b id="s-fist">-</b></div>
+    <div class="floor-row"><span>地牢深度</span><b id="s-floor">1</b></div>
+
+    <div class="sec-title">金錢</div>
+    <div class="money">
+      <span>🍃 <b id="s-leaves">0</b></span>
+      <span>🪙 <b id="s-gold">0</b></span>
+    </div>
+
+    <div class="sec-title">物品欄</div>
+    <div class="inv" id="inv-box"></div>
+
+    <div class="sec-title">冒險日誌</div>
+    <div class="log" id="log-box"></div>
+  </aside>
+
+  <main class="main">
+    <div class="sec-num" id="sec-num"></div>
+    <div class="sec-text" id="sec-text"></div>
+    <div id="extra"></div>
+    <div class="choices" id="choices"></div>
+  </main>
+</div>
+
+<div class="modal" id="modal">
+  <div class="dialog" id="dialog"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   物品庫
+============================================================ */
+const ITEMS = {
+  pole:      {name:'十尺探險長杆', ico:'🪵', type:'junk', desc:'可跳過一次陷阱判定。'},
+  burg:      {name:'美味漢堡',     ico:'🍔', type:'junk', desc:'恢復 10 毅力，解除醉酒。'},
+  buckles:   {name:'備用皮帶扣',   ico:'🔗', type:'junk', desc:'一輪內鐵拳 +1。'},
+  sword:     {name:'精靈雜種劍',   ico:'⚔️', type:'equip', desc:'裝備：銳氣 +1。'},
+  bow:       {name:'森林之弓',     ico:'🏹', type:'equip', desc:'裝備：銳氣 +1。'},
+  rope:      {name:'足量繩索',     ico:'🪢', type:'junk', desc:'逃脫時自動成功一次。'},
+  hat:       {name:'飛行帽',       ico:'🎩', type:'equip', desc:'裝備：銳氣 +1。'},
+  diploma:   {name:'行醫執照',     ico:'📜', type:'junk', desc:'休息時恢復 1 銳氣。'},
+  cloak:     {name:'精靈隱形斗篷', ico:'🧥', type:'equip', desc:'裝備：銳氣 +1。'},
+  pcs:       {name:'阿扎里遊戲機', ico:'🎮', type:'junk', desc:'代打一輪麻煩事件。'},
+  map:       {name:'菲沃爾德地圖', ico:'🗺️', type:'junk', desc:'顯示下一層內容。'},
+  orb:       {name:'占卜寶珠',     ico:'🔮', type:'junk', desc:'3 次充能，預覽選項結果。'},
+  poultice:  {name:'強效療傷膏',   ico:'🧴', type:'junk', desc:'恢復 1 銳氣。'},
+  purse:     {name:'割錢包',       ico:'💰', type:'junk', desc:'獲得 5 精靈葉幣。'},
+  key:       {name:'典籍守衛鑰匙', ico:'🗝️', type:'junk', desc:'可額外多選一件物品。'},
+  potion:    {name:'藥劑',         ico:'🧪', type:'junk', desc:'恢復 15 毅力，但有副作用。'},
+  meat:      {name:'生肉',         ico:'🍖', type:'junk', desc:'恢復 10 毅力。'},
+  gem:       {name:'寶石',         ico:'💎', type:'junk', desc:'價值 20 金幣。'}
+};
+const START_ITEMS = ['pole','burg','buckles','sword','bow','rope','hat','diploma','cloak','pcs','map','orb','poultice','purse','key'];
+
+/* ============================================================
+   隨機內容庫
+============================================================ */
+const MONSTERS = [
+  {name:'狗頭人',   dif:4,  tough:1, fist:1, gold:3,  exp:5},
+  {name:'骷髏',     dif:5,  tough:1, fist:1, gold:2,  exp:6},
+  {name:'凶暴鼠',   dif:5,  tough:1, fist:1, gold:1,  exp:6},
+  {name:'地精',     dif:6,  tough:1, fist:1, gold:4,  exp:8},
+  {name:'大地精',   dif:6,  tough:2, fist:1, gold:6,  exp:10},
+  {name:'獸人',     dif:7,  tough:2, fist:1, gold:8,  exp:12},
+  {name:'殭屍',     dif:6,  tough:3, fist:1, gold:3,  exp:10},
+  {name:'狼',       dif:6,  tough:2, fist:1, gold:2,  exp:9},
+  {name:'食屍鬼',   dif:7,  tough:2, fist:1, gold:5,  exp:12},
+  {name:'豺狼人',   dif:7,  tough:2, fist:1, gold:7,  exp:12},
+  {name:'熊地精',   dif:8,  tough:3, fist:2, gold:12, exp:18},
+  {name:'食人魔',   dif:9,  tough:3, fist:2, gold:20, exp:24},
+  {name:'牛頭人',   dif:10, tough:3, fist:2, gold:25, exp:30},
+  {name:'巨魔',     dif:10, tough:4, fist:2, gold:22, exp:28},
+  {name:'石像鬼',   dif:9,  tough:3, fist:2, gold:18, exp:24}
+];
+
+const NPCS = [
+  {name:'受傷的冒險者', text:'一名半精靈冒險者靠在牆邊，血從腰間滲出。她抬頭看你，眼神裡有恐懼，也有一絲希望。', reward:'heal', gold:10},
+  {name:'旅行商人',    text:'一個裹著厚斗篷的矮小商人，腳邊堆著幾個箱子。他警惕地打量你，但沒有拔武器。', reward:'trade'},
+  {name:'醉漢',        text:'一個人類醉漢癱在角落，手裡還攥著半瓶酒，嘴裡念叨著誰也聽不懂的胡話。', reward:'gold', gold:5},
+  {name:'隱士',        text:'一個穿破袍的老頭坐在石階上，眼睛半閉。他旁邊的石桌上放著一本翻開的書。', reward:'heal'},
+  {name:'囚犯',        text:'一個被鐵鏈鎖在牆上的半獸人，瘦得只剩骨頭。他看見你，費力地抬起頭。', reward:'gold', gold:15},
+  {name:'迷路的精靈',  text:'一個純種精靈縮在牆角，看起來和你一樣迷茫。他看見你，先是警惕，然後露出一個苦澀的笑。', reward:'gold', gold:8}
+];
+
+const TRAPS = [
+  {name:'基礎箭矢陷阱', dif:5,  dmg:4},
+  {name:'連續飛鏢陷阱', dif:6,  dmg:5},
+  {name:'鐮刃陷阱',     dif:7,  dmg:8},
+  {name:'長矛陷阱',     dif:6,  dmg:7},
+  {name:'坑陷阱',       dif:5,  dmg:6},
+  {name:'毒針陷阱',     dif:7,  dmg:5}
+];
+
+const EVENTS = [
+  {name:'寶箱',     text:'角落裡一個布滿灰塵的木箱，鎖已經鏽斷了。', reward:'gold', gold:20, ico:'📦'},
+  {name:'魔法噴泉', text:'石壁滲出一泓清水，泛著淡淡的藍光。', reward:'heal', ico:'⛲'},
+  {name:'武器架',   text:'牆邊的架子倒了一半，幾把還算完好的兵器散落在地。', reward:'item', item:'sword', ico:'⚔️'},
+  {name:'舊書堆',   text:'一堆發霉的書，大部分已經爛得不成樣子。', reward:'item', item:'orb', ico:'📚'},
+  {name:'行囊',     text:'一具白骨旁邊放著一個還算完好的背包。', reward:'item', item:'poultice', ico:'🎒'},
+  {name:'藥劑瓶',   text:'石台上擺著幾瓶顏色詭異的液體，瓶口封著蠟。', reward:'item', item:'potion', ico:'🧪'}
+];
+
+/* ============================================================
+   狀態
+============================================================ */
+let S = null;
+let H = null;
+
+function defaultState(){
+  return {
+    elan: 8, elanMax: 8,
+    effort: 80, effortMax: 80,
+    fist: 2,
+    leaves: 120, gold: 0,
+    inv: [],
+    floor: 1,
+    room: 0,
+    phase: 'intro',   // intro | pick | room | done
+    log: [],
+    picked: [],
+    currentEvent: null,
+    done: false
+  };
+}
+
+/* ============================================================
+   工具
+============================================================ */
+const $ = s => document.querySelector(s);
+const d6 = () => Math.floor(Math.random()*6)+1;
+const pick = a => a[Math.floor(Math.random()*a.length)];
+
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._t);
+  t._t = setTimeout(()=>t.classList.remove('on'), 1600);
+}
+function log(msg, cls=''){
+  S.log.push({msg, cls});
+  if (S.log.length > 60) S.log.shift();
+  renderLog();
+}
+function renderLog(){
+  const el = $('#log-box');
+  el.innerHTML = S.log.map(l=>`<div class="${l.cls}">${l.msg}</div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+/* 存檔 */
+const SAVE_KEY = 'bastard_elf_infinite_v1';
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (!d || typeof d.floor !== 'number') return false;
+    S = d;
+    if (!Array.isArray(S.inv)) S.inv = [];
+    if (!Array.isArray(S.log)) S.log = [];
+    if (!Array.isArray(S.picked)) S.picked = [];
+    if (typeof S.effort !== 'number') S.effort = S.effortMax;
+    if (typeof S.elan !== 'number') S.elan = S.elanMax;
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ============================================================
+   渲染
+============================================================ */
+function render(){
+  const eqElan = equipBonus('elan');
+  const eqFist = equipBonus('fist');
+  const elanMax = S.elanMax + eqElan;
+  const fist = S.fist + eqFist;
+
+  $('#s-elan').textContent = S.elan;
+  $('#s-elanmax').textContent = elanMax;
+  $('#b-elan').style.width = Math.max(0, Math.min(100, S.elan/elanMax*100)) + '%';
+
+  $('#s-effort').textContent = S.effort;
+  $('#s-effortmax').textContent = S.effortMax;
+  $('#b-effort').style.width = Math.max(0, Math.min(100, S.effort/S.effortMax*100)) + '%';
+
+  $('#s-fist').textContent = fist;
+  $('#s-floor').textContent = S.floor;
+  $('#s-leaves').textContent = S.leaves;
+  $('#s-gold').textContent = S.gold;
+
+  const inv = $('#inv-box');
+  if (!S.inv.length){
+    inv.innerHTML = '<span style="color:var(--muted);font-size:12px;">空空如也</span>';
+  } else {
+    inv.innerHTML = S.inv.map((it,i)=>{
+      const d = ITEMS[it.id] || {name:it.id, ico:'❓', type:'junk', desc:''};
+      return `<div class="inv-item ${it.equipped?'eq':''}" title="${d.desc}" data-i="${i}">
+        <span class="ico">${d.ico}</span><span>${d.name}</span>
+      </div>`;
+    }).join('');
+  }
+
+  renderMain();
+  save();
+}
+
+function equipBonus(type){
+  let b = 0;
+  S.inv.forEach(it=>{
+    if (!it.equipped) return;
+    if (type === 'elan'){
+      if (it.id === 'sword' || it.id === 'bow' || it.id === 'hat' || it.id === 'cloak') b += 1;
+    }
+  });
+  return b;
+}
+
+function renderMain(){
+  const num = $('#sec-num');
+  const text = $('#sec-text');
+  const extra = $('#extra');
+  const choices = $('#choices');
+  extra.innerHTML = ''; choices.innerHTML = '';
+
+  if (S.done){ renderEnd(); return; }
+
+  if (S.phase === 'intro'){
+    num.textContent = '✦ 序章';
+    text.innerHTML = `
+      <p>你叫「雜種」。六十歲，半精靈，被母親的男友傑夫一腳踹出了家門。</p>
+      <p>你唯一的線索，是那個從未謀面的人類送奶工父親，和他在比爾吉頓的某張沙發。你唯一的依仗，是小聰明、一雙鐵拳，還有從傑夫那裡順來的幾樣破爛。</p>
+      <p><em>這是一座無限生成的地牢。你可以一直往深處走，直到找到父親——或者死在半路上。</em></p>`;
+    const b1 = document.createElement('button');
+    b1.className = 'choice';
+    b1.textContent = '🎒 收拾行囊（選擇 3 件初始物品）';
+    b1.onclick = ()=>{ S.phase = 'pick'; render(); };
+    choices.appendChild(b1);
+    return;
+  }
+
+  if (S.phase === 'pick'){
+    num.textContent = '✦ 收拾行囊';
+    text.innerHTML = `<p>傑夫在外面砰砰砸門。你手忙腳亂地把身邊能塞的東西全掃進背包——<b>選三件帶上。</b></p>`;
+    const picker = document.createElement('div');
+    picker.className = 'item-picker';
+    START_ITEMS.forEach(id=>{
+      const d = ITEMS[id];
+      const on = S.picked.includes(id);
+      const el = document.createElement('div');
+      el.className = 'pick' + (on?' on':'');
+      el.innerHTML = `<div class="n">${d.ico} ${d.name}</div><div class="t">${d.desc}</div>`;
+      el.onclick = ()=>{
+        if (on) S.picked = S.picked.filter(x=>x!==id);
+        else {
+          if (S.picked.length >= 3){ toast('最多選 3 件'); return; }
+          S.picked.push(id);
+        }
+        renderMain();
+      };
+      picker.appendChild(el);
+    });
+    extra.appendChild(picker);
+    const done = document.createElement('button');
+    done.className = 'btn';
+    done.textContent = `確認（已選 ${S.picked.length}/3）`;
+    done.disabled = S.picked.length !== 3;
+    done.onclick = ()=>{
+      S.picked.forEach(id=>S.inv.push({id, equipped:false}));
+      S.picked = [];
+      S.phase = 'room';
+      S.currentEvent = null;
+      toast('行囊已備好，出發！');
+      render();
+    };
+    extra.appendChild(done);
+    return;
+  }
+
+  if (S.phase === 'room'){
+    // 若尚未生成事件，生成一個
+    if (!S.currentEvent){
+      S.currentEvent = generateRoom();
+      S.room++;
+    }
+    renderRoom(num, text, choices);
+    return;
+  }
+}
+
+function renderEnd(){
+  $('#sec-num').textContent = '✦ 終章';
+  $('#sec-text').innerHTML = '';
+  $('#extra').innerHTML = '';
+  $('#choices').innerHTML = `
+    <div class="end-screen">
+      <h2>冒險結束</h2>
+      <p>${S.endText || '你的故事，到此畫上了句號。'}</p>
+      <button class="btn" onclick="restart()">↺ 重新開始</button>
+    </div>`;
+}
+
+/* ============================================================
+   生成一個房間
+============================================================ */
+function generateRoom(){
+  const r = Math.random();
+  // 每層第 1-2 間較安全
+  if (S.room < 2 && r < 0.4){
+    return {type:'empty'};
+  }
+  if (r < 0.42) return {type:'monster', data: pick(MONSTERS)};
+  if (r < 0.58) return {type:'npc', data: pick(NPCS)};
+  if (r < 0.72) return {type:'trap', data: pick(TRAPS)};
+  if (r < 0.90) return {type:'event', data: pick(EVENTS)};
+  return {type:'empty'};
+}
+
+/* ============================================================
+   渲染房間
+============================================================ */
+function renderRoom(num, text, choices){
+  const ev = S.currentEvent;
+
+  if (ev.type === 'monster'){
+    const m = ev.data;
+    num.textContent = `§ 第 ${S.floor} 層 · 房間 ${S.room}`;
+    text.innerHTML = `
+      <p>你推開門，一股腥臭味撲面而來。</p>
+      <p>一隻<b>${m.name}</b>站在房間中央，正低頭啃著什麼。它抬起頭，看見了你。</p>
+      <p><em>（難度 ${m.dif}，韌性 ${m.tough}，鐵拳 ${m.fist}）</em></p>`;
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.textContent = `⚔ 迎戰 ${m.name}`;
+    b.onclick = ()=> startHassle({
+      name: m.name, difficulty: m.dif, toughness: m.tough, fist: m.fist,
+      win: ()=> monsterWin(m),
+      lose: ()=> monsterLose(m)
+    });
+    choices.appendChild(b);
+
+    const flee = document.createElement('button');
+    flee.className = 'choice';
+    flee.textContent = '🏃 轉身就跑（不戰而退）';
+    flee.onclick = ()=> fleeRoom();
+    choices.appendChild(flee);
+    return;
+  }
+
+  if (ev.type === 'npc'){
+    const n = ev.data;
+    num.textContent = `§ 第 ${S.floor} 層 · 房間 ${S.room}`;
+    text.innerHTML = `<p>${n.text}</p>`;
+    const b = document.createElement('button');
+    b.className = 'choice';
+    b.textContent = '🗣 上前搭話';
+    b.onclick = ()=> npcInteract(n);
+    choices.appendChild(b);
+    const c = document.createElement('button');
+    c.className = 'choice';
+    c.textContent = '🚶 不理會，繼續前進';
+    c.onclick = ()=> nextRoom();
+    choices.appendChild(c);
+    return;
+  }
+
+  if (ev.type === 'trap'){
+    const t = ev.data;
+    num.textContent = `§ 第 ${S.floor} 層 · 房間 ${S.room}`;
+    text.innerHTML = `
+      <p>你剛踏進門，腳下就傳來一聲輕微的「咔嗒」。</p>
+      <p>牆上的縫隙透出一絲不對勁——<b>${t.name}</b>！</p>`;
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.textContent = '🔍 小心檢查並拆除';
+    b.onclick = ()=> startHassle({
+      name: t.name, difficulty: t.dif, toughness: 1, fist: 0,
+      win: ()=>{ log(`你成功拆除了 ${t.name}。`, 'g'); gainEffort(3); nextRoom(); },
+      lose: ()=>{ trapHit(t); }
+    });
+    choices.appendChild(b);
+
+    const c = document.createElement('button');
+    c.className = 'choice';
+    c.textContent = '💨 硬著頭皮衝過去';
+    c.onclick = ()=> trapHit(t);
+    choices.appendChild(c);
+    return;
+  }
+
+  if (ev.type === 'event'){
+    const e = ev.data;
+    num.textContent = `§ 第 ${S.floor} 層 · 房間 ${S.room}`;
+    text.innerHTML = `<p>${e.ico} ${e.text}</p>`;
+    const b = document.createElement('button');
+    b.className = 'choice';
+    b.textContent = '👀 上前查看';
+    b.onclick = ()=> resolveEvent(e);
+    choices.appendChild(b);
+    const c = document.createElement('button');
+    c.className = 'choice';
+    c.textContent = '🚶 不感興趣，繼續前進';
+    c.onclick = ()=> nextRoom();
+    choices.appendChild(c);
+    return;
+  }
+
+  // empty
+  num.textContent = `§ 第 ${S.floor} 層 · 房間 ${S.room}`;
+  const flavor = [
+    '一間空蕩的石室，牆上掛著熄滅的火把。',
+    '地上散落著幾根骨頭和破布，看起來很久沒人來過了。',
+    '房間中央有一張倒塌的木桌，桌腳已經腐爛。',
+    '牆角有一攤積水，倒映著你疲憊的臉。',
+    '空氣裡有一股霉味，但沒有別的東西。'
+  ];
+  text.innerHTML = `<p>${pick(flavor)}</p>`;
+  const b = document.createElement('button');
+  b.className = 'btn';
+  b.textContent = '➡ 繼續前進';
+  b.onclick = ()=> nextRoom();
+  choices.appendChild(b);
+  const c = document.createElement('button');
+  c.className = 'choice';
+  c.textContent = '😴 原地休息（恢復毅力）';
+  c.onclick = ()=> rest();
+  choices.appendChild(c);
+}
+
+/* ============================================================
+   事件結算
+============================================================ */
+function monsterWin(m){
+  const gold = m.gold + Math.floor(Math.random()*5);
+  S.gold += gold;
+  gainEffort(5);
+  log(`擊敗 ${m.name}，獲得 ${gold} 金幣。`, 'g');
+  toast(`+${gold} 金幣`);
+  nextRoom();
+}
+function monsterLose(m){
+  const dmg = 8 + Math.floor(Math.random()*8);
+  loseEffort(dmg);
+  log(`${m.name} 擊中了你，損失 ${dmg} 毅力。`, 'r');
+  if (S.effort <= 0) return die('你被 ' + m.name + ' 擊倒，再也沒能站起來。');
+  // 僥倖逃脫
+  toast('你狼狽逃出了房間');
+  nextRoom();
+}
+function trapHit(t){
+  const dmg = t.dmg + Math.floor(Math.random()*3);
+  loseEffort(dmg);
+  log(`${t.name} 觸發，損失 ${dmg} 毅力。`, 'r');
+  if (S.effort <= 0) return die('陷阱奪走了你最後一點力氣。');
+  nextRoom();
+}
+function npcInteract(n){
+  if (n.reward === 'heal'){
+    S.elan = Math.min(S.elanMax, S.elan + 1);
+    gainEffort(10);
+    log(`你幫助了 ${n.name}，恢復 1 銳氣和 10 毅力。`, 'g');
+    toast('+1 銳氣，+10 毅力');
+  } else if (n.reward === 'gold'){
+    const g = n.gold + Math.floor(Math.random()*5);
+    S.gold += g;
+    log(`${n.name} 給了你 ${g} 金幣。`, 'g');
+    toast(`+${g} 金幣`);
+  } else if (n.reward === 'trade'){
+    // 給一瓶藥劑
+    addItem('potion');
+    log(`${n.name} 賣給你一瓶藥劑。`, 'g');
+    toast('獲得藥劑');
+  }
+  render();
+  nextRoom();
+}
+function resolveEvent(e){
+  if (e.reward === 'gold'){
+    const g = e.gold + Math.floor(Math.random()*10);
+    S.gold += g;
+    log(`你在寶箱裡找到 ${g} 金幣。`, 'g');
+    toast(`+${g} 金幣`);
+  } else if (e.reward === 'heal'){
+    S.elan = Math.min(S.elanMax, S.elan + 1);
+    gainEffort(15);
+    log(`魔法噴泉恢復了你的傷勢。`, 'g');
+    toast('+1 銳氣，+15 毅力');
+  } else if (e.reward === 'item'){
+    addItem(e.item);
+    log(`你獲得了 ${ITEMS[e.item].name}。`, 'g');
+    toast(`獲得 ${ITEMS[e.item].name}`);
+  }
+  nextRoom();
+}
+function fleeRoom(){
+  loseEffort(5);
+  log('你選擇了撤退。', 'y');
+  if (S.effort <= 0) return die('逃跑也耗盡了你最後的力氣。');
+  nextRoom();
+}
+function rest(){
+  if (S.effort >= S.effortMax && S.elan >= S.elanMax){
+    toast('狀態已滿');
+    return;
+  }
+  gainEffort(15);
+  if (Math.random() < 0.3){
+    log('休息時有東西靠近……', 'y');
+    const m = pick(MONSTERS);
+    toast('遭遇伏擊！');
+    startHassle({
+      name: m.name, difficulty: m.dif, toughness: m.tough, fist: m.fist,
+      win: ()=> monsterWin(m),
+      lose: ()=> monsterLose(m)
+    });
+  } else {
+    log('你休息了一會兒，恢復了一些毅力。', 'g');
+    toast('+15 毅力');
+    render();
+  }
+}
+function nextRoom(){
+  S.currentEvent = null;
+  S.room++;
+  // 每 5 間深入一層
+  if (S.room > 5){
+    S.room = 1;
+    S.floor++;
+    log(`你走下更深的階梯，來到地牢第 ${S.floor} 層。`, 'y');
+    toast(`深入第 ${S.floor} 層`);
+    // 每層恢復一點
+    gainEffort(10);
+  }
+  // 第 10 層 boss
+  if (S.floor >= 10){
+    return finalRoom();
+  }
+  render();
+}
+
+function finalRoom(){
+  if (S.floor >= 10 && S.room === 1){
+    S.done = true;
+    S.endText = '你終於找到了那扇門。門後是一間堆滿破舊家具的房間，牆上掛著一張畫著送奶工的海報。沙發就在角落，上面落滿了灰塵。你走過去，躺下，閉上眼。這趟該死的冒險，總算結束了。';
+    log('你找到了父親的沙發。', 'y');
+    render();
+    return;
+  }
+  render();
+}
+
+/* ============================================================
+   資源變動
+============================================================ */
+function gainEffort(n){
+  S.effort = Math.min(S.effortMax, S.effort + n);
+  render();
+}
+function loseEffort(n){
+  S.effort = Math.max(0, S.effort - n);
+  render();
+}
+function addItem(id){
+  if (!ITEMS[id]) return;
+  // 重複物品允許（藥劑、生肉等）
+  S.inv.push({id, equipped:false});
+  render();
+}
+function die(text){
+  S.done = true;
+  S.endText = text;
+  log(text, 'r');
+  render();
+}
+
+/* ============================================================
+   麻煩事件（HASSLE）
+============================================================ */
+function startHassle(config){
+  H = {
+    name: config.name,
+    difficulty: config.difficulty,
+    toughness: config.toughness,
+    fist: config.fist || 0,
+    win: config.win,
+    lose: config.lose,
+    invested: 0
+  };
+  renderHassle();
+  $('#modal').classList.add('on');
+}
+
+function renderHassle(){
+  const dlg = $('#dialog');
+  const eqFist = equipBonus('fist');
+  const fist = S.fist + eqFist;
+  const maxInvest = Math.min(S.elan, S.effort);
+
+  if (maxInvest <= 0){
+    S.effort = 0;
+    $('#modal').classList.remove('on');
+    die('毅力耗盡，你倒在了黑暗中。');
+    return;
+  }
+
+  if (H.invested === 0) H.invested = Math.min(8, maxInvest);
+
+  dlg.innerHTML = `
+    <h3>⚔ ${H.name}</h3>
+    <div class="sub">一場麻煩事件</div>
+    <div class="hassle-info">
+      <span>難度 <b>${H.difficulty}</b></span>
+      <span>韌性 <b>${H.toughness}</b></span>
+      <span>敵鐵拳 <b>${H.fist}</b></span>
+      <span>我鐵拳 <b>${fist}</b></span>
+    </div>
+    <div class="effort-slider">
+      <label>投入毅力 <b id="h-inv">${H.invested}</b></label>
+      <input type="range" id="h-slider" min="1" max="${maxInvest}" value="${H.invested}">
+    </div>
+    <div class="roll-result" id="h-result"></div>
+    <button class="btn" id="h-go">擲骰！</button>
+    <button class="btn" id="h-run" style="margin-top:8px;background:#2a1a14;border-color:#7a3a2a;color:#e08a7a;">🏃 溜之大吉</button>
+  `;
+
+  const slider = $('#h-slider');
+  const invEl = $('#h-inv');
+  slider.oninput = ()=>{ H.invested = +slider.value; invEl.textContent = H.invested; };
+  $('#h-go').onclick = ()=> doRoll();
+  $('#h-run').onclick = ()=>{
+    $('#modal').classList.remove('on');
+    log('你選擇溜之大吉。', 'y');
+    loseEffort(3);
+    if (S.effort <= 0) return die('逃跑也救不了你。');
+    nextRoom();
+  };
+}
+
+function doRoll(){
+  const eqFist = equipBonus('fist');
+  const fist = S.fist + eqFist;
+  const inv = H.invested;
+
+  if (S.effort < inv){ toast('毅力不足'); return; }
+  S.effort -= inv;
+
+  const pDice = [];
+  for (let i=0;i<fist;i++) pDice.push(d6());
+  const pBest = Math.max(...pDice);
+
+  const eDice = [];
+  for (let i=0;i<H.fist;i++) eDice.push(d6());
+  const eBest = eDice.length ? Math.max(...eDice) : 0;
+
+  const finalDiff = H.difficulty + eBest;
+  const total = inv + pBest;
+  const success = total > finalDiff;
+
+  const dlg = $('#dialog');
+  const diceHtml = `<div class="dice-area">
+    ${pDice.map(v=>dieHtml(v)).join('')}
+    ${eDice.map(v=>dieHtml(v,true)).join('')}
+  </div>`;
+
+  if (success){
+    H.toughness--;
+    log(`${H.name}：${inv}+${pBest}=${total} 對 ${finalDiff} → 成功`, 'g');
+    if (H.toughness <= 0){
+      dlg.innerHTML = `<h3>✦ 勝利</h3><div class="sub">你擊敗了 ${H.name}！</div>${diceHtml}
+        <div class="roll-result good">總計 ${total} 對 ${finalDiff} — 成功！</div>
+        <button class="btn" id="h-done">繼續</button>`;
+      $('#h-done').onclick = ()=>{ $('#modal').classList.remove('on'); H.win(); };
+      render();
+      return;
+    }
+    dlg.innerHTML = `<h3>⚔ ${H.name}</h3><div class="sub">一輪結束</div>${diceHtml}
+      <div class="roll-result good">${total} 對 ${finalDiff} — 成功！剩餘韌性 ${H.toughness}</div>
+      <div class="effort-slider">
+        <label>再投入毅力 <b>${Math.min(inv, S.effort)}</b></label>
+        <input type="range" id="h-slider2" min="1" max="${Math.min(S.elan, S.effort)}" value="${Math.min(inv, S.effort)}">
+      </div>
+      <button class="btn" id="h-go2">繼續擲骰</button>
+      <button class="btn" id="h-run2" style="margin-top:8px;background:#2a1a14;border-color:#7a3a2a;color:#e08a7a;">🏃 溜之大吉</button>`;
+    const s2 = $('#h-slider2'), i2 = dlg.querySelector('.effort-slider b');
+    s2.oninput = ()=>{ H.invested = +s2.value; i2.textContent = H.invested; };
+    $('#h-go2').onclick = ()=> doRoll();
+    $('#h-run2').onclick = ()=>{ $('#modal').classList.remove('on'); log('你選擇溜之大吉。', 'y'); loseEffort(3); if (S.effort<=0) return die('逃跑也救不了你。'); nextRoom(); };
+  } else {
+    const penalty = Math.min(6, S.effort);
+    S.effort -= penalty;
+    log(`${H.name}：${inv}+${pBest}=${total} 對 ${finalDiff} → 失敗`, 'r');
+    if (S.effort <= 0){
+      S.effort = 0;
+      dlg.innerHTML = `<h3>💀 敗北</h3><div class="sub">${H.name} 擊倒了你</div>${diceHtml}
+        <div class="roll-result bad">${total} 對 ${finalDiff} — 失敗</div>
+        <p style="color:var(--muted);font-size:13px;margin:10px 0;">你的毅力耗盡……</p>
+        <button class="btn" id="h-dead">結束</button>`;
+      $('#h-dead').onclick = ()=>{ $('#modal').classList.remove('on'); die('你倒在了 ' + H.name + ' 的手下，這場冒險到此為止。'); };
+      render();
+      return;
+    }
+    dlg.innerHTML = `<h3>⚔ ${H.name}</h3><div class="sub">一輪結束</div>${diceHtml}
+      <div class="roll-result bad">${total} 對 ${finalDiff} — 失敗！損失 ${penalty} 毅力</div>
+      <div class="effort-slider">
+        <label>再投入毅力 <b>${Math.min(inv, S.effort)}</b></label>
+        <input type="range" id="h-slider3" min="1" max="${Math.min(S.elan, S.effort)}" value="${Math.min(inv, S.effort)}">
+      </div>
+      <button class="btn" id="h-go3">繼續擲骰</button>
+      <button class="btn" id="h-run3" style="margin-top:8px;background:#2a1a14;border-color:#7a3a2a;color:#e08a7a;">🏃 溜之大吉</button>`;
+    const s3 = $('#h-slider3'), i3 = dlg.querySelector('.effort-slider b');
+    s3.oninput = ()=>{ H.invested = +s3.value; i3.textContent = H.invested; };
+    $('#h-go3').onclick = ()=> doRoll();
+    $('#h-run3').onclick = ()=>{ $('#modal').classList.remove('on'); log('你選擇溜之大吉。', 'y'); loseEffort(3); if (S.effort<=0) return die('逃跑也救不了你。'); nextRoom(); };
+  }
+  render();
+}
+
+function dieHtml(v, enemy=false){
+  const layouts = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+  const dots = layouts[v] || [];
+  let cells = '';
+  for (let i=0;i<9;i++) cells += dots.includes(i) ? '<div class="dot"></div>' : '<div></div>';
+  return `<div class="d6 ${enemy?'enemy':''}">${cells}</div>`;
+}
+
+/* ============================================================
+   啟動
+============================================================ */
+function restart(){
+  S = defaultState();
+  render();
+}
+window.restart = restart;
+
+if (!load()){
+  S = defaultState();
+}
+render();
+
+// 物品欄點擊
+$('#inv-box').addEventListener('click', e=>{
+  const el = e.target.closest('[data-i]');
+  if (!el) return;
+  const i = +el.dataset.i;
+  const it = S.inv[i];
+  if (!it) return;
+  const d = ITEMS[it.id];
+  if (d && d.type === 'equip'){
+    it.equipped = !it.equipped;
+    render();
+    toast(it.equipped ? `已裝備 ${d.name}` : `已卸下 ${d.name}`);
+  } else {
+    toast(d ? d.desc : '無特殊效果');
+  }
+});
+</script>
+</body>
+</html>

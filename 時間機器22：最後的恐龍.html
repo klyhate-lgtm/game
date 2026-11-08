@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>時間機器22：最後的恐龍</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
+
+        :root {
+            --bg-color: #2c1e11;
+            --paper-color: #f4e4bc;
+            --text-color: #3b2b1a;
+            --border-color: #8b5a2b;
+            --accent-color: #9c1c1c;
+            --btn-bg: #d4b483;
+            --btn-hover: #c29f6d;
+            --nav-bg: rgba(44, 30, 17, 0.95);
+            --nav-text: #f4e4bc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Noto Serif TC', serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.8) 100%),
+                url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100" height="100" filter="url(%23noise)" opacity="0.05"/></svg>');
+        }
+
+        /* 主遊戲區域 */
+        #game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 頂部標題列 */
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 2px solid var(--border-color);
+            color: var(--nav-text);
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px #000;
+            z-index: 10;
+        }
+
+        /* 故事面板（羊皮紙） */
+        #story-panel {
+            flex: 1;
+            background-color: var(--paper-color);
+            margin: 10px 0;
+            border: 4px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.3), 0 10px 20px rgba(0,0,0,0.5);
+            overflow-y: auto;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        /* 場景插圖 (SVG) */
+        #scene-illustration {
+            width: 100%;
+            height: 180px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            border: 1px dashed var(--border-color);
+        }
+
+        /* 故事文字 */
+        #story-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            flex: 1;
+            cursor: pointer;
+            min-height: 150px;
+        }
+
+        /* 選項區域 */
+        #choices {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        /* 按鈕通用樣式 */
+        button {
+            font-family: 'Noto Serif TC', serif;
+            font-size: 1rem;
+            padding: 12px 20px;
+            background-color: var(--btn-bg);
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: var(--btn-hover);
+            transform: translateY(-2px);
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(1px);
+            box-shadow: 1px 1px 0px rgba(0,0,0,0.2);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(100%);
+        }
+
+        .choice-btn::before {
+            content: '➤';
+            margin-right: 10px;
+            font-size: 0.9rem;
+            color: var(--accent-color);
+        }
+
+        /* 底部導航列 */
+        #bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background-color: var(--nav-bg);
+            padding: 10px 5px;
+            border-top: 2px solid var(--border-color);
+            z-index: 10;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--nav-text);
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            box-shadow: none;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.1);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .nav-btn:active {
+            background: rgba(255,255,255,0.2);
+            transform: none;
+        }
+
+        .nav-btn span.icon {
+            font-size: 1.2rem;
+        }
+
+        /* 彈窗 (模態框) */
+        #modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        #modal-content {
+            background-color: var(--paper-color);
+            border: 4px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        #modal-content h2 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        #modal-content ul {
+            list-style-type: none;
+        }
+
+        #modal-content li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--accent-color);
+            cursor: pointer;
+            padding: 0;
+            box-shadow: none;
+        }
+
+        .close-btn:hover {
+            transform: scale(1.2);
+            background: none;
+            box-shadow: none;
+        }
+
+        /* 提示 Toast */
+        #toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 200;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            white-space: nowrap;
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 打字機游標 */
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 0.8s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* 場景過渡淡入淡出 */
+        .fade-out {
+            opacity: 0 !important;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 600px) {
+            #story-panel { padding: 15px; }
+            #story-text { font-size: 1rem; line-height: 1.6; }
+            button { padding: 10px 15px; font-size: 0.95rem; }
+            #bottom-nav { padding: 8px 2px; }
+            .nav-btn { font-size: 0.7rem; padding: 4px 5px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="top-bar">
+        <span>⏳ TIME MACHINE 22</span>
+        <span id="inventory-display" style="font-size: 0.9rem; opacity: 0.8;">🎒 空</span>
+    </div>
+
+    <div id="game-container">
+        <div id="story-panel">
+            <div id="scene-illustration">
+                <!-- SVG 場景將由 JS 動態生成 -->
+            </div>
+            <div id="story-text" onclick="skipTyping()"></div>
+            <div id="choices"></div>
+        </div>
+    </div>
+
+    <!-- 底部導航列 -->
+    <nav id="bottom-nav">
+        <button class="nav-btn" onclick="showModal('help')">
+            <span class="icon">📖</span> 說明
+        </button>
+        <button class="nav-btn" onclick="showModal('history')">
+            <span class="icon">🕰️</span> 歷史
+        </button>
+        <button class="nav-btn" onclick="showModal('achievements')">
+            <span class="icon">🏆</span> 成就
+        </button>
+        <button class="nav-btn" onclick="saveGame()">
+            <span class="icon">💾</span> 存檔
+        </button>
+        <button class="nav-btn" onclick="loadGame()">
+            <span class="icon">📂</span> 讀檔
+        </button>
+        <button class="nav-btn" onclick="toggleSound()">
+            <span class="icon" id="sound-icon">🔊</span> 音效
+        </button>
+    </nav>
+
+    <!-- 彈窗 -->
+    <div id="modal-overlay" onclick="closeModal(event)">
+        <div id="modal-content" onclick="event.stopPropagation()">
+            <button class="close-btn" onclick="closeModal()">×</button>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div id="toast"></div>
+
+    <script>
+        // --- Web Audio API 音效 ---
+        let audioCtx = null;
+        let isSoundOn = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playClickSound() {
+            if (!isSoundOn || !audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function toggleSound() {
+            isSoundOn = !isSoundOn;
+            document.getElementById('sound-icon').textContent = isSoundOn ? '🔊' : '🔇';
+            if (isSoundOn) playClickSound();
+            showToast(isSoundOn ? '音效已開啟' : '音效已關閉');
+        }
+
+        // --- 遊戲狀態機 ---
+        const GameState = {
+            IDLE: 'IDLE',
+            TYPING: 'TYPING',
+            CHOOSING: 'CHOOSING',
+            TRANSITIONING: 'TRANSITIONING',
+            GAMEOVER: 'GAMEOVER'
+        };
+
+        let currentState = GameState.IDLE;
+        let currentNodeId = 'start';
+        let inventory = [];
+        let history = [];
+        let achievements = [];
+        let typingTimer = null;
+        let typingText = '';
+        let currentTextIndex = 0;
+
+        // --- 遊戲資料庫 (基於 PDF 內容提取) ---
+        const gameData = {
+            "start": {
+                title: "白堊紀的盡頭",
+                text: "砰！一棵松樹倒在地上，差點砸中你的頭。你滾到一邊，迅速站起來。環顧四周，你身處一片松樹林中，但大多數樹木似乎都奄奄一息。突然，你感到地面在震動。轉過身，你看到一大堆倒下的原木和樹枝。越過這堆障礙，你聽到了撞擊聲。你爬上木堆，想看看是什麼發出了聲音。\n\n你的眼睛睜大了，你看到了第一隻恐龍——一隻食肉的巨獸龍！牠搖搖晃晃，撞在樹上。這可憐的傢伙虛弱得幾乎走不動。但那「可憐的傢伙」有三十英尺長，有著閃閃發光的鋸齒狀牙齒和鋒利的爪子。而且牠剛剛聞到了一股新鮮肉類的味道——就是你！",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#2d1e16"/><path d="M10,90 L30,70 L50,80 L70,60 L90,90 Z" fill="#1a3a1a"/><path d="M40,40 Q50,30 60,40 L65,50 L55,60 L45,50 Z" fill="#556b2f"/><circle cx="55" cy="35" r="3" fill="#fff"/><path d="M30,90 Q40,70 50,90" stroke="#4a3b2c" stroke-width="4" fill="none"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Megalosaurus</text></svg>`,
+                options: [
+                    { text: "逃向未來 1000 萬年", next: "node_27" }
+                ]
+            },
+            "node_27": {
+                title: "巨獸龍的盛宴",
+                text: "巨獸龍停了下來，開始吃那隻死去的雷龍。你轉過身，環顧四周荒涼的景象。虛弱的恐龍、倒下的樹木——看起來你已經來到了最後一個恐龍時代的盡頭，白堊紀。你也許已經完成了你的任務！\n\n你在地上翻找，看看能不能找到一顆掉落的牙齒。沒有牙齒，但有一隻爪子。你彎腰撿起它——然後你注意到兩隻圓溜溜的眼睛盯著你。這是一隻從木堆下跑出來的哺乳動物。牠似乎意識到雷龍肉的競爭太激烈了，於是開始打量你！當牠露出長長的犬齒向你衝來時，你嚇呆了。你唯一的逃生方法就是迅速跳入時間機器！",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#1a120e"/><path d="M20,80 Q50,60 80,80" stroke="#555" stroke-width="10" fill="none"/><path d="M30,50 Q50,20 70,50" stroke="#8b5a2b" stroke-width="15" fill="none"/><circle cx="70" cy="45" r="5" fill="#000"/><circle cx="70" cy="45" r="2" fill="#fff"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Mammal Attack</text></svg>`,
+                onEnter: () => addItem("恐龍爪子"),
+                options: [
+                    { text: "跳向 1000 萬年後", next: "node_31" }
+                ]
+            },
+            "node_31": {
+                title: "鴨嘴龍的巢穴",
+                text: "這裡安靜多了，但也暗得多。離你幾英尺遠的地方傳來劈啪聲。你的眼睛慢慢適應，你意識到自己在一個洞穴裡。\n\n你朝聲音看去，看到一個平坦的圓形土堆。裡面有雞蛋大小的蛋，其中一個正在孵化。你走過去想看；看看恐龍滅絕後 1000 萬年後存在什麼生物一定很有趣。\n\n「吼——！」一聲震耳欲聾的聲音，就像你聽過的最響亮的汽車喇叭，在洞穴中迴盪。你轉過身，面對一隻綠色的大恐龍，牠的嘴巴看起來像鴨嘴——這是副櫛龍。牠正透過頭頂上一根長而堅硬的管子對你哼氣。牠看起來很生氣。\n\n「恐龍在這裡做什麼？」你心想。根據你的計算，牠們應該都已經死了。",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#1a2a2a"/><path d="M20,70 Q50,30 80,70" fill="#3a5a3a"/><path d="M40,50 L60,50 L70,40 L30,40 Z" fill="#2a4a2a"/><circle cx="50" cy="35" r="8" fill="#4a6a4a"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Parasaurolophus</text></svg>`,
+                options: [
+                    { text: "逃向 20 世紀", next: "node_34" }
+                ]
+            },
+            "node_34": {
+                title: "1854 年的邀請",
+                text: "你在一間長長的、發霉的房間裡，裡面有十一張深色木桌。每張桌子上都有一套完整的羽毛筆、紙和尺子。離你最近的一張桌子上有一份日期為 1824 年 5 月 19 日的法國報紙。\n\n牆上掛著詳細的圖畫，畫著類似恐龍的生物。但當你靠近時，你發現圖畫都是錯的。這些「恐龍」看起來像巨大的有角蜥蜴，腿從臀部向兩側伸出，肚子貼著地面——它們和你見過的生物完全不同。\n\n「嘎吱——」一扇高大的雕花木門打開了。一個穿著昂貴衣服的胖老頭走了進來。跟在他後面的是個精力充沛的年輕人。\n\n「居維葉男爵！」年輕人說，「我相信這裡有個小偷！」你被抓住了。你急中生智，抓起地上的一塊抹布開始擦桌子。\n\n「早上好，先生們！」你愉快地說。「今天灰塵真多。我馬上就要去吃午飯了。」",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#4a3b2c"/><rect x="20" y="50" width="60" height="30" fill="#2d1e16"/><path d="M30,20 L70,20 L70,50 L30,50 Z" fill="#d4b483"/><text x="50" y="35" fill="#000" font-size="8" text-anchor="middle">1824</text><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Cuvier's Study</text></svg>`,
+                options: [
+                    { text: "跳向 30 年後", next: "node_37" }
+                ]
+            },
+            "node_37": {
+                title: "古生物學大會",
+                text: "你正沿著一條長長的黑暗管道滾下。你胡亂揮舞的手臂和腿撞在金屬牆上。砰的一聲，你落地了。\n\n一條狹窄的隧道展現在你面前。遠處有一個小方塊的光。當你爬向光時，冰冷的空氣呼嘯而過，讓你發抖。你看到方塊是一個金屬格柵。很快你聽到了聲音。\n\n你把身子湊到格柵前，看向走廊。你意識到你一定是在空調管道裡。牆上有一個牌子寫著「全國古生物學家大會」，箭頭指向右邊。那些聲音一定都是恐龍專家的！\n\n「證據都在那裡！」你聽到一個響亮的聲音說。「是彗星在白堊紀末期撞擊了地球——」",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#2a2a2a"/><rect x="10" y="10" width="80" height="80" fill="#1a1a1a" rx="5"/><line x1="20" y1="30" x2="80" y2="30" stroke="#555" stroke-width="2"/><line x1="20" y1="50" x2="80" y2="50" stroke="#555" stroke-width="2"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Conference Room</text></svg>`,
+                options: [
+                    { text: "跳向 1.6 億年前", next: "node_42" }
+                ]
+            },
+            "node_42": {
+                title: "侏羅紀的巨獸",
+                text: "首先注意到是一股甜美的氣味。你被高大的常綠樹木包圍，樹木之間是奇異、色彩鮮豔、花瓣厚實、莖幹粗壯的花朵。你深吸一口氣。這些花和你以前見過或聞過的任何東西都不一樣。蝙蝠大小的蜻蜓在她們周圍盤旋。\n\n突然，樹林裡傳來雷鳴般的腳步聲。你轉過身，看到一隻巨大的、有鱗片的手抓住了一根樹幹。但這隻手和你以前見過的任何手都不一樣。代替拇指的是一根尖刺——一根看起來異常熟悉的尖刺。你突然意識到為什麼：它和 1854 年新年派對上禽龍模型頭上的角一模一樣！\n\n但當你意識到自己站的地方時，你已經來不及高興了。一隻真正的禽龍正準備攻擊你，那根尖刺看起來很鋒利！",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#2d4a2d"/><path d="M30,80 Q50,50 70,80" fill="#4a6a4a"/><circle cx="50" cy="40" r="10" fill="#6a8a6a"/><path d="M45,40 L55,40 L50,30 Z" fill="#8b5a2b"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Iguanodon</text></svg>`,
+                options: [
+                    { text: "跳向 1.2 億年前", next: "node_49" }
+                ]
+            },
+            "node_49": {
+                title: "侏羅紀海洋",
+                text: "你身處海中。鹽水湧入你的嘴巴和鼻子，你掙扎著保持漂浮。你開始狗刨式游泳，環顧四周。一場風暴正在醞釀。三十碼外，一隻巨大的海蜥蜴從水中躍出。\n\n突然，你瞥見一個東西從你上方的天空中呼嘯而過。你抬頭一看，發現根本不是鳥。這是一隻可怕的會飛的爬行動物——一隻翼龍！鋒利的獠牙從牠嘴裡突出，長長的吻部末端是尖的。你看著這隻飛行的猛獸俯衝入海，用鼻尖刺中了一條魚。\n\n你繼續游向岸邊。但就在你以為快要成功的時候，另一個奇怪的生物把脖子伸出水面……而且越伸越高。牠的身體大約有十英尺長，但其中一半是脖子！那是一隻蛇頸龍。",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#1a2a3a"/><path d="M0,70 Q25,50 50,70 T100,70 L100,100 L0,100 Z" fill="#0a1a2a"/><path d="M40,70 Q50,40 60,30 Q65,25 70,30 Q65,45 60,70 Z" fill="#3a5a6a"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Plesiosaur</text></svg>`,
+                options: [
+                    { text: "跳向 1.5 億年前", next: "node_55" },
+                    { text: "跳向 7000 萬年前", next: "node_55" }
+                ]
+            },
+            "node_55": {
+                title: "翼手龍模型",
+                text: "你在一個茂密、樹木繁茂的地區。周圍沒有水，所以你不用擔心鱷魚和海蜥蜴。到處都是野花；這意味著你至少在白堊紀。\n\n你正在滑下一個沙丘。你摔成一團，感覺太陽灼燒著你的臉頰。一輛廢棄的皮卡車半埋在沙子裡——這是 20 世紀的標誌。你準備進行時間旅行。\n\n就在這時，一個巨大的陰影掃過地面。你抬頭一看，是一隻無齒翼龍。沒有人會相信這是真的。你希望自己有照相機。\n\n很快，你注意到這隻翼龍失去了動力。它的翅膀開始被風吹得亂七八糟，似乎無法支撐自己。你睜大眼睛，看著這隻巨大的飛行猛獸突然向下墜落。隨著一聲令人作嘔的撞擊聲，它摔在地上——並碎成了好幾塊！\n\n你聽到一個小台地後面傳來聲音。「它掉下來了！它掉下來了！」兩個男人跑過來。他們檢查翅膀。「這會很貴的，」其中一個人說。",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#c2a878"/><path d="M10,80 Q50,60 90,80 L100,100 L0,100 Z" fill="#a08060"/><path d="M40,60 L60,40 L70,45 L50,65 Z" fill="#8b5a2b"/><text x="50" y="95" fill="#3b2b1a" font-size="6" text-anchor="middle">Pteranodon Model</text></svg>`,
+                options: [
+                    { text: "跳向 6550 萬年前", next: "node_58" },
+                    { text: "跳向 6450 萬年前", next: "node_58" }
+                ]
+            },
+            "node_58": {
+                title: "科莫多巨蜥",
+                text: "你正站在高山脈的山麓上。空氣黑暗且煙霧瀰漫。你聽到一種很像馬嘶鳴的聲音。不久後，你聽到了聲音——人類的聲音！白堊紀怎麼會有人類呢？\n\n「那麼告訴我，」一個非常有禮貌的聲音說。「科莫多島上有很多野生動物嗎？」\n\n你看到一個皮膚白皙、拿著相機的男人。他旁邊是一個皮膚黝黑的男人，似乎是他的導遊。導遊看到那隻爬行動物時停下了腳步。「Ora！」他喊道。\n\n他的同伴轉過身，拿出一個小本子翻了翻，自言自語道：「Ora……Ora……啊，在這裡！Ora 是可怕的科莫多巨蜥的另一個詞。」\n\n你現在知道你已經超越了白堊紀，這隻科莫多巨蜥不是恐龍。它一定是某種巨大的爬行動物，不知怎麼地在这个島上存活了下來。",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#3a4a2a"/><path d="M20,80 Q50,60 80,80" stroke="#6a5a3a" stroke-width="8" fill="none"/><path d="M30,70 Q50,50 70,70" stroke="#6a5a3a" stroke-width="6" fill="none"/><circle cx="70" cy="65" r="3" fill="#000"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Komodo Dragon</text></svg>`,
+                options: [
+                    { text: "跳向 1.2 億年前", next: "node_61" }
+                ]
+            },
+            "node_61": {
+                title: "霸王龍的牙齒",
+                text: "你抬頭一看。你被有史以來最兇猛的恐龍——霸王龍——的景象驚呆了。牠憤怒地吼叫，撲向一隻四足、有尖刺的野獸，你認出那是一隻結節龍。\n\n「咔嚓！」霸王龍巨大的下顎咬住了敵人。但結節龍的皮膚堅硬如金屬殼，三顆巨大的、鋒利的霸王龍牙齒斷裂並朝你飛來。\n\n其中一顆落在了山腳下。你的眼睛亮了起來。也許你現在還不是大滅絕的時候，但也許你可以把這顆牙齒帶回家完成你任務的一部分。\n\n慢慢地，你向山下走去。戰鬥中的恐龍太忙了，沒有注意到你……你希望如此。",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#2a2a1a"/><path d="M20,40 Q50,10 80,40 L70,60 L30,60 Z" fill="#4a6a2a"/><path d="M30,40 Q50,20 70,40" stroke="#8b5a2b" stroke-width="3" fill="none"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">T-Rex vs Nodosaur</text></svg>`,
+                onEnter: () => addItem("恐龍牙齒"),
+                options: [
+                    { text: "跳向 5000 萬年後", next: "node_69" }
+                ]
+            },
+            "node_69": {
+                title: "史前巨龜",
+                text: "你似乎沒有足夠的氧氣。你開始出汗，大口喘氣。你靠在一塊高大的岩石上支撐自己。\n\n你仔細觀察周圍有沒有生命跡象。你身處一個湖泊的岸邊。在你身後，平坦、稀疏的土地向四面八方延伸——沒有恐龍，沒有哺乳動物，沒有花朵。\n\n你正要進行時間旅行，突然看到腳下有東西在動。你低頭一看，看到一隻看起來很笨拙的兩棲動物在你兩腿之間搖搖擺擺地走著。\n\n看到這個黏糊糊的生物讓你大吃一驚，你發出了一聲尖叫。但兩棲動物沒有任何反應。你意識到你已經回到了石炭紀，恐龍出現的數百萬年前。你看到的是一種最早行走在陸地上的生命形式——魚石螈，它非常原始，甚至還沒有發展出聽覺。",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#1a3a3a"/><path d="M10,70 Q50,50 90,70 L100,100 L0,100 Z" fill="#0a2a2a"/><circle cx="50" cy="50" r="15" fill="#4a6a4a"/><circle cx="45" cy="45" r="3" fill="#000"/><circle cx="55" cy="45" r="3" fill="#000"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Ichthyostega</text></svg>`,
+                options: [
+                    { text: "跳向 3 億年後", next: "node_73" },
+                    { text: "跳向 3.6 億年後", next: "node_73" }
+                ]
+            },
+            "node_73": {
+                title: "南極探險",
+                text: "你被四周的白色刺瞎了，你的牙齒開始打顫。你一生中從未這麼冷過。風像刀子一樣刮在你的皮膚上。\n\n你強迫自己睜開眼睛。雪正在你周圍猛烈地下著。就在你以為自己要倒下的時候，你聽到了幾聲響亮、清脆的聲音。\n\n你瞇著眼睛朝聲音的方向看去。你看到雪地裡有一個移動的黑色輪廓。當它靠近時，你意識到這是一支拉著雪橇的狗隊！狗在狂吠。\n\n「是……是一個人！」你聽到一個聲音喊道。一群人疲憊地跟在雪橇後面。其中一個人走向你。他濃密的鬍子上結滿了冰。\n\n「拜……拜託，先生，」你顫抖著說。「你有外套可以給我穿嗎？」\n\n「我叫羅爾德·阿蒙森，來自挪威。你來自哪個國家？我想知道是誰在我之前發現了南極！」",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#e0e0e0"/><path d="M0,80 Q25,70 50,80 T100,80 L100,100 L0,100 Z" fill="#ffffff"/><path d="M40,50 L60,50 L50,30 Z" fill="#3b2b1a"/><circle cx="50" cy="60" r="5" fill="#8b5a2b"/><text x="50" y="95" fill="#3b2b1a" font-size="6" text-anchor="middle">Antarctica</text></svg>`,
+                options: [
+                    { text: "跳向 6500 萬年前的海洋", next: "node_74" },
+                    { text: "跳向 6500 萬年前的內陸", next: "node_74" }
+                ]
+            },
+            "node_74": {
+                title: "阿拉斯加陸橋",
+                text: "空氣中的煙灰如此沉重，刺痛了你的眼睛。你一定是在大滅絕期間到達了某個地方。\n\n你看到你在另一個寒冷的山頂上。你眺望著海洋。你的目光沿著海岸線，消失在你左邊的遠方。你意識到你一定在北美西北角，俯瞰著史前的阿拉斯加！\n\n你凝視著下面的山谷。山谷裡長滿了樹木和植物，恐龍們活蹦亂跳。這意味著這一定是在大滅絕的早期。你有點失望，準備跳向未來。\n\n但有些東西引起了你的注意。阿拉斯加的輪廓看起來和你看過的地圖不同。它沒有向太平洋延伸出一些小島，而是實際上與蘇聯連接在一起。兩個大陸之間有一座橫跨整個太平洋的長長陸橋！\n\n成千上萬的恐龍在陸橋上雙向穿越——三角龍、鴨嘴龍、霸王龍等等。這讓你立刻想到了牛瘟。",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#4a4a4a"/><path d="M0,60 Q25,40 50,60 T100,60 L100,100 L0,100 Z" fill="#3a3a3a"/><path d="M20,40 Q50,20 80,40" stroke="#8b5a2b" stroke-width="4" fill="none"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Land Bridge</text></svg>`,
+                options: [
+                    { text: "跳向 200 萬年後", next: "node_76" }
+                ]
+            },
+            "node_76": {
+                title: "哺乳動物的時代",
+                text: "天空明亮，但你聽到了雷鳴般的聲音。你環顧空曠的草地——然後嚇呆了。\n\n那聲音根本不是雷聲。一群長毛的野獸正朝你衝來！牠們是你見過的最醜陋的東西，有著像壓扁的汽水罐一樣的瘤狀頭部。\n\n你及時地撲到一邊，看著牠們轟隆隆地跑向遠方。那些生物只能是哺乳動物。牠們跑起來腿是筆直向前的，所以不是二疊紀的。而且牠們有野牛那麼大，不是你在白堊紀看到的小哺乳動物。這只能是因為再也沒有恐龍來踢牠們了。這一次你肯定越過了大滅絕。\n\n但你也在見證哺乳動物時代進化的開始。再過幾百萬年，你就會出生了！",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#6a8a4a"/><path d="M0,80 Q25,60 50,80 T100,80 L100,100 L0,100 Z" fill="#5a7a3a"/><circle cx="40" cy="60" r="10" fill="#4a3b2c"/><circle cx="60" cy="60" r="10" fill="#4a3b2c"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Mammal Age</text></svg>`,
+                options: [
+                    { text: "跳回 7000 萬年前", next: "node_77" }
+                ]
+            },
+            "node_77": {
+                title: "海岸的死亡",
+                text: "你正坐在潮濕的沙灘上，沙灘向上傾斜。一隻馬蹄蟹從你身邊滑過。你順著牠看去——發現自己正盯著一道三十英尺高的潮汐波！\n\n你跳起來，盡可能跑遠。海浪雷鳴般地拍打在你身後的陸地上。\n\n在遠離海岸線的安全距離外，你停下來喘口氣。你周圍到處都是樹木；看起來潮水已經衝進了森林。樹木之間躺著海蜥蜴和蛇頸龍，和你在侏羅紀海洋中遇到的很像。被衝到這裡，牠們看起來沒那麼可怕了。事實上，牠們大多數看起來好像快要死了。\n\n你看看黑暗、膨脹的海洋。海水溢出到陸地上是有道理的——到白堊紀末期，內陸海的所有水都已經排入其中了。\n\n但如果有這麼多水，為什麼所有海洋生物都在死亡？",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#2a3a4a"/><path d="M0,70 Q25,50 50,70 T100,70 L100,100 L0,100 Z" fill="#1a2a3a"/><path d="M30,60 Q50,40 70,60" stroke="#4a6a4a" stroke-width="4" fill="none"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Dying Sea Life</text></svg>`,
+                options: [
+                    { text: "跳向 2000 年後", next: "node_80" }
+                ]
+            },
+            "node_80": {
+                title: "白堊紀的荒蕪",
+                text: "你正站在高山脈的山麓上。空氣黑暗且煙霧瀰漫。一股刺骨的寒風抽打著你的臉，你發抖。這是你旅行中最冷的一次。\n\n當你接近山腳時，你遇到了一個可怕的景象。霸王龍、三角龍和鴨嘴龍的屍體散落四周。其中一些看起來好像被攻擊過，但大多數根本沒有受傷的跡象。牠們只是瘦骨嶙峋、皮膚皺縮，好像餓死了一樣。\n\n你意識到這難怪。周圍沒有植物，幾乎每棵樹都光禿禿的。即使在這裡，氣溫也很涼爽，土地乾燥龜裂。恐龍根本無法在這種條件下生存。看起來你是在大滅絕之後到達的。",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#3a2a1a"/><path d="M10,90 L30,70 L50,85 L70,60 L90,90 Z" fill="#2a1a0a"/><path d="M40,50 L60,50 L70,30 L30,30 Z" fill="#4a3b2c"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Barren Land</text></svg>`,
+                options: [
+                    { text: "跟隨鳥", next: "node_82" }
+                ]
+            },
+            "node_82": {
+                title: "非洲牛瘟",
+                text: "你首先注意到的是禿鷹在你上方盤旋。你向牠們揮手，讓牠們知道你沒死。然後你環顧叢林空地。\n\n地上到處都是屍體。但這次是羚羊！你一定跳到了很遠的未來。\n\n「發生了什麼事，先生？」你問一個戴著棉網帽的男人。\n\n「牛瘟，」男人說。「你沒聽說過嗎？」\n\n「我以為所有非洲人都知道牛瘟！」他繼續說道。「這是這裡野生動物有史以來最嚴重的瘟疫。到目前為止，可能有一百萬隻羚羊和牛被殺死了！」\n\n「它是怎麼開始的？」你問。\n\n「大約二十年前，在 1880 或 90 年代，英國的基欽納勳爵需要把大砲運上尼羅河去打仗。為了完成任務，他從印度帶來了牛。」\n\n「而牠們帶有牛瘟！」\n\n「正是如此！這種疾病在非洲直到那時才為人所知，它像野火一樣蔓延。」\n\n你開始想到三角龍。也許類似牛瘟的事情發生在白堊紀晚期。",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#6a7a3a"/><path d="M0,80 Q25,60 50,80 T100,80 L100,100 L0,100 Z" fill="#5a6a2a"/><circle cx="40" cy="50" r="8" fill="#4a3b2c"/><circle cx="60" cy="50" r="8" fill="#4a3b2c"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">Rinderpest</text></svg>`,
+                options: [
+                    { text: "跳向大滅絕", next: "node_86" }
+                ]
+            },
+            "node_86": {
+                title: "最後的恐龍",
+                text: "你成功了！毫無疑問，這絕對是大滅絕的終點。天空因煙灰而幾乎漆黑一片，空氣冷得你可以看見自己的呼吸。每一棵殘存的樹木都是灰色樹枝的枯萎殘骸。遠處一個巨大的洞裡升起難聞的煙霧，周圍沒有一隻活著的恐龍。\n\n你解決了任務的一部分——大滅絕的時間大約在公元前 6500 萬年。儘管周圍一片狼藉，你還是感到一種成就感。\n\n突然，一聲刺耳的「咔嚓」聲打破了怪異的寂靜。你轉過身，看到一棵巨大的樹即將把你壓扁。你撲到一邊，樹木砸在乾燥的地面上，揚起一片灰塵。立刻，一隻小哺乳動物出現，匆匆跑向那棵樹。它迅速行動，撿起所有能找到的干漿果和橡子。它把它們儲存在嘴裡的一個袋子裡，然後跑回自己的洞裡。\n\n你看著這隻小動物，笑了。「恭喜你，」你輕聲對它說，知道只有小哺乳動物才能存活下來，牠們最終會進化成現代人類。\n\n就在這時，你的目光被一個移動的白色物體吸引住了。在三角龍的屍體旁，一個蛋正在孵化。你看著這個長角的小生物掙扎著站起來。它用不穩的腿站穩，輕推牠一動不動的媽媽。它似乎對媽媽沒有反應感到不安。帶著恐懼和困惑的眼神，它仰起頭，發出了一聲小小的、飢餓的吼叫。\n\n你知道這個生物活不了多久了。你沒想到看到地球上最後一隻恐龍會這麼痛苦。你覺得應該把它帶回 20 世紀，但你知道這違反了時間旅行的規則。\n\n你的任務成功了，但你的勝利感中夾雜著悲傷。你在地上看到一顆很久以前從恐龍身上斷裂的大牙齒。你撿起它，準備回家。",
+                svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#1a1a1a"/><path d="M40,50 L60,50 L65,40 L35,40 Z" fill="#3a5a3a"/><circle cx="50" cy="35" r="5" fill="#4a6a4a"/><path d="M45,50 L55,50 L50,70 Z" fill="#3a5a3a"/><text x="50" y="95" fill="#f4e4bc" font-size="6" text-anchor="middle">The Last Dinosaur</text></svg>`,
+                onEnter: () => {
+                    if (!inventory.includes("恐龍牙齒")) addItem("恐龍牙齒");
+                    unlockAchievement("🦷 牙齒收藏家");
+                    unlockAchievement("🏆 時空旅人");
+                },
+                isGameOver: true,
+                options: [
+                    { text: "重新開始", next: "start" }
+                ]
+            }
+        };
+
+        // --- 核心邏輯 ---
+
+        function initGame() {
+            if (!localStorage.getItem('timeMachineSave')) {
+                resetGame();
+            } else {
+                // 不自動載入，讓玩家選擇
+                resetGame();
+            }
+            showToast("歡迎來到時間機器22！");
+        }
+
+        function resetGame() {
+            currentState = GameState.IDLE;
+            currentNodeId = 'start';
+            inventory = [];
+            history = [];
+            // 成就保留
+            updateInventoryDisplay();
+            loadNode(currentNodeId);
+        }
+
+        function loadNode(nodeId) {
+            if (currentState === GameState.TRANSITIONING) return;
+            
+            const node = gameData[nodeId];
+            if (!node) {
+                console.error("Node not found:", nodeId);
+                return;
+            }
+
+            currentState = GameState.TRANSITIONING;
+            const panel = document.getElementById('story-panel');
+            panel.classList.add('fade-out');
+
+            setTimeout(() => {
+                currentNodeId = nodeId;
+                
+                // 更新歷史紀錄
+                if (history.length === 0 || history[history.length - 1].id !== nodeId) {
+                    history.push({ id: nodeId, title: node.title });
+                }
+
+                // 觸發 onEnter 效果
+                if (node.onEnter) {
+                    node.onEnter();
+                }
+
+                // 設定 SVG
+                document.getElementById('scene-illustration').innerHTML = node.svg;
+
+                // 重置打字機
+                if (typingTimer) clearInterval(typingTimer);
+                typingText = node.text;
+                currentTextIndex = 0;
+                const storyTextEl = document.getElementById('story-text');
+                storyTextEl.textContent = '';
+                storyTextEl.classList.add('typing-cursor');
+                
+                // 隱藏選項
+                const choicesEl = document.getElementById('choices');
+                choicesEl.innerHTML = '';
+
+                // 淡入
+                panel.classList.remove('fade-out');
+
+                // 開始打字
+                currentState = GameState.TYPING;
+                typeWriter();
+
+            }, 300); // 配合 CSS 過渡時間
+        }
+
+        function typeWriter() {
+            if (currentTextIndex < typingText.length) {
+                const char = typingText[currentTextIndex];
+                document.getElementById('story-text').textContent += char;
+                currentTextIndex++;
+                typingTimer = setTimeout(typeWriter, 25); // 打字速度
+            } else {
+                finishTyping();
+            }
+        }
+
+        function skipTyping() {
+            if (currentState === GameState.TYPING) {
+                clearTimeout(typingTimer);
+                document.getElementById('story-text').textContent = typingText;
+                finishTyping();
+            }
+        }
+
+        function finishTyping() {
+            document.getElementById('story-text').classList.remove('typing-cursor');
+            currentState = GameState.CHOOSING;
+            renderChoices();
+        }
+
+        function renderChoices() {
+            const node = gameData[currentNodeId];
+            const choicesEl = document.getElementById('choices');
+            choicesEl.innerHTML = '';
+
+            if (!node.options) return;
+
+            node.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = opt.text;
+                btn.onclick = () => {
+                    playClickSound();
+                    if (opt.requires && !inventory.includes(opt.requires)) {
+                        showToast(`你需要：${opt.requires}`);
+                        return;
+                    }
+                    if (node.isGameOver) {
+                        resetGame();
+                    } else {
+                        loadNode(opt.next);
+                    }
+                };
+                choicesEl.appendChild(btn);
+            });
+        }
+
+        // --- 物品與成就 ---
+        function addItem(item) {
+            if (!inventory.includes(item)) {
+                inventory.push(item);
+                updateInventoryDisplay();
+                showToast(`獲得物品：${item}`);
+            }
+        }
+
+        function updateInventoryDisplay() {
+            const display = document.getElementById('inventory-display');
+            if (inventory.length === 0) {
+                display.textContent = '🎒 空';
+            } else {
+                display.textContent = '🎒 ' + inventory.join(', ');
+            }
+        }
+
+        function unlockAchievement(ach) {
+            if (!achievements.includes(ach)) {
+                achievements.push(ach);
+                showToast(`解鎖成就：${ach}`);
+            }
+        }
+
+        // --- UI 互動 ---
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        function showModal(type) {
+            playClickSound();
+            const modalBody = document.getElementById('modal-body');
+            let content = '';
+
+            if (type === 'help') {
+                content = `
+                    <h2>遊戲說明</h2>
+                    <p>這是一個基於《時間機器22：最後的恐龍》的互動冒險遊戲。</p>
+                    <ul>
+                        <li><strong>任務目標：</strong>回到過去，找到最後一隻恐龍，並帶回一顆恐龍牙齒。</li>
+                        <li><strong>守則：</strong>不能殺生、不能改變歷史、不能帶人穿越。</li>
+                        <li><strong>操作：</strong>點擊文字可跳過打字動畫。點擊下方按鈕做出選擇。</li>
+                        <li><strong>存檔：</strong>隨時可以點擊底部導航列存檔，下次遊玩時讀檔繼續。</li>
+                    </ul>
+                `;
+            } else if (type === 'history') {
+                content = '<h2>時間線紀錄</h2><ul>';
+                if (history.length === 0) {
+                    content += '<li>尚未開始旅程。</li>';
+                } else {
+                    history.forEach((h, i) => {
+                        content += `<li>${i + 1}. ${h.title}</li>`;
+                    });
+                }
+                content += '</ul>';
+            } else if (type === 'achievements') {
+                content = '<h2>成就係統</h2><ul>';
+                const allAch = ['🏆 時空旅人', '🦷 牙齒收藏家', '💀 歷史的眼淚'];
+                allAch.forEach(a => {
+                    if (achievements.includes(a)) {
+                        content += `<li style="color: #9c1c1c; font-weight: bold;">${a} (已解鎖)</li>`;
+                    } else {
+                        content += `<li style="opacity: 0.5;">${a} (未解鎖)</li>`;
+                    }
+                });
+                content += '</ul>';
+            }
+
+            modalBody.innerHTML = content;
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        function closeModal(e) {
+            if (e && e.target !== document.getElementById('modal-overlay') && !e.target.classList.contains('close-btn')) return;
+            document.getElementById('modal-overlay').classList.remove('active');
+        }
+
+        // --- 存讀檔 ---
+        function saveGame() {
+            playClickSound();
+            const saveData = {
+                currentNodeId,
+                inventory,
+                history,
+                achievements
+            };
+            localStorage.setItem('timeMachineSave', JSON.stringify(saveData));
+            showToast("遊戲已儲存！");
+        }
+
+        function loadGame() {
+            playClickSound();
+            const saveData = localStorage.getItem('timeMachineSave');
+            if (saveData) {
+                const data = JSON.parse(saveData);
+                currentNodeId = data.currentNodeId;
+                inventory = data.inventory || [];
+                history = data.history || [];
+                achievements = data.achievements || [];
+                updateInventoryDisplay();
+                loadNode(currentNodeId);
+                showToast("遊戲已載入！");
+            } else {
+                showToast("沒有找到存檔！");
+            }
+        }
+
+        // --- 啟動 ---
+        window.onload = () => {
+            // 首次點擊解鎖 AudioContext
+            document.body.addEventListener('click', initAudio, { once: true });
+            initGame();
+        };
+
+    </script>
+</body>
+</html>

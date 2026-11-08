@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>仙剑奇侠传4 - 桌游单机版 (完整任务)</title>
+<style>
+    :root {
+        --bg-color: #1a1a1a;
+        --panel-bg: #2c2c2c;
+        --text-color: #e0e0e0;
+        --gold: #d4af37;
+        --blood: #a83232;
+        --cyan: #32a8a8;
+        --border-radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'KaiTi', 'STKaiti', 'Noto Serif SC', serif; }
+    body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+    header {
+        background-color: #111;
+        padding: 10px 20px;
+        border-bottom: 2px solid var(--gold);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    header h1 { font-size: 1.5rem; color: var(--gold); letter-spacing: 2px; }
+    .btn {
+        background-color: var(--panel-bg);
+        color: var(--gold);
+        border: 1px solid var(--gold);
+        padding: 8px 16px;
+        cursor: pointer;
+        border-radius: var(--border-radius);
+        transition: all 0.2s;
+        font-size: 1rem;
+    }
+    .btn:hover:not(:disabled) { background-color: var(--gold); color: #111; }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: #555; color: #555; }
+    
+    #game-container { display: flex; flex: 1; overflow: hidden; padding: 10px; gap: 10px; }
+    
+    /* 左侧面板 */
+    .sidebar {
+        width: 320px;
+        background-color: var(--panel-bg);
+        border: 1px solid #444;
+        border-radius: var(--border-radius);
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow-y: auto;
+        flex-shrink: 0;
+    }
+    .panel-title { font-size: 1.1rem; color: var(--gold); border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 5px; }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 1rem; }
+    .stat-bar { background: #111; height: 12px; border-radius: 6px; border: 1px solid #333; margin-bottom: 5px; }
+    .stat-fill { height: 100%; border-radius: 6px; transition: width 0.3s; }
+    .hp-fill { background: linear-gradient(90deg, #a83232, #e74c3c); }
+    .mp-fill { background: linear-gradient(90deg, #32a8a8, #3498db); }
+    .sta-fill { background: linear-gradient(90deg, #2ecc71, #a2d9ce); }
+
+    /* 主区域 */
+    .main-area { flex: 1; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+    
+    /* 地图 */
+    #scene-board {
+        flex: 1; background-color: #1e1e1e; border: 2px solid #333; border-radius: var(--border-radius);
+        position: relative; overflow-x: auto; overflow-y: hidden;
+        display: flex; align-items: center; padding: 20px; gap: 10px;
+    }
+    .map-node {
+        min-width: 110px; height: 140px; border: 2px solid #555; border-radius: var(--border-radius);
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        background: #2a2a2a; position: relative; flex-shrink: 0; transition: all 0.3s;
+    }
+    .map-node.active { border-color: var(--gold); box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); background: #3a3a2a; }
+    .map-node.visited { opacity: 0.7; border-color: var(--cyan); }
+    .map-node-title { position: absolute; top: 10px; font-weight: bold; color: var(--gold); font-size: 0.95rem;}
+    .node-status { font-size: 2rem; font-weight: bold; color: #555; }
+    .map-node.visited .node-status { color: var(--cyan); }
+    .map-node.active .node-status { color: var(--gold); }
+    .player-token {
+        width: 30px; height: 30px; background: var(--cyan); border-radius: 50%;
+        display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;
+        position: absolute; bottom: 5px; animation: bounce 1s infinite alternate;
+    }
+    @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-5px); } }
+    .path-arrow { font-size: 1.5rem; color: #555; }
+
+    /* 战斗区域 */
+    #combat-area {
+        display: none; flex-direction: row; justify-content: space-around; align-items: center;
+        flex: 1; background: rgba(0,0,0,0.5); border-radius: var(--border-radius); border: 1px solid var(--blood); padding: 20px;
+    }
+    .combatant { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .avatar-box {
+        width: 100px; height: 100px; border: 3px solid var(--gold); border-radius: 50%;
+        background: #111; display: flex; justify-content: center; align-items: center; font-size: 2rem;
+    }
+    .enemy-box { border-color: var(--blood); }
+    
+    /* 日志与操作 */
+    .action-panel { height: 220px; background-color: var(--panel-bg); border: 1px solid #444; border-radius: var(--border-radius); display: flex; flex-direction: column; }
+    #log-area {
+        flex: 1; padding: 10px; overflow-y: auto; font-size: 0.95rem; line-height: 1.5;
+        background: #111; border-radius: var(--border-radius); border: 1px solid #333;
+    }
+    .log-item { margin-bottom: 5px; border-bottom: 1px dashed #333; padding-bottom: 3px; }
+    .log-sys { color: var(--cyan); }
+    .log-combat { color: var(--blood); }
+    .log-event { color: var(--gold); }
+
+    .controls {
+        display: flex; gap: 10px; padding: 10px; border-top: 1px solid #444;
+        background: var(--panel-bg); border-bottom-left-radius: var(--border-radius);
+        border-bottom-right-radius: var(--border-radius); flex-wrap: wrap; justify-content: center;
+    }
+
+    /* 弹窗 */
+    .modal {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center;
+    }
+    .modal-content {
+        background: var(--panel-bg); padding: 30px; border: 2px solid var(--gold);
+        border-radius: var(--border-radius); max-width: 800px; max-height: 80vh; overflow-y: auto; color: #ccc; line-height: 1.6;
+    }
+    .modal-content h2 { color: var(--gold); margin-bottom: 15px; }
+    .modal-content h3 { color: var(--gold); margin-top: 15px; }
+    .inventory { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;}
+    .item-tag { background: #333; padding: 3px 8px; border-radius: 4px; border: 1px solid #555; font-size: 0.85rem; }
+    .dice-big {
+        width: 80px; height: 80px; background: white; border-radius: 10px; display: flex; justify-content: center; align-items: center;
+        color: black; font-size: 3rem; font-weight: bold; margin: 20px auto; box-shadow: 0 0 20px rgba(255,255,255,0.5);
+    }
+</style>
+</head>
+<body>
+
+    <header>
+        <h1>仙剑奇侠传四 · 桌游单机版</h1>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn" onclick="document.getElementById('rules-modal').style.display='flex'">游戏说明</button>
+            <button class="btn" onclick="document.getElementById('inv-modal').style.display='flex'">查看背包</button>
+        </div>
+    </header>
+
+    <div id="game-container">
+        <!-- 左侧面板 -->
+        <div class="sidebar">
+            <div class="panel-title">当前任务: <span id="ui-task">石沉溪洞</span></div>
+            
+            <div class="panel-title" style="font-size: 1rem; margin-top: 10px;">云天河 (1号位)</div>
+            <div>
+                <div class="stat-row"><span>生命</span> <span id="ui-hp">4 / 4</span></div>
+                <div class="stat-bar"><div class="stat-fill hp-fill" id="ui-hp-bar" style="width: 100%"></div></div>
+                <div class="stat-row"><span>元神</span> <span id="ui-mp">3 / 3</span></div>
+                <div class="stat-bar"><div class="stat-fill mp-fill" id="ui-mp-bar" style="width: 100%"></div></div>
+                <div class="stat-row"><span>体力</span> <span id="ui-sta">10 / 10</span></div>
+                <div class="stat-bar"><div class="stat-fill sta-fill" id="ui-sta-bar" style="width: 100%"></div></div>
+                <div class="stat-row"><span>怒气</span> <span id="ui-rage">0</span></div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 10px;">
+                <div class="stat-row"><span>武:</span> <span id="ui-wu">0</span></div>
+                <div class="stat-row"><span>灵:</span> <span id="ui-ling">0</span></div>
+                <div class="stat-row"><span>防:</span> <span id="ui-fang">0</span></div>
+                <div class="stat-row"><span>御:</span> <span id="ui-yu">0</span></div>
+            </div>
+            <div class="stat-row" style="margin-top: 5px;"><span>装备:</span> <span id="ui-equip" style="color:var(--gold)">无</span></div>
+            <div class="stat-row"><span>状态:</span> <span id="ui-status" style="color:var(--cyan)">无</span></div>
+        </div>
+
+        <!-- 主区域 -->
+        <div class="main-area">
+            <div id="scene-board"></div>
+
+            <div id="combat-area">
+                <div class="combatant">
+                    <div class="avatar-box" style="color: var(--cyan)">云</div>
+                    <div>云天河</div>
+                    <div id="player-combat-status" style="color:var(--gold); font-size:0.9rem;"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                    <div id="combat-dice" style="display: none;" class="dice-big" style="width: 50px; height: 50px; font-size:2rem;">?</div>
+                    <h2>VS</h2>
+                </div>
+                <div class="combatant">
+                    <div class="avatar-box enemy-box" style="color: var(--blood)" id="enemy-avatar">妖</div>
+                    <div id="enemy-name">怪物</div>
+                    <div class="stat-row"><span>生命:</span> <span id="enemy-hp">0/0</span></div>
+                    <div id="enemy-status" style="color:var(--blood); font-size:0.9rem;"></div>
+                </div>
+            </div>
+
+            <div class="action-panel">
+                <div id="log-area">
+                    <div class="log-item log-sys">游戏开始。请点击“前进”探索未知区域。</div>
+                </div>
+                <div class="controls" id="action-buttons">
+                    <!-- 探索按钮 -->
+                    <button class="btn" id="btn-back" onclick="movePlayer(-1)">⬅ 后退</button>
+                    <button class="btn" id="btn-explore" onclick="movePlayer(1)">前进 ➡</button>
+                    <button class="btn" id="btn-rest" onclick="restAction()" style="display: none; border-color: var(--blood); color: var(--blood);">原地休息 (耗1血回满体力)</button>
+                    
+                    <!-- 战斗按钮 -->
+                    <button class="btn" id="btn-attack" onclick="playerAction('attack')" style="display: none;">物理攻击</button>
+                    <button class="btn" id="btn-spell" onclick="playerAction('spell')" style="display: none;">仙术</button>
+                    <button class="btn" id="btn-skill" onclick="playerAction('skill')" style="display: none;">技能</button>
+                    <button class="btn" id="btn-item" onclick="playerAction('item')" style="display: none;">使用药品</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 掷骰子弹窗 -->
+    <div id="dice-modal" class="modal">
+        <div class="modal-content" style="text-align: center; max-width: 400px;">
+            <h2>探索判定</h2>
+            <p id="dice-desc">请投掷骰子决定命运...</p>
+            <div id="dice-result" class="dice-big" style="display: none;">?</div>
+            <button class="btn" id="btn-roll" onclick="rollExploreDice()">投掷骰子</button>
+        </div>
+    </div>
+
+    <!-- 规则与背包弹窗 -->
+    <div id="rules-modal" class="modal">
+        <div class="modal-content">
+            <h2>《仙剑奇侠传4》桌游 - 规则与流程</h2>
+            <h3>1. 核心规则</h3>
+            <p>游戏分为探索和战斗。每移动一个区域消耗1点体力。遇到怪物进入战斗。</p>
+            <p>物理攻击 = 武 - 怪物防；仙术伤害 = 灵 - 怪物御。触发属性相克时伤害+1。</p>
+            <p>战斗中受到物理攻击会增加1点怒气。释放技能需消耗怒气。</p>
+            <h3>2. 仙术相克</h3>
+            <p>土克水，水克火，火克雷，雷克风，风克土。</p>
+            <h3>3. 特殊状态</h3>
+            <ul>
+                <li><b>物免</b>：免疫物理伤害（BOSS魁召拥有）。</li>
+                <li><b>定</b>：跳过一回合。</li>
+                <li><b>界</b>：免疫仙术伤害。</li>
+                <li><b>毒</b>：无法恢复生命（需使用解毒药或战斗胜利解除）。</li>
+            </ul>
+            <h3>4. 技能与物品</h3>
+            <p>云天河习得【猎兽】（对野兽类怪物使用，使其“定”一回合）。韩菱纱习得【搜囊探宝】（偷窃金钱或物品）。</p>
+            <p>行囊最多9格，同类物品叠加。若满格获得新物品，需丢弃原有物品。</p>
+            <button class="btn" style="margin-top: 20px;" onclick="document.getElementById('rules-modal').style.display='none'">关闭</button>
+        </div>
+    </div>
+
+    <div id="inv-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <h2>行囊物品</h2>
+            <div id="inv-list" class="inventory"></div>
+            <button class="btn" style="margin-top: 20px;" onclick="document.getElementById('inv-modal').style.display='none'">关闭</button>
+        </div>
+    </div>
+
+<script>
+    // --- 数据定义 ---
+    const State = { EXPLORE: 'EXPLORE', COMBAT: 'COMBAT', VICTORY: 'VICTORY', GAMEOVER: 'GAMEOVER' };
+    
+    const Tasks = {
+        1: { name: '石沉溪洞', boss: '魁召', maps: ['青鸾峰', '树林', '山道', '大树', '树屋', '空地', '洞窟', '深处'] },
+        2: { name: '紫云架', boss: '王魁山', maps: ['太平村', '岔路', '松林', '野猴谷', '陷阱区', '山贼寨', '水源', '紫云顶'] }
+    };
+
+    const Enemies = {
+        // 任务1
+        '翼手': { name: '翼手', hp: 2, wu: 1, ling: 0, fang: 0, yu: 0, type: '风', tribe: '妖', drop: '止血草' },
+        '朱蛤': { name: '朱蛤', hp: 2, wu: 1, ling: 0, fang: 0, yu: 0, type: '水', tribe: '妖', drop: '止血草' },
+        '魁召': { name: '魁召(BOSS)', hp: 8, wu: 1, ling: 2, fang: 0, yu: 0, type: '水', tribe: '灵', drop: '无', status: ['物免'] },
+        // 任务2
+        '松塔': { name: '松塔', hp: 2, wu: 1, ling: 0, fang: 0, yu: 0, type: '雷', tribe: '妖', drop: '止血草' },
+        '野猴': { name: '野猴', hp: 3, wu: 1, ling: 1, fang: 0, yu: 0, type: '土', tribe: '兽', drop: '鼠儿果' },
+        '山猪': { name: '山猪', hp: 3, wu: 1, ling: 1, fang: 0, yu: 0, type: '土', tribe: '兽', drop: '鼠儿果' },
+        '雾灵': { name: '雾灵', hp: 3, wu: 1, ling: 1, fang: 0, yu: 0, type: '风', tribe: '妖', drop: '血凝晶', status: ['物免'] },
+        '吸血蚊子': { name: '吸血蚊子', hp: 3, wu: 1, ling: 1, fang: 0, yu: 0, type: '风', tribe: '妖', drop: '血凝晶' },
+        '王魁山': { name: '王魁山(BOSS)', hp: 8, wu: 2, ling: 2, fang: 0, yu: 0, type: '土', tribe: '人', drop: '无' }
+    };
+
+    const ExploreTables = {
+        1: [ // 任务一探索表
+            { min: 1, max: 2, desc: "战斗：翼手", action: () => triggerCombat('翼手') },
+            { min: 3, max: 4, desc: "战斗：朱蛤", action: () => triggerCombat('朱蛤') },
+            { min: 5, max: 6, desc: "获得止血草x1，金钱x1", action: () => { addItem('止血草'); p.gold += 1; } }
+        ],
+        2: [ // 任务二探索表
+            { min: 1, max: 1, desc: "遭遇陷阱！失去生命1点", action: () => { p.hp -= 1; addLog("掉进陷阱，失去1点生命。", "log-combat"); checkDeath(); } },
+            { min: 2, max: 3, desc: "战斗：山猪", action: () => triggerCombat('山猪') },
+            { min: 4, max: 5, desc: "战斗：野猴", action: () => triggerCombat('野猴') },
+            { min: 6, max: 6, desc: "遇到泉水，体力完全恢复", action: () => { p.sta = p.maxSta; addLog("饮用泉水，体力全满。", "log-sys"); } }
+        ]
+    };
+
+    let gameData = {
+        state: State.EXPLORE,
+        task: 1,
+        mapIndex: 0,
+        combat: { enemy: null, turn: 'player' },
+    };
+
+    let p = {
+        hp: 4, maxHp: 4, mp: 3, maxMp: 3, sta: 10, maxSta: 10, rage: 0,
+        wu: 0, ling: 0, fang: 0, yu: 0, gold: 0, exp: 0,
+        equip: { weapon: null, head: null, accessory: null },
+        spells: ['火咒'], skills: ['猎兽'],
+        inventory: { '止血草': 2 },
+        status: [], hasHan: false
+    };
+
+    // --- 基础功能 ---
+    function addLog(msg, className = "log-sys") {
+        const log = document.getElementById('log-area');
+        const div = document.createElement('div');
+        div.className = `log-item ${className}`;
+        div.innerHTML = msg;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function addItem(item, count = 1) {
+        if (p.inventory[item] !== undefined) {
+            p.inventory[item] += count;
+        } else {
+            if (Object.keys(p.inventory).length >= 9) {
+                addLog(`行囊已满！无法获得【${item}】。`, "log-combat");
+                return;
+            }
+            p.inventory[item] = count;
+        }
+        addLog(`获得【${item}】x${count}。`, "log-event");
+    }
+
+    function updateUI() {
+        document.getElementById('ui-task').innerText = Tasks[gameData.task].name;
+        document.getElementById('ui-hp').innerText = `${p.hp} / ${p.maxHp}`;
+        document.getElementById('ui-hp-bar').style.width = `${(p.hp / p.maxHp) * 100}%`;
+        document.getElementById('ui-mp').innerText = `${p.mp} / ${p.maxMp}`;
+        document.getElementById('ui-mp-bar').style.width = `${(p.mp / p.maxMp) * 100}%`;
+        document.getElementById('ui-sta').innerText = `${p.sta} / ${p.maxSta}`;
+        document.getElementById('ui-sta-bar').style.width = `${(p.sta / p.maxSta) * 100}%`;
+        document.getElementById('ui-rage').innerText = p.rage;
+        
+        let wuTotal = p.wu + (p.equip.weapon ? 1 : 0);
+        let lingTotal = p.ling + (p.equip.head ? 1 : 0);
+        let yuTotal = p.yu + (p.equip.accessory ? 1 : 0);
+        
+        document.getElementById('ui-wu').innerText = wuTotal;
+        document.getElementById('ui-ling').innerText = lingTotal;
+        document.getElementById('ui-fang').innerText = p.fang;
+        document.getElementById('ui-yu').innerText = yuTotal;
+        
+        let eqStr = [];
+        if(p.equip.weapon) eqStr.push(p.equip.weapon);
+        if(p.equip.head) eqStr.push(p.equip.head);
+        if(p.equip.accessory) eqStr.push(p.equip.accessory);
+        document.getElementById('ui-equip').innerText = eqStr.length ? eqStr.join(', ') : '无';
+        
+        document.getElementById('ui-status').innerText = p.status.length ? p.status.join(', ') : '无';
+
+        // 背包渲染
+        let invHtml = '';
+        for(let item in p.inventory) {
+            if(p.inventory[item] > 0) invHtml += `<div class="item-tag">${item} x${p.inventory[item]}</div>`;
+        }
+        document.getElementById('inv-list').innerHTML = invHtml;
+
+        // 按钮管理
+        const isExplore = gameData.state === State.EXPLORE;
+        const isCombat = gameData.state === State.COMBAT;
+        
+        document.getElementById('btn-back').style.display = isExplore ? 'inline-block' : 'none';
+        document.getElementById('btn-explore').style.display = isExplore ? 'inline-block' : 'none';
+        document.getElementById('btn-rest').style.display = (isExplore && p.sta <= 0) ? 'inline-block' : 'none';
+        
+        document.getElementById('btn-attack').style.display = isCombat ? 'inline-block' : 'none';
+        document.getElementById('btn-spell').style.display = isCombat ? 'inline-block' : 'none';
+        document.getElementById('btn-skill').style.display = isCombat ? 'inline-block' : 'none';
+        document.getElementById('btn-item').style.display = isCombat ? 'inline-block' : 'none';
+
+        if (isExplore) {
+            document.getElementById('btn-back').disabled = (gameData.mapIndex === 0);
+            document.getElementById('btn-explore').disabled = (gameData.mapIndex === Tasks[gameData.task].maps.length - 1) || (p.sta <= 0);
+        } else if (isCombat) {
+            const isPlayerTurn = gameData.combat.turn === 'player';
+            document.getElementById('btn-attack').disabled = !isPlayerTurn;
+            document.getElementById('btn-spell').disabled = !isPlayerTurn || p.mp <= 0;
+            document.getElementById('btn-skill').disabled = !isPlayerTurn || p.rage <= 0;
+            document.getElementById('btn-item').disabled = !isPlayerTurn || p.inventory['止血草'] <= 0;
+            
+            if(gameData.combat.enemy) {
+                document.getElementById('enemy-name').innerText = gameData.combat.enemy.name;
+                document.getElementById('enemy-hp').innerText = `${Math.max(0, gameData.combat.enemy.hp)} / ${gameData.combat.enemy.maxHp}`;
+                document.getElementById('enemy-avatar').innerText = gameData.combat.enemy.name.charAt(0);
+                let eStatus = gameData.combat.enemy.status || [];
+                document.getElementById('enemy-status').innerText = eStatus.length ? eStatus.join(', ') : '';
+            }
+            document.getElementById('player-combat-status').innerText = p.status.length ? p.status.join(', ') : '';
+        }
+    }
+
+    // --- 探索逻辑 ---
+    function movePlayer(dir) {
+        if (gameData.state !== State.EXPLORE || p.sta <= 0) return;
+        
+        let nextIndex = gameData.mapIndex + dir;
+        if (nextIndex < 0 || nextIndex >= Tasks[gameData.task].maps.length) return;
+
+        p.sta--;
+        gameData.mapIndex = nextIndex;
+        let nodeName = Tasks[gameData.task].maps[nextIndex];
+        addLog(`移动到了【${nodeName}】，消耗1点体力。`, "log-sys");
+        renderMap();
+
+        // 第一格或已探索的不触发掷骰子
+        if (nextIndex === 0) {
+            updateUI();
+            return;
+        }
+
+        // 固定事件（按说明书）
+        if (gameData.task === 1) {
+            if (nextIndex === 1 && !p.equip.weapon) {
+                p.equip.weapon = '木剑'; addLog("事件：获得【木剑】。", "log-event"); updateUI(); return;
+            }
+            if (nextIndex === 3) {
+                if(!p.status.includes('毒')) { p.hp = p.maxHp; p.mp = p.maxMp; addLog("事件：在泉水处完全恢复。", "log-event"); }
+                else { addLog("你中毒了，无法恢复生命。", "log-combat"); }
+                updateUI(); return;
+            }
+            if (nextIndex === 5 && !p.hasHan) {
+                p.hasHan = true; p.maxHp += 2; p.hp = p.maxHp; p.maxMp += 2; p.mp = p.maxMp; p.ling += 2;
+                p.equip.head = '描金头帕'; p.equip.weapon = '峨眉刺';
+                p.spells.push('土咒'); p.skills.push('搜囊探宝');
+                addLog("事件：韩菱纱加入！生命/元神全满，获得装备，学会【土咒】与【搜囊探宝】。", "log-event");
+                updateUI(); return;
+            }
+        }
+
+        // BOSS战
+        if (nextIndex === Tasks[gameData.task].maps.length - 1) {
+            triggerCombat(Tasks[gameData.task].boss);
+            return;
+        }
+
+        // 触发掷骰探索
+        document.getElementById('dice-modal').style.display = 'flex';
+        document.getElementById('dice-result').style.display = 'none';
+        document.getElementById('btn-roll').style.display = 'inline-block';
+        document.getElementById('dice-desc').innerText = `在【${nodeName}】进行探索...`;
+    }
+
+    function rollExploreDice() {
+        document.getElementById('btn-roll').style.display = 'none';
+        let roll = Math.floor(Math.random() * 6) + 1;
+        document.getElementById('dice-result').style.display = 'flex';
+        document.getElementById('dice-result').innerText = roll;
+        
+        setTimeout(() => {
+            document.getElementById('dice-modal').style.display = 'none';
+            let table = ExploreTables[gameData.task];
+            let result = table.find(t => roll >= t.min && roll <= t.max);
+            
+            addLog(`掷骰结果：${roll}点。${result.desc}`, "log-event");
+            result.action();
+            updateUI();
+        }, 1000);
+    }
+
+    function restAction() {
+        if (p.hp > 1) {
+            p.hp -= 1; p.sta = p.maxSta;
+            addLog("原地休息，失去1点生命，体力全满。", "log-sys");
+        } else {
+            p.hp = 0; addLog("生命耗尽，游戏失败。", "log-combat");
+            gameData.state = State.GAMEOVER;
+        }
+        updateUI();
+    }
+
+    function renderMap() {
+        const board = document.getElementById('scene-board');
+        board.innerHTML = '';
+        let maps = Tasks[gameData.task].maps;
+        
+        maps.forEach((name, idx) => {
+            const div = document.createElement('div');
+            div.className = `map-node ${idx === gameData.mapIndex ? 'active' : ''} ${idx < gameData.mapIndex ? 'visited' : ''}`;
+            let icon = idx === gameData.mapIndex ? '🚩' : (idx < gameData.mapIndex ? '✓' : '?');
+            div.innerHTML = `<div class="map-node-title">${name}</div><div class="node-status">${icon}</div>`;
+            if (idx === gameData.mapIndex) div.innerHTML += `<div class="player-token">云</div>`;
+            board.appendChild(div);
+            if (idx < maps.length - 1) {
+                let arrow = document.createElement('div'); arrow.className = 'path-arrow'; arrow.innerText = '⇌'; board.appendChild(arrow);
+            }
+        });
+        setTimeout(() => {
+            let active = document.querySelector('.map-node.active');
+            if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+        }, 100);
+    }
+
+    // --- 战斗逻辑 ---
+    function triggerCombat(enemyName) {
+        gameData.state = State.COMBAT;
+        gameData.combat.enemy = JSON.parse(JSON.stringify(Enemies[enemyName]));
+        gameData.combat.enemy.hp = gameData.combat.enemy.hp; // 确保血量
+        gameData.combat.turn = 'player';
+        
+        document.getElementById('scene-board').style.display = 'none';
+        document.getElementById('combat-area').style.display = 'flex';
+        
+        addLog(`遭遇【${enemyName}】！`, "log-combat");
+        if (gameData.combat.enemy.status && gameData.combat.enemy.status.includes('物免')) {
+            addLog(`【${enemyName}】拥有物免状态，物理攻击无效！`, "log-combat");
+        }
+        updateUI();
+    }
+
+    function playerAction(type) {
+        if (gameData.state !== State.COMBAT || gameData.combat.turn !== 'player') return;
+        const e = gameData.combat.enemy;
+
+        if (type === 'attack') {
+            let damage = p.wu + (p.equip.weapon ? 1 : 0) - e.fang;
+            if (e.status && e.status.includes('物免')) {
+                damage = 0;
+                addLog("物理攻击被【物免】免疫了！", "log-combat");
+            } else {
+                damage = Math.max(0, damage);
+                e.hp -= damage;
+                addLog(`物理攻击，造成 ${damage} 点伤害。`, "log-combat");
+                p.rage += 1; // 受到物理攻击加怒气（说明书中是受到物理攻击，这里简化，玩家攻击也算积攒）
+            }
+        } 
+        else if (type === 'spell') {
+            if (p.mp < 1) return;
+            p.mp--;
+            let spellName = p.hasHan ? "土咒" : "火咒";
+            let damage = p.ling + (p.equip.head ? 1 : 0) - e.yu;
+            let isCounter = false;
+
+            // 属性克制表：土克水，水克火，火克雷，雷克风，风克土
+            if (spellName === '土咒' && e.type === '水') isCounter = true;
+            if (spellName === '火咒' && e.type === '雷') isCounter = true;
+            
+            if (isCounter) { damage += 1; addLog(`属性相克！伤害增加！`, "log-event"); }
+
+            damage = Math.max(1, damage);
+            if (e.status && e.status.includes('界')) {
+                damage = 0;
+                addLog("仙术被【界】免疫了！", "log-combat");
+            } else {
+                e.hp -= damage;
+                addLog(`使用【${spellName}】，造成 ${damage} 点仙术伤害。`, "log-combat");
+            }
+        }
+        else if (type === 'skill') {
+            if (p.rage < 1) return;
+            p.rage -= 1;
+            
+            if (p.skills.includes('猎兽') && e.tribe === '兽') {
+                if (!e.status) e.status = [];
+                e.status.push('定');
+                addLog(`使用【猎兽】！${e.name} 被【定】住了一回合。`, "log-sys");
+            } else if (p.skills.includes('搜囊探宝')) {
+                let roll = Math.floor(Math.random() * 6) + 1;
+                if (roll >= 3) {
+                    p.gold += 2;
+                    addLog(`使用【搜囊探宝】成功！偷到金钱x2。`, "log-event");
+                } else {
+                    addLog(`使用【搜囊探宝】失败。`, "log-combat");
+                }
+            } else {
+                addLog(`该技能当前无法使用。`, "log-sys");
+                p.rage += 1; // 返还怒气
+            }
+        }
+        else if (type === 'item') {
+            if (p.inventory['止血草'] > 0) {
+                p.inventory['止血草']--;
+                p.hp = Math.min(p.maxHp, p.hp + 2);
+                addLog("使用【止血草】，恢复2点生命。", "log-sys");
+            }
+        }
+
+        checkCombatEnd();
+    }
+
+    function checkCombatEnd() {
+        const e = gameData.combat.enemy;
+        if (e.hp <= 0) {
+            addLog(`击败了【${e.name}】！`, "log-combat");
+            
+            // 掉落
+            if (e.drop !== '无') {
+                addItem(e.drop);
+            }
+
+            // 任务通关
+            if (e.name.includes('BOSS')) {
+                if (gameData.task === 1) {
+                    addLog("【任务一完成】石沉溪洞探索结束！即将前往紫云架...", "log-event");
+                    setTimeout(() => {
+                        gameData.task = 2;
+                        gameData.mapIndex = 0;
+                        gameData.state = State.EXPLORE;
+                        p.sta = p.maxSta;
+                        p.status = [];
+                        document.getElementById('combat-area').style.display = 'none';
+                        document.getElementById('scene-board').style.display = 'flex';
+                        renderMap(); updateUI();
+                        addLog("【任务二：太平村/紫云架】开始。", "log-sys");
+                    }, 3000);
+                } else {
+                    addLog("【游戏胜利】击败了王魁山，全部任务完成！", "log-event");
+                    gameData.state = State.VICTORY;
+                }
+            } else {
+                // 普通战斗结束
+                gameData.state = State.EXPLORE;
+                gameData.combat.enemy = null;
+                document.getElementById('combat-area').style.display = 'none';
+                document.getElementById('scene-board').style.display = 'flex';
+            }
+            updateUI();
+        } else {
+            gameData.combat.turn = 'enemy';
+            updateUI();
+            setTimeout(enemyTurn, 1000);
+        }
+    }
+
+    function enemyTurn() {
+        if (gameData.state !== State.COMBAT) return;
+        const e = gameData.combat.enemy;
+        
+        // 检查怪物的“定”状态
+        if (e.status && e.status.includes('定')) {
+            addLog(`${e.name} 处于【定】状态，跳过本回合。`, "log-sys");
+            e.status = e.status.filter(s => s !== '定');
+        } else {
+            const diceBox = document.getElementById('combat-dice');
+            diceBox.style.display = 'flex';
+            let roll = Math.floor(Math.random() * 6) + 1;
+            diceBox.innerText = roll;
+            
+            let damage = 0;
+            if (e.name === '翼手' || e.name === '松塔' || e.name === '朱蛤') {
+                damage = e.wu;
+                addLog(`${e.name} 发动物理攻击，掷骰：${roll}。`, "log-combat");
+            } else if (e.name === '野猴') {
+                if (roll <= 3) { damage = e.wu; addLog(`${e.name} 发动物理攻击。`, "log-combat"); }
+                else { p.gold = Math.max(0, p.gold - 1); addLog(`${e.name} 使用【灵猴探宝】，偷走你1金钱！`, "log-combat"); }
+            } else if (e.name === '山猪') {
+                damage = e.wu; addLog(`${e.name} 发动【野性冲撞】。`, "log-combat");
+                if (roll <= 2) { p.status.push('定'); addLog(`你被【定】住了！`, "log-combat"); }
+            } else if (e.name === '雾灵') {
+                if (roll <= 4) { e.hp = Math.min(e.hp + 1, 99); addLog(`${e.name} 使用【暖雾】恢复生命。`, "log-combat"); }
+                else { damage = e.wu; addLog(`${e.name} 发动物理攻击。`, "log-combat"); }
+            } else if (e.name === '吸血蚊子') {
+                damage = e.wu; e.hp += 1; addLog(`${e.name} 使用【刺吸术】，吸取你的生命。`, "log-combat");
+            } else if (e.name === '魁召') {
+                if (roll <= 3) { damage = e.wu; addLog(`${e.name} 发动【混元风】。`, "log-combat"); }
+                else { damage = e.ling; addLog(`${e.name} 发动【旋风咒】。`, "log-combat"); }
+            } else if (e.name === '王魁山') {
+                if (roll <= 3) { damage = e.wu; addLog(`${e.name} 发动单体物理攻击。`, "log-combat"); }
+                else { 
+                    damage = 2; addLog(`${e.name} 发动【踏步裂地】群体攻击！`, "log-combat");
+                    if (roll >= 5) { addLog(`触发连击！`, "log-combat"); p.hp -= damage; } 
+                }
+            }
+
+            // 计算伤害
+            damage = Math.max(0, damage - p.fang);
+            if (damage > 0) {
+                p.hp -= damage;
+                p.rage += 1;
+                addLog(`你受到了 ${damage} 点伤害。`, "log-combat");
+            } else if (damage === 0 && roll !== 6) {
+                addLog(`你抵挡了伤害。`, "log-sys");
+            }
+        }
+
+        if (p.hp <= 0) {
+            p.hp = 0; addLog("云天河倒下了...", "log-combat");
+            addLog("【游戏失败】", "log-event");
+            gameData.state = State.GAMEOVER;
+            updateUI(); return;
+        }
+
+        setTimeout(() => {
+            if (gameData.state === State.COMBAT) {
+                // 检查玩家的“定”
+                if (p.status.includes('定')) {
+                    addLog("你处于【定】状态，跳过回合。", "log-combat");
+                    p.status = p.status.filter(s => s !== '定');
+                    enemyTurn(); // 怪物继续行动
+                } else {
+                    gameData.combat.turn = 'player';
+                    document.getElementById('combat-dice').style.display = 'none';
+                    addLog("--- 你的回合 ---", "log-sys");
+                    updateUI();
+                }
+            }
+        }, 1500);
+        updateUI();
+    }
+
+    // --- 初始化 ---
+    window.onload = () => {
+        renderMap();
+        updateUI();
+    };
+</script>
+</body>
+</html>

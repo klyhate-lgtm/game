@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>哈馬克斯莊園謀殺案 · Murder at Harmax Hall</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:"Noto Serif TC","Songti TC","Source Han Serif TC",Georgia,"Times New Roman",serif;
+    background:radial-gradient(1200px 700px at 50% -10%,#332a23,#100d0b 70%);
+    color:#e9e2d4;
+    display:flex;flex-direction:column;height:100vh;overflow:hidden;
+  }
+  /* ---------- Header ---------- */
+  header{
+    display:flex;align-items:center;gap:14px;padding:10px 16px;flex-wrap:wrap;
+    background:linear-gradient(#241e19,#161210);
+    border-bottom:1px solid #4a3d2e;
+    box-shadow:0 4px 18px rgba(0,0,0,.6);z-index:5;
+  }
+  header h1{
+    font-size:17px;margin:0;letter-spacing:3px;color:#e8c96a;white-space:nowrap;
+    text-shadow:0 0 14px rgba(232,201,106,.3);
+  }
+  .hud{
+    display:flex;align-items:center;gap:8px;padding:4px 14px;border-radius:20px;
+    border:1px solid #4a3d2e;background:rgba(0,0,0,.35);
+  }
+  .hud-label{font-size:12px;color:#9a9084;letter-spacing:1px}
+  .points{font-size:19px;color:#e8c96a;font-weight:700;min-width:22px;text-align:center}
+  .points.low{color:#e06c6c;animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.4}}
+  .spacer{flex:1}
+  .btn{
+    font-family:inherit;font-size:13px;letter-spacing:1px;cursor:pointer;
+    padding:7px 14px;border-radius:8px;color:#e8c96a;
+    background:linear-gradient(#2b241d,#1c1713);border:1px solid #4a3d2e;
+    transition:.15s;
+  }
+  .btn:hover{background:linear-gradient(#3a2f24,#241c16);border-color:#c9a227;color:#ffe9a8}
+  .btn:active{transform:translateY(1px)}
+
+  /* ---------- Layout ---------- */
+  #app{flex:1;display:grid;grid-template-columns:328px 1fr;overflow:hidden;min-height:0}
+  #sidebar{
+    overflow-y:auto;padding:12px;border-right:1px solid #3a3129;
+    background:rgba(0,0,0,.28);
+  }
+  #main{overflow-y:auto;padding:22px 26px 60px}
+  @media(max-width:820px){
+    #app{grid-template-columns:1fr;grid-template-rows:minmax(120px,36vh) 1fr}
+    #sidebar{border-right:none;border-bottom:1px solid #3a3129}
+  }
+
+  /* ---------- Sidebar ---------- */
+  .group{margin-bottom:18px}
+  .group h3{
+    margin:0 0 8px;font-size:12px;letter-spacing:3px;color:#8a7f70;
+    text-transform:uppercase;border-bottom:1px dashed #3a3129;padding-bottom:6px;
+  }
+  .list{display:flex;flex-direction:column;gap:7px}
+  .scard{
+    display:flex;align-items:center;gap:10px;width:100%;padding:6px;
+    background:linear-gradient(#241f1a,#1b1714);
+    border:1px solid #3a3129;border-radius:9px;cursor:pointer;color:inherit;
+    text-align:left;transition:.15s;font-family:inherit;
+  }
+  .scard:hover{border-color:#c9a227;transform:translateX(3px);background:linear-gradient(#2e2720,#221c17)}
+  .scard.done{opacity:.72}
+  .scard.done .cmeta{color:#6f8f6f}
+  .scard.active{border-color:#c9a227;box-shadow:0 0 0 1px rgba(201,162,39,.6) inset,0 0 14px rgba(201,162,39,.18)}
+  .scard.locked{opacity:.35;cursor:not-allowed;filter:grayscale(1)}
+  .thumb{
+    width:54px;height:54px;flex:0 0 auto;border-radius:7px;overflow:hidden;
+    position:relative;display:flex;align-items:center;justify-content:center;
+    background:#2c2621 center/cover no-repeat;font-size:22px;
+    border:1px solid #3a3129;
+  }
+  .thumb .tag{
+    position:absolute;left:0;right:0;bottom:0;padding:2px 3px;
+    background:rgba(0,0,0,.66);color:#f0e6cf;font-size:9px;line-height:1.2;
+    text-align:center;letter-spacing:.5px;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;font-family:system-ui,"Noto Sans TC",sans-serif;
+    backdrop-filter:blur(2px);
+  }
+  .cinfo{flex:1;min-width:0}
+  .cname{font-size:14px;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cmeta{font-size:10.5px;color:#8a7f70;letter-spacing:.5px;margin-top:2px}
+  .cost{font-size:11px;color:#c9a227;flex:0 0 auto;padding-right:2px;letter-spacing:1px}
+
+  /* ---------- Main ---------- */
+  .entry{
+    max-width:760px;margin:0 auto;background:linear-gradient(#211c17,#1a1613);
+    border:1px solid #3a3129;border-radius:14px;padding:20px 24px;
+    box-shadow:0 12px 34px rgba(0,0,0,.55);
+  }
+  .entry-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:14px}
+  .entry-thumb{
+    width:96px;height:96px;flex:0 0 auto;border-radius:10px;position:relative;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;font-size:38px;
+    background:#2c2621 center/cover no-repeat;border:1px solid #4a3d2e;
+    box-shadow:0 6px 18px rgba(0,0,0,.5);
+  }
+  .entry-thumb .tag{
+    position:absolute;left:0;right:0;bottom:0;padding:3px 4px;
+    background:rgba(0,0,0,.68);color:#f0e6cf;font-size:10px;text-align:center;
+    letter-spacing:1px;font-family:system-ui,"Noto Sans TC",sans-serif;
+  }
+  .entry h2{
+    margin:0 0 6px;font-size:23px;letter-spacing:3px;color:#e8c96a;
+    text-shadow:0 0 16px rgba(232,201,106,.2);
+  }
+  .meta{font-size:12px;color:#8a7f70;letter-spacing:1.5px}
+  .entry-body{
+    font-size:15.5px;line-height:2.05;color:#ded6c6;white-space:pre-wrap;
+    letter-spacing:.4px;text-align:justify;
+  }
+  .upload{
+    display:inline-block;margin-top:10px;font-size:11.5px;letter-spacing:1px;
+    padding:5px 12px;border-radius:20px;cursor:pointer;color:#a99a80;
+    border:1px dashed #4a3d2e;background:rgba(0,0,0,.25);transition:.15s;
+    font-family:system-ui,"Noto Sans TC",sans-serif;
+  }
+  .upload:hover{color:#e8c96a;border-color:#c9a227}
+
+  .event{border-color:#7a5c20;background:linear-gradient(#2a2118,#1e1811)}
+  .ev-badge{
+    display:inline-block;font-size:11px;letter-spacing:3px;padding:3px 12px;
+    border-radius:20px;background:#7a5c20;color:#ffe9a8;margin-bottom:12px;
+    font-family:system-ui,"Noto Sans TC",sans-serif;
+  }
+  .note{
+    margin-top:16px;padding:10px 14px;border-left:3px solid #c9a227;
+    background:rgba(201,162,39,.08);color:#e8c96a;font-size:13.5px;
+    letter-spacing:1px;border-radius:0 8px 8px 0;
+  }
+
+  /* ---------- Intro / Quiz ---------- */
+  .hero{max-width:760px;margin:0 auto}
+  .hero .sub{color:#8a7f70;letter-spacing:4px;font-size:12px;margin-bottom:6px}
+  .hero h2{font-size:30px;letter-spacing:6px;color:#e8c96a;margin:0 0 18px;
+    text-shadow:0 0 22px rgba(232,201,106,.25)}
+  .hero p{line-height:2;font-size:15px;color:#ddd4c4;white-space:pre-wrap;text-align:justify}
+  .rules{
+    margin-top:20px;padding:16px 20px;border-radius:12px;
+    background:rgba(201,162,39,.06);border:1px solid #4a3d2e;
+  }
+  .rules h4{margin:0 0 10px;color:#e8c96a;letter-spacing:3px;font-size:13px}
+  .rules li{line-height:1.9;font-size:14px;color:#cfc6b6;margin-bottom:4px}
+
+  .q{margin-bottom:20px;padding-bottom:16px;border-bottom:1px dashed #3a3129}
+  .q:last-of-type{border-bottom:none}
+  .q p{margin:0 0 10px;font-size:15.5px;letter-spacing:1px;color:#f0e6cf}
+  .q label{
+    display:block;padding:8px 14px;margin-bottom:6px;border-radius:8px;cursor:pointer;
+    border:1px solid #3a3129;background:rgba(0,0,0,.2);font-size:14px;transition:.15s;
+  }
+  .q label:hover{border-color:#c9a227;background:rgba(201,162,39,.08)}
+  .q input{margin-right:9px;accent-color:#c9a227}
+  .scorebar{
+    text-align:center;font-size:26px;color:#e8c96a;letter-spacing:4px;margin:10px 0 24px;
+  }
+
+  #toast{
+    position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(20px);
+    background:rgba(20,16,13,.96);border:1px solid #c9a227;color:#e8c96a;
+    padding:10px 22px;border-radius:30px;font-size:13.5px;letter-spacing:1px;
+    opacity:0;pointer-events:none;transition:.3s;z-index:50;
+    font-family:system-ui,"Noto Sans TC",sans-serif;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:#141110}
+  ::-webkit-scrollbar-thumb{background:#3a3129;border-radius:10px;border:2px solid #141110}
+  ::-webkit-scrollbar-thumb:hover{background:#5a4a35}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>哈馬克斯莊園謀殺案</h1>
+  <div class="hud">
+    <span class="hud-label">行動點</span>
+    <span id="points" class="points">8</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" id="btnIntro">案件簡介</button>
+  <button class="btn" id="btnReset">重新開始</button>
+</header>
+
+<div id="app">
+  <aside id="sidebar">
+    <div class="group">
+      <h3>地點勘查</h3>
+      <div id="locList" class="list"></div>
+    </div>
+    <div class="group">
+      <h3>嫌疑人詢問</h3>
+      <div id="susList" class="list"></div>
+    </div>
+    <div class="group">
+      <h3>特殊行動</h3>
+      <div id="actList" class="list"></div>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ==================================================================
+   1. 遊戲文本資料
+   ================================================================== */
+
+const INTRO_TEXT =
+`「普瓦捷，辛苦你跑一趟了。」
+
+「當然了，我的朋友！能幫你蓋特探長的忙，我向來樂意。」
+
+「嗯，是這麼回事。說實話，這案子挺棘手的。我聽說你正好在附近度假，就想著聯繫你過來看看。受害者是阿瑟·哈馬克斯爵士，屍體是在他書房裡發現的。午飯時沒見他來，管家卡森去叫他，結果發現他躺在地板上，胸口中彈沒氣了。」
+
+「哦，我的朋友，什麼時候發生的？」
+
+「一個小時前吧，大概一點鐘的時候。我們沒動現場的任何東西，都保持著原樣。當時宅子裡還有廚師兼管家的本森太太，還有她的年輕親戚賈妮絲。本森太太一上午都跟卡森在廚房忙活，賈妮絲就在客廳聽收音機。另外還有個博格斯，一上午都在車庫那邊修汽車。」
+
+「那阿瑟爵士的家人呢？」
+
+「阿瑟爵士的兒子托尼在，也算是個戰爭英雄。托尼早上開車出去兜風，大概一點半才回來。聽說他們父子倆關係一直不太好，挺僵的。還有阿瑟爵士的女兒阿德萊德·哈馬克斯，她一上午大部分時間都在跟奧克斯牧師打網球。這位牧師是來做客的，原本還打算留下來吃午飯。另外還有位住客，是從溫尼伯來的斯特森·穆爾先生，我聽說他跟阿瑟爵士有生意上的往來。」
+
+「就這些人了嗎？」
+
+「差不多就這些了。你也瞧見了，這莊園不小。宅子裡有書房、圖書館、檯球室、廚房，另外還有個客廳，平時也當餐廳用。樓上是家人和客人的臥室。宅子東邊是網球場和槌球草坪，南邊能看見車庫，有條路從車庫通到大門口，博格斯住的門房就在大門邊上。大門外是片樹林，繞著宅子的東邊和北邊，西北那頭還有個觀賞湖。」
+
+「我的天！蓋特探長，這麼大的地方，搜查起來可夠費勁的！」`;
+
+const E1_TEXT =
+`「過來！」蓋特探長說。
+
+你抬頭一看，他正揪著一個男孩的耳朵朝宅子走去，博格斯先生雙手叉腰站在一旁。
+
+「這是蒂米·詹金斯，」他說，「他在這裡幹什麼？」
+
+「哎喲！放開我！」蒂米說，「我什麼都沒做！我發誓！」
+
+「我們抓到他偷偷溜進莊園！」蓋特探長說，「你想審問他嗎？」
+
+「逮捕他！」博格斯說，「有人闖進了門房！」`;
+
+const E2_TEXT =
+`第二天早上，蓋特探長興奮地朝你走來，手裡揮舞著一個東西。
+
+「警員們從村裡借了塊磁鐵，從湖裡撈上來這個！」他說。
+
+你仔細看了看那個東西，是一把步槍。沒有進一步的法醫鑑定，無法判斷它最近是否被發射過。
+
+「我把所有人都召集到客廳了，」蓋特說，「普瓦捷，你很快就過來，好嗎？我想知道誰是兇手！」
+
+你點了點頭。
+
+「好的，」你說，「正如我所想的那樣。」`;
+
+/* ---------- 地點 ---------- */
+const LOCATIONS = [
+{id:'L1',name:'書房',icon:'🕯️',cost:1,text:
+`書房的門是開著的，進去之後，你看到了阿瑟·哈馬克斯爵士的屍體，他仰面躺在地上。死因一目了然：胸口有一處槍傷，襯衫前襟濺著一片紅漬。他身著休閒西裝，頭髮花白，看起來約六十歲左右。
+
+書房位於宅子的角落，一扇大窗戶朝東，正對著槌球草坪。探頭望去，能看到不遠處的網球場，再遠些是莊園邊界的樹林。
+
+屍體躺在一張大書桌前。書桌上放著一部電話，電話旁是一塊吸墨紙，還有一個空玻璃杯。你聞了聞杯子，聞到了威士忌的氣味。
+
+屍體旁的地板上散落著幾張紙，想必是阿瑟·哈馬克斯爵士倒下時碰掉的。你撿起紙翻看，以你非專業的眼光來看，這些似乎與一座礦山的出售有關。
+
+回到吸墨紙旁，你注意到上面寫著「回覆律師」（大概率是阿瑟爵士寫的），再仔細檢查那些紙，卻沒發現任何來自律師的信件。`},
+
+{id:'L2',name:'圖書館',icon:'📚',cost:1,text:
+`圖書館有一扇朝南的窗戶和一扇朝北的門。牆壁自然是擺滿了書，角落裡放著一把大扶手椅，旁邊是一盞燈和一張小茶几。茶几上有一份今天的報紙和一副老花鏡，毫無疑問是死者的物品。
+
+你翻看了報紙，是今天的版本，正攤在財經版，上面列著股票行情。
+
+地板鋪著厚地毯，靠近東牆的地方躺著一個紅色橡膠球。你撿起球，發現表面有幾道深深的壓痕。`},
+
+{id:'L3',name:'客廳',icon:'🛋️',cost:1,text:
+`巨大的法式落地窗朝南敞開，通向草坪，窗外能看到車道和遠處的車庫。一條小徑沿著宅子一側延伸，通往槌球草坪和網球場。
+
+一張便攜餐桌已經擺好，可供五人共進午餐。餐桌旁放著一台收音機，此刻靜悄悄的。客廳東北角有一面銅鑼，想必是用來召集家人和客人用餐的。
+
+房間收拾得一塵不染。`},
+
+{id:'L4',name:'廚房',icon:'🍲',cost:1,text:
+`廚房是個大房間，位於一樓北側，看得出剛被使用過。兩扇厚重的橡木大門通向一樓中央的走廊，牆上掛著一排通過電線連接的金屬鈴鐺。
+
+從冷卻的烤箱中飄出了蘋果的香氣，牆上的鐵鉤上掛著一對野雞，等下應該是要拔毛烹飪。你還能看到一堆剛烤好的麵包和一鍋湯，忍不住嘗了一口，味道還不錯，只是不夠精緻，不合你的口味。`},
+
+{id:'L5',name:'檯球室／露台',icon:'🎱',cost:1,text:
+`房間的一半被檯球桌佔據著，你去檢查檯球桌的布料，注意到左中袋附近有一塊稍濕的痕跡。穿過南邊敞開的房門，能直接看到書房。北側的外門被一塊三角形的木頭撐開了，你穿過它來到露台。露台很小，除了角落裡放著一把金屬椅子，別無他物。有著幾級台階通向莊園的庭院。`},
+
+{id:'U1',name:'主臥室',icon:'🛏️',cost:1,text:
+`阿瑟·哈馬克斯爵士的臥室是樓上最大的房間。你打開書桌抽屜，尋找可能相關的私人文件，發現了一些潦草的筆記，似乎是關於斯特森·穆爾先生的習慣和生意往來，其中「危險」一詞被劃了兩道下劃線。
+
+床頭櫃上放著一份今天的報紙，還沒拆封。旁邊的廢紙簍裡有一張揉皺的紙，展開後發現是一封寫給卡森先生的解僱信草稿，其中有著多處被劃掉重寫，信中承諾支付的金額也改了好幾次，細節難以完全辨認。
+
+正要離開時，你在關於穆爾的筆記下面發現了一張紙，像是另一封信的草稿，字跡明顯是阿瑟爵士的，開頭寫著：「我曾以為自己再也不會愛了，可我錯了。」`},
+
+{id:'U2',name:'樓上浴室',icon:'🛁',cost:1,text:
+`樓上有兩間浴室，一間供家人使用，一間供僕人使用。兩間浴室裡都沒有發現明顯可疑的物品，你檢查了兩間浴室的藥櫃，也沒找到異常之物。`},
+
+{id:'U3',name:'客房（穆爾房）',icon:'🧳',cost:1,text:
+`這間客房由斯特森·穆爾先生入住。床邊放著一份今天的報紙，疊得整整齊齊，顯然沒被翻閱過。除此之外，沒有發現其他明顯相關的文件。
+
+突然一個念頭閃過，你檢查了枕頭底下，發現了一把鍍銀左輪手槍，槍裡裝滿了子彈，看起來沒有被發射過，槍柄上刻著縮寫「SM」。`},
+
+{id:'U4',name:'托尼的房間',icon:'🦯',cost:1,text:
+`托尼·哈馬克斯的房間有些凌亂，今天的報紙扔在床上，正攤在天氣預報那一頁。床底下的地板上有一塊黑色污漬，仔細查看後，發現是油漬的痕跡。
+
+他的房間位於阿德萊德·哈馬克斯的房間（東側）和僕人宿舍（西側）之間。一個書架上放著一小排小說，其中一本裡夾著一張撕下來的紙當書籤，上面寫著「MRSB？？？（本森太太？？？）」。
+
+書架上還有一個拆開的信封，裡面裝著一封信，收件人是「A·哈馬克斯」，寄信方是倫敦的莫布雷律師事務所，信中只有一句問候和簡短留言：「你的要求原則上可以執行，建議通過電話或面談商議細節。」信件日期是五天前。`},
+
+{id:'U5',name:'阿德萊德的房間',icon:'💍',cost:1,text:
+`翻查阿德萊德·哈馬克斯的物品讓你有點不自在。她的房間位於托尼的房間（西側）和客房（東側）之間。
+
+書桌抽屜裡有一個首飾盒，奇怪的是，裡面只放著一枚精緻的紅寶石戒指——她有這樣一件首飾卻不戴，實在反常！`},
+
+{id:'U6',name:'僕人宿舍',icon:'🧹',cost:2,text:
+`搜查僕人宿舍花了些時間。這裡分為本森太太的房間、卡森先生的房間，還有一個壁龕，裡面鋪著一張簡易床，想必是賈妮絲的住處。
+
+在卡森先生的房間裡，你發現了十二本偵探小說，每一本都被翻得卷了邊，顯然他是個嗜讀偵探小說的人。
+
+在本森太太房間一個鎖著的抽屜裡，你找到了一個掛墜盒，裡面是阿瑟·哈馬克斯爵士的浮雕肖像，看起來是十多年前製作的。`},
+
+{id:'U7',name:'雜物間',icon:'📦',cost:2,text:
+`你在雜物間裡翻找了一番，卻沒發現任何有價值的東西。忙活了一個小時後，你只好放棄。至少現在可以確定，兇手沒有把兇器藏在這裡！`},
+
+{id:'O1',name:'網球場',icon:'🎾',cost:1,text:
+`網球場離宅子很近，書房在它的西南方向，露台在西北方向，南邊不遠處能看到車庫和汽車。
+
+球場上沒什麼特別的，只有一個網球被忘在角落。你撿起網球，發現表面有幾道深深的壓痕。`},
+
+{id:'O2',name:'槌球草坪',icon:'🥍',cost:1,text:
+`槌球草坪在網球場南邊，就是一片平坦的草地，上面插著幾個金屬鐵環。一條小徑沿著宅子一側延伸，介於草坪和阿瑟爵士的書房之間。
+
+家裡的狗羅弗坐在那裡看著你，尾巴不停地拍打著地面。`},
+
+{id:'O3',name:'車庫',icon:'🚗',cost:1,text:
+`車庫裡停著牧師的車，外面停著托尼的車和阿瑟爵士的車。阿瑟爵士的車引擎蓋是掀開的，顯然還沒修好。托尼的車側面濺滿了泥點。`},
+
+{id:'O4',name:'大門與門房',icon:'🚪',cost:1,text:
+`通往公路的大門是開的。你走向博格斯先生住的門房，往裡瞥了一眼，沒發現異常。門房後面的門半掩著，一扇窗戶被打碎了，顯然有人破窗而入。
+
+你推開門走進去，看到了博格斯先生的槍支收藏：七支不同型號的步槍整齊排列著，沒有一支缺失。`},
+
+{id:'O5',name:'樹林',icon:'🌲',cost:2,text:
+`你從門房出發，走進樹林長途跋涉。地形平坦，但小徑雜草叢生，你很快就滿頭大汗。
+
+「我的天！」你喃喃自語，「我可受不了這種折騰！」
+
+很明顯，最近沒人穿過這片樹林。
+
+走到樹林北側時，你注意到地面有被翻動過的痕跡。從這裡向南望去，能越過草坪看到宅子的北側。
+
+一叢長草從樹林邊緣一直延伸到觀賞湖岸邊，看起來像是有人（或者某種動物的）在上面踩出了一條小路。`},
+
+{id:'O6',name:'觀賞湖',icon:'🌊',cost:2,text:
+`觀賞湖離宅子有一段距離，你發現湖水很深，即使靠近岸邊也不淺，顯然是被人工挖成了均勻的深度。湖邊和樹林之間隔著一叢長草，部分草被踩倒了，似乎最近有人經過。`}
+];
+
+/* ---------- 嫌疑人 ---------- */
+const SUSPECTS = [
+{id:'S1',name:'卡森先生',icon:'🎩',cost:1,text:
+`卡森先生年紀不小了，努力控制著臉上不受控制的抽搐，說話略帶口吃。
+
+「先生，能描述一下你今天上午的行蹤嗎？」
+
+「好……好的。我大概六點起床，去取了早報，送到各位先生的房間，還在圖書館放了一份給阿瑟爵士。然後我下樓去幫本森太太，早餐後就一直待在廚房。大概十一點半，阿瑟爵士按鈴要威士忌，我送到他的書房，他看起來很生氣。」
+
+「先生，你知道他為什麼生氣嗎？」
+
+「我想是因為他看到我手抖了。他最討厭這個，討厭任何形式的軟弱，普瓦捷先生！當時他手裡還拿著電話聽筒，我放下杯子正要關門，他就厲聲呵斥我。」
+
+「他說了什麼？」
+
+「他大概是說：『你這個笨手笨腳的蠢貨！到現在還不知道我書房的門向來是開著嗎？』確實是這樣，他的書房窗戶打不開，所以總是要通風，但我總是記不住。」
+
+「阿瑟爵士經常對你惡語相向嗎？」
+
+「是啊！這麼多年來，我一直是他的出氣筒。但最近他對我更不耐煩了，我不知道自己做錯了什麼。可能是因為我的手抖得越來越厲害了吧。你知道的，在戰壕裡……我看到那些……聽到那些！太可怕了！永遠……永遠也忘不了！」
+
+「所以你回到廚房後，有沒有聽到槍聲？」
+
+「沒有！完全沒有聽到任何聲音！本森太太當時和我在一起，她可以作證！」
+
+「這難道不奇怪嗎，先生？」
+
+「確實很奇怪，普瓦捷先生，你知道我對聲音有多敏感！但也許兇手用了消音器？聽說有這種東西，對吧？我也不確定，只是聽說過。」`},
+
+{id:'S2',name:'本森太太',icon:'👩‍🍳',cost:1,text:
+`本森太太的眼神深處藏著一絲深深的憂傷，青春早已逝去，但她身體顯然還很硬朗，在房間裡走動時透著一股幹練的管家氣場，顯然她比任何人都熟悉這座宅子。
+
+「是啊，我這輩子都在這裡工作。孩子們小時候是我照看的，哈馬克斯夫人臨終前也是我守著。普瓦捷先生，這真是太可怕了！我知道孩子們愛他們的父親，他也愛他們，只是不常表現出來而已！」
+
+「你和阿瑟爵士關係親近嗎？」
+
+「算不上親近，但共事這麼多年，總能了解一個人。」
+
+「夫人，能描述一下你今天上午的行蹤嗎？」
+
+「好的。我像往常一樣六點起床，下樓到廚房開始準備早餐。他們通常不會一起吃早餐，都是零零散散地來。卡森在忙完其他差事的間隙會幫我，賈妮絲也會搭把手。早餐後，我讓賈妮絲去打掃客廳。哈馬克斯先生讓我把檯球室的門撐開，說有人在那裡灑了飲料，需要通風，確實也該通風了。」
+
+「然後呢，夫人？」
+
+「然後我們就開始準備午飯，卡森一直幫我到一點鐘左右。」
+
+「他全程都和你在一起嗎？」
+
+「差不多是這樣。十一點半左右，阿瑟爵士按鈴叫他，要了一杯威士忌。之後卡森就一直和我在廚房，直到他去敲鑼召集大家吃午飯。所有人都到餐桌旁後，發現阿瑟爵士沒來，卡森就去尋找他，然後就發出了警報。」
+
+「夫人，你有沒有聽到槍聲？」
+
+「我們什麼都沒聽到。但別忘了，廚房的門是關著的。因為我嫂子的侄女，也就是年輕的賈妮絲，當時在聽收音機裡的牛仔節目，而卡森受不了槍聲，會讓他發作的。」
+
+「發作？什麼意思？」
+
+「彈震症，普瓦捷先生。恐怕可憐的卡森患有這種病，他不喜歡大聲響，尤其是像槍聲這樣的聲音。好在羅弗從不叫，否則卡森可受不了！」
+
+你抿了抿嘴唇。
+
+「抱歉，夫人，還有一個問題。既然你說卡森先生不喜歡大聲響，他怎麼能敲響午飯的銅鑼呢？」
+
+「他以前也不行，普瓦捷先生。但我想他現在已經習慣了。他不喜歡的是突然而來的、毫無預兆的噪音。我知道的就這些了。」`},
+
+{id:'S3',name:'賈妮絲',icon:'👧',cost:1,text:
+`年輕的賈妮絲看起來快要歇斯底里了。
+
+「不是我幹的！我發誓！我和哈馬克斯先生……不，阿瑟爵士！我和他毫無關係！請相信我！」
+
+「沒人指控你，小姐！冷靜點！」
+
+「哦！哦！真的不是我！我一上午都在客廳！我跟阿瑟爵士保證過這次會把客廳打掃得一塵不染！我沒做錯任何事！我只是在聽收音機，僅此而已！這沒什麼錯吧！」
+
+「當然沒錯，小姐！你聽的是什麼節目？」
+
+「《孤膽騎士》，是我最喜歡的。哦，你覺得我會丟掉這份工作嗎？太可怕了！媽媽會非常生氣的！這份工作是本森太太幫我找的！我什麼都是從頭學起的！」
+
+「你和阿瑟爵士相處得好嗎？」
+
+「不好！一點都不好！他是個暴君！對什麼都挑三揀四！我要是叫他『哈馬克斯先生』，他會不高興；地板上有一點灰塵，他也會指責我！他是個可怕的人！但我沒殺他！我發誓！請不要把我送上絞刑架！我才十五歲！」`},
+
+{id:'S4',name:'博格斯先生',icon:'🔫',cost:1,text:
+`博格斯先生正值中年，穿著舊工裝褲，戴著布帽。
+
+「博格斯先生，麻煩你描述一下你今天的行蹤。」
+
+「像往常一樣六點起床，喝了燕麥粥。九點左右，哈馬克斯先生讓我把他的車開出來，我就照做了，他開車去鄉間小路兜風了。然後我把阿瑟爵士的車推了出來，引擎一直有異響，我想修一修。一上午差不多都在車底下忙活，時不時發動引擎試試，真是一團糟！一點鐘左右，卡森先生跑過來告訴我阿瑟爵士死了，警察要來，真是太震驚了！可憐的卡森先生！」
+
+「你和其他僕人關係好嗎，博格斯先生？」
+
+「挺好的，我覺得。本森太太和卡森先生都是好人，正直善良，不像那些有錢人。他們連蒼蠅都不會傷害，沒那個心腸！」
+
+「兇器還沒找到，博格斯先生。你有槍嗎？」
+
+「有槍？我有好幾把呢！我還是這裡的獵場看守，負責照看樹林。」
+
+「你把槍放在哪裡了？」
+
+「鎖在大門邊的門房裡。」
+
+「有人能拿到嗎？」
+
+「除非破門而入，否則不可能。」
+
+「還有一個問題，博格斯先生。我聽說今天預報有雷暴，你為什麼選擇在露天修汽車？難道不怕下雨嗎？」
+
+「不怕，普瓦捷先生。要是下雨了，我可以把車推回車庫，不算麻煩。但能在日光下幹活，我還是更願意。」`},
+
+{id:'S5',name:'托尼·哈馬克斯',icon:'🦯',cost:1,text:
+`托尼·哈馬克斯看起來比他33歲的年紀蒼老，鬍鬚中已經有了白髮，拄著一根拐杖，走進房間時能注意到他走路有些跛，右腿似乎有些僵硬。
+
+「那個老東西死了，我難過嗎？一點也不！」他咬緊牙關，甩了甩頭，「他從來就不喜歡我，尤其是我從戰場回來之後。你知道嗎，我見過死亡，真正的死亡，而他沒有，直到今天才見識到，我猜是這樣。」
+
+「你會繼承他的遺產嗎，先生？」
+
+「當然會！阿德萊德和我会平分遺產，至少我是這麼認為的。他要是剝奪我們的繼承權，我也不會驚訝！他總愛說這種刻薄話。」
+
+「哈馬克斯先生，描述一下你今天上午的行蹤。」
+
+「我七點起床，早餐前快速散了散步，早點吃了早餐，想避開那個老頭。然後我就開車出去了。」
+
+「你開車出發的時間是？」
+
+「大概九點吧。我沿著鄉間小路開，當時看起來要下雷暴了，所以就掉頭回來了。一點半到家時，發現一切都亂成一團，他們告訴我老頭中槍了。挺震驚的，但我確實不難過。」
+
+「有人看到你離開宅子嗎？」
+
+「博格斯先生幫我把車開了出來。我在大門外停了幾分鐘，想看看地圖。回來的路上，我遇到了父親的客人穆爾先生，他正沿著路邊走，我猜他是去遠足了。」`},
+
+{id:'S6',name:'阿德萊德·哈馬克斯',icon:'👒',cost:1,text:
+`阿德萊德·哈馬克斯24歲，還穿著網球服，頭髮用髮帶束著。
+
+「你要是覺得我會為爸爸掉一滴眼淚，那就別想了！」她交叉著胳膊說。
+
+「你和你父親關係不好嗎，哈馬克斯小姐？」
+
+「我們誰都和他處不來！他對托尼太殘忍了！總是說些刻薄話！對我也一樣！我告訴他我想嫁給吉爾伯特時，他嗤之以鼻，還威脅要剝奪我的繼承權！」
+
+「吉爾伯特是誰，哈馬克斯小姐？」
+
+（她抿緊嘴唇，別過頭去，沒有再回答。）`},
+
+{id:'S7',name:'奧克斯牧師',icon:'⛪',cost:1,text:
+`奧克斯牧師說話溫和，語氣卻很堅定。
+
+「哦！哦，你覺得她可能是兇手？不可能！她一上午都和我在一起，早餐後就開始打網球，一直打到十一點左右，然後休息了一會兒，去廚房吃了點東西，之後又回到了球場。」
+
+「你聽到什麼可疑的聲音了嗎？比如槍聲？」
+
+「沒有那種聲音。但別忘了，我們一直在來回擊打網球，而且一上午都在打雷，所以可能把槍聲當成雷聲了。不過有件事，我們路過圖書館窗戶的時候，我聽到阿瑟爵士的聲音，像是在說：『別再糾纏了，該死的！』具體的話我記不清了。」
+
+「那是在什麼時候？」
+
+「大概十一點十五分或二十分吧，我不太確定。」
+
+「奧克斯牧師，你對誰可能是兇手有什麼猜測嗎？」
+
+「沒有，普瓦捷先生！評判有罪的人不是我的職責，只有上帝能做到。但我可以告訴你，阿德萊德·哈馬克斯和博格斯先生都是無辜的。阿德萊德一上午都和我在一起，博格斯先生一直在車庫外修汽車，我們倆總有一個能看到他，這一點我很確定！」`},
+
+{id:'S8',name:'斯特森·穆爾',icon:'💼',cost:1,text:
+`斯特森·穆爾五十多歲，頭髮稀疏，呈鐵灰色，臉型方正，藍眼睛，穿著毛衣和休閒長褲，鞋子上沾滿了泥。
+
+「抱歉穿成這樣，」他說，「我沒來得及換衣服。」
+
+「沒關係，先生！能描述一下你今天的行蹤嗎？」
+
+「當然可以！我早上很早就起床了，九點左右吃了早餐，九點半決定離開宅子。當時哈馬克斯先生正下樓，我想避開他，就出發去村裡遠足了。我穿過大門外的田野，沿著小路走，在村裡的一家茶室喝了茶，吃了蛋糕，然後徒步回來。一點四十五分左右到家時，發現這裡一片混亂，老哈馬克斯被殺了！真是難以置信！」
+
+「所以你一整天都不在？什麼都沒看到？」
+
+「我看到托尼先生了。我沿著公路往回走，到岔路口的時候，他開車經過，濺了我一身泥。我本來想跟他理論的，但他父親死了，其他事情也一堆，我想還是算了。」
+
+「你說你想避開某個人，先生？」
+
+「是的！老哈馬克斯！他想買我在馬尼托巴的一座礦山，但他不想給我公平的價格，那個小氣鬼！過去幾天我們為此爭論了好幾次。住在他家裡當客人，真是太尷尬了！但我不會讓步的。以前也有人試圖敲詐我，我是說在生意上，但他們從來沒成功過！這就是我今天離開宅子的原因，不想午飯時和他面對面坐著，看他像頭灰熊一樣怒視著我。而且，我也需要點時間思考。」
+
+「穆爾先生，你對誰可能是兇手有什麼看法嗎？」
+
+「看法？很可能是某個僕人！我見過他們看他的眼神！我覺得他們每個人都恨透了他！」`},
+
+{id:'S9',name:'蓋特探長',icon:'🕵️',cost:1,text:
+`蓋特探長若有所思地翻著筆記本。
+
+「我們已經調查得差不多了，」他說，「但換作是我，肯定會再檢查一遍犯罪現場！至於嫌疑人，盡量找沒有不在場證明的人。別浪費時間找兇器了，我已經讓警員們在找了。」`},
+
+{id:'S10',name:'羅弗（狗）',icon:'🐕',cost:1,text:
+`羅弗嘴裡叼著一根棍子跑到你面前，顯然是想讓你扔出去。你伸手去拿，但它咬得緊緊的，抬頭用茫然的眼神看著你，尾巴不停地搖著。
+
+「來吧，羅弗！」你說，「鬆開！」
+
+羅弗沒有回應，它看起來不像是特別聰明的狗。`}
+];
+
+const ACTIONS = [
+{id:'A1',name:'發電報查證',icon:'📮',cost:2,text:
+`開車去村裡花了些時間。給愛丁堡警方發了電報後，很快就收到了回覆：
+
+是的，吉爾伯特·羅先生目前正在紐約富有的美國人范伯格家族的蘇格蘭莊園度假。過去三天，他一直參加松雞狩獵活動，有十五到二十名目擊者可以證實，他絕不可能是兇手。`}
+];
+
+/* E1 之後解鎖 */
+const S11 = {id:'S11',name:'蒂米·詹金斯',icon:'🧒',cost:1,text:
+`「好吧，詹金斯先生，你在這裡幹什麼？」
+
+「哇！你真的是普瓦捷嗎？」
+
+「我是。現在告訴我，你知道些什麼？是你闖進博格斯先生的門房的嗎？」
+
+「不是！我沒有！我是站在正義這邊的！就像《孤膽騎士》裡的人一樣！」
+
+「《孤膽騎士》？就是那個收音機裡的牛仔節目？對嗎？」
+
+「沒錯！我和賈妮絲都喜歡聽，有空就聽。她現在在莊園工作，我不常見到他，但我們會盡量抽時間見面。」
+
+「啊！所以你是賈妮絲小姐的……男朋友？」
+
+「沒錯！」蒂米挺起胸膛說，「我們在談戀愛！」
+
+「蒂米，你今天早些時候在這裡嗎？看到或聽到什麼了嗎？」
+
+「沒有！我一直在村裡跑腿。我好像看到莊園裡的一位先生走進了一家茶室，是個外國人，就這些了。」
+
+「好吧，你可以走了，蒂米。」
+
+「能給我簽個名嗎？」`};
+
+/* ---------- 結局揭曉 ---------- */
+const ENDING = [
+`所有人都聚集在客廳裡，這時書房方向突然傳來一聲巨響「砰！」`,
+`房間裡頓時一片混亂，卡森先生嚇得尖叫起來，捂住了耳朵，本森太太上前安慰他。`,
+`片刻之後，普瓦捷出現在門口，一隻手拿著一個乾癟的氣球，另一隻手拿著一根針。`,
+`「好吧，」他說，「大家都明白了吧？槍聲在宅子裡每個角落都能聽得一清二楚，除非兇手使用了消音器——就像你們中的某個人跟我說的那樣。卡森先生，我說得對嗎？」`,
+`卡森先生嚇得嗚咽起來，前後搖晃著身體。羅弗發出一聲同情的嚎叫。`,
+`「別為難他了！」本森太太說。`,
+`「抱歉，」普瓦捷舉起一隻手說，「很明顯，卡森先生喜歡讀偵探小說，消音器的說法就是從書裡看來的。我認為他沒有勇氣殺害雇主，儘管他有動機——阿瑟爵士對他的笨拙越來越不滿，正打算解僱他。但有沒有可能，是別人為了保護卡森而殺人呢？本森太太，是這樣嗎？」`,
+`「我？」本森太太說，「如果你認為我會殺了阿瑟，那你就是個傻瓜！」`,
+`「啊！是這樣的，對嗎？」普瓦捷說，「本森太太，你愛上了阿瑟·哈馬克斯爵士，對不對？我在你房間裡找到了這個。」他舉起那個裝有阿瑟爵士肖像的掛墜盒，本森太太的臉漲得通紅。`,
+`「但博格斯先生很喜歡卡森先生，甚至很保護他。也許是你殺了阿瑟爵士，博格斯先生？」`,
+`「也許是我，但你會發現我一整天都在修汽車，阿德萊德小姐和牧師都看到了。」`,
+`「抱歉，先生！他們看到的只是你的腿，不是你本人。把一雙假腿放在車底下露出來，對你來說易如反掌，這樣你就可以自由行動了。而且眾所周知，你擅長使用槍支。」`,
+`「好吧，」博格斯說，「那你要逮捕我嗎？」`,
+`「不，因為你不是兇手。假腿的說法太荒謬了！你有兩個目擊者，阿德萊德小姐和奧克斯牧師。他們一上午都在一起，路過圖書館窗戶時，聽到了阿瑟爵士和一個陌生人爭吵。但他們聽到的話並不完全一致，不是嗎？阿瑟爵士說的是『該死的』還是『混賬東西』？也許你們沒時間統一口徑？殺害阿瑟爵士的兇手是兩個人，目的是為了讓阿德萊德小姐能毫無顧慮地結婚，不會失去繼承權。哈馬克斯小姐，奧克斯牧師，我說得對嗎？」`,
+`「褻瀆神明！」奧克斯牧師氣急敗壞地說，「不是我幹的，阿德萊德小姐也沒有！」`,
+`「不，我說的是真的，」普瓦捷說，「我只是提出一種可能。你們確實聽到了圖書館裡的爭吵，是阿瑟爵士和一個人，或許是一個不願放棄自己寶貴礦山的人。這場爭吵可能變得激烈，甚至暴力？是阿瑟爵士和一個枕頭底下藏著上膛手槍的人？斯特森·穆爾先生，是這樣嗎？」`,
+`「我？」穆爾說，「但我當時在村裡，我去了一家茶室，記得嗎？我怎麼可能同時出現在兩個地方？」`,
+`「正如你所說，穆爾先生，」普瓦捷說，「這個說法站不住腳。你確實去了村裡，這一點我很確定。而且你房間裡的槍沒有被發射過，不可能是兇器。你也沒有在圖書館裡和阿瑟爵士為礦山的事爭吵。」`,
+`「那是誰？」阿德萊德小姐說，「我們聽到他的聲音了，記得嗎？」`,
+`「是誰呢，小姐？是狗，羅弗！」`,
+`房間裡一片寂靜。`,
+`「普瓦捷，」蓋特探長揉著頭說，「你不會真的認為羅弗是兇手吧？」`,
+`「不，探長！我只是想說，羅弗是條固執的狗。阿瑟爵士說『別再糾纏了』，其實是在對羅弗說，因為羅弗不肯鬆開嘴裡的橡膠球。但固執並不是犯罪。羅弗是無辜的，所以排除所有不可能後，只剩下一個人，案發時在宅子裡，有能力犯下這起謀殺案。賈妮絲，是這樣嗎？」`,
+`賈妮絲突然哭了起來。「不是我！不是我！」她嚎啕大哭。`,
+`「別折磨這個可憐的女孩了，」托尼怒吼道。`,
+`「好吧，」普瓦捷說，「那我們就只剩下唯一可能的答案了——這是一起精心策劃的殘忍無情的謀殺案，只有一個人能做到，那個人就是你，托尼·哈馬克斯先生！」`,
+`「好吧，」托尼說，「我就陪你玩玩。你說我是怎麼殺人的？案發時我根本不在宅子裡。」`,
+`「確實，你不在宅子裡。謀殺案發生的那天早上，你讓本森太太打開檯球室的門，說前一晚不小心灑了飲料——儘管預報有雷暴，你從晨報上看到了這個消息。為什麼要這麼做？因為你知道阿瑟爵士習慣讓書房門開著，只要這三扇門都敞開，藏在樹林裡的狙擊手就能直接瞄準阿瑟爵士的書房。早餐後，你取出藏在床底下的步槍，利用跛腳的姿勢把槍藏在褲腿裡，一瘸一拐地走向汽車。開車到大門後，你藉口看地圖，故意在博格斯先生的門房製造了一起入室盜竊案，為警方留下假線索。然後你開始了上午的兜風。十一點半，你把車停在宅子北側的樹林裡，悄悄進入狙擊位置，等待時機。十二點，你找到了機會，一槍命中，射殺了阿瑟爵士。你把兇器扔進了深湖，然後開車回家，剛好在案發後趕到。真是個巧妙的計劃！」`,
+`「這太荒謬了，普瓦捷先生！」阿德萊德說，「托尼和父親關係不好，但為什麼？他為什麼要這麼做？」`,
+`「因為，小姐，哈馬克斯先生知道他父親打算娶本森太太。他是從阿瑟爵士書房裡偷來的律師信中得知的——這並不難，因為正如我所說，書房門通常是開著的。他懷疑父親打算修改遺囑，可能還搜查了其他房間，發現了阿瑟爵士和本森太太有私情的證據。很可能，父親和本森太太結婚後，會剝奪他和你的繼承權。他犯下這起罪行，是為了保護自己，也是為了你。」`,
+`所有的目光轉向托尼，他緩緩鼓起掌來。`,
+`「說得好，先生。但問題是，你沒有任何證據。我父親有很多敵人，誰能保證不是有人偷了博格斯先生的槍，徒步穿過樹林，射殺了我父親，然後把槍放回原處呢？不，也許你這個比利時人的腦子並不像傳說中那麼聰明。」`,
+`「我是法國人，先生。我知道是你幹的，因為有個當地男孩在樹林裡偷獵兔子時看到了你。他就在外面等著，要我把他叫進來嗎？還是你願意坦白自己的罪行？」`,
+`托尼瞥了一眼房間門，鬍鬚抽搐了一下。門緩緩打開，露出了年輕的蒂米的身影。`,
+`「好吧，是我幹的！我還會再做一次，該死的！」`,
+`托尼從沙發上跳起來，掏出一把手槍，對著房間裡的人揮舞著。「誰都別想攔我！沒錯，聰明的普瓦捷先生！是我幹的！我還會再做一次！再見了！」他一瘸一拐地朝自己的汽車走去。`,
+`「探長，你不打算攔住他嗎？」奧克斯牧師說。`,
+`「沒必要，牧師。我的人已經鎖上了大門，他跑不遠的。」`,
+`普瓦捷臉上露出了滿意的笑容，這時外面傳來了剎車聲、警笛聲，還有汽車撞上鐵門的巨響。`,
+`「幹得好，蒂米，」普瓦捷遞給男孩一枚先令，托尼·哈馬克斯則被戴上手銬帶走了。`,
+`「哇！賈妮絲，快走！我帶你看電影！」孩子們手牽手跑開了，阿德萊德·哈馬克斯轉向普瓦捷和蓋特探長。`,
+`「那個男孩真的目睹了謀殺過程嗎？」她問。`,
+`「啊……不是！」普瓦捷說，「那只是一個善意的小謊言，目的是讓托尼先生相信自己被人看到了，從而坦白罪行。小蒂米的演技堪稱完美！」`,
+`「這樣誘供難道不違法嗎？在法庭上能成立嗎？」奧克斯牧師說。但普瓦捷沒有聽，他已經在期待下一個案子了。`
+];
+
+/* ---------- 終局問題 ---------- */
+const QUIZ = [
+  { q:'1、誰殺害了阿瑟·哈馬克斯爵士？',
+    opts:['托尼·哈馬克斯','卡森先生','本森太太','斯特森·穆爾','博格斯先生','阿德萊德·哈馬克斯'],
+    ans:0, pts:10 },
+  { q:'2、兇器是什麼？',
+    opts:['藏在褲腿裡帶出宅子的步槍','穆爾枕頭下的鍍銀左輪手槍','博格斯門房裡的獵槍','廚房的切肉刀','書桌上的拆信刀'],
+    ans:0, pts:10 },
+  { q:'3、殺人動機是什麼？',
+    opts:['為了保住自己（與妹妹）的繼承權——父親打算娶本森太太並修改遺囑','為了替卡森先生報復','為了幫穆爾先生搶下礦山交易','為了替妹妹出氣，阻止她嫁給吉爾伯特'],
+    ans:0, pts:10 },
+  { q:'4a、上午11點15分到20分之間，阿瑟爵士在圖書館和誰「爭吵」？',
+    opts:['狗羅弗','斯特森·穆爾','卡森先生','本森太太','賈妮絲'],
+    ans:0, pts:5 },
+  { q:'4b、爭吵的原因是什麼？',
+    opts:['羅弗咬著橡膠球不肯鬆口，阿瑟爵士喝斥牠「別再糾纏了」','礦山收購價格談不攏','阿瑟爵士要解僱卡森','阿瑟爵士反對阿德萊德的婚事'],
+    ans:0, pts:5 }
+];
+
+/* ==================================================================
+   2. 遊戲狀態與邏輯
+   ================================================================== */
+
+const ALL_DATA = [...LOCATIONS, ...SUSPECTS, ...ACTIONS];
+
+const state = {
+  points: 8,
+  phase: 0,
+  visited: {},
+  finished: false
+};
+const IMAGES = {};
+let currentView = { type:'intro' };
+
+/* ---------- 小工具 ---------- */
+const $ = id => document.getElementById(id);
+
+let toastTimer = null;
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 1900);
+}
+
+function updateHeader(){
+  const p = $('points');
+  p.textContent = state.points;
+  p.classList.toggle('low', state.points <= 1);
+}
+
+/* ---------- 側邊欄 ---------- */
+function makeCard(item){
+  const b = document.createElement('button');
+  const isActive = currentView.type === 'entry' && currentView.id === item.id;
+  b.className = 'scard'
+    + (state.visited[item.id] ? ' done' : '')
+    + (isActive ? ' active' : '');
+  const img = IMAGES[item.id];
+  b.innerHTML = `
+    <div class="thumb" style="${img ? `background-image:url('${img}')` : ''}">
+      ${img ? '' : `<span>${item.icon}</span>`}
+      <span class="tag">${item.name}</span>
+    </div>
+    <div class="cinfo">
+      <div class="cname">${item.name}</div>
+      <div class="cmeta">${state.visited[item.id] ? '已勘查' : '未勘查'} · ${item.cost} 時間單位</div>
+    </div>
+    <div class="cost">${item.cost}⏳</div>
+  `;
+  b.onclick = () => showItem(item.id);
+  return b;
+}
+
+function renderSidebar(){
+  const sb = $('sidebar');
+  const st = sb.scrollTop;
+
+  const locList = $('locList');
+  const susList = $('susList');
+  const actList = $('actList');
+  locList.innerHTML = '';
+  susList.innerHTML = '';
+  actList.innerHTML = '';
+
+  LOCATIONS.forEach(it => locList.appendChild(makeCard(it)));
+  SUSPECTS.forEach(it => susList.appendChild(makeCard(it)));
+  if (state.phase >= 1) susList.appendChild(makeCard(S11));
+  ACTIONS.forEach(it => actList.appendChild(makeCard(it)));
+
+  sb.scrollTop = st;
+}
+
+/* ---------- 主畫面 ---------- */
+function renderMain(){
+  const main = $('main');
+
+  if (currentView.type === 'intro'){
+    main.innerHTML = `
+      <div class="hero">
+        <div class="sub">MURDER AT HARMAX HALL</div>
+        <h2>哈馬克斯莊園謀殺案</h2>
+        <p>${INTRO_TEXT}</p>
+        <div class="rules">
+          <h4>調查規則</h4>
+          <ul>
+            <li>你最初擁有 <b>8 個時間單位（行動點）</b>，每次勘查地點或詢問嫌疑人需消耗對應點數。</li>
+            <li>8 點用完後會觸發 <b>事件 E1</b>，並獲得 <b>3 點</b>；再次用完觸發 <b>事件 E2</b>，再獲得 <b>1 點</b>。</li>
+            <li>全部點數用完後進入 <b>終局</b>，回答四個問題（共 40 分），再閱讀結局揭曉。</li>
+            <li>已勘查過的地點可 <b>免費重讀</b>。點擊左側卡片開始調查。</li>
+            <li>想為卡片配上圖片？在內容頁點「＋ 上傳卡牌圖片」，該圖會同步顯示在左側清單（半透明黑標籤顯示中文名稱）。</li>
+          </ul>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (currentView.type === 'entry'){
+    const item = ALL_DATA.concat([S11]).find(d => d.id === currentView.id);
+    if (!item) return;
+    const img = IMAGES[item.id];
+    const catName = item.id.startsWith('L') || item.id.startsWith('U') || item.id.startsWith('O')
+      ? '地點勘查' : (item.id === 'A1' ? '特殊行動' : '嫌疑人詢問');
+
+    main.innerHTML = `
+      <article class="entry">
+        <div class="entry-head">
+          <div class="entry-thumb" style="${img ? `background-image:url('${img}')` : ''}">
+            ${img ? '' : `<span>${item.icon}</span>`}
+            <span class="tag">${item.name}</span>
+          </div>
+          <div style="flex:1">
+            <h2>${item.name}</h2>
+            <div class="meta">${catName} · 消耗 ${item.cost} 個時間單位</div>
+            <label class="upload">＋ 上傳卡牌圖片
+              <input type="file" accept="image/*" id="fileInput" hidden>
+            </label>
+          </div>
+        </div>
+        <div class="entry-body" id="entryBody"></div>
+      </article>`;
+    $('entryBody').textContent = item.text;
+
+    const fi = $('fileInput');
+    fi.onchange = e => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = ev => {
+        IMAGES[item.id] = ev.target.result;
+        renderMain();
+        renderSidebar();
+        toast('圖片已套用至「' + item.name + '」');
+      };
+      r.readAsDataURL(f);
+    };
+    return;
+  }
+
+  if (currentView.type === 'event'){
+    main.innerHTML = `
+      <article class="entry event">
+        <div class="ev-badge">事 件</div>
+        <h2 style="margin-top:0">${currentView.title}</h2>
+        <div class="entry-body" id="entryBody"></div>
+        <div class="note">${currentView.note}</div>
+      </article>`;
+    $('entryBody').textContent = currentView.text;
+    return;
+  }
+
+  if (currentView.type === 'quiz'){
+    let html = `
+      <div class="hero">
+        <div class="sub">FINAL QUESTIONS</div>
+        <h2>終局．四個問題</h2>
+        <p>所有調查結束了。蓋特探長把所有人召集到客廳，普瓦捷請你先說出你的推理。</p>
+        <form id="quizForm">`;
+    QUIZ.forEach((q, i) => {
+      html += `<div class="q"><p>${q.q}</p>`;
+      q.opts.forEach((o, j) => {
+        html += `<label><input type="radio" name="q${i}" value="${j}">${o}</label>`;
+      });
+      html += `</div>`;
+    });
+    html += `</form>
+        <div style="text-align:center;margin-top:8px">
+          <button class="btn" id="btnSubmit" style="padding:12px 34px;font-size:15px">宣 佈 推 理</button>
+        </div>
+      </div>`;
+    main.innerHTML = html;
+    $('btnSubmit').onclick = submitQuiz;
+    return;
+  }
+
+  if (currentView.type === 'ending'){
+    let body = '';
+    ENDING.forEach(p => { body += `<p>${p}</p>`; });
+    main.innerHTML = `
+      <div class="hero">
+        <div class="sub">THE REVEAL</div>
+        <h2>結局揭曉</h2>
+        <div class="scorebar">你的得分：${currentView.score} / 40</div>
+        <div class="entry-body">${body}</div>
+      </div>`;
+    return;
+  }
+}
+
+/* ---------- 調查行動 ---------- */
+function showItem(id){
+  if (state.finished) { toast('案件已結束，請重新開始'); return; }
+  const item = ALL_DATA.concat([S11]).find(d => d.id === id);
+  if (!item) return;
+
+  if (!state.visited[id]){
+    if (state.points < item.cost){
+      toast('行動點不足，無法進行此調查');
+      return;
+    }
+    state.points -= item.cost;
+    state.visited[id] = true;
+    updateHeader();
+  }
+  currentView = { type:'entry', id };
+  renderMain();
+  renderSidebar();
+  $('main').scrollTop = 0;
+  checkEvent();
+}
+
+/* ---------- 事件推進 ---------- */
+function showEvent(title, text, note){
+  currentView = { type:'event', title, text, note };
+  renderMain();
+  $('main').scrollTop = 0;
+}
+
+function checkEvent(){
+  if (state.finished) return;
+  if (state.points > 0) return;
+
+  if (state.phase === 0){
+    state.phase = 1;
+    state.points = 3;
+    updateHeader();
+    renderSidebar();
+    showEvent('事件 E1', E1_TEXT, '你獲得了 3 個新的時間單位。蒂米·詹金斯已被帶到宅子裡，可以審問他了。');
+  } else if (state.phase === 1){
+    state.phase = 2;
+    state.points = 1;
+    updateHeader();
+    renderSidebar();
+    showEvent('事件 E2', E2_TEXT, '你獲得了 1 個新的時間單位。');
+  } else {
+    state.phase = 3;
+    state.finished = true;
+    currentView = { type:'quiz' };
+    renderMain();
+    $('main').scrollTop = 0;
+    toast('時間用盡 — 進入終局');
+  }
+}
+
+/* ---------- 終局計分 ---------- */
+function submitQuiz(){
+  const form = $('quizForm');
+  const data = new FormData(form);
+  let score = 0;
+  let answeredAll = true;
+
+  QUIZ.forEach((q, i) => {
+    const v = data.get('q' + i);
+    if (v === null) { answeredAll = false; return; }
+    if (parseInt(v, 10) === q.ans) score += q.pts;
+  });
+
+  if (!answeredAll){
+    toast('請回答所有問題後再宣佈推理');
+    return;
+  }
+
+  currentView = { type:'ending', score };
+  renderMain();
+  $('main').scrollTop = 0;
+}
+
+/* ---------- 重新開始 ---------- */
+function resetGame(){
+  state.points = 8;
+  state.phase = 0;
+  state.visited = {};
+  state.finished = false;
+  currentView = { type:'intro' };
+  updateHeader();
+  renderSidebar();
+  renderMain();
+  $('main').scrollTop = 0;
+  toast('案件已重新開始');
+}
+
+/* ---------- 綁定與啟動 ---------- */
+$('btnIntro').onclick = () => {
+  currentView = { type:'intro' };
+  renderMain(); renderSidebar();
+  $('main').scrollTop = 0;
+};
+$('btnReset').onclick = resetGame;
+
+updateHeader();
+renderSidebar();
+renderMain();
+</script>
+</body>
+</html>

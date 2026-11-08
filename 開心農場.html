@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🌻 開心農場</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif;
+    background: linear-gradient(180deg, #7ec8e3 0%, #b6e0f5 32%, #aed581 32%, #7cb342 100%);
+    background-attachment: fixed;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  .game {
+    width: min(460px, 100%);
+    background: rgba(255, 255, 255, .55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 2px solid rgba(255, 255, 255, .85);
+    border-radius: 22px;
+    padding: 12px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .2);
+  }
+
+  /* ---------- HUD ---------- */
+  .hud {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-weight: 700;
+    color: #4e342e;
+    font-size: 15px;
+  }
+
+  .hud-item {
+    background: #fff8e1;
+    border-radius: 12px;
+    padding: 7px 11px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .07);
+    white-space: nowrap;
+  }
+
+  .hud-item.exp { flex: 1; padding: 7px 10px; min-width: 0; }
+
+  .expbar {
+    flex: 1;
+    height: 10px;
+    background: #e0e0e0;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  #expfill {
+    height: 100%;
+    width: 0%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #ffd54f, #ffa000);
+    transition: width .35s ease;
+  }
+
+  .btn-reset {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    border: none;
+    border-radius: 11px;
+    background: #fff8e1;
+    color: #5d4037;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .07);
+    transition: transform .1s;
+  }
+  .btn-reset:active { transform: scale(.92); }
+
+  /* ---------- 農地 ---------- */
+  .farm {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 10px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #8d6e63, #5d4037);
+    box-shadow: inset 0 4px 12px rgba(0, 0, 0, .35);
+  }
+
+  .plot {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 11px;
+    background: linear-gradient(180deg, #b0885e, #8a5f3c);
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .18),
+                inset 0 2px 0 rgba(255, 255, 255, .18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform .1s;
+  }
+  .plot:active { transform: scale(.94); }
+
+  .plot[data-stage="empty"]::before {
+    content: '+';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, .28);
+  }
+
+  .plant {
+    font-size: 30px;
+    line-height: 1;
+    filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .35));
+    transition: font-size .25s ease;
+  }
+
+  .plot[data-stage="seed"]  .plant { font-size: 15px; opacity: .9; }
+  .plot[data-stage="grow1"] .plant { font-size: 21px; }
+  .plot[data-stage="grow2"] .plant { font-size: 26px; }
+  .plot[data-stage="ready"] .plant {
+    font-size: 33px;
+    animation: bounce .85s ease-in-out infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(-5px) scale(1.08); }
+  }
+
+  .plot[data-stage="ready"] {
+    box-shadow: 0 0 0 2px #ffd54f, 0 0 16px rgba(255, 213, 79, .9),
+                inset 0 -3px 0 rgba(0, 0, 0, .18);
+  }
+
+  .pbar {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    bottom: 5px;
+    height: 4px;
+    border-radius: 99px;
+    background: rgba(0, 0, 0, .3);
+    overflow: hidden;
+    transition: opacity .2s;
+  }
+  .pbar > i {
+    display: block;
+    height: 100%;
+    width: 0%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #aed581, #7cb342);
+    transition: width .12s linear;
+  }
+  .plot[data-stage="ready"] .pbar,
+  .plot[data-stage="empty"] .pbar { opacity: 0; }
+
+  /* ---------- 浮動文字 ---------- */
+  .float {
+    position: absolute;
+    left: 50%;
+    top: 12%;
+    transform: translateX(-50%);
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, .6);
+    pointer-events: none;
+    z-index: 5;
+    animation: floatUp .9s ease-out forwards;
+  }
+
+  @keyframes floatUp {
+    0%   { opacity: 0; transform: translate(-50%, 8px) scale(.7); }
+    20%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -36px) scale(1.05); }
+  }
+
+  /* ---------- 商店 / 種子列 ---------- */
+  .shop {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+
+  .seed {
+    position: relative;
+    background: #fff;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 6px 2px 5px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, .09);
+    transition: transform .12s, border-color .12s, background .12s;
+    overflow: hidden;
+  }
+  .seed:active { transform: scale(.94); }
+
+  .seed.sel {
+    border-color: #ff9800;
+    background: #fff8e1;
+    transform: translateY(-2px);
+  }
+
+  .seed.locked {
+    filter: grayscale(1);
+    opacity: .45;
+    cursor: not-allowed;
+  }
+
+  .seed .e { display: block; font-size: 20px; line-height: 1.15; }
+  .seed .n { display: block; font-size: 10px; font-weight: 700; color: #5d4037; }
+  .seed .c { display: block; font-size: 10px; font-weight: 700; color: #ef6c00; }
+  .seed .lock {
+    position: absolute;
+    top: 1px;
+    right: 3px;
+    font-size: 9px;
+    font-weight: 800;
+    color: #d32f2f;
+  }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translate(-50%, 18px);
+    background: rgba(0, 0, 0, .8);
+    color: #fff;
+    padding: 9px 18px;
+    border-radius: 99px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s, transform .22s;
+    z-index: 99;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+
+<div class="game">
+  <div class="hud">
+    <div class="hud-item">🪙 <b id="coins">100</b></div>
+    <div class="hud-item">⭐ Lv.<b id="level">1</b></div>
+    <div class="hud-item exp"><div class="expbar"><div id="expfill"></div></div></div>
+    <button class="btn-reset" id="reset" title="重新開始">↺</button>
+  </div>
+
+  <div class="farm" id="farm"></div>
+  <div class="shop" id="shop"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============ 設定 ============ */
+  const SAVE_KEY    = 'happyFarm_v1';
+  const PLOT_COUNT  = 16;          // 4 x 4
+  const EXP_BASE    = 100;         // 升到下一級所需經驗 = EXP_BASE * 等級
+
+  const CROPS = [
+    { id: 'carrot',   name: '紅蘿蔔', emoji: '🥕', time: 8,  cost: 10,  sell: 22,  exp: 6,   lv: 1 },
+    { id: 'tomato',   name: '番茄',   emoji: '🍅', time: 16, cost: 25,  sell: 60,  exp: 14,  lv: 1 },
+    { id: 'corn',     name: '玉米',   emoji: '🌽', time: 30, cost: 60,  sell: 150, exp: 32,  lv: 2 },
+    { id: 'eggplant', name: '茄子',   emoji: '🍆', time: 45, cost: 120, sell: 330, exp: 60,  lv: 3 },
+    { id: 'melon',    name: '西瓜',   emoji: '🍉', time: 70, cost: 250, sell: 720, exp: 110, lv: 4 }
+  ];
+  const CROP_MAP = Object.fromEntries(CROPS.map(c => [c.id, c]));
+
+  /* ============ DOM ============ */
+  const farmEl    = document.getElementById('farm');
+  const shopEl    = document.getElementById('shop');
+  const coinsEl   = document.getElementById('coins');
+  const levelEl   = document.getElementById('level');
+  const expfillEl = document.getElementById('expfill');
+  const toastEl   = document.getElementById('toast');
+
+  /* ============ 狀態 ============ */
+  let state = defaultState();
+  let plotEls = [];
+  let toastTimer = null;
+
+  function defaultState() {
+    return {
+      coins: 100,
+      level: 1,
+      exp: 0,
+      selected: 'carrot',
+      plots: new Array(PLOT_COUNT).fill(null)   // null 或 { crop, t }
+    };
+  }
+
+  function expNeeded(lv) { return EXP_BASE * lv; }
+
+  /* ============ 建立農地 ============ */
+  function buildFarm() {
+    farmEl.innerHTML = '';
+    plotEls = [];
+
+    for (let i = 0; i < PLOT_COUNT; i++) {
+      const d = document.createElement('div');
+      d.className = 'plot';
+      d.dataset.stage = 'empty';
+
+      const plant = document.createElement('span');
+      plant.className = 'plant';
+
+      const pbar = document.createElement('div');
+      pbar.className = 'pbar';
+      const fill = document.createElement('i');
+      pbar.appendChild(fill);
+
+      d.appendChild(plant);
+      d.appendChild(pbar);
+
+      d._plant = plant;
+      d._fill  = fill;
+      d._w     = -1;
+
+      d.addEventListener('click', () => onPlotClick(i));
+
+      farmEl.appendChild(d);
+      plotEls.push(d);
+    }
+  }
+
+  /* ============ 建立商店 ============ */
+  function buildShop() {
+    shopEl.innerHTML = '';
+
+    CROPS.forEach(c => {
+      const d = document.createElement('div');
+      d.className = 'seed';
+      d.dataset.id = c.id;
+      d.innerHTML =
+        '<span class="e">' + c.emoji + '</span>' +
+        '<span class="n">' + c.name  + '</span>' +
+        '<span class="c">🪙' + c.cost + '</span>' +
+        '<span class="lock"></span>';
+      d.addEventListener('click', () => selectSeed(c.id));
+      shopEl.appendChild(d);
+    });
+
+    updateShop();
+  }
+
+  function updateShop() {
+    Array.from(shopEl.children).forEach(el => {
+      const c = CROP_MAP[el.dataset.id];
+      const locked = state.level < c.lv;
+      el.classList.toggle('locked', locked);
+      el.classList.toggle('sel', state.selected === c.id && !locked);
+      el.querySelector('.lock').textContent = locked ? ('Lv.' + c.lv) : '';
+    });
+  }
+
+  function selectSeed(id) {
+    const c = CROP_MAP[id];
+    if (!c) return;
+    if (state.level < c.lv) {
+      toast('Lv.' + c.lv + ' 才會解鎖 ' + c.name);
+      return;
+    }
+    state.selected = id;
+    updateShop();
+    save();
+  }
+
+  /* ============ 點擊田地 ============ */
+  function onPlotClick(i) {
+    const plot = state.plots[i];
+    const now  = Date.now();
+
+    /* --- 空地：播種 --- */
+    if (!plot) {
+      const crop = CROP_MAP[state.selected];
+      if (!crop) return;
+
+      if (state.level < crop.lv) return toast('Lv.' + crop.lv + ' 才能種 ' + crop.name);
+      if (state.coins < crop.cost) return toast('金幣不足 🪙');
+
+      state.coins -= crop.cost;
+      state.plots[i] = { crop: crop.id, t: now };
+
+      updatePlot(i, now);
+      updateHUD();
+      toast('種下 ' + crop.name + ' ' + crop.emoji + '（' + crop.time + ' 秒）');
+      save();
+      return;
+    }
+
+    /* --- 有作物：檢查成熟 --- */
+    const crop = CROP_MAP[plot.crop];
+    if (!crop) { state.plots[i] = null; return; }
+
+    const left = crop.time - (now - plot.t) / 1000;
+    if (left > 0) return toast('還要 ' + Math.ceil(left) + ' 秒 ⏳');
+
+    /* --- 收成 --- */
+    state.plots[i] = null;
+    state.coins += crop.sell;
+
+    updatePlot(i, now);
+    floatText(plotEls[i], '+' + crop.sell);
+
+    const leveled = addExp(crop.exp);
+    updateHUD();
+    save();
+
+    if (!leveled) toast('收成 ' + crop.name + '！+' + crop.sell + ' 🪙');
+  }
+
+  /* ============ 經驗 / 升級 ============ */
+  function addExp(n) {
+    state.exp += n;
+    let leveled = false;
+
+    while (state.level < 99 && state.exp >= expNeeded(state.level)) {
+      state.exp -= expNeeded(state.level);
+      state.level++;
+      leveled = true;
+    }
+
+    if (leveled) {
+      toast('🎉 升級！Lv.' + state.level);
+      // 若升級後選中的種子本來鎖住，不強制改，只是讓它可選
+    }
+
+    updateShop();
+    return leveled;
+  }
+
+  /* ============ HUD 更新 ============ */
+  function updateHUD() {
+    coinsEl.textContent = state.coins;
+    levelEl.textContent = state.level;
+    const need = expNeeded(state.level);
+    expfillEl.style.width = Math.min(100, (state.exp / need) * 100) + '%';
+  }
+
+  /* ============ 單一田地更新 ============ */
+  function updatePlot(i, now) {
+    const el   = plotEls[i];
+    const plot = state.plots[i];
+
+    if (!el) return;
+
+    if (!plot) {
+      if (el.dataset.stage !== 'empty') {
+        el.dataset.stage = 'empty';
+        el._plant.textContent = '';
+        el._fill.style.width = '0%';
+        el._w = 0;
+      }
+      return;
+    }
+
+    const crop = CROP_MAP[plot.crop];
+    if (!crop) { state.plots[i] = null; return; }
+
+    const p = Math.min(1, (now - plot.t) / (crop.time * 1000));
+
+    let stage, emoji;
+    if (p >= 1)        { stage = 'ready'; emoji = crop.emoji; }
+    else if (p >= 0.66){ stage = 'grow2'; emoji = '🌿'; }
+    else if (p >= 0.33){ stage = 'grow1'; emoji = '🌿'; }
+    else               { stage = 'seed';  emoji = '🌱'; }
+
+    if (el.dataset.stage !== stage) {
+      el.dataset.stage = stage;
+      el._plant.textContent = emoji;
+    }
+
+    const w = stage === 'ready' ? 100 : Math.floor(p * 100);
+    if (el._w !== w) {
+      el._w = w;
+      el._fill.style.width = w + '%';
+    }
+  }
+
+  /* ============ 主迴圈 ============ */
+  function tick() {
+    const now = Date.now();
+    for (let i = 0; i < plotEls.length; i++) updatePlot(i, now);
+    requestAnimationFrame(tick);
+  }
+
+  /* ============ 小工具 ============ */
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1400);
+  }
+
+  function floatText(el, text) {
+    const s = document.createElement('span');
+    s.className = 'float';
+    s.textContent = text;
+    el.appendChild(s);
+    setTimeout(() => s.remove(), 900);
+  }
+
+  /* ============ 存檔 ============ */
+  function save() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        coins: state.coins,
+        level: state.level,
+        exp: state.exp,
+        selected: state.selected,
+        plots: state.plots
+      }));
+    } catch (e) { /* 私密模式可能無法寫入，忽略 */ }
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (!d || typeof d !== 'object') return;
+
+      state.coins = Number(d.coins) || 0;
+      state.level = Math.max(1, Math.floor(Number(d.level) || 1));
+      state.exp   = Math.max(0, Number(d.exp) || 0);
+      state.selected = CROP_MAP[d.selected] ? d.selected : 'carrot';
+
+      const plots = Array.isArray(d.plots) ? d.plots : [];
+      state.plots = new Array(PLOT_COUNT).fill(null);
+
+      for (let i = 0; i < PLOT_COUNT; i++) {
+        const p = plots[i];
+        if (p && CROP_MAP[p.crop] && typeof p.t === 'number') {
+          state.plots[i] = { crop: p.crop, t: p.t };
+        }
+      }
+
+      if (CROP_MAP[state.selected].lv > state.level) state.selected = 'carrot';
+    } catch (e) {
+      console.warn('讀取存檔失敗：', e);
+    }
+  }
+
+  /* ============ 重新開始 ============ */
+  document.getElementById('reset').addEventListener('click', () => {
+    if (!confirm('確定要重新開始嗎？目前的農場會被清除。')) return;
+    state = defaultState();
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    for (let i = 0; i < PLOT_COUNT; i++) updatePlot(i, Date.now());
+    updateHUD();
+    updateShop();
+    toast('已重新開始 🌱');
+  });
+
+  /* ============ 啟動 ============ */
+  load();
+  buildFarm();
+  buildShop();
+  updateHUD();
+  for (let i = 0; i < PLOT_COUNT; i++) updatePlot(i, Date.now());
+  requestAnimationFrame(tick);
+  setInterval(save, 3000);
+
+  // 關閉頁面時存檔
+  window.addEventListener('beforeunload', save);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>简单生活 A Simple Life</title>
+<style>
+  :root {
+    --bg: #f5eedd;
+    --card: #fffcf5;
+    --border: #d1bfa5;
+    --text: #4a3b2c;
+    --accent: #c0392b;
+    --green: #6b9e44;
+    --blue: #4ba3c7;
+    --gold: #d4a026;
+    --gray: #78909c;
+    --orange: #e67e22;
+    --shadow: 0 4px 12px rgba(74, 59, 44, 0.1);
+  }
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+  
+  body {
+    background-color: var(--bg);
+    background-image: radial-gradient(circle, #e3d5be 1px, transparent 1px);
+    background-size: 20px 20px;
+    color: var(--text);
+    display: flex; justify-content: center; align-items: flex-start;
+    min-height: 100vh; padding: 15px 10px;
+    user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+
+  .game-container {
+    width: 100%; max-width: 880px;
+    background: var(--card);
+    border: 3px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+    overflow: hidden;
+    position: relative;
+    display: flex; flex-direction: column;
+  }
+
+  /* 头部 */
+  .header {
+    background: #3e2723; color: #fff;
+    padding: 12px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 3px solid var(--border);
+    flex-wrap: wrap; gap: 10px;
+  }
+  .header h1 { font-size: 20px; letter-spacing: 2px; display: flex; align-items: center; gap: 8px; }
+  .header .day { font-size: 16px; font-weight: bold; color: var(--gold); background: rgba(0,0,0,0.2); padding: 4px 12px; border-radius: 8px; }
+  .header .target-box {
+    background: rgba(255,255,255,0.1);
+    padding: 8px 12px; border-radius: 8px;
+    font-size: 13px; border-left: 4px solid var(--gold);
+  }
+  .target-status { font-weight: bold; margin-left: 6px; }
+  .target-status.done { color: #2ecc71; }
+  .target-status.pending { color: #e74c3c; }
+
+  /* 主体布局 */
+  .main-body {
+    display: flex; padding: 16px; gap: 16px;
+  }
+  @media (max-width: 760px) {
+    .main-body { flex-direction: column-reverse; }
+  }
+
+  /* 左侧骰子区 */
+  .sidebar {
+    width: 170px; flex-shrink: 0;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  @media (max-width: 760px) {
+    .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; }
+    .dice-pool { flex: 1; min-width: 200px; }
+  }
+
+  .dice-container {
+    background: #efe5d3; padding: 12px; border-radius: 12px;
+    border: 2px dashed var(--border);
+    display: flex; flex-direction: column; gap: 10px;
+    position: relative;
+  }
+  .dice-pool {
+    display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+    min-height: 100px;
+  }
+  
+  /* 骰子樣式 */
+  .die {
+    width: 44px; height: 44px; background: #fff;
+    border-radius: 10px;
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+    padding: 6px; cursor: pointer;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.1);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 2px solid transparent;
+  }
+  .die:hover { transform: translateY(-3px); box-shadow: inset 0 -3px 0 rgba(0,0,0,0.1), 0 6px 12px rgba(0,0,0,0.15); }
+  .die.selected {
+    border-color: var(--orange);
+    transform: translateY(-6px) scale(1.05);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,0.1), 0 0 15px var(--orange);
+  }
+  .die.used {
+    opacity: 0.25; pointer-events: none; transform: scale(0.85);
+    box-shadow: none; border-color: transparent;
+  }
+  .die .dot { background: #2c3e50; border-radius: 50%; width: 100%; height: 100%; transform: scale(0.6); }
+  .die .empty { width: 100%; height: 100%; }
+
+  .dice-info {
+    text-align: center; font-size: 13px; color: var(--text);
+    background: #fff; padding: 6px; border-radius: 8px; border: 1px solid var(--border);
+  }
+  .dice-info b { color: var(--accent); font-size: 16px; }
+
+  .btn-group { display: flex; flex-direction: column; gap: 8px; }
+  .btn {
+    padding: 10px; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: bold; cursor: pointer;
+    transition: 0.2s; width: 100%;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+  }
+  .btn:active { transform: translateY(2px); box-shadow: none; }
+  .btn-next { background: var(--green); color: #fff; }
+  .btn-next:hover { background: #558b2f; }
+  .btn-clear { background: #eee; color: var(--text); border: 1px solid #ddd; }
+  .btn-clear:hover { background: #e0e0e0; }
+
+  /* 右侧地点区 */
+  .map-area {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 450px) { .map-area { grid-template-columns: 1fr; } }
+
+  .location {
+    background: #fff;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex; flex-direction: column;
+    transition: 0.2s;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .loc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .loc-title { font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 6px; }
+  .loc-cost { font-size: 12px; background: #f0f0f0; padding: 2px 8px; border-radius: 10px; color: #666; font-weight: bold; }
+  
+  .loc-desc { font-size: 12px; color: #7f8c8d; margin-bottom: 12px; flex: 1; line-height: 1.4; }
+  
+  .action-btn {
+    background: #f8f9fa; border: 1.5px solid #e9ecef;
+    padding: 8px; border-radius: 8px;
+    font-size: 13px; font-weight: bold; text-align: center;
+    cursor: pointer; transition: 0.15s; color: var(--text);
+    display: flex; justify-content: center; align-items: center; gap: 6px;
+  }
+  .action-btn:hover { background: var(--orange); color: #fff; border-color: var(--orange); }
+  .action-btn:active { transform: scale(0.97); }
+
+  /* 地點主題色 */
+  .loc-farm { border-top: 5px solid var(--green); }
+  .loc-town { border-top: 5px solid var(--gold); }
+  .loc-mines { border-top: 5px solid var(--gray); }
+  .loc-lake { border-top: 5px solid var(--blue); }
+
+  /* 底部资源栏 */
+  .inventory {
+    background: #2c1e16; color: #ecf0f1;
+    padding: 12px 20px;
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+    border-top: 3px solid var(--border);
+    font-size: 14px;
+  }
+  .inv-item { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.08); padding: 6px 14px; border-radius: 20px; }
+  .inv-item b { color: var(--gold); font-size: 16px; margin-left: 4px; }
+  .inv-item.active { background: rgba(255,255,255,0.2); box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+
+  /* 飄字動畫 */
+  .float-text {
+    position: fixed; pointer-events: none; font-weight: bold; font-size: 20px;
+    color: var(--gold); text-shadow: 1px 1px 2px #000;
+    animation: floatUp 1s ease-out forwards; z-index: 9999;
+  }
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translateY(0) scale(0.8); }
+    20% { opacity: 1; transform: translateY(-20px) scale(1.1); }
+    100% { opacity: 0; transform: translateY(-60px) scale(1); }
+  }
+
+  /* 提示框 */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: rgba(40, 30, 20, 0.95); color: #fff;
+    padding: 10px 24px; border-radius: 30px; font-size: 14px;
+    opacity: 0; pointer-events: none; transition: 0.3s; z-index: 1000;
+    border: 1px solid var(--gold); box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* 結算彈窗 */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000; opacity: 0; pointer-events: none; transition: 0.3s;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.active { opacity: 1; pointer-events: auto; }
+  .modal {
+    background: var(--card); width: 90%; max-width: 420px;
+    border-radius: 16px; padding: 24px;
+    border: 4px solid var(--border);
+    text-align: center;
+    transform: scale(0.9); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    max-height: 85vh; display: flex; flex-direction: column;
+  }
+  .modal-overlay.active .modal { transform: scale(1); }
+  .modal h2 { color: var(--accent); margin-bottom: 5px; font-size: 22px; }
+  .modal .subtitle { color: #888; font-size: 13px; margin-bottom: 15px; }
+  
+  .score-list { 
+    text-align: left; margin: 10px 0; font-size: 14px; line-height: 1.8;
+    overflow-y: auto; padding-right: 5px; flex: 1;
+  }
+  .score-list::-webkit-scrollbar { width: 6px; }
+  .score-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+  .score-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #ddd; padding: 4px 0; }
+  .score-row.target-done { color: #2ecc71; font-weight: bold; background: rgba(46, 204, 113, 0.1); padding: 4px 8px; border-radius: 4px; }
+  .score-row.target-fail { color: #e74c3c; text-decoration: line-through; opacity: 0.7; }
+  
+  .score-total { font-size: 24px; font-weight: bold; color: var(--gold); margin: 15px 0; border-top: 2px solid #eee; padding-top: 15px; }
+  .btn-restart {
+    padding: 12px; background: var(--accent); color: #fff;
+    border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s;
+  }
+  .btn-restart:hover { background: #a93226; }
+</style>
+</head>
+<body>
+
+<div class="game-container">
+  <div class="header">
+    <h1>🌻 简单生活</h1>
+    <div class="day">第 <span id="day-num">1</span> / 10 天</div>
+    <div class="target-box">
+      🎯 目标: <span id="target-text">-</span>
+    </div>
+  </div>
+
+  <div class="main-body">
+    <!-- 骰子與操作區 -->
+    <div class="sidebar">
+      <div class="dice-container">
+        <div class="dice-pool" id="dice-pool"></div>
+        <div class="dice-info" id="dice-info">
+          已选: <b>0</b> 颗 | 点数: <b id="dice-sum">0</b>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-clear" onclick="clearSelection()">取消选择</button>
+        <button class="btn btn-next" onclick="endDay()">结束这一天</button>
+      </div>
+    </div>
+
+    <!-- 地點區 -->
+    <div class="map-area">
+      <!-- 农场 -->
+      <div class="location loc-farm">
+        <div class="loc-header">
+          <div class="loc-title">🏡 农场</div>
+          <div class="loc-cost">1 骰</div>
+        </div>
+        <div class="loc-desc">根据骰子点数收获对应的作物。相同作物可累计分数。</div>
+        <div class="action-btn" onclick="doAction('farm')">收获作物</div>
+      </div>
+
+      <!-- 小镇 -->
+      <div class="location loc-town">
+        <div class="loc-header">
+          <div class="loc-title">🏘️ 小镇</div>
+          <div class="loc-cost">1 骰</div>
+        </div>
+        <div class="loc-desc">赚取金币（点数=金币），或花费 3 金币结交朋友（5分/个）。</div>
+        <div class="action-btn" onclick="doAction('town_gold')" style="margin-bottom:8px;">赚取金币</div>
+        <div class="action-btn" onclick="doAction('town_friend')">结交朋友 (需 3 金币)</div>
+      </div>
+
+      <!-- 矿山 -->
+      <div class="location loc-mines">
+        <div class="loc-header">
+          <div class="loc-title">⛏️ 矿山</div>
+          <div class="loc-cost">2 骰</div>
+        </div>
+        <div class="loc-desc">消耗 2 颗骰子，点数相加挖掘文物（4及以下=碎石，5-8=陶器，9+=宝石）。</div>
+        <div class="action-btn" onclick="doAction('mines')">挖掘文物</div>
+      </div>
+
+      <!-- 湖泊 -->
+      <div class="location loc-lake">
+        <div class="loc-header">
+          <div class="loc-title">🎣 湖泊</div>
+          <div class="loc-cost">1 骰</div>
+        </div>
+        <div class="loc-desc">根据骰子点数捕获对应的鱼类（1-2小鱼，3-4热带鱼，5-6大鱼）。</div>
+        <div class="action-btn" onclick="doAction('lake')">钓鱼</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部資源 -->
+  <div class="inventory">
+    <div class="inv-item" id="inv-gold-box">💰 金币 <b id="inv-gold">0</b></div>
+    <div class="inv-item" id="inv-friends-box">👫 朋友 <b id="inv-friends">0</b></div>
+    <div class="inv-item" id="inv-crops-box">🥕 作物 <b id="inv-crops">0</b></div>
+    <div class="inv-item" id="inv-fish-box">🐟 鱼类 <b id="inv-fish">0</b></div>
+    <div class="inv-item" id="inv-artifacts-box">🏺 文物 <b id="inv-artifacts">0</b></div>
+  </div>
+
+  <!-- 結算彈窗 -->
+  <div class="modal-overlay" id="game-over-modal">
+    <div class="modal">
+      <h2 id="modal-title">游戏结束</h2>
+      <div class="subtitle">看看你这 10 天的乡村生活成果吧！</div>
+      <div class="score-list" id="score-list"></div>
+      <div class="score-total">总分: <span id="final-score">0</span></div>
+      <button class="btn-restart" onclick="initGame()">开启新生活</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // --- 數據配置 ---
+  const TARGETS = [
+    { id: 'rich', name: '成为富翁', desc: '本局结束时拥有至少 30 金币', check: (s) => s.gold >= 30, points: 20 },
+    { id: 'social', name: '社交达人', desc: '结交至少 3 个朋友', check: (s) => s.friends >= 3, points: 20 },
+    { id: 'archaeologist', name: '考古学家', desc: '获得至少 5 个文物', check: (s) => getTotalArtifacts(s) >= 5, points: 20 },
+    { id: 'fisher', name: '钓鱼佬', desc: '获得至少 5 条鱼', check: (s) => getTotalFish(s) >= 5, points: 20 },
+    { id: 'harvest', name: '丰收季节', desc: '拥有至少 6 个作物', check: (s) => getTotalCrops(s) >= 6, points: 20 },
+    { id: 'gem_hunter', name: '宝石猎人', desc: '获得至少 2 个宝石 (9+挖掘)', check: (s) => (s.artifacts.gem || 0) >= 2, points: 20 }
+  ];
+
+  const CROPS = {
+    1: { id: 'carrot', name: '胡萝卜', icon: '🥕', score: 1 },
+    2: { id: 'potato', name: '土豆', icon: '🥔', score: 1 },
+    3: { id: 'corn', name: '玉米', icon: '🌽', score: 2 },
+    4: { id: 'pumpkin', name: '南瓜', icon: '🎃', score: 3 },
+    5: { id: 'strawberry', name: '草莓', icon: '🍓', score: 3 },
+    6: { id: 'watermelon', name: '西瓜', icon: '🍉', score: 5 }
+  };
+
+  const FISH = {
+    1: { id: 'small', name: '小鱼', icon: '🐟', score: 2 },
+    2: { id: 'small', name: '小鱼', icon: '🐟', score: 2 },
+    3: { id: 'tropical', name: '热带鱼', icon: '🐠', score: 3 },
+    4: { id: 'tropical', name: '热带鱼', icon: '🐠', score: 3 },
+    5: { id: 'big', name: '大鱼', icon: '🦈', score: 5 },
+    6: { id: 'big', name: '大鱼', icon: '🦈', score: 5 }
+  };
+
+  const ARTIFACTS = {
+    rubble: { id: 'rubble', name: '碎石', icon: '🪨', score: 1 },
+    pottery: { id: 'pottery', name: '陶器', icon: '🏺', score: 3 },
+    gem: { id: 'gem', name: '宝石', icon: '💎', score: 6 }
+  };
+
+  // --- 狀態 ---
+  let state = {};
+
+  // --- 工具 ---
+  const getTotalCrops = (s) => Object.values(s.crops).reduce((a, b) => a + b, 0);
+  const getTotalFish = (s) => Object.values(s.fish).reduce((a, b) => a + b, 0);
+  const getTotalArtifacts = (s) => Object.values(s.artifacts).reduce((a, b) => a + b, 0);
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t.timer);
+    t.timer = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  function spawnFloatText(text, x, y) {
+    const el = document.createElement('div');
+    el.className = 'float-text';
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  // --- 渲染與更新 ---
+  function updateUI() {
+    // 頂部資訊
+    document.getElementById('day-num').textContent = state.day;
+    const targetDone = state.target.check(state);
+    document.getElementById('target-text').innerHTML = 
+      `${state.target.desc} <span class="target-status ${targetDone ? 'done' : 'pending'}">(${targetDone ? '已达成' : '未达成'})</span>`;
+    
+    // 底部資源
+    document.getElementById('inv-gold').textContent = state.gold;
+    document.getElementById('inv-friends').textContent = state.friends;
+    document.getElementById('inv-crops').textContent = getTotalCrops(state);
+    document.getElementById('inv-fish').textContent = getTotalFish(state);
+    document.getElementById('inv-artifacts').textContent = getTotalArtifacts(state);
+
+    // 骰子選擇狀態
+    const selectedDice = state.dice.filter(d => d.selected && !d.used);
+    const sum = selectedDice.reduce((acc, d) => acc + d.value, 0);
+    document.getElementById('dice-info').innerHTML = 
+      `已选: <b>${selectedDice.length}</b> 颗 | 点数: <b id="dice-sum">${sum}</b>`;
+
+    // 渲染骰子
+    const pool = document.getElementById('dice-pool');
+    pool.innerHTML = '';
+    state.dice.forEach(die => {
+      const el = document.createElement('div');
+      el.className = `die ${die.selected ? 'selected' : ''} ${die.used ? 'used' : ''}`;
+      
+      const dotLayouts = {
+        1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8]
+      };
+      const layout = dotLayouts[die.value];
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.className = layout.includes(i) ? 'dot' : 'empty';
+        el.appendChild(cell);
+      }
+      
+      if (!die.used) {
+        el.onclick = (e) => {
+          die.selected = !die.selected;
+          updateUI();
+        };
+      }
+      pool.appendChild(el);
+    });
+  }
+
+  // --- 初始化 ---
+  function initGame() {
+    state = {
+      day: 1,
+      gold: 0,
+      friends: 0,
+      crops: { carrot: 0, potato: 0, corn: 0, pumpkin: 0, strawberry: 0, watermelon: 0 },
+      fish: { small: 0, tropical: 0, big: 0 },
+      artifacts: { rubble: 0, pottery: 0, gem: 0 },
+      target: TARGETS[Math.floor(Math.random() * TARGETS.length)],
+      dice: [],
+      gameOver: false
+    };
+    document.getElementById('game-over-modal').classList.remove('active');
+    startDay();
+    showToast(`新的一天开始了！目标：${state.target.name}`);
+  }
+
+  function startDay() {
+    state.dice = [];
+    for (let i = 0; i < 5; i++) {
+      state.dice.push({ id: i, value: Math.floor(Math.random() * 6) + 1, used: false, selected: false });
+    }
+    updateUI();
+  }
+
+  // --- 互動 ---
+  function clearSelection() {
+    state.dice.forEach(d => { if (!d.used) d.selected = false; });
+    updateUI();
+  }
+
+  function getSelectedDice() {
+    return state.dice.filter(d => d.selected && !d.used);
+  }
+
+  function consumeDice(diceArray) {
+    diceArray.forEach(d => { d.used = true; d.selected = false; });
+  }
+
+  function doAction(actionType) {
+    if (state.gameOver) return;
+    const selected = getSelectedDice();
+    
+    // 獲取點擊按鈕的位置，用於動畫
+    let rect = { left: window.innerWidth/2, top: window.innerHeight/2 };
+    if (window.event && window.event.target) {
+      const r = window.event.target.getBoundingClientRect();
+      rect.left = r.left + r.width/2;
+      rect.top = r.top;
+    }
+
+    if (actionType === 'farm') {
+      if (selected.length !== 1) return showToast('请选择恰好 1 颗骰子');
+      const val = selected[0].value;
+      const crop = CROPS[val];
+      state.crops[crop.id]++;
+      consumeDice(selected);
+      spawnFloatText(`+1 ${crop.icon} ${crop.name}`, rect.left, rect.top);
+      showToast(`获得了 ${crop.icon} ${crop.name}`);
+    } 
+    else if (actionType === 'town_gold') {
+      if (selected.length !== 1) return showToast('请选择恰好 1 颗骰子');
+      const val = selected[0].value;
+      state.gold += val;
+      consumeDice(selected);
+      spawnFloatText(`+${val} 💰`, rect.left, rect.top);
+      showToast(`赚取了 ${val} 金币`);
+    }
+    else if (actionType === 'town_friend') {
+      if (selected.length !== 1) return showToast('请选择恰好 1 颗骰子');
+      if (state.gold < 3) return showToast('金币不足（需要 3 金币）');
+      state.gold -= 3;
+      state.friends++;
+      consumeDice(selected);
+      spawnFloatText(`+1 👫 朋友`, rect.left, rect.top);
+      showToast(`结交了一个新朋友！`);
+    }
+    else if (actionType === 'mines') {
+      if (selected.length !== 2) return showToast('请选择恰好 2 颗骰子');
+      const sum = selected[0].value + selected[1].value;
+      let artifact;
+      if (sum <= 4) artifact = ARTIFACTS.rubble;
+      else if (sum <= 8) artifact = ARTIFACTS.pottery;
+      else artifact = ARTIFACTS.gem;
+      
+      state.artifacts[artifact.id]++;
+      consumeDice(selected);
+      spawnFloatText(`+1 ${artifact.icon} ${artifact.name}`, rect.left, rect.top);
+      showToast(`挖掘到了 ${artifact.icon} ${artifact.name} (点数和: ${sum})`);
+    }
+    else if (actionType === 'lake') {
+      if (selected.length !== 1) return showToast('请选择恰好 1 颗骰子');
+      const val = selected[0].value;
+      const fish = FISH[val];
+      state.fish[fish.id]++;
+      consumeDice(selected);
+      spawnFloatText(`+1 ${fish.icon} ${fish.name}`, rect.left, rect.top);
+      showToast(`捕获了 ${fish.icon} ${fish.name}`);
+    }
+
+    updateUI();
+  }
+
+  // --- 結算 ---
+  function endDay() {
+    if (state.gameOver) return;
+    if (state.day >= 10) return endGame();
+    state.day++;
+    startDay();
+    showToast(`第 ${state.day} 天开始了！`);
+  }
+
+  function endGame() {
+    state.gameOver = true;
+    
+    let score = 0;
+    let html = '';
+
+    html += `<div class="score-row"><span>💰 金币 (${state.gold} × 1分)</span><span>+${state.gold}</span></div>`;
+    score += state.gold;
+
+    const friendScore = state.friends * 5;
+    html += `<div class="score-row"><span>👫 朋友 (${state.friends} × 5分)</span><span>+${friendScore}</span></div>`;
+    score += friendScore;
+
+    let cropScore = 0;
+    for (const key in state.crops) {
+      if (state.crops[key] > 0) {
+        const c = Object.values(CROPS).find(x => x.id === key);
+        const sc = state.crops[key] * c.score;
+        cropScore += sc;
+        html += `<div class="score-row"><span>${c.icon} ${c.name} (${state.crops[key]} × ${c.score}分)</span><span>+${sc}</span></div>`;
+      }
+    }
+    score += cropScore;
+
+    let fishScore = 0;
+    for (const key in state.fish) {
+      if (state.fish[key] > 0) {
+        const f = Object.values(FISH).find(x => x.id === key);
+        const sc = state.fish[key] * f.score;
+        fishScore += sc;
+        html += `<div class="score-row"><span>${f.icon} ${f.name} (${state.fish[key]} × ${f.score}分)</span><span>+${sc}</span></div>`;
+      }
+    }
+    score += fishScore;
+
+    let artifactScore = 0;
+    for (const key in state.artifacts) {
+      if (state.artifacts[key] > 0) {
+        const a = ARTIFACTS[key];
+        const sc = state.artifacts[key] * a.score;
+        artifactScore += sc;
+        html += `<div class="score-row"><span>${a.icon} ${a.name} (${state.artifacts[key]} × ${a.score}分)</span><span>+${sc}</span></div>`;
+      }
+    }
+    score += artifactScore;
+
+    const targetDone = state.target.check(state);
+    if (targetDone) {
+      score += state.target.points;
+      html += `<div class="score-row target-done"><span>🎯 达成目标: ${state.target.name}</span><span>+${state.target.points}</span></div>`;
+    } else {
+      html += `<div class="score-row target-fail"><span>🎯 未达成目标: ${state.target.name}</span><span>+0</span></div>`;
+    }
+
+    document.getElementById('score-list').innerHTML = html;
+    document.getElementById('final-score').textContent = score;
+    document.getElementById('game-over-modal').classList.add('active');
+  }
+
+  // 啟動
+  initGame();
+</script>
+</body>
+</html>

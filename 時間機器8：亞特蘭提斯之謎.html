@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>時間機器8：亞特蘭提斯之謎</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(20, 30, 50, 0.85);
+            --text-color: #e2e8f0;
+            --accent-color: #d4af37;
+            --accent-hover: #fbbf24;
+            --btn-bg: #1e293b;
+            --btn-border: #334155;
+            --btn-hover: #334155;
+            --font-main: 'Georgia', 'Times New Roman', serif;
+            --font-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.1), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(212, 175, 55, 0.05), transparent 25%);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* 時間機器 UI 框架 */
+        #game-container {
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            max-height: 800px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 0 20px rgba(212, 175, 55, 0.1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 頂部狀態列 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3);
+            font-family: var(--font-ui);
+            z-index: 10;
+        }
+
+        .title {
+            font-size: 1.2rem;
+            color: var(--accent-color);
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-ui {
+            background: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: var(--font-ui);
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn-ui:hover {
+            background: var(--accent-color);
+            color: #000;
+        }
+
+        /* 主要內容區 */
+        main {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            scroll-behavior: smooth;
+            z-index: 5; /* 確保文字在裝飾之上 */
+        }
+
+        main::-webkit-scrollbar {
+            width: 8px;
+        }
+        main::-webkit-scrollbar-thumb {
+            background: var(--btn-border);
+            border-radius: 4px;
+        }
+
+        #story-text {
+            font-size: 1.15rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            margin-bottom: 30px;
+            animation: fadeIn 0.8s ease;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8); /* 增加文字可讀性 */
+        }
+
+        .highlight {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* 選項按鈕區 */
+        #choices-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: auto;
+            animation: slideUp 0.6s ease;
+        }
+
+        .choice-btn {
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            color: var(--text-color);
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-family: var(--font-main);
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .choice-btn::before {
+            content: '►';
+            position: absolute;
+            left: -20px;
+            opacity: 0;
+            transition: all 0.3s;
+            color: var(--accent-color);
+        }
+
+        .choice-btn:hover:not(:disabled) {
+            background: var(--btn-hover);
+            border-color: var(--accent-color);
+            padding-left: 35px;
+        }
+
+        .choice-btn:hover:not(:disabled)::before {
+            left: 15px;
+            opacity: 1;
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(100%);
+        }
+
+        /* 彈窗 (說明/紀錄/提示) */
+        .modal {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #111827;
+            border: 1px solid var(--accent-color);
+            border-radius: 10px;
+            padding: 25px;
+            width: 80%;
+            max-height: 80%;
+            overflow-y: auto;
+            position: relative;
+            font-family: var(--font-ui);
+            line-height: 1.6;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .modal-content h2 {
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: var(--accent-color);
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .history-list li {
+            padding: 8px 0;
+            border-bottom: 1px dashed #333;
+            color: #aaa;
+        }
+
+        /* 動畫 */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* 裝飾用的 SVG 背景 (已大幅縮小並降低干擾) */
+        .bg-symbol {
+            position: absolute;
+            opacity: 0.04;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        #symbol-1 { top: -20px; right: -20px; width: 120px; height: 120px; }
+        #symbol-2 { bottom: -20px; left: -20px; width: 100px; height: 100px; }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- 背景裝飾 SVG (雙面斧與時間齒輪) -->
+        <svg id="symbol-1" class="bg-symbol" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="M50 10 L60 40 L90 50 L60 60 L50 90 L40 60 L10 50 L40 40 Z" fill="#d4af37" />
+            <circle cx="50" cy="50" r="10" fill="none" stroke="#d4af37" stroke-width="2"/>
+        </svg>
+        <svg id="symbol-2" class="bg-symbol" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 50 Q50 10 80 50 Q50 90 20 50" fill="none" stroke="#3b82f6" stroke-width="2" />
+            <circle cx="50" cy="50" r="15" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5,5"/>
+        </svg>
+
+        <header>
+            <div class="title">時間機器 8：亞特蘭提斯之謎</div>
+            <div class="controls">
+                <button class="btn-ui" onclick="toggleModal('modal-help')">說明</button>
+                <button class="btn-ui" onclick="toggleModal('modal-history')">紀錄</button>
+                <button class="btn-ui" onclick="toggleModal('modal-hint')">提示</button>
+                <button class="btn-ui" onclick="resetGame()">重來</button>
+            </div>
+        </header>
+
+        <main id="main-display">
+            <div id="story-text"></div>
+            <div id="choices-container"></div>
+        </main>
+    </div>
+
+    <!-- 說明彈窗 -->
+    <div id="modal-help" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="toggleModal('modal-help')">×</button>
+            <h2>任務簡報</h2>
+            <p>你的任務是找到失落的亞特蘭提斯大陸，並找出導致它神秘消失的原因。</p>
+            <p>大約在公元前 400 年，古希臘哲學家柏拉圖寫到了一個名為亞特蘭提斯的神秘古代文明。據說它是一個擁有宏偉宮殿和城市的大島，但很久以前，一場突如其來的災難使亞特蘭提斯沉入海底。</p>
+            <p><strong>時間旅行者規則：</strong></p>
+            <ul>
+                <li>你不得殺死任何人或動物。</li>
+                <li>你不得試圖改變歷史。不要把未來的東西留在過去。</li>
+                <li>你不得在跳躍時間時帶走任何人。避免以嚇到人們或讓人起疑的方式消失。</li>
+                <li>你必須遵循時間機器的指示。你必須從時間機器提供的選項中進行選擇。</li>
+            </ul>
+            <p>只有一個正確的結局。你必須到達那裡，否則你將面臨永遠迷失在時間中的風險！</p>
+        </div>
+    </div>
+
+    <!-- 歷史紀錄彈窗 -->
+    <div id="modal-history" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="toggleModal('modal-history')">×</button>
+            <h2>時間旅行日誌</h2>
+            <ul id="history-list" class="history-list">
+                <!-- 由 JS 動態生成 -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- 提示彈窗 -->
+    <div id="modal-hint" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="toggleModal('modal-hint')">×</button>
+            <h2>資料檔案 (Data File)</h2>
+            <p>如果你不知道該做什麼選擇，可以參考以下提示：</p>
+            <ul style="margin-top: 10px; padding-left: 20px;">
+                <li style="margin-bottom: 8px;">哲學家通常喜歡待在家裡（尋找柏拉圖的地點）。</li>
+                <li style="margin-bottom: 8px;">派對是友好的活動，但也可能惹上麻煩。</li>
+                <li style="margin-bottom: 8px;">德爾菲神諭說：「尋找故事最早的講述者」。</li>
+                <li style="margin-bottom: 8px;">特洛伊在哪裡？它現在還在海底嗎？</li>
+                <li style="margin-bottom: 8px;">如果阿里阿德涅要去埃及，她會往哪個方向走？</li>
+                <li style="margin-bottom: 8px;">古埃及人稱之為「大綠海」的地方，其實是地中海？</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 遊戲狀態機與資料結構
+        const gameData = {
+            "start": {
+                text: "你站在一片塵土飛揚的顛簸場地上。這裡是希臘，公元前 400 年。\n\n四周傳來馬匹奔騰的聲音。附近有人在呼喊。發生戰鬥了嗎？\n\n塵土散去。「滾出競技場，笨蛋！」有人尖叫。四匹馬雷鳴般地朝你衝來，拉著一個人的戰車。更多的馬隊跟在第一輛後面猛衝。你在賽馬場中央！\n\n你拼命逃跑。更多的馬匹拉著戰車從另一個方向衝過。你不知怎麼躲過了它們，跑向一群尖叫的觀眾。\n\n「快點，希倫！為了克里特島的榮耀！」一個紅髮男人喊道。\n\n他看著你笑了。「你是在外面練習賽跑嗎？看你剛才跑的樣子，我得說你有個好機會！」\n\n他轉回比賽。「希倫，小心！」你轉頭觀看。兩輛反向行駛的戰車直直相撞。駕駛員飛了出去，馬匹倒成一團。第三支隊伍來不及停下，壓在了上面。\n\n「希倫，希倫，」你的鄰居呻吟道。「這些奧運會上克里特島沒有獎品了嗎？」\n\n「所以這就是奧運會？」你問。\n\n紅髮男人盯著你，用手摸你的額頭。「你在外面被馬踢到頭了嗎？這當然是奧運會！」\n\n比賽結束，你離開了賽道。你正在尋找柏拉圖，詢問他有關亞特蘭提斯的事。柏拉圖可能來這裡看比賽，但在這麼多人的情況下，你怎麼能找到他？一個月後，他更有可能在家。\n\n你離開賽馬場，找到一個偏僻的地方跳躍時間。你應該去雅典還是斯巴達找柏拉圖？",
+                choices: [
+                    { text: "跳躍到 1 個月後的斯巴達", target: "sparta" },
+                    { text: "跳躍到 1 個月後的雅典", target: "athens" }
+                ]
+            },
+            "sparta": {
+                text: "太陽還沒越過山丘，斯巴達人已經醒了。一群大約十二歲的男孩從一棟白色長屋裡跌跌撞撞地出來，在黎明的微光下開始鍛鍊。\n\n「你！」一個似乎是長官的年輕人喊道。「懶蟲，你在那兒什麼都不做。入列，現在。」他用棍子打你的膝蓋後側。你加入隊伍，跟著他的命令來回行軍。\n\n「快點，你們這些懶蟲！」他嘲笑著。「我從沒見過一群這麼膝蓋發軟的膽小鬼。右！左！行軍！」\n\n經過一個小時的行軍，一個老婦人端著一鍋早餐出來。她分發著黏稠的黑色糊狀物，大家用手指吃著。你嚐了一口，味道糟透了。\n\n「我離開母親後這五年來每天都吃這個，」你旁邊的男孩嘟囔道。「我還是不喜歡。」\n\n「這不太好，」你同意道。\n\n「那又怎樣？」另一個男孩笑著說。「你想吃什麼？蜂蜜蛋糕和羊奶？你想長得像雅典人一樣軟弱嗎？」\n\n「雅典人沒那麼軟弱，」第一個斯巴達人說。「他們抵抗了我們的軍隊好幾年。」\n\n「叛徒！」第二個男孩嘟囔道。\n\n「狗臉！」\n\n第二個男孩用碗砸第一個男孩的頭。第一個男孩把手指插進另一個人的眼睛。他們跳起來，在塵土中打滾。\n\n一個斯巴達男孩盯著你。「你不是我們這一群的，」他說。「你在這裡做什麼？」\n\n「我在找一個叫柏拉圖的人，」你說。\n\n「柏拉圖……他不是雅典人推崇的那些廢話連篇的哲學家之一嗎？在斯巴達你找不到任何像他這樣的浪費時間的人！你的偉大思想家會怎麼看這個？」\n\n他對著你的頭揮拳，但你看到了並躲開了。你打在他的肚子上。他的肚子硬如石頭，但他一時間喘不過氣來。\n\n你轉身穿過建築物跑開。在斯巴達人找到你之前，你跳躍到了一天後。",
+                choices: [
+                    { text: "跳躍到 1 天後的雅典", target: "athens" }
+                ]
+            },
+            "athens": {
+                text: "你在雅典，公元前 400 年的夏末。你站在一座覆蓋著大理石神廟的山丘上，俯瞰著這座城市。這一定是著名的衛城山。一尊巨大的金屬女子雕像矗立在你面前，至少三十英尺高，戴著頭盔，手持長矛。\n\n你聽到下方城市裡傳來歌聲。一大群人向你所在的山丘走來。人群中央是一輛裝扮成船隻的馬車。\n\n「讓開！」人們喊道。你被一群士兵擠在雕像底座旁。你快喘不過氣了！你爬上雕像底座以免被壓扁。\n\n一條跳舞的人鏈在下方的人群中穿梭，像一條長長蜿蜒的蛇。盡頭是一個短髮女孩。她看到你，微笑著在跳舞時伸出手。\n\n你跳下來握住她的手。你被拉著穿過人群。\n\n「牽住別人的手！」女孩回頭對你喊道。「把所有人都帶進迷宮之舞。」\n\n不久，你發現自己來到了人群的邊緣。你掙脫了鎖鏈。女孩也退出了，和你一起坐在一座美麗建築的台階上。\n\n「我叫阿爾西亞，」女孩告訴你。\n\n「這一切熱鬧是為了什麼？」你問。\n\n阿爾西亞笑了。「你是剛下船嗎？今天我們慶祝忒修斯統一了整個雅典。」\n\n她給你講了忒修斯、牛頭怪和迷宮的故事。\n\n「我在找一個叫柏拉圖的人，」你說。\n\n「柏拉圖？我認識他。在這麼多人中找到他可不容易。你最好明天去市集廣場找他。」她揮手告別。「如果你想找我，我在那裡賣花。明天見！」\n\n人群再次擠向你。你設法逃離了慶祝者，走到一座神廟後面，在那裡你可以獨自跳躍時間。",
+                choices: [
+                    { text: "跳躍到 1 天後，前往市集廣場", target: "market" }
+                ]
+            },
+            "market": {
+                text: "你在雅典蜿蜒的街道上漫步。最後你來到一個正方形形狀的寬闊空間，兩旁排列著小商店和市場攤位。\n\n花販們坐在廣場的一角。你在那裡看到了你的朋友阿爾西亞。\n\n「你好，阿爾西亞，」你說。\n\n「又向你致敬。」她微笑著。「你找到柏拉圖了嗎？」\n\n「還沒。生意怎麼樣？」\n\n「到目前為止不太好，但也許你會給我帶來好運。看那邊！」她朝一個走近攤位的白髮男人點了點頭。「那是克里托，」她低聲說。「我最棒的顧客之一。像錫拉庫薩國王一樣富有。」\n\n克里托買了二十個花環，並邀請阿爾西亞今晚去他的晚宴吹笛子。他轉頭叫一個男孩。「索西亞斯！過來，奴隸。我需要一些錢。」\n\n索西亞斯跑過來。他吐了幾枚硬幣在手上。希臘衣服沒有口袋，他們把錢含在嘴裡！\n\n「你聽到了嗎？」阿爾西亞問。「我今晚要去克里托家當吹笛女。如果你願意一起來，日落時在這裡等我。」\n\n你花了一整天在炎熱、塵土飛揚的街道上尋找柏拉圖。他不在市場，而且你一直迷路。\n\n日落時分，你回到了市場。阿爾西亞穿著花朵，帶著雙笛。\n\n「你好，我的朋友，」她說。「我被邀請去兩個派對。我們先去哪個？克里托家有美食，但可能有點無聊——一堆老人坐在一起聊天。克利尼亞斯有趣多了。他可能還會有雜耍演員。我聽你的。」",
+                choices: [
+                    { text: "和阿爾西亞去克里托的晚宴（見柏拉圖）", target: "dinner" },
+                    { text: "和阿爾西亞去克利尼亞斯的派對（狂歡）", target: "party" }
+                ]
+            },
+            "dinner": {
+                text: "克里托的晚宴。十幾個男人躺在圍成一圈的長椅上。奴隸們在他們面前的小桌子上擺上熏鰻魚和浸過橄欖油的麵包。你的朋友阿爾西亞在背景中吹奏雙笛。\n\n柏拉圖，蘇格拉底的朋友，是客人之一！你想知道是否有機會在這裡和他交談。\n\n「蘇格拉底，你描述的理想城市，」克里托說，「那裡的人們可以生活在正義中。它曾經存在過嗎？」\n\n蘇格拉底，一個矮小的禿頭男人，轉了轉眼睛笑了。「也許它曾經存在過，在一個遙遠的島嶼上。或者也許它只存在於我們的夢中。」\n\n這是你的機會。「也許它存在於亞特蘭提斯，」你說。\n\n所有男人都驚訝地笑了，除了克里托，他憤怒地看著你。「閉嘴，你！你在這裡沒有說話的權利。」\n\n「誰知道呢？」蘇格拉底笑著說。「這年輕人可能是對的。你是專家，柏拉圖。給我們講講你那神話般的島嶼。」\n\n柏拉圖是一個看起來很健壯的男人，比這裡的其他人年輕得多。「我能說什麼我以前沒說過的呢？也許你沒聽說過亞特蘭提斯奇怪的公牛。公牛野生生活在海神波塞冬的巨大神廟裡。你能想像赤手空拳抓住一頭野牛嗎？這就是亞特蘭提斯人每年做的事情。」\n\n「這個故事是我家族歷史的一部分，最早由我的祖先梭倫講述。」柏拉圖繼續說。「梭倫訪問了埃及的賽伊斯城。女神奈斯的祭司告訴他，亞特蘭提斯如何在一天一夜之間沉入地下，她所有的人民都被摧毀了。」\n\n克里托站起來拍了拍手。「奴隸和藝人可以離開了。」他扔給阿爾西亞一個小袋子。阿爾西亞向你眨眼，示意你跟隨她出去。",
+                choices: [
+                    { text: "跟著阿爾西亞離開", target: "after_dinner" }
+                ]
+            },
+            "party": {
+                text: "阿爾西亞帶你穿過雅典黑暗的街道，來到她朋友克利尼亞斯的家。你能聽到街上傳來的喊叫聲和音樂聲。\n\n「歡迎大家！」一個男人說。這一定是克利尼亞斯。六個男人躺在長椅上，唱著歌，喝著大杯子裡的酒。「我們的吹笛女來了，來幫助我們讚美酒神。」\n\n「到街上去，」克利尼亞斯喊道。「讓我們邀請全城的人來參加我們的派對！」每個人都跟著他走到黑暗的街道上，唱著歌。\n\n他們在滿是灰塵的街道上坐下來，笑著咯咯叫著，學青蛙跳。\n\n克利尼亞斯指著他家門前的一尊小神像。「看看可憐的赫耳墨斯，他不知道鬍子已經過時了。可憐的赫耳墨斯需要刮鬍子！」他撿起一塊石頭。\n\n「給他刮鬍子！」他的朋友們喊道。\n\n克利尼亞斯用石頭砸向雕像的石鬍子。雕像嘩啦一聲倒在街上。\n\n「站住。」一個陌生人的大聲讓派對安靜下來。那個警察用棍子指著雕像。「把它放回底座上，」他命令道。「你們應該感到羞恥，你們這些酒鬼。」\n\n然後他看到了你。「又是你！跟我來。如果你不能解釋你在這裡做什麼，這次我保證你會進槳帆船。」",
+                choices: [
+                    { text: "跟警察走", target: "arrested" }
+                ]
+            },
+            "after_dinner": {
+                text: "「看看這個！」阿爾西亞說。她給你看克里托扔給她的那個小袋子。裡面裝滿了刻有貓頭鷹的粗糙硬幣。「給你，」她說，給了你幾枚硬幣。「我要把剩下的存起來，去德爾菲旅行。」\n\n「謝謝，」你說。「為什麼去德爾菲？」\n\n「當然是去問神諭問題。」\n\n「你要問什麼？」\n\n她臉紅了。「他們說你可以問任何問題。我想問關於某個……某人，我還沒遇到的人。他會長什麼樣，那類的事情。」\n\n「我今晚要去克利尼亞斯家參加另一個派對，」阿爾西亞說。「如果你願意就一起來。」",
+                choices: [
+                    { text: "和阿爾西亞一起去派對", target: "party" },
+                    { text: "和阿爾西亞道別，跳躍到德爾菲", target: "delphi" }
+                ]
+            },
+            "arrested": {
+                text: "「我是從斯基泰來的，」你告訴那個警察。\n\n「是嗎？」他狡黠地笑著說。「好吧，我也是。我們雅典警察大多是來自斯基泰的奴隸。告訴我，斯基泰戰士會把什麼綁在馬的韁繩上？」\n\n「呃——花？」你猜。\n\n斯基泰人的臉沉了下來。他抓住你的頭髮，冷笑著說：「花，哈！他把敵人的頭皮綁在韁繩上。幸好我沒有馬！你不是斯基泰人。你是個奴隸，如果你的主人不來認領你，你將在奴隸市場上被賣給新主人！跟我來。」",
+                choices: [
+                    { text: "被帶到奴隸市場", target: "slave_market" }
+                ]
+            },
+            "slave_market": {
+                text: "你在雅典的市場角落等待。兩個男人來檢查商品：你！\n\n「長得不錯，」一個高個子男人說。「我需要一個新的家奴。我出價一百二十德拉克馬。」\n\n「好吧，一百二十德拉克馬是合理的價格，」一個長鼻子男人說。「但我先來的，克里安德羅斯，我想買幾個新的槳帆船奴隸。」\n\n奴隸販子微笑著。「先生們，我很高興能滿足你們！但如果你們中有人願意提高出價……」\n\n「價格已經夠高了。」\n\n「一德拉克馬都不加。」\n\n奴隸販子看著你，微笑著。「我知道了。你為什麼不自己決定呢？你更想成為哪一種？」",
+                choices: [
+                    { text: "成為槳帆船奴隸（悲慘但可能脫身）", target: "galley" },
+                    { text: "成為家奴（安全但無聊）", target: "house_slave" }
+                ]
+            },
+            "galley": {
+                text: "你坐在雅典槳帆船的底層甲板上。這裡又熱又臭，你從未感到如此疲憊。\n\n「劃！劃！劃！」槳手長一遍又一遍地喊道。你把槳推下去，擺動，再拉回來，這是第一萬次了。\n\n「好吧，你們這些弱者，」槳手長咆哮道。「你們可以休息了。」划槳手們停下來，趴在槳上。船前後搖晃。你開始暈船了。\n\n「沒有什麼比這更糟的了，」你前面的划槳手嘟囔道。「我寧願在斯巴達的礦井裡吃黑麥粥。」\n\n你環顧四周，看看有沒有人在看。沒有，他們都累得抬不起頭來。你寧願也在斯巴達！",
+                choices: [
+                    { text: "跳躍回到幾天前的斯巴達", target: "sparta" }
+                ]
+            },
+            "house_slave": {
+                text: "「如果我必須這樣做，我寧願當家奴，」你說。奴隸販子高興地搓著手，數著買你的錢。\n\n「現在跟我來，」你的新主人告訴你。你跟著他穿過市場廣場。\n\n「你做了個好選擇，」他邊走邊告訴你。「紳士的奴隸生活並不那麼糟。如果你表現得好，我不會打你。」\n\n突然，市場廣場安靜下來。「雅典公民們！」一個聲音喊道。「召開大會。」\n\n你跟隨人群來到一個大空地的入口。一個職員坐在門口，核對名字。\n\n「站住！」職員指著你說。「這是誰？」\n\n你的主人看起來很驚訝。「哦！我忘了我新買的奴隸。」他指著你來的路。「去陶工街，在忒修斯神廟左轉，問那裡的人克里安德羅斯家在哪裡。告訴我妻子你是一個新奴隸，讓她給你安排工作。快跑，別磨蹭。如果你去別的地方，我就把你賣到鹽礦去！」",
+                choices: [
+                    { text: "逃跑去尋找柏拉圖", target: "escape_to_plato" }
+                ]
+            },
+            "escape_to_plato": {
+                text: "你擺脫了主人的威脅，設法回到了市集廣場附近。你四處打聽，終於找到了柏拉圖的住所。這是一棟簡樸但莊嚴的房子。\n\n你敲了敲門。一個奴隸開了門，帶你進入一個種滿果樹的花園。柏拉圖站在花園裡。他比你上次見到他時稍微禿了一些。\n\n「我注意到今天我們的討論中有一張新面孔，」他說。「這張新面孔有聲音嗎？」\n\n你介紹了自己。\n\n「歡迎你加入我們的談話，」他說，「但你不能總是待在一邊什麼也不說。下次你想讓我們討論什麼？」\n\n「我聽說過你談論亞特蘭提斯，」你說，「但我想知道它在哪裡，什麼時候，以及它發生了什麼事。」\n\n柏拉圖嚴厲地看著你。「很多人似乎都想找到亞特蘭提斯。如果他們試圖在自己生活中尋找美好，那就更好了！」他微笑著。「不過，據我所知，亞特蘭提斯大約在九千年前被摧毀了。那個時代的雅典人起義，摧毀了亞特蘭提斯人的船隻。之後發生了猛烈的地震和洪水，亞特蘭提斯島消失在海洋深處。」\n\n「那是什麼海？」\n\n「根據與我的祖先梭倫交談的埃及祭司所說，亞特蘭提斯在遙遠的西方。因此我猜測，它一定在赫拉克勒斯之柱之外。」\n\n他站起來。「現在我必須去體育館了。堅強的頭腦在虛弱的身體中會枯萎。」\n\n你留在了花園裡。你決定跳躍時間去問問古雅典人關於亞特蘭提斯的事。但你應該跳回 9,000 年前嗎？這似乎是很長一段時間。也許只跳回大約 1,000 年會更好。",
+                choices: [
+                    { text: "跳回大約 9,000 年前", target: "atlantic_ocean" },
+                    { text: "跳回大約 1,000 年前（青銅時代雅典）", target: "bronze_age" }
+                ]
+            },
+            "delphi": {
+                text: "你身處一個岩石山谷。在兩塊巨大的裸露岩石之間的峽谷中，你看到了德爾菲色彩鮮豔的神廟。\n\n你走向最大的神廟。一個穿著長袍的老人迎接你。「歡迎，朝聖者。你給神帶禮物了嗎？」他指著一堆別人留下的金碗、盾牌和硬幣。你把你僅有的幾枚硬幣放在那裡。\n\n「你有配得上偉大阿波羅的問題嗎？」\n\n「我在尋找失落的亞特蘭提斯，」你說。「我該如何找到它？」\n\n他帶你進去。一位女士走進來，咀嚼著某種葉子。她坐在金色的三腳凳上，吸入火山蒸氣。\n\n「她是我們的皮媞亞（神諭），」祭司說。「神通過她說話。」\n\n女人前後搖晃，深呼吸。突然她張開嘴嚎叫。\n\n「風在我的帆中，風在我的故事中！塔羅斯，金屬巨人，走進海中，扔石頭。把血漏進海裡！巨大的海洋，巨大的風。風吹進一個人的耳朵——一生之後又吹出來。噗！噗！它去哪了？」\n\n她繼續用較低的聲音說。「多少人的呼吸能將風變成風暴？多少首歌能將風暴變成嘆息？要找到真實的風，追溯回去，從喉嚨到喉嚨，從海到海，追溯到記憶中最初的熱烈呼嘯。」\n\n女人睜開眼睛，走了出去。祭司示意你跟他出去。\n\n「皮媞亞的預言通常很難理解，」祭司說。「這就是為什麼我們祭司受過解釋它們的訓練。這是你的答案：你在尋找某種人類頭腦中只有模糊記憶的東西。故事就像風，從講述者吹向講述者。你必須預料到，每當故事經過另一個人的聲音時，它都會改變一點。找到真相的最好方法是找到你能找到的最早的故事講述者。如果像荷馬這樣的詩人寫過這個故事，你應該尋找了解荷馬故事的人，然後仔細聽他說什麼。」",
+                choices: [
+                    { text: "跳回 190 年前去埃及尋找梭倫", target: "egypt_solon" },
+                    { text: "跳回 450 年前去尋找荷馬", target: "homer" }
+                ]
+            },
+            "egypt_solon": {
+                text: "你在賽伊斯，埃及，公元前 590 年。你身處一個黑暗的房間。\n\n你聽到外面繁忙市場的呼喊聲。你看到一線曙光，朝它走去。\n\n砰！你的手肘撞倒了東西。你踩進了一個裝滿油膩東西的罐子。\n\n門滑開了。一個憤怒的店主探進頭來。「你在這裡做什麼？小偷！哦，不！我最好的橄欖油罐，全碎了！」\n\n你推開他開始跑，但你的腳卡在罐子裡。\n\n「把罐子給我，小偷！」他抓住罐子。你平躺在塵土中，但你的腳還卡著！\n\n就在店主抓住你的腿時，你扭動腳踢開了他。你跳起來，消失在擁擠的街道上。\n\n你花了一上午問希臘商人是否見過一個叫梭倫的雅典人。\n\n「梭倫？他不是幾個月前剛來過嗎？」一個商人說。\n\n「也許吧，」他的朋友說，「但我最後一次見到他是在四年前的雅典。」",
+                choices: [
+                    { text: "跳回 4 年前的雅典", target: "athens_solon" },
+                    { text: "留在賽伊斯繼續調查", target: "egypt_temple" }
+                ]
+            },
+            "athens_solon": {
+                text: "你在雅典，公元前 594 年。你可以看到衛城山，但你第一次來時看到的偉大大理石神廟還沒有建起來。\n\n你聽到一群人朝你走來。一群憤怒的男人推開你，拿著棍棒和長矛。\n\n「打倒貴族！」他們喊道。「自由公民不應該像奴隸一樣被對待！」\n\n一個額頭上有深深疤痕的男人停在你面前。「這又是誰？」他冷笑著。他抓住你的手臂扭到背後。「你跟我們來。如果富人決定和我們戰鬥，我們需要人質。」\n\n一個高個子男人站在前面的牆上。「我的朋友們！」他喊道。「聽我說。」\n\n「那是誰？」抓住你的人問。\n\n「是梭倫，」另一個人回答。「他是個公正的人。讓我們聽聽他怎麼說。」\n\n「同胞們，我知道你們的悲傷。長久以來，富人繁榮，而窮人為了生存被迫成為奴隸。」\n\n「沒錯！」疤痕男喊道。\n\n「然而，內戰不是答案。如你們所知，我剛被選出來領導你們。我們將有新的法律，保護所有公民的權利。」\n\n人群歡呼起來。疤痕男鬆開了你的手臂，你溜走了。\n\n「梭倫萬歲，」你說。「請問，亞特蘭提斯有什麼樣的國王？」\n\n「我不太明白你的意思，年輕人，」梭倫說。「亞特蘭提斯。那是一座城市嗎？」\n\n「呃，是的，」你說。「有人告訴我，當你去埃及的時候……」\n\n「我？抱歉，你把我跟別人搞混了。我從未去過埃及。也許總有一天我會去，但是……」\n\n你道歉並走開了。當然。他還沒去過埃及，怎麼會知道亞特蘭提斯的事？",
+                choices: [
+                    { text: "跳回公元前 844 年尋找荷馬", target: "homer" },
+                    { text: "跳躍到 4 年後的埃及賽伊斯", target: "egypt_temple" }
+                ]
+            },
+            "egypt_temple": {
+                text: "你在埃及賽伊斯。德爾菲的神諭說要從講述者追溯到講述者……如果你找不到梭倫，為什麼不找告訴他故事的人呢？你來賽伊斯，是因為這裡是梭倫從女神奈斯的祭司那裡聽說亞特蘭提斯的地方。\n\n你四處打聽，被引導到奈斯神廟。這是一座巨大的石頭建築，上面覆蓋著埃及的象形文字。你走進去，停下來檢查一尊雕像。它似乎有女人的身體，但頭是一隻鳥。\n\n一個光頭男人撞到了你。「哦！你嚇到我了。」他穿著半件束腰外衣，拿著長捲軸。他不僅剃了光頭，連手臂、胸膛和腿上的毛都剃光了！\n\n「你想幹什麼？」他說。「我是這裡的預言家。你需要解夢嗎？你想用護身符預防失明、治病、傷害敵人嗎？什麼？」\n\n「我想知道你對一個叫亞特蘭提斯的地方了解多少。我想那是一座島，非常強大，他們有一個關於公牛的儀式，而且——」\n\n「我就知道！好像我沒有更好的事情可做一樣。」他扔下捲軸。「好吧。跟我來。」\n\n他檢查牆上的象形文字。「公牛，你說？一座島……那聽起來像是古埃及人過去在『大綠海』進行貿易的人。我們稱他們為克夫提烏（Keftiu）。啊，我們到了：圖特摩斯三世的記錄。」\n\n「上面寫了什麼？」\n\n「老一套。對法老的讚美等等。我是圖特摩斯國王，王中之王。沒有哪個國王像圖特摩斯國王那樣偉大。其他國王給我帶來禮物。他們向我鞠躬，我踩在他們身上。就像一頭巨大的公牛踩在青蛙上，我把他們碾碎在泥裡。」\n\n「聽起來是個好人。」\n\n「他們都是這樣。嗯。這很奇怪。在拉美西斯二世時代前後，克夫提烏人似乎消失了。我想知道他們發生了什麼事？」\n\n「這些克夫提烏人住在哪裡？」你問。\n\n「我已經告訴你了。在大綠海。遙遠的西方。現在，我真的必須走了。」\n\n你站在那裡檢查象形文字，但石頭上的圖畫對你來說毫無意義。一個長滿毛的手抓住了你的手臂。「哦嗬，看看這是誰，」一個低沉的聲音在你耳邊吼道。是你到達時那個店主的儲藏室！\n\n你掙脫他的手，跑回神廟的石階。你聽到腳步聲跟在後面。\n\n「站住，小偷！」他喊道。\n\n你衝過一根柱子。你有幾分鐘的時間安全地跳躍時間。快！",
+                choices: [
+                    { text: "跳躍到時間的另一端（大西洋）", target: "atlantic_ocean" },
+                    { text: "跳躍到公元前 385 年的雅典（柏拉圖的晚年）", target: "plato_later" }
+                ]
+            },
+            "homer": {
+                text: "你在希臘希俄斯島的海灘上，公元前 844 年。你看到漁民把船拉上沙灘。你走過去問他們在哪裡可以找到荷馬。\n\n「荷馬？你會在希俄斯找到他。今晚將有一個盛大的節日，他會唱歌。」\n\n一位漁夫的妻子讓你幫忙把一籃子章魚帶到山上。你不小心把章魚倒在了自己身上。\n\n晚上的盛宴在山坡上舉行。晚餐後，一位坐在你附近的白鬍子老人站起來，碰了碰你的肩膀。\n\n「請你帶我去競技場中央好嗎？」這位老人是盲人。當你帶他到露天劇場中央時，人群安靜下來。\n\n老人向你道謝，一動不動地站著，直到最後一句低語消失。突然，他把里拉琴舉向天空，開始吟唱。\n\n「繆斯，在我心中歌唱，通過我講述那個善於各種競爭的人的故事，那個四處漂泊的人，在掠奪了特洛伊堅固的堡壘之後，多年來飽受苦難。」\n\n詩人背誦了彷彿好幾個小時。他怎麼能記住這麼多？不過他沒有說任何關於亞特蘭提斯的事。\n\n最後老人停了下來，但他的故事幾乎還沒結束。人們起身回家，說接下來幾個晚上會再來聽剩下的部分。\n\n你引導老荷馬回到鎮上。「我知道沒有叫亞特蘭提斯的地方，」他說，「但你說這座城市被摧毀了？特洛伊被摧毀了。不是一天，而是在九年的血腥和悲傷之後。然而在某種意義上，當愚蠢的特洛伊人讓自己被騙，讓巨大的木馬通過他們的城門時，災難確實在一夜之間發生了。也許這個亞特蘭提斯是其他民族給特洛伊起的名字。我不知道。我太累了……這裡是我住的地方。我能聽出我門上鈴鐺的聲音。謝謝你，晚安。」",
+                choices: [
+                    { text: "跳回公元前 1183 年的特洛伊", target: "troy" },
+                    { text: "跳躍到公元前 590 年的埃及賽伊斯", target: "egypt_temple" }
+                ]
+            },
+            "troy": {
+                text: "公元前 1183 年。一隻巨大的木馬矗立在城鎮和海灘之間的人群上方。它一定是著名的特洛伊木馬！\n\n「與希臘人的長期戰爭結束了，」特洛伊人喊道。「敵人回家了！把他們的禮物帶進城裡。」\n\n你幫忙拉著繩子，將木馬推入廣場。特洛伊人在街上跳舞，笑著喝酒。\n\n「喝吧，我的年輕朋友，」一個笑容滿面的士兵告訴你。他遞給你一大碗酒。「告訴我，」你問，「你聽說過一個叫亞特蘭提斯的地方嗎？」\n\n士兵笑了。「亞特蘭提斯？是那個巨大的阿特拉斯站在那裡撐起整個世界的地方嗎？今晚我可以取代他。看我多強壯！」\n\n他把碗放下，把你高高舉過頭頂。然後把你扔進了噴泉裡。士兵們笑著走開了。\n\n一位老人幫你從噴泉裡出來。「這些士兵太貪玩了，」他說。「如果希臘人回來怎麼辦？如果年輕人都喝醉了，誰來保護我們？」\n\n「順便問一下，」你說，「他們把公牛關在神廟裡的地方在哪裡？」\n\n「神廟裡有公牛？」老人奇怪地看著你。「多麼奇怪的想法！神廟是聖地。公牛屬於田野。你到底從哪裡來的？你是希臘間諜嗎？」\n\n你掙脫並跑開了。好吧，到目前為止，特洛伊似乎不太像亞特蘭提斯。這甚至是一個島嗎？它會沉入海中嗎？也許你應該跳躍到 20 世紀看看。另一方面，你可以躲在這裡等著看這座城市是否會被摧毀。",
+                choices: [
+                    { text: "跳躍到 20 世紀", target: "twentieth_century" },
+                    { text: "躲在特洛伊", target: "troy_hide" }
+                ]
+            },
+            "troy_hide": {
+                text: "你躲在特洛伊城外的一個陰影裡。現在是半夜。不遠處停著希臘人給特洛伊人的巨大木馬。\n\n當你看著時，木馬的肚子打開了。一扇暗門！全副武裝的希臘士兵悄悄溜到特洛伊的街道上。\n\n幾分鐘後，成千上萬的希臘士兵行軍上海灘。\n\n「醒來！」一個男人在特洛伊的街道上尖叫著。「叛國。我們的敵人回來了。拿起武器！」\n\n房子著火了。婦女和兒童尖叫著跑過街道。\n\n你聽到金屬刮擦石頭的聲音。希臘士兵，劍上滴著血，正朝你走來！\n\n「你，站住！別動！」其中一個人喊道。\n\n你衝下石階。你必須找到一個看不到你的地方跳躍時間——但街道上到處都是尖叫的人！\n\n你衝進一扇開著的門。你在一個滿是受驚嘶鳴馬匹的馬廄裡。然後你跳進一堆乾草中，跳躍時間。",
+                choices: [
+                    { text: "跳躍到 20 世紀", target: "twentieth_century" }
+                ]
+            },
+            "atlantic_ocean": {
+                text: "好吧，這看起來像大西洋。但這裡沒有亞特蘭提斯——只有大量相當冷的海水！\n\n你嘗試 7000 BC。5000 BC。1000 BC。仍然沒有島嶼。\n\n14,000 BC。20,000 BC。A.D.300。750 BC。A.D.1970。\n\n「嘿！」一個聲音喊道。一艘拖著奇怪潛艇的船漂浮在幾十碼外。「看那裡。有人漂浮在水中！有人落水了！」\n\n水手們放下救生艇，划向你來「營救」你。當他們把你帶上船時，他們問你來自哪裡。\n\n「我不能告訴你，」你說。「但你們從哪裡來？你們在這裡做什麼？」\n\n「歡迎登上阿爾文號，」船長說。「這是一艘美國研究船。我們正在探索大西洋中脊，就在我們下方的水下山脈。」\n\n「大西洋曾經是乾地嗎？」你問。「那些山脈可能是沉沒島嶼的殘骸嗎？」\n\n「你是說像亞特蘭提斯？」他笑了。「不。水下山脈是火山，是海底擴張的一部分。據我們所知，大西洋中從未有過一個沉沒的大島，自從幾百萬年前大陸分裂以來就沒有過。」\n\n「我太累了，」你告訴他。「讓我先睡一覺。」\n\n他們找到一個空艙讓你小睡。門一關上，你就跳躍時間回到古希臘。",
+                choices: [
+                    { text: "跳躍回古希臘（柏拉圖的晚年）", target: "plato_later" }
+                ]
+            },
+            "plato_later": {
+                text: "你在雅典城外一個圍起來的地區。現在是公元前 385 年。到處都是彎曲扭曲的橄欖樹。\n\n你找到了柏拉圖的學院，進入了一個種滿果樹的美麗花園。柏拉圖站在花園裡，比他上次年輕時更禿了。\n\n「我注意到今天我們的討論中有一張新面孔，」他說。「這張新面孔有聲音嗎？」\n\n「我聽說過你談論亞特蘭提斯，」你說，「但我想知道它在哪裡，什麼時候，以及它發生了什麼事。」\n\n柏拉圖嚴厲地看著你。「很多人似乎都想找到亞特蘭提斯。如果他們試圖在自己生活中尋找美好，那就更好了！」他微笑著。「不過，據我所知，亞特蘭提斯大約在九千年前被摧毀了。那個時代的雅典人起義，摧毀了亞特蘭提斯人的船隻。之後發生了猛烈的地震和洪水，亞特蘭提斯島消失在海洋深處。」\n\n「那是什麼海？」\n\n「根據與我的祖先梭倫交談的埃及祭司所說，亞特蘭提斯在遙遠的西方。因此我猜測，它一定在赫拉克勒斯之柱之外。」\n\n他站起來。「現在我必須去體育館了。堅強的頭腦在虛弱的身體中會枯萎。」\n\n你留在了花園裡。你決定跳躍時間去問問古雅典人關於亞特蘭提斯的事。你應該跳回 9,000 年前嗎？或者只跳回 1,000 年？",
+                choices: [
+                    { text: "跳回大約 9,000 年前", target: "atlantic_ocean" },
+                    { text: "跳回大約 1,000 年前（青銅時代雅典）", target: "bronze_age" }
+                ]
+            },
+            "bronze_age": {
+                text: "你再次站在雅典衛城的底部。現在是公元前 1470 年。城市小得多。事實上，整個城市都在衛城山上，被高牆守衛著。\n\n你走到門口。一個守衛用長矛指著你的胸膛。「站住！今天沒有剃光頭的人不得進入雅典。」\n\n「為什麼？」你問。\n\n「我們的國王命令全城哀悼。今天我們送十四個年輕雅典人去米諾斯國王的公牛遊戲中獻祭。忒修斯自願在米諾斯神廟中死去。」\n\n你問守衛關於亞特蘭提斯的事，但他從未聽說過。\n\n你聽到遠處的鼓聲。城門打開了。一長隊悲傷的人，全都剃光了頭，沿著通往海邊的道路慢慢移動。中間走著七個女孩和七個男孩，後面跟著一群哀號的老婦人。\n\n帶領受害者是一個身體強壯、留著深色捲髮的年輕人。人們在他經過時向他鞠躬。那一定是忒修斯，國王的兒子。\n\n你跟著悲傷的隊伍來到雅典港口。一艘掛著巨大黑帆的船等著把受害者帶到米諾斯國王的土地上。",
+                choices: [
+                    { text: "跳躍到特洛伊", target: "troy" },
+                    { text: "自願代替其中一名受害者", target: "crete" }
+                ]
+            },
+            "crete": {
+                text: "你登上了船。經過幾天的航行，你們到達了克里特島。你被帶到了宏偉的克諾索斯宮殿，也就是迷宮。\n\n你遇到了米諾斯國王的女兒阿里阿德涅。她教你如何用網捕捉野牛。忒修斯在公牛跳躍中表現出色，贏得了米諾斯人的欽佩。\n\n一天晚上，忒修斯來找你。「快，」他說，「跟著我。」\n\n阿里阿德涅拿著油燈等著。她愛上了忒修斯，並幫助你們逃離迷宮。\n\n你們到達海岸，偷了一艘船，駛向大海。突然，你聽到一聲巨大的爆炸聲。北方的地平線上升起一團黑雲。\n\n「國王的船被摧毀了！」忒修斯喊道。一股巨大的海嘯襲擊了克里特島海岸。\n\n「錫拉島的冒煙山！」忒修斯說。你看到熔岩從火山側面流下。大量的灰燼和煙霧流入黑暗的天空。\n\n假設「大綠海」實際上是地中海？你看著阿里阿德涅。她曾告訴你，她想從克里特島向東去埃及。當柏拉圖聽說亞特蘭提斯在遙遠的西方時，他自然認為那是雅典的西方！但當然，埃及人指的是埃及的西方——這很可能就是指米諾斯克里特島。克里特島並沒有沉入海中，但對任何聽說過那場海嘯的人來說，它一定看起來像是沉沒了。\n\n船終於駛出了黑雲。每個人都為看到藍天和燦爛的陽光而歡呼。\n\n失落的亞特蘭提斯不再失落了。",
+                choices: [
+                    { text: "跳躍到 1 天後，參觀迷宮的廢墟", target: "labyrinth_ruins" }
+                ]
+            },
+            "twentieth_century": {
+                text: "這裡是 1917 年。你幾乎認不出這個地區。大海現在很遠。特洛伊建在的山丘形狀仍然大致相同，但只剩下廢墟的牆壁。\n\n三個士兵坐在不遠處一堵滿是灰塵的牆上吃飯。「噓！」一個女人滑到你身邊。她裹著黑色長袍，只露出眼睛。「你在這裡做什麼？」她問。「馬上太陽就要下山了，任何在外面的人都可能被槍殺。你不知道正在打仗嗎？」\n\n「抱歉，我有點困惑。誰在打仗？」\n\n「我們勇敢的土耳其士兵正在為我們的蘇丹而戰，與德國人一起，對抗英國人和法國人。」\n\n所以你在土耳其……亞洲大陸的一部分。亞洲不會像亞特蘭提斯那樣沉入海中。看起來特洛伊和亞特蘭提斯是同一个地方的可能性越來越小。\n\n你走錯了路。也許你應該回到古希臘尋找一些建議。",
+                choices: [
+                    { text: "跳回古希臘", target: "plato_later" }
+                ]
+            },
+            "labyrinth_ruins": {
+                text: "你站在一根斷裂的柱子上。宏偉的克諾索斯宮殿四周成了廢墟。錫拉島火山引發的地震一定摧毀了它。\n\n你走過廢墟。柔軟的灰色灰塵像雨一樣從天空落下，覆蓋了一切。\n\n米諾斯人需要很長時間才能從這樣的災難中恢復過來。也許他們永遠不會。船隻被毀，宮殿被燒，田野覆蓋著火山灰，古克里特島的強大文明將很快被海對岸的士兵征服。\n\n一千年後，阿爾西亞只會通過忒修斯和牛頭怪的故事了解米諾斯人。當梭倫遇到埃及人時，他可能不知道他們在談論克里特島。當他的故事傳到柏拉圖那裡時，它將變成亞特蘭提斯的故事。故事就像風，德爾菲的神諭說，風是會改變的。\n\n這就像你的故事。你的腳印真的在克諾索斯的塵土中嗎？如果他們是，他們很快就會被吹走，你會發現自己回到了二十世紀。",
+                choices: [
+                    { text: "任務完成！", target: "win" }
+                ]
+            },
+            "win": {
+                text: "【任務完成】\n\n你成功揭開了亞特蘭提斯之謎！\n\n你發現了亞特蘭提斯的故事實際上是源於克里特島的米諾斯文明。米諾斯文明是一個強大的海上霸權，擁有宏偉的宮殿（迷宮）和獨特的公牛崇拜。\n\n然而，大約在公元前 1470 年，錫拉島（聖托里尼）發生了大規模的火山爆發，引發了巨大的海嘯和地震。這摧毀了米諾斯文明的艦隊和宮殿，導致其迅速衰落。\n\n這個災難的故事通過埃及祭司傳給了梭倫，再由梭倫傳給柏拉圖。在口耳相傳中，克里特島的毀滅被誇大成了整個大陸「亞特蘭提斯」沉入海底的傳說。\n\n你成功在時間線崩潰前回到了你的時代。\n\n恭喜你，時間旅行者！",
+                choices: [
+                    { text: "重新開始", target: "start" }
+                ]
+            }
+        };
+
+        // 狀態機變數
+        let currentState = "start";
+        let historyStack = [];
+
+        // DOM 元素
+        const storyTextEl = document.getElementById("story-text");
+        const choicesContainer = document.getElementById("choices-container");
+        const historyListEl = document.getElementById("history-list");
+
+        // 初始化/載入遊戲
+        function initGame() {
+            const savedState = localStorage.getItem("atlantis_save");
+            if (savedState) {
+                const parsed = JSON.parse(savedState);
+                currentState = parsed.state;
+                historyStack = parsed.history || [];
+            }
+            renderState(currentState);
+        }
+
+        // 渲染畫面
+        function renderState(stateId) {
+            const state = gameData[stateId];
+            if (!state) {
+                console.error("無效的狀態:", stateId);
+                return;
+            }
+
+            // 更新文字與動畫
+            storyTextEl.style.animation = 'none';
+            storyTextEl.offsetHeight; /* 觸發重繪 */
+            storyTextEl.style.animation = 'fadeIn 0.8s ease';
+            storyTextEl.innerHTML = state.text.replace(/\n/g, '<br>');
+
+            // 清空並渲染按鈕
+            choicesContainer.innerHTML = '';
+            
+            // 將所有按鈕設為禁用，然後逐個啟用，避免連點卡死
+            state.choices.forEach((choice, index) => {
+                const btn = document.createElement("button");
+                btn.className = "choice-btn";
+                btn.textContent = choice.text;
+                btn.disabled = true; // 初始禁用
+                
+                btn.onclick = () => {
+                    // 點擊時鎖定所有按鈕
+                    const allBtns = choicesContainer.querySelectorAll('.choice-btn');
+                    allBtns.forEach(b => b.disabled = true);
+                    
+                    // 記錄歷史
+                    addHistory(stateId, choice.text);
+                    
+                    // 轉場
+                    setTimeout(() => {
+                        currentState = choice.target;
+                        saveGame();
+                        renderState(currentState);
+                        document.getElementById('main-display').scrollTop = 0;
+                    }, 300);
+                };
+                
+                choicesContainer.appendChild(btn);
+
+                // 稍微延遲啟用，產生動畫效果
+                setTimeout(() => {
+                    btn.disabled = false;
+                }, 500 + (index * 100));
+            });
+
+            updateHistoryUI();
+        }
+
+        // 記錄歷史
+        function addHistory(nodeId, choiceText) {
+            historyStack.push({ nodeId, choiceText, time: new Date().toLocaleTimeString() });
+            if(historyStack.length > 50) historyStack.shift(); // 限制長度
+        }
+
+        // 更新歷史面板
+        function updateHistoryUI() {
+            historyListEl.innerHTML = '';
+            historyStack.forEach(item => {
+                const li = document.createElement("li");
+                // 簡單擷取文字片段作為標題
+                const title = gameData[item.nodeId].text.split('\n')[0].substring(0, 20) + '...';
+                li.innerHTML = `<span style="color:#d4af37">[${item.time}]</span> 在 ${title}<br>你選擇了：<strong>${item.choiceText}</strong>`;
+                historyListEl.appendChild(li);
+            });
+        }
+
+        // 存檔
+        function saveGame() {
+            localStorage.setItem("atlantis_save", JSON.stringify({
+                state: currentState,
+                history: historyStack
+            }));
+        }
+
+        // 重置
+        function resetGame() {
+            if (confirm("確定要重置時間線嗎？所有進度將被清除。")) {
+                localStorage.removeItem("atlantis_save");
+                currentState = "start";
+                historyStack = [];
+                renderState(currentState);
+            }
+        }
+
+        // 彈窗控制
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.toggle('active');
+        }
+
+        // 啟動
+        window.onload = initGame;
+
+    </script>
+</body>
+</html>

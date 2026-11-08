@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>時間機器 11：二戰任務</title>
+    <style>
+        :root {
+            --parchment: #f4ecd8;
+            --parchment-dark: #d8ceb6;
+            --ink: #2c1e16;
+            --accent: #8b2512;
+            --accent-hover: #b33a23;
+            --border: #5a4a3a;
+            --gold: #c9a84c;
+            --shadow: rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', 'KaiTi', serif;
+            background-color: #1a1512;
+            background-image: radial-gradient(circle at center, #3a2e24 0%, #1a1512 100%);
+            color: var(--ink);
+            display: flex;
+            justify-content: center;
+            height: 100dvh;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 900px;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            background: var(--parchment);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(200, 180, 150, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 90% 80%, rgba(200, 180, 150, 0.2) 0%, transparent 50%);
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.2), 0 0 20px rgba(0,0,0,0.6);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 復古暗角 */
+        #app::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        /* 標題列 */
+        header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border);
+            background: rgba(244, 236, 216, 0.9);
+            z-index: 5;
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            color: var(--accent);
+            text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
+            margin: 0;
+        }
+
+        .header-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--ink);
+            padding: 5px;
+            transition: transform 0.2s;
+        }
+        .icon-btn:active { transform: scale(0.9); }
+
+        /* 主故事區域 */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #story-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            margin-bottom: 15px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        #story-container::-webkit-scrollbar { width: 6px; }
+        #story-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        #story-text {
+            font-size: 1.15rem;
+            line-height: 1.8;
+            text-align: justify;
+            white-space: pre-wrap;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        #story-text.visible { opacity: 1; }
+
+        /* 選項按鈕區 */
+        #choices {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-bottom: 10px;
+        }
+
+        .choice-btn {
+            background: linear-gradient(to bottom, #e3d5bd, #c9b89a);
+            border: 2px solid var(--border);
+            color: var(--ink);
+            padding: 15px 20px;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .choice-btn:hover:not(:disabled) {
+            background: linear-gradient(to bottom, #f0e6d2, #d4c3a3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .choice-btn:active:not(:disabled) {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            filter: grayscale(0.5);
+        }
+
+        /* 物品欄與歷史側邊欄 */
+        .panel {
+            position: absolute;
+            top: 0; right: -300px;
+            width: 280px;
+            height: 100%;
+            background: var(--parchment-dark);
+            border-left: 2px solid var(--border);
+            transition: right 0.3s ease;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+        }
+        .panel.open { right: 0; }
+        .panel h3 { margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .panel-content { flex: 1; overflow-y: auto; font-size: 0.95rem; }
+        .panel-item { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed var(--border); }
+
+        /* 底部導航 */
+        footer {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(220, 205, 180, 0.95);
+            border-top: 2px solid var(--border);
+            padding: 10px 0;
+            z-index: 5;
+        }
+
+        .nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: none;
+            border: none;
+            font-family: inherit;
+            font-size: 0.8rem;
+            color: var(--ink);
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            padding: 5px 15px;
+        }
+        .nav-btn:hover { opacity: 1; }
+        .nav-btn span.icon { font-size: 1.3rem; margin-bottom: 3px; }
+
+        /* 彈窗 */
+        .modal-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .modal {
+            background: var(--parchment);
+            padding: 25px;
+            border-radius: 10px;
+            max-width: 85%;
+            max-height: 80%;
+            overflow-y: auto;
+            border: 3px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .modal h2 { color: var(--accent); margin-bottom: 15px; }
+        .modal p { line-height: 1.6; margin-bottom: 15px; text-align: left; }
+        .modal .close-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* Toast 提示 */
+        #toast {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(40, 20, 10, 0.9);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* SVG 圖像容器 */
+        .svg-illustration {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2));
+        }
+        .svg-illustration svg {
+            max-width: 100%;
+            height: auto;
+            max-height: 150px;
+        }
+
+        /* 成就解鎖提示 */
+        .achievement-popup {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            background: var(--gold);
+            color: var(--ink);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transform: translateX(150%);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 60;
+        }
+        .achievement-popup.show { transform: translateX(0); }
+
+        @media (max-width: 600px) {
+            header h1 { font-size: 1rem; }
+            #story-text { font-size: 1rem; }
+            .choice-btn { font-size: 0.95rem; padding: 12px 15px; }
+            .panel { width: 100%; right: -100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <header>
+        <h1>⏳ 時間機器 11：二戰任務</h1>
+        <div class="header-btns">
+            <button class="icon-btn" id="btn-sound" title="音效開關">🔊</button>
+            <button class="icon-btn" id="btn-panel" title="歷史紀錄與物品">📜</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="story-container">
+            <div class="svg-illustration" id="svg-container"></div>
+            <div id="story-text"></div>
+        </div>
+        <div id="choices"></div>
+    </main>
+
+    <footer>
+        <button class="nav-btn" id="nav-guide"><span class="icon">ℹ️</span>說明</button>
+        <button class="nav-btn" id="nav-save"><span class="icon">💾</span>存檔</button>
+        <button class="nav-btn" id="nav-load"><span class="icon">📂</span>讀檔</button>
+        <button class="nav-btn" id="nav-achieve"><span class="icon">🏆</span>成就</button>
+    </footer>
+
+    <!-- 歷史與物品面板 -->
+    <div class="panel" id="side-panel">
+        <h3>📜 歷史紀錄</h3>
+        <div class="panel-content" id="history-list"></div>
+        <h3 style="margin-top: 20px;">🎒 物品欄</h3>
+        <div class="panel-content" id="inventory-list"></div>
+    </div>
+
+    <!-- 彈窗 -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="modal-content">
+            <h2 id="modal-title">標題</h2>
+            <div id="modal-body"></div>
+            <button class="close-btn" onclick="closeModal()">關閉</button>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div id="toast"></div>
+    <div id="achievement-popup" class="achievement-popup"></div>
+</div>
+
+<script>
+    // ================= 遊戲狀態與資料 =================
+    const NODES = {
+        start: {
+            title: "任務開始",
+            text: "1940年11月15日。波蘭，華沙。\n天空寒冷而黑暗，空氣中瀰漫著悲慘的氣息。你站在茫茫人海中，數百名男女老少與你擦肩而過，他們看起來疲憊而恐懼，每個人都帶著行李和鋪蓋捲。\n\n突然，你注意到人群被士兵包圍了。那些高大、金髮碧眼、帶著機槍和警棍的男人隨處可見，有些人還牽著齜牙咧嘴的德國牧羊犬。他們都戴著繡有黑色卐字的鮮紅色臂章。\n\n「快走！快走！不聽話的人會被逮捕！」擴音器裡傳來德語的咆哮。\n\n人群開始向一條狹窄的街道移動，你也被迫跟著走。前方是破舊的公寓樓，被鐵絲網包圍，一堵高高的磚牆連接著建築物，入口處有更多武裝警衛。那是你的目的地嗎？\n\n「我們要去哪裡？」你問旁邊一位推著裝滿書籍的嬰兒車的年輕女子。\n\n「他們稱這裡為猶太區，」她苦澀地告訴你。「他們說我們猶太人必須住在這裡，這是為了我們好。這根本就是納粹的監獄！」",
+            choices: [
+                { text: "加入雅利安人（Aryan）的隊伍。", next: "death_ss" },
+                { text: "進入猶太區（Jewish quarter）。", next: "meet_yankel" }
+            ]
+        },
+        death_ss: {
+            title: "失敗",
+            text: "你試圖混入雅利安人的隊伍中。然而，一名黨衛軍軍官立刻注意到了你，他大步走過來，一把抓住你的衣領。\n\n「你是猶太人，對吧？竟敢混進雅利安人的隊伍！」他粗暴地將你拖走，你被帶到了帕維亞克監獄（Pawiak Prison）。在那裡，你將面臨嚴酷的審問，而你尋找林格爾布魯姆的任務也就此中斷。\n\n歷史的洪流無情地將你淹沒。",
+            choices: [{ text: "重新開始", next: "start" }],
+            isEnd: true,
+            achievement: "初入地獄"
+        },
+        meet_yankel: {
+            title: "遇見走私客",
+            text: "你別無選擇，只能跟著人群進入猶太區。\n\n「快點！跟上！」一個瘦小的男孩在人群中對你喊道。他看起來比你還小，背著一個破舊的背包，動作敏捷地穿梭在小巷中。\n\n你跟著他跑過黑暗的巷子，爬上三層樓梯，來到一個荒蕪的屋頂。建築物靠得很近，你們跳過幾個屋頂，最後從天窗跳進一個擁擠但安靜的閣樓。\n\n「我們在這裡很安全，」男孩說。「剛才真險。」\n\n「這是哪裡？」你問。\n\n「我的藏身處。我是個走私客。」他自豪地說。「我叫揚克爾（Yankel）。」",
+            choices: [
+                { text: "跟他去見他的表哥莫迪凱（Mordecai）。", next: "meet_mordecai" }
+            ]
+        },
+        meet_mordecai: {
+            title: "地下學校",
+            text: "揚克爾帶你穿過擁擠的庭院，走進一間地下室。\n\n「誰在那裡？」黑暗中傳來一個聲音。\n\n「是我，揚克爾，我在找莫迪凱。」\n\n火柴劃亮，你看到一個大約二十一歲的年輕人，黑髮，眼神銳利。\n\n「你找到了，而且來得正是時候。下來幫我一把。」莫迪凱說。\n\n地下室裡，十五個小男孩和小女孩正在打開一袋破舊的書。\n\n「這是圖書館？」揚克爾問。\n\n「是一所學校。三年級。」莫迪凱回答。「我們正在整個猶太區建立學校。這些孩子不能因為德國人的意願就變成文盲。」\n\n莫迪凱轉向你：「你是誰？你來這裡做什麼？」\n\n你告訴他你在尋找伊曼紐爾·林格爾布魯姆。\n\n「我剛才在斯莫查集市（Smocza bazaar）看到他，」莫迪凱說。「他今晚才會回家。不過，如果你想要贏得他的信任，你必須先證明自己。」",
+            choices: [
+                { text: "問莫迪凱該如何贏得信任。", next: "need_medicine" }
+            ]
+        },
+        need_medicine: {
+            title: "拯救烏里",
+            text: "「林格爾布魯姆的兒子烏里（Uri）得了傷寒，」莫迪凱沉重地說。「猶太區裡沒有藥，沒有醫生能救他。這無疑是死刑。」\n\n「哪裡有藥？」你問。\n\n「華沙的雅利安人醫院（Czyste Hospital）可能有，但那裡防守森嚴，像個堡壘。」\n\n你心中一動，這或許是個贏得信任的絕佳機會。\n\n「我去拿藥。」你堅定地說。\n\n莫迪凱驚訝地看著你：「你瘋了？不過……如果你真能拿到，林格爾布魯姆一定會感激你。」\n\n你決定使用時間機器，跳躍到可以取得藥物的地點。",
+            choices: [
+                { text: "跳躍到英國倫敦。", next: "london_fail" },
+                { text: "跳躍到蘇聯莫斯科。", next: "russia_fail" },
+                { text: "跳躍到華沙的德國醫院。", next: "hospital_enter" }
+            ]
+        },
+        london_fail: {
+            title: "無功而返",
+            text: "1942年4月20日，倫敦。\n\n你站在被轟炸過的街道上，四周是堆積如山的沙袋和廢墟。你向路人詢問醫院和傷寒藥，但他們告訴你這裡沒有傷寒，也沒有多餘的藥物。\n\n「我們有自己的問題要操心，」一位戴著圓頂硬禮帽的老人說。「我兒子還是飛行員呢。」\n\n警報聲響起，德軍的轟炸機即將到來。你意識到這裡找不到你需要的東西。\n\n你必須盡快離開。",
+            choices: [
+                { text: "跳躍回華沙，前往德國醫院。", next: "hospital_enter" }
+            ]
+        },
+        russia_fail: {
+            title: "嚴寒之地",
+            text: "1941年12月8日，莫斯科紅場。\n\n氣溫零下二十度，寒風刺骨。你跳上一輛蘇聯軍用卡車取暖。司機告訴你，德軍已經被擋在莫斯科城外，但他們距離波蘭還有數千英里。\n\n「也許明年吧，」司機說。「我們還需要一段時間才能打回去。」\n\n你意識到蘇聯人無法立刻幫你拯救烏里。你必須回到華沙。",
+            choices: [
+                { text: "跳躍回華沙，前往德國醫院。", next: "hospital_enter" }
+            ]
+        },
+        hospital_enter: {
+            title: "潛入醫院",
+            text: "你站在華沙雅利安人區的 Cz yste 醫院走廊上。地板剛擦過，散發著消毒水和地板蠟的味道。\n\n你脫下猶太臂章，偷偷溜進第一個房間。裡面滿是包著繃帶的年輕士兵。\n\n你繼續往前走，突然，三個納粹軍官從一個房間裡走出來！你急忙轉身，卻迎面撞上一位端著食物托盤的疲憊但漂亮的護士。\n\n「你在這裡做什麼？」她嚴厲地問。\n\n「我……我迷路了，」你結結巴巴地說。「我在找傷寒病房，我想探望一個朋友。」\n\n「這裡沒有傷寒病房，」護士懷疑地看著你。「這裡只收治德國士兵！」\n\n你意識到自己說錯話了。",
+            choices: [
+                { text: "向她坦白你需要傷寒藥來救一個生病的孩子。", next: "hospital_trust" },
+                { text: "轉身逃跑。", next: "death_ss" }
+            ]
+        },
+        hospital_trust: {
+            title: "地下護士",
+            text: "你決定相信她，告訴她你需要傷寒藥來救一個猶太區的孩子。\n\n護士的表情從懷疑轉為震驚，然後她低聲說出一個詞：「Amcho。」\n\n這是希伯來語，意思是「我們中的一員」。\n\n「你是猶太人？」你驚訝地問。\n\n「我冒充基督徒，」她低聲說。「我叫瑪麗亞（Marya）。」\n\n她迅速將你拉進一個儲藏室。「聽著，藥在頂樓左邊最後一個門的藥房裡。管理員叫約瑟夫（Josef）。告訴他瑪麗亞在血液學實驗室等他，這會給你爭取時間。傷寒藥是一個小瓶子，標記很清楚。」\n\n你感激地看著她。「謝謝你。」\n\n「快去，」她說。「救那個孩子。」",
+            choices: [
+                { text: "前往頂樓藥房拿藥。", next: "get_medicine" }
+            ]
+        },
+        get_medicine: {
+            title: "獲得疫苗",
+            text: "你穿上瑪麗亞給你的藍色勤務員外套，順利通過了德軍的視線。你找到了藥房，成功引開了管理員約瑟夫，拿到了那瓶珍貴的傷寒疫苗。\n\n正當你準備離開時，突然傳來一聲巨響！\n\n「轟！」\n\n波蘭地下抵抗組織（Partisans）轟炸了醫院。藥房瞬間陷入火海。你趁亂衝出醫院，緊緊握著手中的藥瓶。\n\n你成功拿到了疫苗！現在，你必須盡快回到猶太區，找到林格爾布魯姆。",
+            choices: [
+                { text: "跳躍回猶太區，尋找林格爾布魯姆。", next: "give_medicine" }
+            ]
+        },
+        give_medicine: {
+            title: "贏得信任",
+            text: "你回到 1941 年的華沙猶太區，氣喘吁吁地跑到林格爾布魯姆的家。\n\n地下室裡，林格爾布魯姆和他的妻子正絕望地守著發高燒的烏里。\n\n「別過來，」林格爾布魯姆說。「孩子傳染。」\n\n「我知道，教授。這就是我來的原因。」你拿出疫苗。「我找到了藥。」\n\n林格爾布魯姆夫婦震驚地看著你。他的妻子喜極而泣。林格爾布魯姆緊緊抱住你。\n\n「謝謝你，」他激動地說。「我永遠無法報答你。」\n\n「我不需要回報，」你說。「只要讓我加入你的組織（Oneg Shabbat）。」\n\n他看著你，點了點頭。「歡迎加入。」\n\n你贏得了他的信任。現在，你必須等待時機，直到歷史的關鍵時刻到來。",
+            choices: [
+                { text: "跳躍到 1943 年 4 月 21 日（華沙猶太區起義）。", next: "uprising" }
+            ]
+        },
+        uprising: {
+            title: "華沙猶太區起義",
+            text: "1943年4月21日，起義的第三天。\n\n你站在屋頂上，俯瞰著穆拉諾夫斯基廣場（Muranowski Square）。德軍坦克正在猛烈砲擊房屋，但猶太戰士們毫不退縮。\n\n你看見揚克爾和一個女孩正在用步槍反擊。\n\n「揚克爾！後面！」你大喊。\n\n揚克爾轉身擊斃了兩名偷襲的納粹。他抬頭看到你，笑了。「我就知道你會來！」\n\n戰鬥間隙，你找到了莫迪凱。他穿著黨衛軍的制服作為偽裝。\n\n「快跟我來！」莫迪凱喊道。「我們必須把林格爾布魯姆轉移出去。他已經把檔案藏在了牛奶罐裡！」\n\n你跟隨莫迪凱進入地下室，林格爾布魯姆和他的家人就在那裡。角落裡放著三個生鏽的牛奶罐。\n\n「把這些埋起來，」林格爾布魯姆說。「一個在諾沃利普基街（Nowolipki），一個在沃洛瓦街（Wolowa），最後一個在斯維托耶爾斯卡街（Swietojerska），靠近克拉辛斯基花園。」\n\n你們在戰火中將牛奶罐分別藏好。\n\n「再見了，我的朋友，」林格爾布魯姆對你說。「願上帝保佑你。」",
+            choices: [
+                { text: "跳躍到 1960 年的以色列，尋找檔案的下落。", next: "israel_1960" }
+            ]
+        },
+        israel_1960: {
+            title: "耶路撒冷，1960年",
+            text: "你來到 1960 年的耶路撒冷，走進大屠殺紀念館（Yad Vashem）。\n\n你向圖書館員詢問林格爾布魯姆的檔案。\n\n「哦，我們有很多，」她說。「你想看他在華沙猶太區的筆記嗎？」\n\n「不，」你說。「你能告訴我它們確切是在哪裡被發現的嗎？」\n\n她拿出一本書：「找到了兩個地方。沃洛瓦街，還有……諾沃利普基街。」\n\n你心中一震，這意味著第三個牛奶罐，也就是最重要的那個，仍然在斯維托耶爾斯卡街的地底下！\n\n你必須回到過去的華沙，把它挖出來。",
+            choices: [
+                { text: "跳躍到 1943 年的華沙起義遺址。", next: "find_can" }
+            ]
+        },
+        find_can: {
+            title: "尋找第三個牛奶罐",
+            text: "你回到 1943 年（或之後）的華沙。在克拉辛斯基花園附近，你找到了當年藏匿牛奶罐的那棟建築的廢墟。\n\n你瘋狂地搬開瓦礫和石塊。汗水浸濕了你的衣服。\n\n終於，你看到了階梯，然後是一道金屬的反光。\n\n是那個牛奶罐！\n\n你打開密封蓋，裡面裝滿了照片。\n\n那是華沙猶太區的歷史證據，是林格爾布魯姆和無數人用生命記錄下來的真相。\n\n你成功了。你完成了任務。",
+            choices: [
+                { text: "任務完成！", next: "victory" }
+            ],
+            isEnd: true,
+            achievement: "歷史的見證者"
+        },
+        victory: {
+            title: "任務完成",
+            text: "你帶著第三個牛奶罐回到了時間機器。\n\n裡面裝滿了照片，證明了納粹的暴行和猶太人的抗爭。你為歷史做出了巨大的貢獻。\n\n這些照片將永遠提醒世人，在那個黑暗的時代，即使身處絕境，人們依然為了生存和真相而戰鬥。\n\n【任務完成】",
+            choices: [{ text: "重新開始", next: "start" }],
+            isEnd: true
+        }
+    };
+
+    // 遊戲狀態
+    let state = {
+        currentNode: "start",
+        inventory: [],
+        history: [],
+        achievements: [],
+        soundEnabled: true,
+        isTyping: false,
+        typeTimeout: null
+    };
+
+    // 音效合成 (Web Audio API)
+    let audioCtx = null;
+    function playSound(type) {
+        if (!state.soundEnabled) return;
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'error') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'success') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1);
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+            }
+        } catch (e) {
+            console.warn("Audio context not allowed", e);
+        }
+    }
+
+    // DOM 元素
+    const storyTextEl = document.getElementById('story-text');
+    const choicesEl = document.getElementById('choices');
+    const historyListEl = document.getElementById('history-list');
+    const inventoryListEl = document.getElementById('inventory-list');
+    const panelEl = document.getElementById('side-panel');
+    const toastEl = document.getElementById('toast');
+    const achievementPopupEl = document.getElementById('achievement-popup');
+    const svgContainer = document.getElementById('svg-container');
+
+    // Toast 提示
+    function showToast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        setTimeout(() => toastEl.classList.remove('show'), 2500);
+    }
+
+    // 成就解鎖
+    function unlockAchievement(name) {
+        if (!state.achievements.includes(name)) {
+            state.achievements.push(name);
+            playSound('success');
+            achievementPopupEl.textContent = `🏆 成就解鎖：${name}`;
+            achievementPopupEl.classList.add('show');
+            setTimeout(() => achievementPopupEl.classList.remove('show'), 3000);
+        }
+    }
+
+    // 打字機效果
+    function typeWriter(text, index, callback) {
+        if (index < text.length) {
+            storyTextEl.textContent += text.charAt(index);
+            state.typeTimeout = setTimeout(() => typeWriter(text, index + 1, callback), 30);
+        } else {
+            state.isTyping = false;
+            if (callback) callback();
+        }
+    }
+
+    // 跳過打字機
+    function skipTyping(fullText, callback) {
+        clearTimeout(state.typeTimeout);
+        storyTextEl.textContent = fullText;
+        state.isTyping = false;
+        if (callback) callback();
+    }
+
+    // 渲染 SVG 插圖
+    function renderSVG(nodeId) {
+        let svg = '';
+        if (nodeId === 'start' || nodeId === 'death_ss' || nodeId === 'meet_yankel') {
+            svg = `<svg viewBox="0 0 100 100" width="120" height="120">
+                <polygon points="50,10 60,40 90,40 65,60 75,90 50,70 25,90 35,60 10,40 40,40" fill="none" stroke="#8b2512" stroke-width="4" opacity="0.6"/>
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#8b2512" stroke-width="2" stroke-dasharray="5,5" opacity="0.4"/>
+            </svg>`;
+        } else if (nodeId === 'need_medicine' || nodeId === 'hospital_enter' || nodeId === 'hospital_trust' || nodeId === 'get_medicine') {
+            svg = `<svg viewBox="0 0 100 100" width="120" height="120">
+                <rect x="30" y="20" width="40" height="60" rx="5" fill="#e3d5bd" stroke="#5a4a3a" stroke-width="3"/>
+                <rect x="40" y="10" width="20" height="10" fill="#c9b89a" stroke="#5a4a3a" stroke-width="2"/>
+                <line x1="50" y1="30" x2="50" y2="70" stroke="#8b2512" stroke-width="6" stroke-linecap="round"/>
+                <line x1="30" y1="50" x2="70" y2="50" stroke="#8b2512" stroke-width="6" stroke-linecap="round"/>
+            </svg>`;
+        } else if (nodeId === 'uprising' || nodeId === 'find_can') {
+            svg = `<svg viewBox="0 0 100 100" width="120" height="120">
+                <rect x="20" y="40" width="60" height="40" rx="10" fill="#a0a0a0" stroke="#333" stroke-width="3"/>
+                <rect x="35" y="20" width="30" height="20" rx="5" fill="#c0c0c0" stroke="#333" stroke-width="3"/>
+                <circle cx="50" cy="60" r="8" fill="#333"/>
+                <text x="50" y="95" font-size="10" text-anchor="middle" fill="#333">MILK CAN</text>
+            </svg>`;
+        } else if (nodeId === 'victory' || nodeId === 'israel_1960') {
+            svg = `<svg viewBox="0 0 100 100" width="120" height="120">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#c9a84c" stroke-width="4"/>
+                <polygon points="50,25 60,45 85,45 65,60 70,85 50,70 30,85 35,60 15,45 40,45" fill="#c9a84c"/>
+            </svg>`;
+        } else {
+            svg = `<svg viewBox="0 0 100 100" width="120" height="120">
+                <rect x="10" y="30" width="80" height="50" rx="5" fill="#d8ceb6" stroke="#5a4a3a" stroke-width="3"/>
+                <line x1="10" y1="30" x2="90" y2="80" stroke="#5a4a3a" stroke-width="2"/>
+                <line x1="90" y1="30" x2="10" y2="80" stroke="#5a4a3a" stroke-width="2"/>
+            </svg>`;
+        }
+        svgContainer.innerHTML = svg;
+    }
+
+    // 更新歷史紀錄與物品欄
+    function updateSidePanel() {
+        historyListEl.innerHTML = state.history.map((h, i) => `<div class="panel-item">${i+1}. ${h}</div>`).join('');
+        inventoryListEl.innerHTML = state.inventory.length > 0 
+            ? state.inventory.map(item => `<div class="panel-item">🔹 ${item}</div>`).join('')
+            : '<div style="opacity:0.6;">目前沒有物品</div>';
+    }
+
+    // 渲染當前節點
+    function renderNode(nodeId) {
+        const node = NODES[nodeId];
+        if (!node) return;
+
+        state.currentNode = nodeId;
+        
+        // 歷史紀錄
+        if (!state.isTyping) {
+            state.history.push(node.title);
+            updateSidePanel();
+        }
+
+        // 成就
+        if (node.achievement) {
+            unlockAchievement(node.achievement);
+        }
+
+        // 渲染 SVG
+        renderSVG(nodeId);
+
+        // 清空選項按鈕 (防呆，先禁用)
+        choicesEl.innerHTML = '';
+        
+        // 故事文字與打字機
+        storyTextEl.textContent = '';
+        storyTextEl.classList.remove('visible');
+        setTimeout(() => storyTextEl.classList.add('visible'), 50);
+        
+        state.isTyping = true;
+        typeWriter(node.text, 0, () => {
+            // 打字完成後啟用按鈕
+            renderChoices(node);
+        });
+
+        // 點擊文字跳過打字
+        storyTextEl.onclick = () => {
+            if (state.isTyping) {
+                skipTyping(node.text, () => renderChoices(node));
+            }
+        };
+    }
+
+    // 渲染選項按鈕
+    function renderChoices(node) {
+        choicesEl.innerHTML = '';
+        if (node.choices && node.choices.length > 0) {
+            node.choices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = choice.text;
+                
+                // 檢查是否有前置條件 (防呆機制)
+                if (choice.require && !state.inventory.includes(choice.require)) {
+                    btn.addEventListener('click', () => {
+                        playSound('error');
+                        showToast(`你需要「${choice.require}」才能選擇這個選項！`);
+                    });
+                } else {
+                    btn.addEventListener('click', () => {
+                        playSound('click');
+                        // 禁用按鈕防止連點
+                        document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+                        
+                        // 處理物品添加
+                        if (choice.addItem) {
+                            state.inventory.push(choice.addItem);
+                            updateSidePanel();
+                        }
+
+                        // 轉場動畫
+                        storyTextEl.classList.remove('visible');
+                        setTimeout(() => renderNode(choice.next), 300);
+                    });
+                }
+                choicesEl.appendChild(btn);
+            });
+        }
+    }
+
+    // 音效開關
+    document.getElementById('btn-sound').addEventListener('click', (e) => {
+        state.soundEnabled = !state.soundEnabled;
+        e.target.textContent = state.soundEnabled ? '🔊' : '🔇';
+        if (state.soundEnabled) playSound('click');
+    });
+
+    // 打開側邊欄
+    document.getElementById('btn-panel').addEventListener('click', () => {
+        panelEl.classList.toggle('open');
+    });
+
+    // 存檔/讀檔
+    document.getElementById('nav-save').addEventListener('click', () => {
+        try {
+            localStorage.setItem('timeMachineSave', JSON.stringify(state));
+            playSound('success');
+            showToast('遊戲已存檔！');
+        } catch (e) {
+            showToast('存檔失敗，瀏覽器可能不支援。');
+        }
+    });
+
+    document.getElementById('nav-load').addEventListener('click', () => {
+        try {
+            const saved = localStorage.getItem('timeMachineSave');
+            if (saved) {
+                state = JSON.parse(saved);
+                playSound('success');
+                showToast('遊戲已讀取！');
+                // 重新渲染
+                document.getElementById('btn-sound').textContent = state.soundEnabled ? '🔊' : '🔇';
+                updateSidePanel();
+                renderNode(state.currentNode);
+            } else {
+                showToast('沒有找到存檔！');
+            }
+        } catch (e) {
+            showToast('讀檔失敗！');
+        }
+    });
+
+    // 說明彈窗
+    document.getElementById('nav-guide').addEventListener('click', () => {
+        document.getElementById('modal-title').textContent = "📜 遊戲說明";
+        document.getElementById('modal-body').innerHTML = `
+            <p><strong>目標：</strong>穿越時空回到二戰時期的波蘭華沙，找到歷史學家伊曼紐爾·林格爾布魯姆，並取回他藏匿的「第三個牛奶罐」中的秘密文件。</p>
+            <p><strong>玩法：</strong>閱讀故事，點擊按鈕做出選擇。你的選擇將決定你的命運。</p>
+            <p><strong>提示：</strong>某些選項需要你獲得特定物品（如：傷寒疫苗）。若沒有物品，點擊選項會出現提示。</p>
+            <p><strong>功能：</strong>點擊右上角 📜 可以查看歷史紀錄與物品欄。底部導航列可以存檔、讀檔和查看成就。</p>
+        `;
+        document.getElementById('modal-overlay').classList.add('active');
+    });
+
+    // 成就彈窗
+    document.getElementById('nav-achieve').addEventListener('click', () => {
+        document.getElementById('modal-title').textContent = "🏆 成就殿堂";
+        if (state.achievements.length === 0) {
+            document.getElementById('modal-body').innerHTML = "<p>尚未解鎖任何成就。繼續探索吧！</p>";
+        } else {
+            document.getElementById('modal-body').innerHTML = state.achievements.map(a => `<p>✅ ${a}</p>`).join('');
+        }
+        document.getElementById('modal-overlay').classList.add('active');
+    });
+
+    // 關閉彈窗
+    window.closeModal = function() {
+        document.getElementById('modal-overlay').classList.remove('active');
+    };
+
+    // 初始化
+    window.onload = () => {
+        // 如果有存檔，提示是否讀取 (這裡簡單起見，直接渲染起始點，玩家可手動讀檔)
+        renderNode('start');
+    };
+
+</script>
+</body>
+</html>

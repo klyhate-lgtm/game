@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coffee Roaster - 終極完整版</title>
+    <style>
+        :root {
+            --bg: #e8d5b5; --panel: #f4e8d6; --border: #8b5a2b; --text: #3e2723;
+            --body: #e53935; --acid: #43a047; --aroma: #1e88e5;
+            --moist: #78909c; --reject: #424242; --smoke: #616161; --wild: #8e24aa;
+            --skill: #ffb300;
+        }
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg); color: var(--text); margin: 0; padding: 10px;
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+        }
+        h1 { margin: 0 0 5px 0; text-shadow: 2px 2px 0px #fff; font-size: 24px;}
+        .subtitle { font-weight: bold; color: #8b5a2b; font-size: 12px; margin-bottom: 10px;}
+
+        /* 標題與說明按鈕 */
+        .header-container { position: relative; width: 100%; max-width: 1400px; text-align: center; margin-bottom: 10px; }
+        .btn-help {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            padding: 8px 15px; font-size: 14px; font-weight: bold;
+            background: #fff; border: 2px solid var(--border); border-radius: 8px;
+            cursor: pointer; box-shadow: 2px 2px 0 var(--border); transition: 0.1s;
+        }
+        .btn-help:active { transform: translate(2px, 2px); box-shadow: none; }
+
+        /* 主選單 */
+        #setup-screen {
+            background: var(--panel); border: 4px solid var(--border); border-radius: 12px;
+            padding: 20px; text-align: center; box-shadow: 5px 5px 0 rgba(0,0,0,0.1); 
+            max-width: 1000px; width: 90%; max-height: 85vh; overflow-y: auto;
+        }
+        .bean-grid { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+            gap: 15px; margin-top: 20px; 
+        }
+        .bean-select-btn {
+            background: #fff; border: 2px solid var(--border); border-radius: 8px; padding: 15px;
+            cursor: pointer; transition: all 0.2s; text-align: left; position: relative;
+        }
+        .bean-select-btn:hover { background: #ffe0b2; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .bean-select-btn h3 { margin: 0 0 5px 0; font-size: 14px; }
+        .bean-select-btn p { margin: 0; font-size: 12px; color: #666; }
+        .difficulty-tag { position: absolute; top: 10px; right: 10px; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; color: #fff; }
+        .diff-1 { background: #64b5f6; }
+        .diff-2 { background: #81c784; }
+        .diff-3 { background: #e57373; }
+
+        /* 遊戲介面 */
+        #game-screen { display: none; width: 100%; max-width: 1400px; grid-template-columns: 300px 1fr 280px; gap: 15px; }
+        .panel { background: var(--panel); border: 3px solid var(--border); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; }
+
+        /* 卡牌 */
+        .card { border: 2px solid #333; border-radius: 6px; overflow: hidden; background: #fff; font-size: 12px; }
+        .card-top { background: #fbc02d; padding: 8px; text-align: center; border-bottom: 2px solid #333; }
+        .card-top h2 { margin: 0; font-size: 13px; }
+        .card-top .cn { font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.6); color: #fff; padding: 2px 5px; border-radius: 4px; display: inline-block; margin-top:2px; }
+        .card-map { background: #dcedc8; padding: 8px; border-bottom: 2px solid #333; font-size: 10px; line-height: 1.3; color: #33691e; }
+        .card-stats { padding: 8px; background: #fffde7; }
+        .stat-line { display: flex; justify-content: space-between; margin-bottom: 4px; font-weight: bold; font-size: 11px; }
+        .stat-line span:last-child { color: #d84315; font-size: 14px; }
+        .roast-table { display: flex; justify-content: space-between; background: #e0e0e0; padding: 4px; margin-top: 10px; border-radius: 4px; font-size: 9px; text-align: center;}
+        .roast-col { flex: 1; padding: 2px 0; border-right: 1px solid #ccc; }
+        .roast-col.active { background: #ffb300; font-weight: bold; border-radius: 3px; color: #000; }
+
+        /* 中間操作區 */
+        .center-area { display: flex; flex-direction: column; align-items: center; }
+        .dashboard { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 10px; background: #efebe9; padding: 8px; border-radius: 8px; border: 2px dashed #8d6e63; box-sizing: border-box;}
+        
+        .roast-display { text-align: center; }
+        .roast-display h2 { margin: 0; font-size: 12px; }
+        .roast-value { font-size: 40px; font-weight: bold; color: #d84315; line-height: 1; text-shadow: 2px 2px 0 #fff; }
+
+        .turn-disc { width: 70px; height: 70px; border-radius: 50%; background: #fff; border: 3px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 11px; font-weight: bold; box-shadow: 2px 2px 0 #ccc; }
+        .turn-disc.active { background: #ffca28; border-color: #d84315; color: #d84315; }
+
+        .actions button { padding: 8px 12px; margin: 2px; font-size: 13px; font-weight: bold; background: #fff; border: 2px solid #333; border-radius: 6px; cursor: pointer; box-shadow: 2px 2px 0 #333; transition: 0.1s; }
+        .actions button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: 2px 2px 0 #333; }
+
+        /* 槽位區 */
+        .slots-container { display: flex; width: 100%; gap: 10px; margin-top: 10px; }
+        .slot-group { flex: 1; background: rgba(0,0,0,0.05); border: 2px dashed #8d6e63; border-radius: 8px; padding: 8px; text-align: center; }
+        .slot-group h3 { margin: 0 0 5px 0; font-size: 12px; color: #8d6e63; }
+        .slot-area { display: flex; flex-wrap: wrap; gap: 5px; min-height: 60px; align-items: center; justify-content: center; }
+        
+        /* 技能按鈕 */
+        .skills-area { display: flex; gap: 5px; margin-top: 10px; width: 100%; justify-content: center; flex-wrap: wrap;}
+        .skills-area button { padding: 5px 10px; font-size: 11px; background: #e3f2fd; border: 2px solid #1e88e5; border-radius: 5px; cursor: pointer; font-weight: bold;}
+        .skills-area button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* 代幣 */
+        .token {
+            width: 45px; height: 45px; border-radius: 50%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; font-weight: bold; color: #fff;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.3); cursor: pointer; user-select: none;
+            border: 2px solid rgba(255,255,255,0.6); position: relative; font-size: 10px;
+        }
+        .token.selected { border: 3px solid #ffeb3b; transform: scale(1.1); box-shadow: 0 0 10px #ffeb3b; z-index: 10; }
+        .token .num { font-size: 18px; line-height: 1; }
+        
+        .token.Body { background-color: var(--body); }
+        .token.Acidity { background-color: var(--acid); }
+        .token.Aroma { background-color: var(--aroma); }
+        .token.Moisture { background-color: var(--moist); }
+        .token.Reject { background-color: var(--reject); }
+        .token.Smoke { background-color: var(--smoke); }
+        .token.Wild { background: conic-gradient(var(--body) 0 33%, var(--acid) 33% 66%, var(--aroma) 66% 100%); }
+        .token.Skill { background-color: var(--skill); color: #333; border: 2px solid #333; font-size: 8px; text-align: center; line-height: 1; }
+
+        /* 手牌區 */
+        .crib { margin-top: 10px; width: 100%; min-height: 80px; background: #fff; border: 2px solid #8d6e63; border-radius: 8px; padding: 10px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+        /* 計分板 */
+        .score-item { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 5px; border-bottom: 1px dashed #ccc; padding-bottom: 3px; }
+        .score-item.total { font-size: 20px; color: #d84315; border-bottom: none; margin-top: 5px; }
+        .log { background: #fff; border: 1px solid #ccc; border-radius: 5px; padding: 8px; font-size: 11px; overflow-y: auto; height: 150px; margin-top: 5px; }
+        .log p { margin: 2px 0; }
+        .log .hl { color: #d84315; font-weight: bold; }
+        
+        .bag-info { font-size: 11px; margin-top: 10px; color: #555; background: #fff; padding: 5px; border-radius: 5px; border: 1px solid #ccc;}
+
+        /* 遊戲說明彈窗 */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: var(--panel); border: 4px solid var(--border); border-radius: 12px;
+            width: 90%; max-width: 600px; max-height: 80vh; padding: 25px; overflow-y: auto;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.5); position: relative; line-height: 1.6;
+        }
+        .modal-content h2 { margin-top: 0; color: #d84315; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        .modal-content h3 { color: #8b5a2b; margin-top: 20px; margin-bottom: 10px; border-left: 4px solid #d84315; padding-left: 8px; }
+        .modal-content ul { padding-left: 20px; margin-top: 5px; }
+        .modal-content li { margin-bottom: 8px; font-size: 14px; }
+        .modal-content .close-btn {
+            position: absolute; top: 15px; right: 15px; background: #d84315; color: #fff;
+            border: none; font-size: 16px; font-weight: bold; width: 30px; height: 30px;
+            border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .modal-content .close-btn:hover { background: #bf360c; }
+        .highlight-text { color: #d84315; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <h1>☕ Coffee Roaster</h1>
+        <div class="subtitle">完整 15 款豆子 + 真實規則 + 完整說明</div>
+        <button class="btn-help" onclick="toggleModal(true)">📖 遊戲說明</button>
+    </div>
+
+    <!-- 遊戲說明彈窗 -->
+    <div class="modal-overlay" id="help-modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="toggleModal(false)">×</button>
+            <h2>☕ 遊戲玩法說明</h2>
+            <p>你是一位咖啡烘焙師，必須在豆子燒焦前，收集足夠的風味代幣，並在杯測時獲得高分。</p>
+            
+            <h3>🎯 遊戲目標</h3>
+            <p>透過轉動轉盤抽取代幣，收集 <span class="highlight-text">Body (醇厚)</span>、<span class="highlight-text">Acidity (酸度)</span>、<span class="highlight-text">Aroma (香氣)</span>。在烘焙度到達指定範圍時結束，進行計分。</p>
+
+            <h3>🔄 回合流程</h3>
+            <ul>
+                <li>點擊 <b>「1. 推進回合 (Upkeep)」</b>，烘焙度會自動 +1，並決定本回合的抽牌數。</li>
+                <li>點擊 <b>「2. 抽牌 (Draw)」</b>，從袋中抽取對應數量的代幣。</li>
+                <li>若抽到「水分代幣 💧」，它會立即被移除，且烘焙度會額外 +1。</li>
+                <li>若烘焙度超過該豆子的上限，豆子會燒焦，遊戲立即結束。</li>
+                <li>您可以隨時點擊 <b>「3. 杯測結算 (Cup Test)」</b> 來計算當前分數，結算後可以選擇繼續烘焙。</li>
+            </ul>
+
+            <h3>🪙 代幣種類與效果</h3>
+            <ul>
+                <li><b>風味代幣 (紅/綠/藍)</b>：帶有數字 (1~4)，用於最後計分與發動技能。</li>
+                <li><b>水分代幣 💧</b>：抽到立即移除，並增加烘焙度。</li>
+                <li><b>瑕疵豆 ☁️</b>：抽到會留在手中，最後計分時每個扣 2 分。</li>
+                <li><b>油煙代幣 💨</b>：每 3 回合會加入袋中，抽到會留在手中，最後計分時每個扣 5 分！</li>
+                <li><b>特殊技能代幣 (黃底黑字)</b>：抽到時會留在手牌，你可以將它放入「左側槽位」來發動效果：
+                    <ul>
+                        <li><code>+2 Drawing</code>：立即額外抽 2 個代幣。</li>
+                        <li><code>Redrawing 2</code>：退回 2 個手牌，並重新抽 2 個。</li>
+                        <li><code>Drawing 5</code>：抽 5 個代幣，你必須點擊手牌移除其中 2 個。</li>
+                        <li><code>Remove</code>：移除 1 個水分或瑕疵豆。</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h3>🛠️ 玩家技能與槽位</h3>
+            <p>點擊手牌代幣可選取 (黃框)，然後點擊下方按鈕發動：</p>
+            <ul>
+                <li><b>🔴 融合 (Concentration)</b>：選取 <b>2</b> 個同色代幣，合併為等級相加的新代幣 (如 1+2=3)，並放入右側槽位。</li>
+                <li><b>🟢 保留 (Preservation)</b>：選取 <b>1</b> 個代幣，將其退回袋中（避免扣分）。</li>
+                <li><b>🔵 分裂 (Dispersion)</b>：選取 <b>1</b> 個代幣，將其拆分為兩個低等級代幣，並放入右側槽位。</li>
+                <li><b>➡️ 放入右側槽位</b>：如果你不想用技能，可以直接把代幣放入右側，準備計分。</li>
+                <li>每次發動技能，結算時可獲得 <b>+1 技能分</b>。</li>
+            </ul>
+
+            <h3>📊 計分方式</h3>
+            <p>點擊「杯測結算」後，系統會自動計算：</p>
+            <ul>
+                <li><b>烘焙分</b>：看左側卡牌對應的數字。</li>
+                <li><b>風味分</b>：計算您放在<b>「右側槽位」</b>中代幣的數量，對照卡牌下方的分數表。</li>
+                <li><b>技能分</b>：您發動技能的次數。</li>
+                <li><b>扣分</b>：油煙代幣每個 -5 分；瑕疵豆每個 -2 分。</li>
+            </ul>
+            <p style="text-align: center; margin-top: 20px; font-weight: bold; color: #d84315;">祝你烘焙出完美的咖啡豆！</p>
+        </div>
+    </div>
+
+    <div id="setup-screen">
+        <h2>請選擇要烘焙的咖啡豆</h2>
+        <div class="bean-grid" id="bean-grid"></div>
+    </div>
+
+    <div id="game-screen">
+        <!-- 左側卡牌 -->
+        <div class="panel">
+            <div class="card" id="card-ui">
+                <div class="card-top">
+                    <h2 id="c-name">PANAMA GEISHA</h2>
+                    <div class="cn" id="c-cn">巴拿馬·瑰夏</div>
+                </div>
+                <div class="card-map" id="c-map"></div>
+                <div class="card-stats">
+                    <div class="stat-line"><span>BODY</span><span id="c-body">4</span></div>
+                    <div class="stat-line"><span>ACIDITY</span><span id="c-acid">3</span></div>
+                    <div class="stat-line"><span>AROMA</span><span id="c-aroma">5</span></div>
+                    <div style="margin-top:5px; font-weight:bold; font-size:10px; text-align:center;">烘焙分數</div>
+                    <div class="roast-table" id="c-roast-table"></div>
+                </div>
+            </div>
+            <div class="bag-info">
+                袋剩: <span id="bag-count">0</span> | 棄牌: <span id="discard-count">0</span><br>
+                本回合需抽: <span id="draw-count" style="color:#d84315; font-weight:bold;">0</span> 張
+            </div>
+        </div>
+
+        <!-- 中間操作 -->
+        <div class="panel center-area">
+            <div class="dashboard">
+                <div class="roast-display">
+                    <h2>烘焙度 (Roast)</h2>
+                    <div class="roast-value" id="ui-roast">0</div>
+                </div>
+                <div class="turn-disc" id="ui-turn">
+                    準備<br>開始
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="btn-upkeep" onclick="upkeepPhase()">1. 推進回合 (Upkeep)</button>
+                <button id="btn-draw" onclick="drawTokens()" disabled>2. 抽牌 (Draw)</button>
+                <button id="btn-cup" onclick="cupTest()" disabled>3. 杯測結算 (Cup Test)</button>
+            </div>
+
+            <!-- 槽位區 -->
+            <div class="slots-container">
+                <div class="slot-group">
+                    <h3>左側槽位 (Immediate Effects)</h3>
+                    <div class="slot-area" id="slot-left"></div>
+                </div>
+                <div class="slot-group">
+                    <h3>右側槽位 (Flavor Effects)</h3>
+                    <div class="slot-area" id="slot-right"></div>
+                </div>
+            </div>
+
+            <!-- 技能按鈕 -->
+            <div class="skills-area">
+                <button onclick="useSkill('conc')" id="btn-conc" disabled>🔴 融合 (2合1)</button>
+                <button onclick="useSkill('pres')" id="btn-pres" disabled>🟢 保留 (退回袋)</button>
+                <button onclick="useSkill('disp')" id="btn-disp" disabled>🔵 分裂 (1拆2)</button>
+                <button onclick="moveToSlot()" id="btn-move" disabled>➡️ 放入右側槽位</button>
+            </div>
+
+            <!-- 手牌區 -->
+            <div class="crib" id="crib"></div>
+        </div>
+
+        <!-- 右側計分 -->
+        <div class="panel">
+            <h3 style="margin-top:0; text-align:center;">計分板</h3>
+            <div class="score-item"><span>烘焙分:</span> <span id="sc-roast">0</span></div>
+            <div class="score-item"><span>風味分:</span> <span id="sc-flavor">0</span></div>
+            <div class="score-item"><span>技能分:</span> <span id="sc-skill">0</span></div>
+            <div class="score-item"><span>扣分:</span> <span id="sc-minus">0</span></div>
+            <div class="score-item total"><span>總分:</span> <span id="sc-total">0</span></div>
+            <div class="log" id="ui-log">請開始回合。</div>
+        </div>
+    </div>
+
+    <script>
+        // 彈窗開關
+        function toggleModal(show) {
+            document.getElementById('help-modal').style.display = show ? 'flex' : 'none';
+        }
+
+        // 完整 15 款豆子資料庫
+        const BEANS = {
+            // Group 1 (初級)
+            cuba: { name:'CUBA CRYSTAL', cn:'古巴·水晶山', diff:'初級', req:{B:2,A:3,Ar:3}, scores:{11:5,12:6,13:7,14:10,15:6,16:5,17:4,18:3}, bag:{Body:8,Acidity:5,Aroma:5,Moisture:1,Reject:1,Skill:3}, desc:'加勒比海最高級品牌。精製度高，瑕疵豆少，擁有極佳的香氣。' },
+            jamaica: { name:'JAMAICA BLUE MOUNTAIN', cn:'牙買加·藍山', diff:'初級', req:{B:2,A:3,Ar:3}, scores:{11:4,12:4,13:6,14:10,15:7,16:6,17:4,18:4}, bag:{Body:9,Acidity:5,Aroma:6,Moisture:1,Reject:1,Skill:3}, desc:'代表加勒比海的頂級咖啡。精製度高，散發著美妙的香氣。' },
+            panama_shb: { name:'PANAMA SHB', cn:'巴拿馬 SHB', diff:'初級', req:{B:3,A:2,Ar:3}, scores:{11:5,12:6,13:7,14:10,15:6,16:5,17:4,18:3}, bag:{Body:9,Acidity:4,Aroma:6,Moisture:2,Reject:1,Skill:3}, desc:'品質優良的巴拿馬產豆。口感清爽，香氣濃郁。' },
+            mexico: { name:'MEXICO', cn:'墨西哥', diff:'初級', req:{B:2,A:3,Ar:3}, scores:{11:5,12:5,13:7,14:10,15:6,16:6,17:4,18:4}, bag:{Body:8,Acidity:5,Aroma:5,Moisture:2,Reject:0,Skill:3}, desc:'香氣與酸味優異，豆子較薄容易烘焙。適合用於混合。' },
+            
+            // Group 2 (中級)
+            brazil: { name:'BRAZIL NATURAL', cn:'巴西·自然', diff:'中級', req:{B:3,A:3,Ar:3}, scores:{13:4,14:4,15:6,16:6,17:8,18:12,19:7,20:5}, bag:{Body:10,Acidity:4,Aroma:5,Moisture:2,Reject:3,Skill:4}, desc:'自然乾燥法。豆質較硬，需平衡烘焙以保留醇厚、酸度與香氣。' },
+            colombia: { name:'COLOMBIA SUPREMO', cn:'哥倫比亞 Supremo', diff:'中級', req:{B:3,A:4,Ar:3}, scores:{13:4,14:4,15:5,16:7,17:13,18:9,19:6,20:4}, bag:{Body:8,Acidity:6,Aroma:6,Moisture:2,Reject:2,Skill:4}, desc:'豆子大且硬，水分多，非常難烘焙。若烘焙得當能引出絕佳香氣。' },
+            guatemala: { name:'GUATEMALA SHB', cn:'瓜地馬拉 SHB', diff:'中級', req:{B:3,A:3,Ar:4}, scores:{13:5,14:5,15:7,16:10,17:6,18:5,19:4,20:3}, bag:{Body:9,Acidity:5,Aroma:7,Moisture:2,Reject:2,Skill:4}, desc:'產於山岳地帶的最高等級。香氣與酸度顯著。' },
+            tanzania: { name:'TANZANIA AA', cn:'坦尚尼亞 AA', diff:'中級', req:{B:3,A:4,Ar:4}, scores:{13:4,14:4,15:8,16:12,17:7,18:6,19:5,20:4}, bag:{Body:8,Acidity:6,Aroma:6,Moisture:2,Reject:2,Skill:4}, desc:'前身為吉利馬扎羅。醇厚、酸度與香氣兼具，不易失敗。' },
+            indonesia: { name:'INDONESIA MANDHELING G1', cn:'印尼·曼特寧 G1', diff:'中級', req:{B:4,A:3,Ar:4}, scores:{14:4,15:5,16:6,17:8,18:12,19:7,20:6,21:4}, bag:{Body:11,Acidity:3,Aroma:7,Moisture:2,Reject:4,Skill:4}, desc:'最高等級 G1。擁有豐富的醇厚度與獨特熱帶香氣。' },
+            yemen: { name:'YEMEN MOKHA MATTARI', cn:'葉門·摩卡·馬他利', diff:'中級', req:{B:3,A:3,Ar:4}, scores:{13:4,14:4,15:5,16:5,17:9,18:13,19:8,20:4}, bag:{Body:9,Acidity:5,Aroma:8,Moisture:2,Reject:4,Skill:4}, desc:'又名「咖啡的貴婦」。有著獨特的摩卡香氣。' },
+            
+            // Group 3 (高級)
+            geisha: { name:'PANAMA GEISHA', cn:'巴拿馬·瑰夏', diff:'高級', req:{B:4,A:3,Ar:5}, scores:{11:3,12:6,13:14,14:7,15:4,16:2,17:0,18:0}, bag:{Body:10,Acidity:5,Aroma:8,Moisture:0,Reject:0,Skill:5}, desc:'21世紀精品咖啡界代表。不易烘焙，但香氣華麗。' },
+            ethiopia_y: { name:'ETHIOPIA Y-G1', cn:'衣索比亞 Y-G1', diff:'高級', req:{B:3,A:4,Ar:5}, scores:{15:4,16:4,17:6,18:8,19:15,20:9,21:5,22:4}, bag:{Body:7,Acidity:9,Aroma:8,Moisture:2,Reject:2,Skill:5}, desc:'帶有葡萄酒香氣。豆質堅硬，需費心保留其酸度與香氣。' },
+            ethiopia_s: { name:'ETHIOPIA S-G1', cn:'衣索比亞 S-G1', diff:'高級', req:{B:4,A:4,Ar:5}, scores:{15:4,16:4,17:6,18:7,19:9,20:15,21:6,22:4}, bag:{Body:8,Acidity:10,Aroma:8,Moisture:2,Reject:1,Skill:5}, desc:'柑橘香氣，醇厚濃郁。雖然高品質，但豆質堅硬難烘焙。' },
+            kenya: { name:'KENYA AA', cn:'肯亞 AA', diff:'高級', req:{B:3,A:4,Ar:5}, scores:{15:4,16:5,17:6,18:7,19:7,20:10,21:5,22:5}, bag:{Body:8,Acidity:8,Aroma:8,Moisture:2,Reject:2,Skill:5}, desc:'銳利的酸度與醇厚感。香氣與甜味極佳，平衡感好。' },
+            panama_caturra: { name:'PANAMA CATURRA', cn:'巴拿馬·卡杜拉', diff:'高級', req:{B:3,A:4,Ar:5}, scores:{13:3,14:3,15:4,16:5,17:15,18:8,19:5,20:4}, bag:{Body:7,Acidity:10,Aroma:9,Moisture:1,Reject:0,Skill:5}, desc:'豆相均勻，水洗處理。需要高超技巧引出華麗香氣。' }
+        };
+
+        const TURN_TRACK = [2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1];
+
+        let state = {
+            bean: null, roast: 0, turn: 0, bag: [], discard: [], crib: [], 
+            slotLeft: [], slotRight: [], selected: [], skills: 0, isOver: false,
+            phase: 'idle', drawCount: 0
+        };
+
+        function initSetup() {
+            const grid = document.getElementById('bean-grid');
+            for (let key in BEANS) {
+                const b = BEANS[key];
+                const btn = document.createElement('button');
+                btn.className = 'bean-select-btn';
+                
+                let diffClass = 'diff-1';
+                if(b.diff === '中級') diffClass = 'diff-2';
+                if(b.diff === '高級') diffClass = 'diff-3';
+
+                btn.innerHTML = `
+                    <span class="difficulty-tag ${diffClass}">${b.diff}</span>
+                    <h3>${b.name}</h3>
+                    <p style="font-weight:bold; color:#d84315;">${b.cn}</p>
+                    <p style="margin-top:5px;">目標: B${b.req.B} A${b.req.A} Ar${b.req.Ar}</p>
+                `;
+                btn.onclick = () => startGame(key);
+                grid.appendChild(btn);
+            }
+        }
+
+        function startGame(key) {
+            state = { bean: BEANS[key], roast: 0, turn: 0, bag: [], discard: [], crib: [], slotLeft: [], slotRight: [], selected: [], skills: 0, isOver: false, phase: 'idle', drawCount: 0 };
+            
+            const config = state.bean.bag;
+            for (let type in config) {
+                for (let i = 0; i < config[type]; i++) {
+                    if(type === 'Skill') {
+                        const skills = ['+2 Drawing', 'Redrawing 2', 'Drawing 5', 'Remove'];
+                        state.bag.push({ type: 'Skill', skill: skills[Math.floor(Math.random()*skills.length)], level: 0 });
+                    } else if (type === 'Moisture' || type === 'Reject') {
+                        state.bag.push({ type: type, level: 0 });
+                    } else {
+                        state.bag.push({ type: type, level: Math.floor(Math.random() * 3) + 1 });
+                    }
+                }
+            }
+            shuffle(state.bag);
+
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'grid';
+            
+            document.getElementById('c-name').innerText = state.bean.name;
+            document.getElementById('c-cn').innerText = state.bean.cn;
+            document.getElementById('c-map').innerText = state.bean.desc;
+            document.getElementById('c-body').innerText = state.bean.req.B;
+            document.getElementById('c-acid').innerText = state.bean.req.A;
+            document.getElementById('c-aroma').innerText = state.bean.req.Ar;
+
+            const rt = document.getElementById('c-roast-table');
+            rt.innerHTML = '';
+            for (let r in state.bean.scores) {
+                rt.innerHTML += `<div class="roast-col" id="rt-${r}">${r}<br><b>${state.bean.scores[r]}</b></div>`;
+            }
+
+            updateUI();
+            log(`遊戲開始！點擊「1. 推進回合 (Upkeep)」。`, 'hl');
+        }
+
+        function upkeepPhase() {
+            if(state.isOver) return;
+            state.turn++;
+            
+            state.drawCount = TURN_TRACK[(state.turn - 1) % TURN_TRACK.length];
+            document.getElementById('draw-count').innerText = state.drawCount;
+            document.getElementById('ui-turn').innerHTML = `回合<br>${state.turn}`;
+            document.getElementById('ui-turn').classList.add('active');
+
+            if(state.turn % 3 === 0) {
+                state.bag.push({ type: 'Smoke', level: 0 });
+                state.bag.push({ type: 'Smoke', level: 0 });
+                shuffle(state.bag);
+                log(`⚠️ 回合標記經過油煙圖示，將 2 個油煙代幣放入袋中。`, 'hl');
+            }
+
+            log(`回合 ${state.turn}：需從袋中抽取 ${state.drawCount} 個圓片。`);
+            
+            document.getElementById('btn-upkeep').disabled = true;
+            document.getElementById('btn-draw').disabled = false;
+            state.phase = 'drawing';
+            updateUI();
+        }
+
+        function drawTokens() {
+            if(state.isOver || state.phase !== 'drawing') return;
+            
+            let moistureRemoved = 0;
+            let drawn = [];
+            
+            for(let i = 0; i < state.drawCount; i++) {
+                if(state.bag.length === 0) break;
+                let t = state.bag.pop();
+                drawn.push(t);
+            }
+
+            log(`抽出了 ${drawn.length} 個圓片，開始依序處理...`);
+
+            for(let t of drawn) {
+                if (t.type === 'Moisture') {
+                    moistureRemoved++;
+                    state.discard.push(t);
+                    log(`移除水分圓片。`, 'hl');
+                } else if (t.type === 'Skill') {
+                    log(`抽到即時效果圓片【${t.skill}】，可放入左側槽位使用。`, 'hl');
+                    state.crib.push(t); 
+                } else {
+                    state.crib.push(t);
+                    log(`獲得 ${t.type} (等級 ${t.level})。`);
+                }
+            }
+
+            if (moistureRemoved > 0) {
+                state.roast += moistureRemoved;
+                log(`因移除 ${moistureRemoved} 個水分，烘焙度上升至 ${state.roast}。`, 'hl');
+            }
+
+            const maxRoast = Math.max(...Object.keys(state.bean.scores).map(Number));
+            if (state.roast > maxRoast) {
+                log("🔥 烘焙過度！遊戲結束。", "hl");
+                state.isOver = true;
+            }
+
+            document.getElementById('btn-draw').disabled = true;
+            document.getElementById('btn-cup').disabled = false;
+            state.phase = 'action';
+            updateUI();
+        }
+
+        function cupTest() {
+            if(state.isOver || state.phase !== 'action') return;
+            log("=== 進入杯測 (Cup Test) 計分 ===", "hl");
+
+            let roastScore = state.bean.scores[state.roast] || 0;
+            document.getElementById('sc-roast').innerText = roastScore;
+
+            let counts = { Body:0, Acidity:0, Aroma:0 };
+            state.slotRight.forEach(t => {
+                if(counts[t.type] !== undefined) counts[t.type]++;
+                if(t.type === 'Wild') { counts.Body++; counts.Acidity++; counts.Aroma++; }
+            });
+
+            let flavorScore = 0;
+            flavorScore += [0,1,3,6,10][Math.min(counts.Body, 4)];
+            flavorScore += [0,1,3,6,10][Math.min(counts.Acidity, 4)];
+            flavorScore += [0,1,2,4,7][Math.min(counts.Aroma, 4)];
+            document.getElementById('sc-flavor').innerText = flavorScore;
+
+            document.getElementById('sc-skill').innerText = state.skills;
+
+            let minusScore = 0;
+            let allTokens = [...state.discard, ...state.slotLeft, ...state.slotRight, ...state.crib];
+            let smokeCount = allTokens.filter(t => t.type === 'Smoke').length;
+            let rejectCount = allTokens.filter(t => t.type === 'Reject').length;
+            minusScore = (smokeCount * 5) + (rejectCount * 2);
+            document.getElementById('sc-minus').innerText = `-${minusScore}`;
+
+            let total = roastScore + flavorScore + state.skills - minusScore;
+            if (total < 0) total = 0;
+            document.getElementById('sc-total').innerText = total;
+
+            log(`烘焙分: ${roastScore}, 風味分: ${flavorScore}, 技能分: ${state.skills}, 扣分: -${minusScore}`);
+            log(`🏆 當前總分：${total}`, "hl");
+
+            state.phase = 'post_cup';
+            document.getElementById('btn-cup').innerText = "確認分數並繼續";
+            document.getElementById('btn-cup').onclick = continueRoasting;
+        }
+
+        function continueRoasting() {
+            state.discard.push(...state.crib, ...state.slotLeft, ...state.slotRight);
+            state.crib = []; state.slotLeft = []; state.slotRight = []; state.selected = [];
+            
+            document.getElementById('btn-upkeep').disabled = false;
+            document.getElementById('btn-cup').innerText = "3. 杯測結算 (Cup Test)";
+            document.getElementById('btn-cup').onclick = cupTest;
+            document.getElementById('btn-cup').disabled = true;
+            state.phase = 'idle';
+            updateUI();
+            log("回收圓片，準備下一回合。");
+        }
+
+        function updateUI() {
+            document.getElementById('ui-roast').innerText = state.roast;
+            document.getElementById('bag-count').innerText = state.bag.length;
+            document.getElementById('discard-count').innerText = state.discard.length;
+
+            for (let r in state.bean.scores) {
+                const el = document.getElementById(`rt-${r}`);
+                if (el) {
+                    if (parseInt(r) === state.roast) el.classList.add('active');
+                    else el.classList.remove('active');
+                }
+            }
+
+            const crib = document.getElementById('crib');
+            crib.innerHTML = '';
+            state.crib.forEach((t, idx) => {
+                crib.appendChild(createTokenHTML(t, idx, 'crib'));
+            });
+
+            const slotL = document.getElementById('slot-left');
+            const slotR = document.getElementById('slot-right');
+            slotL.innerHTML = ''; slotR.innerHTML = '';
+            state.slotLeft.forEach((t, idx) => slotL.appendChild(createTokenHTML(t, idx, 'slotLeft')));
+            state.slotRight.forEach((t, idx) => slotR.appendChild(createTokenHTML(t, idx, 'slotRight')));
+
+            const btnC = document.getElementById('btn-conc');
+            const btnD = document.getElementById('btn-disp');
+            const btnP = document.getElementById('btn-pres');
+            const btnM = document.getElementById('btn-move');
+
+            if (state.isOver || state.phase !== 'action') {
+                btnC.disabled = true; btnD.disabled = true; btnP.disabled = true; btnM.disabled = true;
+            } else {
+                btnC.disabled = state.selected.length !== 2;
+                btnD.disabled = state.selected.length !== 1;
+                btnP.disabled = state.selected.length !== 1;
+                btnM.disabled = state.selected.length === 0;
+            }
+        }
+
+        function createTokenHTML(t, idx, location) {
+            const div = document.createElement('div');
+            div.className = `token ${t.type}`;
+            if (location === 'crib' && state.selected.includes(idx)) div.classList.add('selected');
+
+            if (t.type === 'Skill') div.innerHTML = `<div>${t.skill}</div>`;
+            else if (t.type === 'Moisture') div.innerHTML = `<span class="num">💧</span>`;
+            else if (t.type === 'Reject') div.innerHTML = `<span class="num">☁️</span>`;
+            else if (t.type === 'Smoke') div.innerHTML = `<span class="num">💨</span>`;
+            else if (t.type === 'Wild') div.innerHTML = `<span class="num">🌟</span>`;
+            else div.innerHTML = `<span class="num">${t.level}</span><span style="font-size:8px;">${t.type.substring(0,3)}</span>`;
+
+            if (location === 'crib') {
+                div.onclick = () => {
+                    if(state.phase !== 'action') return;
+                    const i = state.selected.indexOf(idx);
+                    if (i > -1) state.selected.splice(i, 1);
+                    else state.selected.push(idx);
+                    updateUI();
+                };
+            }
+            return div;
+        }
+
+        function useSkill(type) {
+            if (state.isOver || state.phase !== 'action') return;
+
+            if (type === 'conc' && state.selected.length === 2) {
+                const t1 = state.crib[state.selected[0]];
+                const t2 = state.crib[state.selected[1]];
+                if (t1.type !== t2.type || t1.level + t2.level > 4 || t1.type === 'Skill' || t1.type === 'Reject') return;
+                
+                log(`融合：${t1.type}(${t1.level}) + ${t2.type}(${t2.level}) ➡️ 等級 ${t1.level + t2.level}`, 'hl');
+                state.skills += 1;
+                state.slotRight.push({ type: t1.type, level: t1.level + t2.level });
+                state.selected.sort((a,b)=>b-a).forEach(i => state.crib.splice(i, 1));
+            } 
+            else if (type === 'disp' && state.selected.length === 1) {
+                const t = state.crib[state.selected[0]];
+                if (t.level <= 1 || t.type === 'Reject' || t.type === 'Skill') return;
+                
+                log(`分裂：${t.type}(${t.level}) ➡️ 拆成兩個`, 'hl');
+                state.skills += 1;
+                const base = Math.floor(t.level / 2);
+                const rem = t.level - base;
+                state.slotRight.push({ type: t.type, level: base });
+                state.slotRight.push({ type: t.type, level: rem });
+                state.crib.splice(state.selected[0], 1);
+            }
+            else if (type === 'pres' && state.selected.length === 1) {
+                const t = state.crib[state.selected[0]];
+                log(`保留：將 ${t.type}(${t.level}) 退回袋中。`, 'hl');
+                state.skills += 1;
+                state.bag.push(t);
+                shuffle(state.bag);
+                state.crib.splice(state.selected[0], 1);
+            }
+            
+            state.selected = [];
+            updateUI();
+        }
+
+        function moveToSlot() {
+            if (state.selected.length === 0) return;
+            state.selected.sort((a,b)=>b-a).forEach(i => {
+                state.slotRight.push(state.crib[i]);
+                state.crib.splice(i, 1);
+            });
+            state.selected = [];
+            updateUI();
+        }
+
+        function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } }
+        function log(msg, cls = '') { const logDiv = document.getElementById('ui-log'); const p = document.createElement('p'); p.innerText = msg; if (cls) p.className = cls; logDiv.appendChild(p); logDiv.scrollTop = logDiv.scrollHeight; }
+
+        window.onload = initSetup;
+    </script>
+</body>
+</html>

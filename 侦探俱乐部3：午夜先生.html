@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>偵探俱樂部3：午夜先生</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --primary-color: #e65100;
+            --secondary-color: #2c2c2c;
+            --accent-color: #ffb300;
+            --card-bg: #1e1e1e;
+            --border-color: #444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { background-color: var(--secondary-color); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary-color); flex-shrink: 0; }
+        header h1 { font-size: 1.5rem; color: var(--accent-color); text-shadow: 1px 1px 2px #000; }
+        .controls button { background-color: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 5px 10px; margin-left: 10px; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .controls button:hover { background-color: var(--border-color); }
+        #game-container { flex: 1; display: flex; flex-direction: column; padding: 20px; max-width: 900px; margin: 0 auto; width: 100%; overflow-y: auto; position: relative; }
+        #story-text { background-color: var(--card-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px; line-height: 1.6; font-size: 1.1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        #story-text strong { color: var(--accent-color); }
+        #story-text .penalty { color: #ff5252; font-weight: bold; }
+        #choices-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .choice-btn { background-color: var(--secondary-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 15px; text-align: left; font-size: 1rem; cursor: pointer; border-radius: 6px; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .choice-btn:hover:not(:disabled) { background-color: #444; border-color: var(--accent-color); }
+        .choice-btn:disabled { opacity: 0.5; cursor: not-allowed; background-color: #1a1a1a; }
+        #evidence-bar { background-color: var(--secondary-color); border-top: 2px solid var(--border-color); padding: 10px 0; flex-shrink: 0; overflow-x: auto; overflow-y: hidden; white-space: nowrap; display: flex; align-items: center; height: 160px; }
+        #evidence-bar::-webkit-scrollbar { height: 8px; }
+        #evidence-bar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        .evidence-container { display: flex; gap: 15px; padding: 0 20px; margin: 0 auto; }
+        .evidence-card { width: 120px; height: 130px; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; position: relative; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.5); transition: transform 0.2s; cursor: pointer; flex-shrink: 0; }
+        .evidence-card:hover { transform: translateY(-5px); }
+        .evidence-card .svg-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -60%); width: 80px; height: 80px; }
+        .evidence-label { width: 100%; background: rgba(0, 0, 0, 0.8); color: var(--text-color); padding: 5px; text-align: center; font-size: 0.8rem; border-top: 1px solid var(--border-color); z-index: 2; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background-color: var(--bg-color); padding: 30px; border-radius: 10px; border: 2px solid var(--primary-color); max-width: 600px; width: 90%; text-align: center; }
+        .modal-content h2 { color: var(--accent-color); margin-bottom: 15px; }
+        .modal-content p { margin-bottom: 10px; line-height: 1.5; }
+        .modal-content button { margin-top: 20px; padding: 10px 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        .modal-content button:hover { background-color: #bf360c; }
+        .score-display { font-weight: bold; color: var(--accent-color); font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>偵探俱樂部3：午夜先生</h1>
+        <div class="controls">
+            <span class="score-display">分數: <span id="score">0</span></span>
+            <button onclick="openModal('help')">遊戲說明</button>
+            <button onclick="saveGame()">存檔</button>
+            <button onclick="loadGame()">讀檔</button>
+        </div>
+    </header>
+
+    <main id="game-container">
+        <div id="story-text"></div>
+        <div id="choices-container"></div>
+    </main>
+
+    <div id="evidence-bar">
+        <div class="evidence-container" id="evidence-list"></div>
+    </div>
+
+    <div class="modal-overlay" id="modal-help">
+        <div class="modal-content">
+            <h2>遊戲說明</h2>
+            <p>歡迎來到偵探俱樂部！你將扮演年輕的偵探 Bodger Pancetta。</p>
+            <p>閱讀故事，做出選擇，並收集關鍵證物來解開謎題。</p>
+            <p>請注意：選錯答案會遭到「砸派」懲罰，並扣除分數！</p>
+            <button onclick="closeModal('help')">開始遊戲</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-evidence">
+        <div class="modal-content">
+            <h2 id="ev-title">證物</h2>
+            <p id="ev-desc"></p>
+            <button onclick="closeModal('evidence')">關閉</button>
+        </div>
+    </div>
+
+    <script>
+        let state = { currentNode: 'start', score: 0, inventory: [], maxScore: 50 };
+        const nodes = {
+            'start': {
+                text: "歡迎來到偵探俱樂部！最近遊樂園出現了一個自稱「午夜先生」的破壞者，他留下神秘的密碼信，並到處破壞設施。Casey 今天沒有出現，只留下了一張密碼信。<br><br>James 問：「你能解開這張密碼信嗎？」",
+                choices: [
+                    { text: "仔細觀察密碼信（前往段落 31）", next: 'node_31', type: 'normal' },
+                    { text: "放棄解謎，直接去遊樂園（前往段落 49）", next: 'fail_1', type: 'fail', penalty: 2 },
+                    { text: "問 Fagiolina 怎麼解（前往段落 29）", next: 'fail_2', type: 'fail', penalty: 1 }
+                ]
+            },
+            'node_31': {
+                text: "你仔細觀察密碼信。上面畫著一個「P」和一個「拱門」，還有一棵樹。你靈機一動：「P + 拱門 = PARCO（公園）！」<br><br>所以 Casey 約我們在公園見面！",
+                choices: [{ text: "前往公園（前往段落 45）", next: 'node_45', type: 'success', score: 4 }]
+            },
+            'node_45': {
+                text: "我們在公園的樹上發現了 Casey 留下的記號（樹枝折斷的方向）。跟著記號走，我們找到了 Casey 留下的紙條。<br><br>紙條上寫著：「重要約會，下午三點，公園。Casey。」",
+                choices: [{ text: "繼續追蹤（前往段落 10）", next: 'node_10', type: 'normal' }]
+            },
+            'node_10': {
+                text: "Casey 在紙條背面用膠帶貼了三張從報紙上剪下來的紙片，上面寫著：「Trucchi」、「Fantastici」、「Cat」。<br><br>James 說：「這看起來像是某種廣告。Cat... 加上什麼會變成一個地點？」",
+                choices: [
+                    { text: "Catalogo（型錄）", next: 'node_67', type: 'success', score: 3 },
+                    { text: "Categoria（類別）", next: 'fail_3', type: 'fail', penalty: 1 },
+                    { text: "Cataclisma（災難）", next: 'fail_4', type: 'fail', penalty: 1 }
+                ]
+            },
+            'node_67': {
+                text: "James 查了黃頁：「Trucchi e Fantastici, Via Cicerone 15」。這是一家魔術道具店！這意味著「午夜先生」可能是一個魔術師。<br><br>於是我們前往遊樂園的「魔術博物館」，館長是 Notorius 教授。",
+                choices: [{ text: "進入魔術博物館（前往段落 67）", next: 'node_museum', type: 'normal' }]
+            },
+            'node_museum': {
+                text: "在魔術博物館裡，我們看到了 Notorius 教授的「漂浮人頭」魔術。他的頭出現在一個箱子上面，身體卻不見了！<br><br>我們潛入他的辦公室，發現了一本被剪過的魔術型錄。",
+                choices: [
+                    { text: "拿走型錄作為證據（前往段落 96）", next: 'node_catalog', type: 'success', score: 5 },
+                    { text: "稱讚他的魔術（前往段落 59）", next: 'fail_5', type: 'fail', penalty: 2 }
+                ]
+            },
+            'node_catalog': {
+                text: "我們拿到了型錄！但就在這時，外面傳來了火警警報——「幽靈列車」失火了！<br><br>我們趕到現場，看到 Skinner（幽靈列車的老闆）正在跟警察說話。他聲稱他親眼看到 Notorius 教授在火災發生時從列車裡跑出來。",
+                choices: [
+                    { text: "相信 Skinner 的話（前往段落 43）", next: 'fail_6', type: 'fail', penalty: 2 },
+                    { text: "調查不在場證明（前往段落 68）", next: 'node_alibi', type: 'success', score: 4 }
+                ]
+            },
+            'node_alibi': {
+                text: "你回想了一下。當時公園門口停了一輛冰淇淋車，擋住了消防車的入口，導致消防車很晚才進來。而我們親眼看到 Notorius 教授在森林裡（被我們跟蹤），他根本不可能同時在幽靈列車那邊縱火！<br><br>這證明 Skinner 在說謊！",
+                choices: [{ text: "揭穿 Skinner（前往段落 81）", next: 'node_solve', type: 'normal' }]
+            },
+            'node_solve': {
+                text: "在警長 Peters（Casey 的父親）面前，我們揭穿了 Skinner 的謊言。Skinner 因為幽靈列車經營不善，想放火詐領保險金，並把罪嫌嫁禍給 Notorius 教授！<br><br>你成功破案了！",
+                choices: [{ text: "查看最終結果", next: 'finale', type: 'normal' }]
+            },
+            'finale': {
+                text: "局長 Peters 逮捕了 Skinner。雖然他對你們擅自調查有些不滿，但還是稱讚了你們的機智。<br><br>任務完成！你總共獲得了 " + state.score + " 分。",
+                choices: [{ text: "重新開始", next: 'reset_game', type: 'reset' }]
+            },
+            'fail_1': { text: "<span class='penalty'>你選錯了！</span>直接去遊樂園會錯過關鍵的密碼信線索。你被扣了 2 分。", choices: [{ text: "重試", next: 'start', type: 'normal' }] },
+            'fail_2': { text: "<span class='penalty'>你選錯了！</span>Fagiolina 只會給你提示，你應該自己觀察。你被扣了 1 分。", choices: [{ text: "重試", next: 'start', type: 'normal' }] },
+            'fail_3': { text: "<span class='penalty'>你選錯了！</span>Categoria 不是地點。你被扣了 1 分。", choices: [{ text: "重試", next: 'node_10', type: 'normal' }] },
+            'fail_4': { text: "<span class='penalty'>你選錯了！</span>Cataclisma 是災難，不是地點。你被扣了 1 分。", choices: [{ text: "重試", next: 'node_10', type: 'normal' }] },
+            'fail_5': { text: "<span class='penalty'>你被 Notorius 教授趕了出來！</span>你被扣了 2 分。", choices: [{ text: "重試", next: 'node_museum', type: 'normal' }] },
+            'fail_6': { text: "<span class='penalty'>你相信了 Skinner 的謊言，導致真兇逍遙法外！</span>你被扣了 2 分。", choices: [{ text: "重試", next: 'node_catalog', type: 'normal' }] }
+        };
+
+        const evidenceData = {
+            'disguise': { name: '雙重身份偽裝服', desc: '包含梳子、口香糖和墨鏡，可用來變裝跟蹤嫌犯。', svg: `<svg viewBox="0 0 100 100"><circle cx="50" cy="40" r="20" fill="#333"/><rect x="20" y="60" width="60" height="30" fill="#555"/><rect x="40" y="65" width="20" height="10" fill="#ff0000"/><circle cx="30" cy="70" r="5" fill="#000"/><circle cx="70" cy="70" r="5" fill="#000"/></svg>` },
+            'letter': { name: '密碼信', desc: '上面畫著 P 和拱門，代表公園 (Parco)。', svg: `<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="#fff" rx="5"/><text x="30" y="50" font-size="20" fill="#000" font-family="Arial">P</text><path d="M 40 60 Q 50 40 60 60" fill="none" stroke="#000" stroke-width="2"/><circle cx="50" cy="65" r="10" fill="none" stroke="#000" stroke-width="2"/></svg>` },
+            'catalog': { name: '魔術型錄', desc: 'Trucchi e Fantastici 的目錄，證明 Notorius 教授是魔術師。', svg: `<svg viewBox="0 0 100 100"><rect x="25" y="15" width="50" height="70" fill="#8B4513" rx="3"/><rect x="30" y="20" width="40" height="60" fill="#F5F5DC"/><line x1="35" y1="30" x2="65" y2="30" stroke="#000" stroke-width="2"/><line x1="35" y1="40" x2="65" y2="40" stroke="#000" stroke-width="2"/><line x1="35" y1="50" x2="65" y2="50" stroke="#000" stroke-width="2"/></svg>` },
+            'notebook': { name: 'M.T.S. 筆記本', desc: 'Bodger 的筆記本，記錄了追蹤路線與嫌疑犯。', svg: `<svg viewBox="0 0 100 100"><rect x="20" y="15" width="60" height="70" fill="#2E8B57" rx="3"/><line x1="30" y1="30" x2="70" y2="30" stroke="#FFF" stroke-width="2"/><line x1="30" y1="45" x2="70" y2="45" stroke="#FFF" stroke-width="2"/><line x1="30" y1="60" x2="70" y2="60" stroke="#FFF" stroke-width="2"/><circle cx="50" cy="80" r="5" fill="#FFF"/></svg>` }
+        };
+
+        const storyTextEl = document.getElementById('story-text');
+        const choicesEl = document.getElementById('choices-container');
+        const scoreEl = document.getElementById('score');
+        const evidenceListEl = document.getElementById('evidence-list');
+
+        function init() {
+            state.currentNode = 'start';
+            renderNode(state.currentNode);
+            updateScoreUI();
+            renderEvidence();
+        }
+
+        function renderNode(nodeId) {
+            const node = nodes[nodeId];
+            if (!node) return;
+            let text = node.text;
+            if (nodeId === 'finale') text = text.replace(state.score, state.score + " 分");
+            storyTextEl.innerHTML = text;
+
+            choicesEl.innerHTML = '';
+            if (node.choices) {
+                node.choices.forEach(choice => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.innerHTML = `<span>${choice.text}</span>`;
+                    btn.onclick = () => handleChoice(choice);
+                    choicesEl.appendChild(btn);
+                });
+            }
+            state.currentNode = nodeId;
+        }
+
+        function handleChoice(choice) {
+            document.querySelectorAll('.choice-btn').forEach(btn => btn.disabled = true);
+
+            if (choice.type === 'success') {
+                state.score += choice.score || 0;
+            } else if (choice.type === 'fail') {
+                state.score = Math.max(0, state.score - choice.penalty);
+            } else if (choice.type === 'reset') {
+                state = { currentNode: 'start', score: 0, inventory: [], maxScore: 50 };
+                init();
+                return;
+            }
+
+            if (choice.next === 'node_31' || choice.next === 'node_45') addEvidence('letter');
+            if (choice.next === 'node_museum') addEvidence('catalog');
+            if (choice.next === 'node_alibi') addEvidence('disguise');
+            if (choice.next === 'node_solve') addEvidence('notebook');
+
+            updateScoreUI();
+            renderEvidence();
+            
+            // 直接跳轉目標節點
+            renderNode(choice.next);
+        }
+
+        function addEvidence(id) {
+            if (!state.inventory.includes(id)) {
+                state.inventory.push(id);
+            }
+        }
+
+        function renderEvidence() {
+            evidenceListEl.innerHTML = '';
+            if (state.inventory.length === 0) {
+                evidenceListEl.innerHTML = '<div style="color:#777; padding: 20px;">尚未收集到任何證物</div>';
+                return;
+            }
+            state.inventory.forEach(id => {
+                const ev = evidenceData[id];
+                const card = document.createElement('div');
+                card.className = 'evidence-card';
+                card.innerHTML = `<div class="svg-icon">${ev.svg}</div><div class="evidence-label">${ev.name}</div>`;
+                card.onclick = () => showEvidenceDetail(id);
+                evidenceListEl.appendChild(card);
+            });
+        }
+
+        function showEvidenceDetail(id) {
+            const ev = evidenceData[id];
+            document.getElementById('ev-title').innerText = ev.name;
+            document.getElementById('ev-desc').innerText = ev.desc;
+            openModal('evidence');
+        }
+
+        function updateScoreUI() { scoreEl.innerText = state.score; }
+        function openModal(id) { document.getElementById(`modal-${id}`).classList.add('active'); }
+        function closeModal(id) { document.getElementById(`modal-${id}`).classList.remove('active'); }
+
+        function saveGame() {
+            localStorage.setItem('detective3Save', JSON.stringify(state));
+            alert('遊戲已存檔！');
+        }
+        function loadGame() {
+            const saved = localStorage.getItem('detective3Save');
+            if (saved) {
+                state = JSON.parse(saved);
+                updateScoreUI();
+                renderEvidence();
+                renderNode(state.currentNode);
+                alert('遊戲已讀取！');
+            } else { alert('沒有找到存檔！'); }
+        }
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Magnamund Companion · 雙遊戲</title>
+<style>
+:root {
+  --parchment: #e8d5b7;
+  --parchment-dark: #c9b08a;
+  --ink: #2b1e12;
+  --ink-light: #5a4632;
+  --accent: #8b1a1a;
+  --gold: #b8860b;
+  --shadow: rgba(0,0,0,0.5);
+  --panel-bg: rgba(20,15,10,0.88);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; }
+body {
+  font-family: 'Georgia','Times New Roman','Noto Serif TC',serif;
+  background: #1a120b;
+  color: var(--ink);
+  overflow: hidden;
+  position: relative;
+}
+#app {
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(180,150,110,0.25) 0%, transparent 70%),
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px),
+    #2a1f14;
+}
+#app::before {
+  content:'';
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%),
+    radial-gradient(ellipse at 20% 80%, rgba(80,50,20,0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(80,50,20,0.2) 0%, transparent 50%);
+  pointer-events:none;
+  z-index: 0;
+}
+#app::after {
+  content:'';
+  position:absolute; inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index: 0;
+  opacity:0.6;
+}
+#screen {
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  position:relative;
+  z-index:1;
+  padding: 16px 16px 90px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  scroll-behavior:smooth;
+}
+#screen > * { width:100%; max-width: 900px; }
+
+/* ===== 标题画面 ===== */
+.title-screen {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height: 100%;
+  text-align:center;
+  gap: 12px;
+  animation: fadeIn 0.8s ease;
+}
+.title-screen h1 {
+  font-size: clamp(1.6rem, 5vw, 2.6rem);
+  color: var(--parchment);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 40px rgba(184,134,11,0.3);
+  letter-spacing: 2px;
+  font-weight: normal;
+}
+.title-screen .subtitle {
+  color: var(--parchment-dark);
+  font-size: clamp(0.85rem, 2.5vw, 1.1rem);
+  font-style: italic;
+  margin-bottom: 24px;
+  opacity: 0.8;
+}
+.game-choice {
+  display:flex; flex-wrap:wrap; gap:16px; justify-content:center;
+  width:100%; max-width: 680px;
+}
+.game-card {
+  flex: 1 1 260px;
+  background: var(--panel-bg);
+  border: 1px solid rgba(184,134,11,0.4);
+  border-radius: 6px;
+  padding: 28px 20px;
+  cursor:pointer;
+  transition: all 0.25s ease;
+  text-align:center;
+  color: var(--parchment);
+  position:relative;
+  overflow:hidden;
+}
+.game-card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:3px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity:0; transition: opacity 0.25s;
+}
+.game-card:hover, .game-card:active {
+  border-color: var(--gold);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 0 20px rgba(184,134,11,0.15);
+}
+.game-card:hover::before, .game-card:active::before { opacity:1; }
+.game-card h2 { font-size: clamp(1.1rem, 3vw, 1.4rem); margin-bottom:8px; font-weight:normal; letter-spacing:1px; }
+.game-card p { font-size: clamp(0.78rem, 2vw, 0.9rem); color: var(--parchment-dark); line-height:1.5; }
+.game-card .tag { display:inline-block; margin-top:12px; font-size:0.72rem; padding:3px 10px; border:1px solid var(--parchment-dark); border-radius:20px; opacity:0.7; }
+
+/* ===== 通用面板 ===== */
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid rgba(184,134,11,0.3);
+  border-radius: 6px;
+  padding: 16px 18px;
+  color: var(--parchment);
+  animation: fadeIn 0.4s ease;
+}
+.panel h3 {
+  font-size: clamp(0.95rem, 2.5vw, 1.15rem);
+  color: var(--gold);
+  margin-bottom: 10px;
+  font-weight: normal;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(184,134,11,0.2);
+  padding-bottom: 6px;
+}
+
+/* ===== 按钮 ===== */
+.btn {
+  display: inline-flex; align-items:center; justify-content:center;
+  padding: 10px 18px;
+  background: linear-gradient(180deg, #4a3520, #2e1f10);
+  color: var(--parchment);
+  border: 1px solid rgba(184,134,11,0.5);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: clamp(0.82rem, 2.2vw, 0.95rem);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.5px;
+  min-height: 44px;
+  text-align:center;
+  line-height:1.3;
+}
+.btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #5e4528, #3d2a14);
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(184,134,11,0.25);
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+  background: #2e1f10;
+}
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+.btn-primary {
+  background: linear-gradient(180deg, #7a1a1a, #4a0e0e);
+  border-color: var(--accent);
+}
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #9a2020, #5e1414);
+  border-color: #c44;
+  box-shadow: 0 0 16px rgba(139,26,26,0.4);
+}
+.btn-sm { padding: 7px 12px; min-height: 36px; font-size: 0.78rem; }
+.btn-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+
+/* ===== 故事/打字机 ===== */
+.story-box {
+  background: rgba(232,213,183,0.92);
+  color: var(--ink);
+  border-radius: 4px;
+  padding: 16px 18px;
+  font-size: clamp(0.88rem, 2.3vw, 1rem);
+  line-height: 1.75;
+  min-height: 80px;
+  border-left: 3px solid var(--gold);
+  position:relative;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.08);
+}
+.story-box .typewriter::after {
+  content:'▌';
+  animation: blink 0.8s step-end infinite;
+  color: var(--accent);
+  font-weight:bold;
+}
+@keyframes blink { 50% { opacity:0; } }
+
+/* ===== 角色卡 / 卡牌 ===== */
+.card-strip {
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  padding: 8px 2px 12px;
+  align-items:stretch;
+  -webkit-overflow-scrolling:touch;
+}
+.card-strip::-webkit-scrollbar { height:5px; }
+.card-strip::-webkit-scrollbar-thumb { background: var(--parchment-dark); border-radius:3px; }
+.mini-card {
+  flex: 0 0 auto;
+  width: 130px;
+  background: var(--panel-bg);
+  border: 1px solid rgba(184,134,11,0.35);
+  border-radius: 5px;
+  padding: 10px;
+  color: var(--parchment);
+  display:flex; flex-direction:column; gap:4px;
+  position:relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.mini-card.selected { border-color: var(--gold); box-shadow: 0 0 12px rgba(184,134,11,0.3); }
+.mini-card.dead { opacity:0.45; filter: grayscale(1); }
+.mini-card .name { font-size:0.82rem; font-weight:bold; color:var(--gold); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mini-card .stats { font-size:0.7rem; color:var(--parchment-dark); display:flex; flex-wrap:wrap; gap:4px 8px; }
+.mini-card .stats span { white-space:nowrap; }
+.mini-card .objective { font-size:0.65rem; color:var(--parchment-dark); line-height:1.3; margin-top:2px; opacity:0.8; }
+.mini-card .svg-icon { width:100%; height:48px; display:flex; align-items:center; justify-content:center; }
+.mini-card .svg-icon svg { max-width:100%; max-height:100%; }
+
+/* ===== 属性条 ===== */
+.stat-bar {
+  display:flex; gap:12px; flex-wrap:wrap;
+  font-size: clamp(0.78rem, 2vw, 0.9rem);
+}
+.stat-item { display:flex; align-items:center; gap:5px; }
+.stat-label { color: var(--parchment-dark); font-size:0.75rem; }
+.stat-value { color: var(--gold); font-weight:bold; font-size:1rem; }
+
+/* ===== 日志/时间线 ===== */
+.log-list { list-style:none; max-height: 260px; overflow-y:auto; }
+.log-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(184,134,11,0.12);
+  font-size: clamp(0.75rem, 2vw, 0.85rem);
+  color: var(--parchment-dark);
+  line-height:1.4;
+}
+.log-list li .round-tag { color: var(--gold); font-size:0.7rem; margin-right:6px; }
+
+/* ===== Toast ===== */
+#toast-container {
+  position: fixed;
+  top: 16px; left:50%; transform:translateX(-50%);
+  z-index: 9999;
+  display:flex; flex-direction:column; gap:8px;
+  pointer-events:none;
+  width: min(92vw, 400px);
+}
+.toast {
+  background: rgba(30,20,12,0.95);
+  color: var(--parchment);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  text-align:center;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  line-height:1.4;
+}
+@keyframes toastIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes toastOut { to { opacity:0; transform:translateY(-12px); } }
+
+/* ===== 底部导航 ===== */
+#bottom-nav {
+  position: fixed; bottom:0; left:0; right:0;
+  z-index: 100;
+  display:flex;
+  background: rgba(18,12,8,0.97);
+  border-top: 1px solid rgba(184,134,11,0.3);
+  padding: 4px 0 calc(4px + env(safe-area-inset-bottom,0px));
+  backdrop-filter: blur(8px);
+}
+#bottom-nav button {
+  flex:1;
+  background:none; border:none;
+  color: var(--parchment-dark);
+  font-family:inherit;
+  font-size: clamp(0.65rem, 2vw, 0.78rem);
+  padding: 8px 2px;
+  cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  transition: color 0.2s;
+  min-height: 48px;
+}
+#bottom-nav button:hover, #bottom-nav button.active { color: var(--gold); }
+#bottom-nav button .nav-icon { font-size:1.15rem; line-height:1; }
+#bottom-nav button:disabled { opacity:0.3; }
+
+/* ===== 弹窗 ===== */
+.modal-overlay {
+  position: fixed; inset:0;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  display:flex; align-items:center; justify-content:center;
+  padding: 20px;
+  animation: fadeIn 0.25s ease;
+}
+.modal {
+  background: #2a1f14;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  max-width: 560px; width:100%;
+  max-height: 80dvh;
+  overflow-y:auto;
+  padding: 24px;
+  color: var(--parchment);
+  position:relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  animation: modalIn 0.3s ease;
+}
+@keyframes modalIn { from { opacity:0; transform:scale(0.94); } to { opacity:1; transform:scale(1); } }
+.modal h2 { color: var(--gold); font-weight:normal; margin-bottom:12px; font-size:1.2rem; letter-spacing:1px; }
+.modal p, .modal li { font-size:0.88rem; line-height:1.7; color: var(--parchment-dark); }
+.modal ul, .modal ol { padding-left:20px; margin:8px 0; }
+.modal .close-btn { position:absolute; top:12px; right:14px; background:none; border:none; color:var(--parchment-dark); font-size:1.4rem; cursor:pointer; padding:4px; }
+.modal .close-btn:hover { color:var(--gold); }
+
+/* ===== 成就 ===== */
+.achievement-item {
+  display:flex; align-items:center; gap:10px;
+  padding:8px 0;
+  border-bottom:1px solid rgba(184,134,11,0.12);
+  font-size:0.82rem;
+}
+.achievement-item .badge { font-size:1.3rem; width:32px; text-align:center; }
+.achievement-item.locked { opacity:0.4; }
+.achievement-item.locked .badge { filter:grayscale(1); }
+
+/* ===== 动画 ===== */
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+.fade-in { animation: fadeIn 0.4s ease; }
+
+/* ===== 场景 SVG 动画 ===== */
+.svg-scene svg { display:block; width:100%; height:auto; }
+.svg-scene .twinkle { animation: twinkle 2.5s ease-in-out infinite; }
+@keyframes twinkle { 0%,100% { opacity:0.3; } 50% { opacity:1; } }
+.svg-scene .sway { animation: sway 4s ease-in-out infinite; transform-origin: top center; }
+@keyframes sway { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+
+/* ===== 响应式 ===== */
+@media (max-width: 600px) {
+  #screen { padding: 10px 10px 84px; }
+  .panel { padding: 12px 12px; }
+  .mini-card { width: 115px; padding:8px; }
+  .btn-row { gap:6px; }
+  .btn { padding: 9px 12px; min-height:42px; }
+}
+@media (min-width: 900px) {
+  .desktop-grid { display:grid; grid-template-columns: 1fr 320px; gap:16px; align-items:start; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="screen"></div>
+  <div id="toast-container"></div>
+  <nav id="bottom-nav">
+    <button data-nav="help"><span class="nav-icon">📖</span>說明</button>
+    <button data-nav="save"><span class="nav-icon">💾</span>存檔</button>
+    <button data-nav="load"><span class="nav-icon">📂</span>讀檔</button>
+    <button data-nav="timeline"><span class="nav-icon">📜</span>歷史</button>
+    <button data-nav="achievements"><span class="nav-icon">🏆</span>成就</button>
+    <button data-nav="sound"><span class="nav-icon">🔊</span>音效</button>
+  </nav>
+</div>
+
+<script>
+/* ============================================================
+   全局工具
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const screenEl = $('#screen');
+const toastContainer = $('#toast-container');
+
+function toast(msg, duration = 2800) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  toastContainer.appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+function rollD10() { return Math.floor(Math.random() * 10); } // 0–9
+
+function fadeOutIn(fn) {
+  screenEl.style.transition = 'opacity 0.25s ease';
+  screenEl.style.opacity = '0';
+  setTimeout(() => {
+    fn();
+    screenEl.style.opacity = '1';
+  }, 250);
+}
+
+/* ===== 音效（Web Audio API 合成） ===== */
+let soundEnabled = true;
+let audioCtx = null;
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playTone(freq, duration = 0.08, type = 'sine', volume = 0.08) {
+  if (!soundEnabled) return;
+  try {
+    initAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch(e) {}
+}
+function sfxClick() { playTone(600, 0.05, 'square', 0.04); }
+function sfxDice() { playTone(300, 0.06, 'triangle', 0.06); setTimeout(()=>playTone(450,0.06,'triangle',0.06),70); }
+function sfxHit() { playTone(180, 0.12, 'sawtooth', 0.06); }
+function sfxWin() { playTone(523,0.1,'sine',0.06); setTimeout(()=>playTone(659,0.1,'sine',0.06),100); setTimeout(()=>playTone(784,0.15,'sine',0.06),200); }
+function sfxLose() { playTone(220,0.2,'sawtooth',0.06); setTimeout(()=>playTone(165,0.3,'sawtooth',0.06),180); }
+
+/* ===== 打字机 ===== */
+let typewriterTimer = null;
+function typewriter(el, text, speed = 18) {
+  if (typewriterTimer) clearInterval(typewriterTimer);
+  el.textContent = '';
+  el.classList.add('typewriter');
+  let i = 0;
+  typewriterTimer = setInterval(() => {
+    el.textContent += text[i];
+    i++;
+    if (i >= text.length) {
+      clearInterval(typewriterTimer);
+      typewriterTimer = null;
+      el.classList.remove('typewriter');
+    }
+  }, speed);
+  el.onclick = () => {
+    if (typewriterTimer) {
+      clearInterval(typewriterTimer);
+      typewriterTimer = null;
+      el.textContent = text;
+      el.classList.remove('typewriter');
+    }
+  };
+}
+
+/* ============================================================
+   存档 / 读档
+   ============================================================ */
+const SAVE_KEY = 'magnamund_save_v1';
+const ACH_KEY = 'magnamund_achievements_v1';
+
+function saveGame(state) {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    return true;
+  } catch(e) { return false; }
+}
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+function deleteSave() { localStorage.removeItem(SAVE_KEY); }
+
+function loadAchievements() {
+  try { return JSON.parse(localStorage.getItem(ACH_KEY) || '[]'); } catch(e) { return []; }
+}
+function unlockAchievement(id, name, icon) {
+  const list = loadAchievements();
+  if (list.find(a => a.id === id)) return false;
+  list.push({ id, name, icon, date: new Date().toLocaleDateString('zh-TW') });
+  localStorage.setItem(ACH_KEY, JSON.stringify(list));
+  toast(`🏆 成就解鎖：${name}`);
+  return true;
+}
+
+/* ============================================================
+   SVG 生成器
+   ============================================================ */
+const SVG = {
+  character(seed, color) {
+    const c = color || `hsl(${(seed*47)%360},45%,45%)`;
+    return `<svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="72" rx="18" ry="6" fill="rgba(0,0,0,0.3)"/>
+      <circle cx="30" cy="20" r="12" fill="${c}" opacity="0.9"/>
+      <circle cx="26" cy="18" r="2" fill="#1a120b"/><circle cx="34" cy="18" r="2" fill="#1a120b"/>
+      <path d="M25 25 Q30 29 35 25" stroke="#1a120b" stroke-width="1.5" fill="none"/>
+      <rect x="20" y="34" width="20" height="28" rx="4" fill="${c}" opacity="0.7"/>
+      <line x1="12" y1="42" x2="20" y2="46" stroke="${c}" stroke-width="4" stroke-linecap="round"/>
+      <line x1="48" y1="42" x2="40" y2="46" stroke="${c}" stroke-width="4" stroke-linecap="round"/>
+      <rect x="24" y="62" width="5" height="10" rx="2" fill="${c}" opacity="0.5"/>
+      <rect x="31" y="62" width="5" height="10" rx="2" fill="${c}" opacity="0.5"/>
+    </svg>`;
+  },
+  tavern() {
+    return `<svg viewBox="0 0 400 140" xmlns="http://www.w3.org/2000/svg" class="svg-scene">
+      <rect x="0" y="100" width="400" height="40" fill="#3a2a1a"/>
+      <rect x="20" y="60" width="360" height="45" fill="#4a3620" rx="2"/>
+      <line x1="20" y1="60" x2="20" y2="105" stroke="#2a1a0a" stroke-width="3"/>
+      <line x1="380" y1="60" x2="380" y2="105" stroke="#2a1a0a" stroke-width="3"/>
+      <rect x="60" y="75" width="40" height="25" fill="#5a4025" rx="2"/>
+      <rect x="160" y="75" width="40" height="25" fill="#5a4025" rx="2"/>
+      <rect x="260" y="75" width="40" height="25" fill="#5a4025" rx="2"/>
+      <circle cx="80" cy="68" r="6" fill="#b8860b" class="twinkle"/>
+      <circle cx="200" cy="68" r="6" fill="#b8860b" class="twinkle" style="animation-delay:0.8s"/>
+      <circle cx="320" cy="68" r="6" fill="#b8860b" class="twinkle" style="animation-delay:1.6s"/>
+      <rect x="180" y="20" width="40" height="20" fill="#6a4a2a" rx="2" class="sway"/>
+      <text x="200" y="35" text-anchor="middle" font-size="8" fill="#e8d5b7" font-family="serif">酒館</text>
+      <circle cx="50" cy="15" r="1.5" fill="#fff" opacity="0.7" class="twinkle"/>
+      <circle cx="350" cy="25" r="1.5" fill="#fff" opacity="0.5" class="twinkle" style="animation-delay:0.5s"/>
+      <circle cx="120" cy="10" r="1" fill="#fff" opacity="0.6" class="twinkle" style="animation-delay:1.2s"/>
+    </svg>`;
+  },
+  forest() {
+    return `<svg viewBox="0 0 400 140" xmlns="http://www.w3.org/2000/svg" class="svg-scene">
+      <rect x="0" y="100" width="400" height="40" fill="#1a2a1a"/>
+      <polygon points="60,100 80,40 100,100" fill="#2a4a2a"/>
+      <polygon points="130,100 155,30 180,100" fill="#1e3e1e"/>
+      <polygon points="220,100 245,45 270,100" fill="#2a4a2a"/>
+      <polygon points="310,100 335,35 360,100" fill="#1e3e1e"/>
+      <rect x="0" y="95" width="400" height="8" fill="#3a2a1a" opacity="0.5"/>
+      <circle cx="80" cy="20" r="1.5" fill="#fff" opacity="0.6" class="twinkle"/>
+      <circle cx="300" cy="15" r="1.5" fill="#fff" opacity="0.5" class="twinkle" style="animation-delay:0.7s"/>
+      <circle cx="200" cy="8" r="1" fill="#fff" opacity="0.4" class="twinkle" style="animation-delay:1.4s"/>
+      <path d="M0 110 Q100 105 200 110 T400 108" stroke="#5a4a3a" stroke-width="2" fill="none" opacity="0.5"/>
+    </svg>`;
+  },
+  monster() {
+    return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="40" cy="72" rx="25" ry="6" fill="rgba(0,0,0,0.4)"/>
+      <ellipse cx="40" cy="42" rx="24" ry="28" fill="#4a1a1a"/>
+      <circle cx="30" cy="32" r="5" fill="#ff4444"/><circle cx="50" cy="32" r="5" fill="#ff4444"/>
+      <circle cx="30" cy="32" r="2" fill="#fff"/><circle cx="50" cy="32" r="2" fill="#fff"/>
+      <path d="M28 52 Q40 60 52 52" stroke="#1a0a0a" stroke-width="2" fill="none"/>
+      <path d="M22 20 L14 8 M58 20 L66 8" stroke="#4a1a1a" stroke-width="3" stroke-linecap="round"/>
+    </svg>`;
+  }
+};
+
+/* ============================================================
+   游戏 A：Ragadorn Alehouse Brawl
+   ============================================================ */
+const BRAWL = {
+  // 可玩角色（5名，目标明确）
+  playable: {
+    lonewolf: { id:'lonewolf', name:'孤狼 Lone Wolf', cs:18, ep:34, mov:5, weapon:'魔法長矛', gold:10,
+      objective:'找出並殺死 Helghast', objType:'kill_helghast', icon:'wolf' },
+    knight: { id:'knight', name:'杜雷諾騎士 Knight', cs:16, ep:26, mov:4, weapon:'闊劍', gold:12,
+      objective:'逮捕 Adventuress（僅在她反抗時可攻擊）', objType:'arrest', icon:'knight' },
+    magician: { id:'magician', name:'法師 Magician', cs:13, ep:22, mov:3, weapon:'匕首', gold:0,
+      objective:'獲得 20 金幣作為逃往 Durenor 的車費', objType:'gold', target:20, icon:'mage' },
+    herbwarden: { id:'herbwarden', name:'草藥師 Herbwarden', cs:12, ep:20, mov:3, weapon:'匕首', gold:8,
+      objective:'獲得 40 金幣作為返回 Bautar 的路費', objType:'gold', target:40, icon:'herb' },
+    mercenary: { id:'mercenary', name:'傭兵 Mercenary', cs:15, ep:28, mov:4, weapon:'劍', gold:16,
+      objective:'殺死 Magician 和 Ranger', objType:'kill_both', icon:'merc' }
+  },
+  // 全部角色（含AI）
+  allCharacters: [
+    { id:'lonewolf', name:'孤狼', cs:18, ep:34, mov:5, weapon:'魔法長矛', gold:10, ai:false },
+    { id:'knight', name:'騎士', cs:16, ep:26, mov:4, weapon:'闊劍', gold:12, ai:true },
+    { id:'magician', name:'法師', cs:13, ep:22, mov:3, weapon:'匕首', gold:0, ai:true },
+    { id:'herbwarden', name:'草藥師', cs:12, ep:20, mov:3, weapon:'匕首', gold:8, ai:true },
+    { id:'mercenary', name:'傭兵', cs:15, ep:28, mov:4, weapon:'劍', gold:16, ai:true },
+    { id:'druid', name:'德魯伊', cs:12, ep:20, mov:3, weapon:'長棍', gold:6, ai:true },
+    { id:'ranger', name:'遊俠', cs:14, ep:24, mov:5, weapon:'弓', gold:8, ai:true },
+    { id:'adventuress', name:'女冒險家', cs:11, ep:18, mov:5, weapon:'匕首', gold:20, ai:true },
+    { id:'sage', name:'賢者', cs:9, ep:16, mov:3, weapon:'手杖', gold:14, ai:true },
+    { id:'thief', name:'盜賊', cs:13, ep:20, mov:6, weapon:'短劍', gold:6, ai:true }
+  ],
+  specialItems: [
+    { id:'magic_sword', name:'魔法劍', desc:'CS +4', apply: c => { c.cs += 4; } },
+    { id:'speed_ring', name:'速度之戒', desc:'MOV +2', apply: c => { c.mov += 2; } },
+    { id:'elixir', name:'生命藥劑', desc:'EP +8（一次）', apply: c => { c.ep += 8; } },
+    { id:'magic_mace', name:'魔法釘頭錘', desc:'CS +2', apply: c => { c.cs += 2; } },
+    { id:'spell_book', name:'法術書', desc:'使一名角色沉睡2輪（限2次）', apply: () => {} },
+    { id:'magic_wand', name:'魔法杖', desc:'使一名角色停止移動2輪（限2次）', apply: () => {} },
+    { id:'talisman', name:'魔法護符', desc:'被攻擊時 CS +4', apply: () => {} },
+    { id:'golden_shield', name:'黃金盾', desc:'被攻擊時 CS +2', apply: () => {} },
+    { id:'stealth_medal', name:'潛行勳章', desc:'MOV +2', apply: c => { c.mov += 2; } }
+  ],
+  missileChart: [
+    { name:'匕首', dist:[2,4,6,8], ep:3 },
+    { name:'其他投擲武器', dist:[2,4,5,6], ep:4 },
+    { name:'椅子', dist:[3,7,'M','M'], ep:2 },
+    { name:'瓶子', dist:[2,4,5,6], ep:2 },
+    { name:'火把', dist:[2,4,5,6], ep:3 },
+    { name:'食物', dist:[2,6,9,'M'], ep:1 },
+    { name:'水桶', dist:[3,5,9,'M'], ep:2 },
+    { name:'掃帚', dist:[2,6,'M','M'], ep:1 }
+  ],
+  MAX_ROUNDS: 16
+};
+
+// 战斗结果表（简化通用版：比值 -10 到 +10，随机数 0-9，返回 [攻击方损失, 防守方损失]）
+function combatResultTable(ratio, roll) {
+  const r = Math.max(-10, Math.min(10, ratio));
+  const table = {
+    '-10':[[3,0],[2,0],[2,0],[1,0],[1,0],[0,0],[0,0],[0,0],[0,0],[0,0]],
+    '-9':[[3,0],[2,0],[2,0],[1,0],[1,0],[0,0],[0,0],[0,0],[0,0],[0,0]],
+    '-8':[[3,0],[2,0],[1,0],[1,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],
+    '-7':[[2,0],[1,0],[1,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,1]],
+    '-6':[[2,0],[1,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,1],[0,1]],
+    '-5':[[1,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,1],[0,1],[0,1],[0,2]],
+    '-4':[[1,0],[0,0],[0,0],[0,0],[0,0],[0,1],[0,1],[0,1],[0,2],[0,2]],
+    '-3':[[0,0],[0,0],[0,0],[0,0],[0,1],[0,1],[0,1],[0,2],[0,2],[0,3]],
+    '-2':[[0,0],[0,0],[0,0],[0,1],[0,1],[0,1],[0,2],[0,2],[0,3],[0,3]],
+    '-1':[[0,0],[0,0],[0,1],[0,1],[0,1],[0,2],[0,2],[0,3],[0,3],[0,4]],
+    '0':[[0,0],[0,1],[0,1],[0,1],[0,2],[0,2],[0,3],[0,3],[0,4],[0,4]],
+    '1':[[0,1],[0,1],[0,1],[0,2],[0,2],[0,3],[0,3],[0,4],[0,4],[0,5]],
+    '2':[[0,1],[0,1],[0,2],[0,2],[0,3],[0,3],[0,4],[0,4],[0,5],[0,5]],
+    '3':[[0,1],[0,2],[0,2],[0,3],[0,3],[0,4],[0,4],[0,5],[0,5],[0,6]],
+    '4':[[0,2],[0,2],[0,3],[0,3],[0,4],[0,4],[0,5],[0,5],[0,6],[0,6]],
+    '5':[[0,2],[0,3],[0,3],[0,4],[0,4],[0,5],[0,5],[0,6],[0,6],[0,7]],
+    '6':[[0,3],[0,3],[0,4],[0,4],[0,5],[0,5],[0,6],[0,6],[0,7],[0,7]],
+    '7':[[0,3],[0,4],[0,4],[0,5],[0,5],[0,6],[0,6],[0,7],[0,7],[0,8]],
+    '8':[[0,4],[0,4],[0,5],[0,5],[0,6],[0,6],[0,7],[0,7],[0,8],[0,8]],
+    '9':[[0,4],[0,5],[0,5],[0,6],[0,6],[0,7],[0,7],[0,8],[0,8],[0,9]],
+    '10':[[0,5],[0,5],[0,6],[0,6],[0,7],[0,7],[0,8],[0,8],[0,9],[0,9]]
+  };
+  const key = String(r);
+  return table[key] ? table[key][roll] : [0,0];
+}
+
+/* ===== 酒馆斗殴状态机 ===== */
+const BrawlState = {
+  screen: 'title', // title | select | play
+  phase: 'MOVEMENT', // MOVEMENT | MISSILE | COMBAT | GAMING
+  round: 1,
+  playerId: null,
+  characters: [],
+  player: null,
+  log: [],
+  gameOver: false,
+  winner: null,
+  pendingCombat: null, // {attackerId, defenderId}
+  lastRoll: null,
+  sleepTimers: {}, // charId -> rounds remaining
+  wandTimers: {},
+  usedSpellBook: 0,
+  usedWand: 0
+};
+
+function brawlInit() {
+  BrawlState.screen = 'title';
+  BrawlState.phase = 'MOVEMENT';
+  BrawlState.round = 1;
+  BrawlState.playerId = null;
+  BrawlState.characters = [];
+  BrawlState.player = null;
+  BrawlState.log = [];
+  BrawlState.gameOver = false;
+  BrawlState.winner = null;
+  BrawlState.pendingCombat = null;
+  BrawlState.lastRoll = null;
+  BrawlState.sleepTimers = {};
+  BrawlState.wandTimers = {};
+  BrawlState.usedSpellBook = 0;
+  BrawlState.usedWand = 0;
+}
+
+function brawlLog(msg) {
+  BrawlState.log.push({ round: BrawlState.round, phase: BrawlState.phase, msg, time: Date.now() });
+  if (BrawlState.log.length > 200) BrawlState.log.shift();
+}
+
+function brawlRender() {
+  if (BrawlState.screen === 'title') { renderBrawlTitle(); return; }
+  if (BrawlState.screen === 'select') { renderBrawlSelect(); return; }
+  renderBrawlPlay();
+}
+
+function renderBrawlTitle() {
+  screenEl.innerHTML = `
+    <div class="title-screen fade-in">
+      <h1>🍺 Ragadorn Alehouse Brawl</h1>
+      <p class="subtitle">拉加多恩酒館鬥毆 · 單人改編版</p>
+      <div class="svg-scene" style="max-width:420px;width:100%;">${SVG.tavern()}</div>
+      <div class="game-choice" style="margin-top:20px;">
+        <div class="game-card" onclick="brawlChooseCharacter()">
+          <h2>⚔️ 進入酒館</h2>
+          <p>選擇一名角色，在 16 輪內完成你的目標。其餘 9 名角色由 AI 控制，其中一人是 Helghast 的偽裝。</p>
+          <span class="tag">2–10 人原作 · 單人改編</span>
+        </div>
+      </div>
+      <button class="btn" style="margin-top:16px;" onclick="brawlShowHelp()">📖 查看規則</button>
+    </div>`;
+}
+
+function brawlShowHelp() {
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.innerHTML = `<div class="modal">
+    <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">✕</button>
+    <h2>Ragadorn Alehouse Brawl · 規則</h2>
+    <p>每輪分為 <strong>移動 → 遠程 → 近戰 → 賭博</strong> 四個階段。你的角色有 CS（戰鬥技能）、EP（耐力）、MOV（移動力）與金幣。</p>
+    <ul>
+      <li><strong>移動</strong>：按 MOV 移動，不能斜走或穿過他人。相鄰可交談或戰鬥。</li>
+      <li><strong>遠程</strong>：投擲物品，依距離查表命中，目標損失 EP。</li>
+      <li><strong>近戰</strong>：攻擊方 CS − 防守方 CS = 比值，查表 + 1d10，雙方都可能掉 EP。站在高處 CS +1，空手 CS −4。</li>
+      <li><strong>賭博</strong>：在賭桌旁下注 2–10 金幣，猜中數字贏 4 倍，猜中相鄰贏 2 倍。</li>
+    </ul>
+    <p><strong>Helghast</strong>：除孤狼外，隨機一名角色是變形怪，目標是殺死孤狼。只有魔法武器能傷害真身。</p>
+    <p><strong>勝利</strong>：16 輪內完成你的角色目標。EP 歸零或超時未完成即失敗。</p>
+  </div>`;
+  document.body.appendChild(m);
+}
+
+function brawlChooseCharacter() {
+  BrawlState.screen = 'select';
+  brawlRender();
+}
+
+function renderBrawlSelect() {
+  const ids = Object.keys(BRAWL.playable);
+  screenEl.innerHTML = `
+    <div class="fade-in" style="padding-top:10px;">
+      <h2 style="color:var(--gold);font-weight:normal;text-align:center;margin-bottom:6px;">選擇你的角色</h2>
+      <p style="color:var(--parchment-dark);text-align:center;font-size:0.85rem;margin-bottom:16px;">每名角色有獨立的屬性與目標</p>
+      <div class="card-strip" style="flex-wrap:wrap;justify-content:center;">
+        ${ids.map(id => {
+          const c = BRAWL.playable[id];
+          return `<div class="mini-card" style="width:160px;cursor:pointer;" onclick="brawlStart('${id}')">
+            <div class="svg-icon">${SVG.character(id.length, `hsl(${id.length*37%360},45%,45%)`)}</div>
+            <div class="name">${c.name}</div>
+            <div class="stats"><span>CS ${c.cs}</span><span>EP ${c.ep}</span><span>MOV ${c.mov}</span><span>💰${c.gold}</span></div>
+            <div class="objective">🎯 ${c.objective}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="text-align:center;margin-top:16px;">
+        <button class="btn" onclick="brawlInit();brawlRender()">← 返回</button>
+      </div>
+    </div>`;
+}
+
+function brawlStart(playableId) {
+  brawlInit();
+  const p = BRAWL.playable[playableId];
+  BrawlState.playerId = playableId;
+  BrawlState.characters = BRAWL.allCharacters.map(c => {
+    const copy = { ...c, maxEp: c.ep, alive: true, pos: Math.floor(Math.random()*20), statusEffects: [] };
+    if (c.id === playableId) {
+      copy.ai = false;
+      copy.cs = p.cs; copy.ep = p.ep; copy.mov = p.mov; copy.weapon = p.weapon; copy.gold = p.gold;
+      copy.maxEp = p.ep;
+      copy.objective = p.objective; copy.objType = p.objType; copy.target = p.target;
+    }
+    return copy;
+  });
+  BrawlState.player = BrawlState.characters.find(c => c.id === playableId);
+  // 分配特殊物品
+  const shuffled = [...BRAWL.specialItems].sort(() => Math.random() - 0.5);
+  BrawlState.characters.forEach((c, i) => {
+    if (i < shuffled.length) {
+      c.specialItem = shuffled[i];
+      try { shuffled[i].apply(c); } catch(e) {}
+    }
+  });
+  // Helghast：随机一名非孤狼角色（如果玩家是孤狼，则必须在其他角色中随机）
+  const candidates = BrawlState.characters.filter(c => c.id !== 'lonewolf');
+  const helghastIdx = Math.floor(Math.random() * candidates.length);
+  candidates[helghastIdx].isHelghast = true;
+  candidates[helghastIdx].helghastRevealed = false;
+  candidates[helghastIdx].helghastEp = 30;
+  candidates[helghastIdx].helghastCs = 20;
+
+  BrawlState.screen = 'play';
+  BrawlState.phase = 'MOVEMENT';
+  BrawlState.round = 1;
+  brawlLog('冒險開始。你是 ' + BrawlState.player.name + '。目標：' + p.objective);
+  brawlRender();
+}
+
+function renderBrawlPlay() {
+  const p = BrawlState.player;
+  if (!p) { brawlInit(); brawlRender(); return; }
+  const phaseNames = { MOVEMENT:'移動', MISSILE:'遠程', COMBAT:'近戰', GAMING:'賭博' };
+  const aliveChars = BrawlState.characters.filter(c => c.alive);
+
+  let html = `
+    <div class="fade-in" style="display:flex;flex-direction:column;gap:12px;">
+      <div class="panel" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <span style="color:var(--gold);font-size:0.9rem;">第 ${BrawlState.round} / ${BRAWL.MAX_ROUNDS} 輪</span>
+          <span style="color:var(--parchment-dark);margin-left:10px;font-size:0.85rem;">階段：${phaseNames[BrawlState.phase]}</span>
+        </div>
+        <div class="stat-bar">
+          <div class="stat-item"><span class="stat-label">CS</span><span class="stat-value">${p.cs}</span></div>
+          <div class="stat-item"><span class="stat-label">EP</span><span class="stat-value">${p.ep}/${p.maxEp}</span></div>
+          <div class="stat-item"><span class="stat-label">MOV</span><span class="stat-value">${p.mov}</span></div>
+          <div class="stat-item"><span class="stat-label">💰</span><span class="stat-value">${p.gold}</span></div>
+        </div>
+      </div>
+      <div class="svg-scene" style="border-radius:6px;overflow:hidden;border:1px solid rgba(184,134,11,0.2);">${SVG.tavern()}</div>
+      <div class="panel">
+        <h3>🎯 你的目標</h3>
+        <p style="font-size:0.88rem;color:var(--parchment-dark);line-height:1.6;">${p.objective}</p>
+        ${p.specialItem ? `<p style="font-size:0.8rem;color:var(--gold);margin-top:6px;">特殊物品：${p.specialItem.name} — ${p.specialItem.desc}</p>` : ''}
+      </div>
+      <div class="panel">
+        <h3>👥 場上角色 (${aliveChars.length})</h3>
+        <div class="card-strip">
+          ${aliveChars.map(c => `
+            <div class="mini-card ${c.id===p.id?'selected':''} ${!c.alive?'dead':''}" style="width:120px;">
+              <div class="svg-icon">${c.isHelghast && c.helghastRevealed ? SVG.monster() : SVG.character(c.id.length, c.id===p.id?'#b8860b':`hsl(${c.id.length*47%360},40%,40%)`)}</div>
+              <div class="name">${c.name} ${c.isHelghast&&c.helghastRevealed?'💀':''}</div>
+              <div class="stats"><span>CS ${c.cs}</span><span>EP ${c.ep}</span><span>MOV ${c.mov}</span></div>
+              ${c.isHelghast && c.helghastRevealed ? '<div style="font-size:0.65rem;color:#ff6666;">已現形</div>' : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="panel">
+        <h3>⚙️ 行動</h3>
+        <div id="brawl-actions"></div>
+      </div>
+      <div class="panel">
+        <h3>📜 最近事件</h3>
+        <ul class="log-list">
+          ${BrawlState.log.slice(-8).reverse().map(l => `<li><span class="round-tag">R${l.round} ${phaseNames[l.phase]||''}</span>${l.msg}</li>`).join('') || '<li style="opacity:0.5;">暫無記錄</li>'}
+        </ul>
+      </div>
+      <div style="text-align:center;padding:8px 0 4px;">
+        <button class="btn btn-sm" onclick="brawlInit();brawlRender()">🔄 重新開始</button>
+      </div>
+    </div>`;
+  screenEl.innerHTML = html;
+  renderBrawlActions();
+}
+
+function renderBrawlActions() {
+  const el = $('#brawl-actions');
+  if (!el) return;
+  const p = BrawlState.player;
+  if (BrawlState.gameOver) {
+    el.innerHTML = `<p style="color:${BrawlState.winner==='player'?'var(--gold)':'#c44'};font-size:1rem;text-align:center;padding:12px 0;">${BrawlState.winner==='player'?'🎉 你完成了目標！':'💀 冒險失敗……'}</p>
+      <div style="text-align:center;"><button class="btn btn-primary" onclick="brawlInit();brawlRender()">再來一次</button></div>`;
+    return;
+  }
+  const phase = BrawlState.phase;
+  const aliveOthers = BrawlState.characters.filter(c => c.alive && c.id !== p.id);
+
+  if (phase === 'MOVEMENT') {
+    el.innerHTML = `
+      <p style="font-size:0.82rem;color:var(--parchment-dark);margin-bottom:8px;">移動階段：你可以移動，或與相鄰角色交談/戰鬥。</p>
+      <div class="btn-row">
+        <button class="btn btn-sm" onclick="brawlMoveRandom()">🚶 移動 (隨機)</button>
+        <button class="btn btn-sm" onclick="brawlTalkOrFight()">💬 交談 / ⚔️ 戰鬥</button>
+        <button class="btn btn-sm btn-primary" onclick="brawlNextPhase()">➡️ 進入遠程階段</button>
+      </div>`;
+  } else if (phase === 'MISSILE') {
+    el.innerHTML = `
+      <p style="font-size:0.82rem;color:var(--parchment-dark);margin-bottom:8px;">遠程階段：向一名角色投擲物品。距離越近越容易命中。</p>
+      <div class="btn-row">
+        <button class="btn btn-sm" onclick="brawlThrowMissile()">🎯 投擲物品</button>
+        <button class="btn btn-sm btn-primary" onclick="brawlNextPhase()">➡️ 進入近戰階段</button>
+      </div>`;
+  } else if (phase === 'COMBAT') {
+    const adjacentEnemies = aliveOthers.filter(() => Math.random() < 0.4); // 简化：部分敌人可近战
+    el.innerHTML = `
+      <p style="font-size:0.82rem;color:var(--parchment-dark);margin-bottom:8px;">近戰階段：與相鄰的敵人交戰。</p>
+      <div class="btn-row">
+        ${adjacentEnemies.length ? adjacentEnemies.slice(0,3).map(c => 
+          `<button class="btn btn-sm" onclick="brawlAttack('${c.id}')">⚔️ 攻擊 ${c.name}</button>`
+        ).join('') : '<span style="font-size:0.8rem;color:var(--parchment-dark);opacity:0.6;">附近沒有敵人</span>'}
+        <button class="btn btn-sm btn-primary" onclick="brawlNextPhase()">➡️ 進入賭博階段</button>
+      </div>`;
+  } else if (phase === 'GAMING') {
+    el.innerHTML = `
+      <p style="font-size:0.82rem;color:var(--parchment-dark);margin-bottom:8px;">賭博階段：在賭桌旁下注（2–10 金幣），猜一個 0–9 的數字。</p>
+      <div class="btn-row">
+        <button class="btn btn-sm" onclick="brawlGamble()" ${p.gold<2?'disabled':''}>🎲 賭博 (${p.gold<2?'金幣不足':'最低 2 金幣'})</button>
+        <button class="btn btn-sm btn-primary" onclick="brawlNextRound()">🔄 結束本輪</button>
+      </div>`;
+  }
+}
+
+function brawlNextPhase() {
+  sfxClick();
+  const order = ['MOVEMENT','MISSILE','COMBAT','GAMING'];
+  const idx = order.indexOf(BrawlState.phase);
+  if (idx < order.length - 1) {
+    BrawlState.phase = order[idx + 1];
+    brawlLog('進入' + {MISSILE:'遠程',COMBAT:'近戰',GAMING:'賭博'}[BrawlState.phase] + '階段');
+    brawlAITurn();
+    brawlRender();
+  } else {
+    brawlNextRound();
+  }
+}
+
+function brawlNextRound() {
+  sfxClick();
+  if (BrawlState.round >= BRAWL.MAX_ROUNDS) {
+    brawlEndGame();
+    return;
+  }
+  BrawlState.round++;
+  BrawlState.phase = 'MOVEMENT';
+  // 处理状态效果
+  Object.keys(BrawlState.sleepTimers).forEach(k => { if (BrawlState.sleepTimers[k] > 0) BrawlState.sleepTimers[k]--; else delete BrawlState.sleepTimers[k]; });
+  Object.keys(BrawlState.wandTimers).forEach(k => { if (BrawlState.wandTimers[k] > 0) BrawlState.wandTimers[k]--; else delete BrawlState.wandTimers[k]; });
+  brawlLog('第 ' + BrawlState.round + ' 輪開始');
+  brawlAITurn();
+  brawlRender();
+}
+
+function brawlMoveRandom() {
+  sfxClick();
+  const p = BrawlState.player;
+  const steps = p.mov;
+  p.pos = (p.pos + steps) % 20;
+  brawlLog(`${p.name} 移動了 ${steps} 步`);
+  toast(`🚶 ${p.name} 移動了 ${steps} 步`);
+  brawlRender();
+}
+
+function brawlTalkOrFight() {
+  const p = BrawlState.player;
+  const others = BrawlState.characters.filter(c => c.alive && c.id !== p.id);
+  if (!others.length) { toast('沒有其他角色在場。'); return; }
+  const target = others[Math.floor(Math.random() * others.length)];
+  const choice = Math.random() < 0.5 ? 'talk' : 'fight';
+  if (choice === 'talk') {
+    brawlLog(`${p.name} 與 ${target.name} 交談。`);
+    toast(`💬 你與 ${target.name} 短暫交談。`);
+    sfxClick();
+  } else {
+    brawlStartCombat(p.id, target.id);
+  }
+  brawlRender();
+}
+
+function brawlStartCombat(attackerId, defenderId) {
+  const atk = BrawlState.characters.find(c => c.id === attackerId);
+  const def = BrawlState.characters.find(c => c.id === defenderId);
+  if (!atk || !def || !atk.alive || !def.alive) return;
+
+  // Helghast 真身处理
+  let defCs = def.cs, defEp = def.isHelghast && def.helghastRevealed ? def.helghastEp : def.ep;
+  let atkCs = atk.cs;
+  // 空手惩罚
+  if (!atk.weapon || atk.weapon === '拳頭') atkCs -= 4;
+
+  const ratio = Math.max(-10, Math.min(10, atkCs - defCs));
+  const roll = rollD10();
+  const [atkLoss, defLoss] = combatResultTable(ratio, roll);
+  BrawlState.lastRoll = roll;
+
+  // Helghast 真身只有魔法武器能造成伤害
+  let actualDefLoss = defLoss;
+  if (def.isHelghast && def.helghastRevealed) {
+    const magicWeapons = ['魔法長矛','魔法劍','魔法釘頭錘'];
+    if (!magicWeapons.some(w => atk.weapon && atk.weapon.includes(w.slice(0,2)))) actualDefLoss = 0;
+  }
+
+  atk.ep = Math.max(0, atk.ep - atkLoss);
+  if (def.isHelghast && def.helghastRevealed) {
+    def.helghastEp = Math.max(0, def.helghastEp - actualDefLoss);
+    if (def.helghastEp <= 0) { def.alive = false; def.ep = 0; }
+  } else {
+    def.ep = Math.max(0, def.ep - actualDefLoss);
+    if (def.ep <= 0) {
+      def.alive = false;
+      if (def.isHelghast && !def.helghastRevealed) {
+        def.helghastRevealed = true;
+        def.helghastEp = 30;
+        def.ep = 30;
+        def.alive = true; // 现形后继续
+        brawlLog(`${def.name} 現出真身！它是 Helghast！`);
+        toast('💀 Helghast 現形了！');
+      }
+    }
+  }
+
+  if (atk.ep <= 0) { atk.alive = false; }
+
+  sfxDice();
+  setTimeout(() => sfxHit(), 150);
+  brawlLog(`⚔️ ${atk.name} 攻擊 ${def.name}：比值 ${ratio}，骰出 ${roll}，攻擊方 -${atkLoss} EP，防守方 -${actualDefLoss} EP`);
+  toast(`⚔️ 比值 ${ratio} · 骰 ${roll} → 你 -${atkLoss}，對方 -${actualDefLoss}`);
+
+  // 检查 Helghast 目标
+  if (def.isHelghast && !def.alive && BrawlState.playerId !== 'lonewolf' && def.id !== 'lonewolf') {
+    // 如果玩家不是孤狼，Helghast 死了不直接导致玩家胜利
+  }
+  if (atk.id === 'lonewolf' && def.isHelghast && !def.alive) {
+    brawlWin('你殺死了 Helghast！');
+    return;
+  }
+  if (def.id === 'lonewolf' && def.isHelghast && !def.alive) {
+    // 孤狼是玩家？不会
+  }
+
+  brawlRender();
+}
+
+function brawlThrowMissile() {
+  sfxDice();
+  const p = BrawlState.player;
+  const others = BrawlState.characters.filter(c => c.alive && c.id !== p.id);
+  if (!others.length) { toast('沒有目標可投擲。'); return; }
+  const target = others[Math.floor(Math.random() * others.length)];
+  const dist = 1 + Math.floor(Math.random() * 8);
+  const missileTypes = BRAWL.missileChart;
+  const m = missileTypes[Math.floor(Math.random() * missileTypes.length)];
+  const distIdx = dist <= 2 ? 0 : dist <= 4 ? 1 : dist <= 7 ? 2 : 3;
+  const threshold = m.dist[distIdx];
+  const roll = rollD10();
+  if (threshold === 'M' || roll < threshold) {
+    toast(`🎯 ${m.name} 未命中 ${target.name}（距離 ${dist}，需 ≥${threshold}，骰出 ${roll}）`);
+    brawlLog(`🎯 ${p.name} 向 ${target.name} 投擲${m.name}，未命中`);
+  } else {
+    let epLoss = m.ep;
+    if (target.isHelghast && target.helghastRevealed) epLoss = 0;
+    target.ep = Math.max(0, target.ep - epLoss);
+    if (target.ep <= 0) target.alive = false;
+    sfxHit();
+    toast(`🎯 ${m.name} 命中 ${target.name}！造成 ${epLoss} 點傷害`);
+    brawlLog(`🎯 ${p.name} 投擲${m.name}命中 ${target.name}，-${epLoss} EP`);
+  }
+  brawlRender();
+}
+
+function brawlAttack(defenderId) {
+  sfxClick();
+  brawlStartCombat(BrawlState.playerId, defenderId);
+}
+
+function brawlGamble() {
+  const p = BrawlState.player;
+  if (p.gold < 2) { toast('金幣不足，無法賭博。'); return; }
+  const stake = Math.min(10, p.gold);
+  const guess = Math.floor(Math.random() * 10);
+  const result = rollD10();
+  sfxDice();
+  let winnings = 0;
+  if (guess === result) { winnings = stake * 4; }
+  else if (Math.abs(guess - result) === 1) { winnings = stake * 2; }
+  p.gold = Math.max(0, p.gold - stake + winnings);
+  const msg = winnings > 0 ? `🎲 你猜 ${guess}，開出 ${result}，贏得 ${winnings} 金幣！` : `🎲 你猜 ${guess}，開出 ${result}，輸掉 ${stake} 金幣。`;
+  toast(msg);
+  brawlLog(msg);
+  if (winnings > 0) sfxWin(); else sfxLose();
+  // 检查金币目标
+  if (p.objType === 'gold' && p.gold >= p.target) {
+    brawlWin(`你籌到了 ${p.target} 金幣！`);
+    return;
+  }
+  brawlRender();
+}
+
+function brawlEndGame() {
+  const p = BrawlState.player;
+  let achieved = false;
+  if (p.objType === 'kill_helghast') {
+    const h = BrawlState.characters.find(c => c.isHelghast);
+    achieved = h && !h.alive;
+  } else if (p.objType === 'gold') {
+    achieved = p.gold >= p.target;
+  } else if (p.objType === 'arrest') {
+    // 简化：存活且未杀死 Adventuress 即视为逮捕成功
+    const adv = BrawlState.characters.find(c => c.id === 'adventuress');
+    achieved = adv && adv.alive;
+  } else if (p.objType === 'kill_both') {
+    const mage = BrawlState.characters.find(c => c.id === 'magician');
+    const ranger = BrawlState.characters.find(c => c.id === 'ranger');
+    achieved = mage && !mage.alive && ranger && !ranger.alive;
+  }
+  if (achieved && p.alive) {
+    brawlWin('你在 16 輪內完成了目標！');
+  } else {
+    brawlLose(p.alive ? '時間耗盡，未能完成目標……' : '你在戰鬥中倒下了……');
+  }
+}
+
+function brawlWin(msg) {
+  BrawlState.gameOver = true;
+  BrawlState.winner = 'player';
+  brawlLog('🎉 勝利：' + msg);
+  sfxWin();
+  toast('🎉 ' + msg);
+  unlockAchievement('brawl_win_' + BrawlState.playerId, `酒館勝利 · ${BrawlState.player.name}`, '🍺');
+  brawlRender();
+}
+function brawlLose(msg) {
+  BrawlState.gameOver = true;
+  BrawlState.winner = 'ai';
+  brawlLog('💀 失敗：' + msg);
+  sfxLose();
+  toast('💀 ' + msg);
+  unlockAchievement('brawl_lose_' + BrawlState.playerId, `酒館失敗 · ${BrawlState.player.name}`, '💀');
+  brawlRender();
+}
+
+function brawlAITurn() {
+  // 简单 AI：随机移动、可能攻击或赌搏
+  BrawlState.characters.filter(c => c.ai && c.alive && c.id !== BrawlState.playerId).forEach(c => {
+    if (Math.random() < 0.3) {
+      // AI 移动
+      c.pos = (c.pos + c.mov) % 20;
+    }
+    if (BrawlState.phase === 'COMBAT' && Math.random() < 0.25) {
+      const targets = BrawlState.characters.filter(t => t.alive && t.id !== c.id);
+      if (targets.length) {
+        const t = targets[Math.floor(Math.random() * targets.length)];
+        const ratio = Math.max(-10, Math.min(10, c.cs - t.cs));
+        const roll = rollD10();
+        const [cLoss, tLoss] = combatResultTable(ratio, roll);
+        c.ep = Math.max(0, c.ep - cLoss);
+        t.ep = Math.max(0, t.ep - tLoss);
+        if (c.ep <= 0) c.alive = false;
+        if (t.ep <= 0) t.alive = false;
+        brawlLog(`⚔️ [AI] ${c.name} 攻擊 ${t.name}：${t.name} -${tLoss} EP`);
+        if (t.id === BrawlState.playerId) toast(`⚔️ ${c.name} 攻擊了你！-${tLoss} EP`);
+        if (t.ep <= 0) brawlLog(`${t.name} 倒下了。`);
+      }
+    }
+    if (BrawlState.phase === 'GAMING' && Math.random() < 0.2 && c.gold >= 2) {
+      const stake = Math.min(10, c.gold);
+      const guess = Math.floor(Math.random() * 10);
+      const result = rollD10();
+      if (guess === result) c.gold += stake * 3;
+      else if (Math.abs(guess - result) === 1) c.gold += stake;
+      else c.gold -= stake;
+      c.gold = Math.max(0, c.gold);
+    }
+  });
+  // 检查玩家是否死亡
+  const p = BrawlState.player;
+  if (p.ep <= 0 && p.alive) {
+    p.alive = false;
+    brawlLose('你在 AI 的攻擊中倒下了……');
+  }
+}
+
+/* ============================================================
+   游戏 B：Dawn of the Darklords
+   ============================================================ */
+const DARKLORDS = {
+  spells: [
+    { id:'lightning', name:'閃電之手', epCost:3, desc:'施放閃電束，造成傷害。' },
+    { id:'charm', name:'精神魅惑', epCost:0, desc:'使目標視你為可信之友。' },
+    { id:'shield', name:'無形護盾', epCost:2, desc:'抵擋導彈和敵人，不擋魔法。' },
+    { id:'net', name:'網', epCost:0, desc:'困住敵人，或輔助攀爬。' },
+    { id:'vigour', name:'活力', epCost:3, desc:'一場戰鬥 CS +3；EP<10 時不可用。' },
+    { id:'counterspell', name:'反制法術', epCost:2, desc:'保護自己/他人/物體免受魔法攻擊。' },
+    { id:'levitation', name:'漂浮術', epCost:2, desc:'使自身/他人/物體升空數分鐘。' },
+    { id:'senseevil', name:'感知邪惡', epCost:0, desc:'探測附近生物/物體的邪惡。' },
+    { id:'mend', name:'修復', epCost:0, desc:'需站在流動淡水中；恢復 5 EP。' },
+    { id:'silence', name:'沉默', epCost:0, desc:'掩蓋移動聲響。' }
+  ],
+  // 改编场景节点（原作为80节，此处选取关键节点做互动化）
+  nodes: {
+    start: {
+      id:'start', title:'兄弟會的密令',
+      text:'你是 Banedon，水晶星兄弟會的年輕法師。公會大師將一封密令交到你手中：「將此信送至凱修道院，警告他們 Zagarna 的軍隊即將來襲。此事萬分緊急，不得有誤。」你收起密令，連夜啟程。',
+      choices: [
+        { text:'立即出發，走林間小徑', next:'forest' },
+        { text:'先回住處準備法術材料', next:'prepare', effect: (s) => { s.ep = Math.min(s.maxEp, s.ep + 5); return '你花了一些時間準備，恢復了 5 EP。'; } }
+      ]
+    },
+    prepare: {
+      id:'prepare', title:'短暫的準備',
+      text:'你回到住處，匆忙收集了一些草藥與施法材料。當你再次走出門時，天色已經微亮。你必須加快腳步。',
+      choices: [ { text:'出發', next:'forest' } ]
+    },
+    forest: {
+      id:'forest', title:'林間小徑',
+      text:'林間瀰漫著薄霧，遠處傳來不明的聲響。你隱約看見前方的樹叢中有動靜——可能是野獸，也可能是更糟的東西。',
+      choices: [
+        { text:'謹慎前進，觀察動靜', next:'ambush', effect: (s) => { return '你放慢腳步，但一道黑影已經從樹後撲出。'; } },
+        { text:'施展「沉默」法術，悄悄繞過', next:'forest_quiet', requires:'silence', failMsg:'你沒有掌握「沉默」法術。' },
+        { text:'拔腿就跑', next:'forest_run', effect: (s) => { s.ep = Math.max(0, s.ep - 2); return '你全力奔跑，在荊棘中擦傷，損失 2 EP，但暫時擺脫了動靜。'; } }
+      ]
+    },
+    forest_quiet: {
+      id:'forest_quiet', title:'寂靜的林間',
+      text:'「沉默」法術掩蓋了你的腳步聲。你安全地繞過了潛伏的危險，繼續向凱修道院前進。',
+      choices: [ { text:'繼續前進', next:'gate' } ]
+    },
+    forest_run: {
+      id:'forest_run', title:'倉皇奔逃',
+      text:'你跑了很遠，直到肺裡像著了火才停下來。你發現自己偏離了道路，但凱修道院的尖頂已經在遠處可見。',
+      choices: [ { text:'校正方向，繼續前進', next:'gate' } ]
+    },
+    ambush: {
+      id:'ambush', title:'Giak 伏擊',
+      text:'一隻 Giak 從樹叢中撲出，牠的黃色眼睛在霧中閃爍。你必須自衛。',
+      combat: { enemyName:'Giak', enemyCs:12, enemyEp:14, victoryNext:'gate', defeatText:'你被 Giak 擊倒了……' },
+      choices: []
+    },
+    gate: {
+      id:'gate', title:'凱修道院外圍',
+      text:'凱修道院的大門緊閉，但遠處已經可以看到火光與濃煙。戰鬥似乎已經開始了。你必須找到進入的方法，或警告裡面的人。',
+      choices: [
+        { text:'嘗試從側門潛入', next:'side_door' },
+        { text:'大聲呼喊，警告修道院', next:'warn', effect: (s) => { return '你的呼喊在夜空中迴盪，但回應你的只有遠處的廝殺聲。'; } },
+        { text:'使用「漂浮術」越過城牆', next:'levitate_wall', requires:'levitation', failMsg:'你沒有掌握「漂浮術」。' }
+      ]
+    },
+    warn: {
+      id:'warn', title:'無人回應',
+      text:'你的警告似乎沒有被聽見。修道院內的戰鬥聲越來越大，你必須做出決定。',
+      choices: [
+        { text:'從側門潛入', next:'side_door' },
+        { text:'使用「漂浮術」越過城牆', next:'levitate_wall', requires:'levitation', failMsg:'你沒有掌握「漂浮術」。' }
+      ]
+    },
+    levitate_wall: {
+      id:'levitate_wall', title:'越過城牆',
+      text:'你低聲詠唱，身體緩緩升空，越過了修道院的石牆。落地時，你發現自己身處一條安靜的走廊，但走廊盡頭傳來了腳步聲。',
+      choices: [ { text:'繼續前進', next:'corridor' } ]
+    },
+    side_door: {
+      id:'side_door', title:'側門潛入',
+      text:'側門沒有鎖。你推開門，走進昏暗的走廊。空氣中瀰漫著煙味和鐵鏽味。前方有兩條路：一條通往祈禱廳，另一條通往地下儲藏室。',
+      choices: [
+        { text:'前往祈禱廳', next:'chapel' },
+        { text:'前往地下儲藏室', next:'cellar' }
+      ]
+    },
+    corridor: {
+      id:'corridor', title:'走廊盡頭',
+      text:'腳步聲越來越近。你轉過彎，迎面撞上一名受傷的凱騎士——Silent Wolf。他驚訝地看著你，但很快認出了你兄弟會的法袍。',
+      choices: [ { text:'將密令交給他', next:'ending_good' } ]
+    },
+    chapel: {
+      id:'chapel', title:'祈禱廳',
+      text:'祈禱廳的長椅上散落著經文與武器。一名受傷的凱見習生靠在柱子旁，他告訴你 Silent Wolf 剛剛往走廊的方向去了。',
+      choices: [ { text:'追上去', next:'corridor' } ]
+    },
+    cellar: {
+      id:'cellar', title:'地下儲藏室',
+      text:'儲藏室裡堆滿了糧食和武器。你發現了一瓶未開封的 Laumspur 藥劑。',
+      choices: [
+        { text:'喝下藥劑，恢復體力', next:'cellar_heal', effect: (s) => { s.ep = Math.min(s.maxEp, s.ep + 8); return '你喝下 Laumspur，恢復了 8 EP。'; } },
+        { text:'離開儲藏室，前往走廊', next:'corridor' }
+      ]
+    },
+    cellar_heal: {
+      id:'cellar_heal', title:'恢復體力',
+      text:'草藥的暖意流遍全身，傷口不再那麼疼痛。你必須繼續前進。',
+      choices: [ { text:'前往走廊', next:'corridor' } ]
+    },
+    ending_good: {
+      id:'ending_good', title:'密令送達',
+      text:'Silent Wolf 閱讀密令後，神情凝重地點了點頭。「Banedon，你的到來比你想像的更重要。Zagarna 的軍隊已經出發，但至少我們現在有了準備。」他將一枚水晶星徽章放入你手中。「快離開吧，這裡交給我們。」你轉身離去，身後是凱修道院最後的抵抗。',
+      ending: true, endingType:'good', endingMsg:'你成功將密令送到了凱修道院。'
+    }
+  }
+};
+
+const DarklordsState = {
+  screen: 'title', // title | spellselect | play | ending
+  cs: 0, ep: 0, maxEp: 0,
+  spells: [],
+  currentNode: 'start',
+  log: [],
+  combat: null, // { enemyName, enemyCs, enemyEp, victoryNext, defeatText }
+  gameOver: false,
+  endingType: null
+};
+
+function darklordsInit() {
+  DarklordsState.screen = 'title';
+  DarklordsState.cs = 0;
+  DarklordsState.ep = 0;
+  DarklordsState.maxEp = 0;
+  DarklordsState.spells = [];
+  DarklordsState.currentNode = 'start';
+  DarklordsState.log = [];
+  DarklordsState.combat = null;
+  DarklordsState.gameOver = false;
+  DarklordsState.endingType = null;
+}
+
+function darklordsLog(msg) {
+  DarklordsState.log.push({ msg, time: Date.now() });
+  if (DarklordsState.log.length > 100) DarklordsState.log.shift();
+}
+
+function darklordsRender() {
+  if (DarklordsState.screen === 'title') { renderDarklordsTitle(); return; }
+  if (DarklordsState.screen === 'spellselect') { renderSpellSelect(); return; }
+  if (DarklordsState.screen === 'ending') { renderDarklordsEnding(); return; }
+  renderDarklordsPlay();
+}
+
+function renderDarklordsTitle() {
+  screenEl.innerHTML = `
+    <div class="title-screen fade-in">
+      <h1>⚔️ Dawn of the Darklords</h1>
+      <p class="subtitle">黑暗尊主的黎明 · 單人冒險</p>
+      <div class="svg-scene" style="max-width:420px;width:100%;">${SVG.forest()}</div>
+      <div class="game-choice" style="margin-top:20px;">
+        <div class="game-card" onclick="darklordsStart()">
+          <h2>🌅 開始冒險</h2>
+          <p>你是 Banedon，一名水晶星兄弟會的法師。將密令送至凱修道院，警告他們 Darklord 的入侵。原作 80 節單人遊戲書改編。</p>
+          <span class="tag">單人冒險 · 法術系統</span>
+        </div>
+      </div>
+      <button class="btn" style="margin-top:16px;" onclick="darklordsShowHelp()">📖 查看規則</button>
+    </div>`;
+}
+
+function darklordsShowHelp() {
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.innerHTML = `<div class="modal">
+    <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">✕</button>
+    <h2>Dawn of the Darklords · 規則</h2>
+    <p>你扮演 Banedon，初始屬性：<strong>CS = 10 + 1d10</strong>，<strong>EP = 20 + 1d10</strong>。EP ≤ 0 即死亡。</p>
+    <p><strong>法術</strong>：從 10 個兄弟會法術中選擇 5 個。部分法術消耗 EP。</p>
+    <ul>
+      <li>⚡ 閃電之手：消耗 3 EP，造成傷害。</li>
+      <li>🛡️ 無形護盾：消耗 2 EP，抵擋攻擊。</li>
+      <li>💪 活力：消耗 3 EP，一場戰鬥 CS +3（EP<10 不可用）。</li>
+      <li>🌀 漂浮術：消耗 2 EP，越過障礙。</li>
+      <li>💚 修復：需站在流動淡水中，恢復 5 EP。</li>
+    </ul>
+    <p><strong>戰鬥</strong>：你的 CS − 敵人 CS = 比值，擲 1d10 查表，雙方都可能損失 EP。</p>
+    <p>故事中有多個分支與結局，你的選擇會影響結果。</p>
+  </div>`;
+  document.body.appendChild(m);
+}
+
+function darklordsStart() {
+  DarklordsState.screen = 'spellselect';
+  DarklordsState.cs = 10 + rollD10();
+  DarklordsState.ep = 20 + rollD10();
+  DarklordsState.maxEp = DarklordsState.ep;
+  darklordsRender();
+}
+
+function renderSpellSelect() {
+  const selected = DarklordsState.spells;
+  screenEl.innerHTML = `
+    <div class="fade-in" style="padding-top:10px;">
+      <h2 style="color:var(--gold);font-weight:normal;text-align:center;">選擇 5 個兄弟會法術</h2>
+      <p style="color:var(--parchment-dark);text-align:center;font-size:0.85rem;margin-bottom:8px;">
+        初始屬性：CS <strong style="color:var(--gold);">${DarklordsState.cs}</strong> · EP <strong style="color:var(--gold);">${DarklordsState.ep}</strong>
+      </p>
+      <p style="color:var(--parchment-dark);text-align:center;font-size:0.8rem;margin-bottom:16px;">已選 ${selected.length} / 5</p>
+      <div style="display:flex;flex-direction:column;gap:8px;max-width:560px;margin:0 auto;">
+        ${DARKLORDS.spells.map(sp => {
+          const isSel = selected.includes(sp.id);
+          return `<div class="panel" style="cursor:pointer;padding:12px 14px;border-color:${isSel?'var(--gold)':'rgba(184,134,11,0.2)'};" 
+            onclick="toggleSpell('${sp.id}')">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+              <strong style="color:${isSel?'var(--gold)':'var(--parchment)'};">${sp.name}</strong>
+              <span style="font-size:0.75rem;color:var(--parchment-dark);">${sp.epCost>0?'消耗 '+sp.epCost+' EP':'無消耗'}</span>
+            </div>
+            <p style="font-size:0.8rem;color:var(--parchment-dark);margin-top:4px;">${sp.desc}</p>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="text-align:center;margin-top:20px;">
+        <button class="btn btn-primary" onclick="confirmSpells()" ${selected.length===5?'':'disabled'}>確認法術，開始冒險</button>
+      </div>
+    </div>`;
+}
+
+function toggleSpell(id) {
+  sfxClick();
+  const arr = DarklordsState.spells;
+  const idx = arr.indexOf(id);
+  if (idx >= 0) arr.splice(idx, 1);
+  else if (arr.length < 5) arr.push(id);
+  else { toast('最多只能選擇 5 個法術。'); return; }
+  renderSpellSelect();
+}
+
+function confirmSpells() {
+  if (DarklordsState.spells.length !== 5) return;
+  DarklordsState.screen = 'play';
+  DarklordsState.currentNode = 'start';
+  darklordsLog('冒險開始。選擇的法術：' + DarklordsState.spells.map(id => DARKLORDS.spells.find(s=>s.id===id).name).join('、'));
+  darklordsRender();
+}
+
+function renderDarklordsPlay() {
+  const node = DARKLORDS.nodes[DarklordsState.currentNode];
+  if (!node) { DarklordsState.currentNode = 'start'; darklordsRender(); return; }
+  const s = DarklordsState;
+
+  // 处理战斗节点
+  if (node.combat && !s.combat) {
+    s.combat = { ...node.combat, enemyEp: node.combat.enemyEp, round: 1 };
+    darklordsLog(`遭遇 ${s.combat.enemyName}！`);
+  }
+
+  const spellNames = s.spells.map(id => DARKLORDS.spells.find(sp=>sp.id===id)?.name).filter(Boolean);
+
+  let html = `
+    <div class="fade-in" style="display:flex;flex-direction:column;gap:12px;">
+      <div class="panel" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <span style="color:var(--gold);font-size:0.9rem;">📖 ${node.title}</span>
+        <div class="stat-bar">
+          <div class="stat-item"><span class="stat-label">CS</span><span class="stat-value">${s.cs}</span></div>
+          <div class="stat-item"><span class="stat-label">EP</span><span class="stat-value">${s.ep}/${s.maxEp}</span></div>
+        </div>
+      </div>
+      <div class="svg-scene" style="border-radius:6px;overflow:hidden;border:1px solid rgba(184,134,11,0.2);">${SVG.forest()}</div>
+      <div class="story-box" id="dl-story"></div>
+      <div id="dl-actions"></div>
+      <div class="panel">
+        <h3>🔮 你的法術</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${spellNames.map(n => `<span style="font-size:0.78rem;padding:3px 10px;border:1px solid rgba(184,134,11,0.3);border-radius:20px;color:var(--parchment-dark);">${n}</span>`).join('') || '<span style="font-size:0.8rem;opacity:0.5;">無</span>'}
+        </div>
+      </div>
+      <div class="panel">
+        <h3>📜 冒險記錄</h3>
+        <ul class="log-list">
+          ${s.log.slice(-6).reverse().map(l => `<li>${l.msg}</li>`).join('') || '<li style="opacity:0.5;">暫無記錄</li>'}
+        </ul>
+      </div>
+      <div style="text-align:center;padding:8px 0 4px;">
+        <button class="btn btn-sm" onclick="darklordsInit();darklordsRender()">🔄 重新開始</button>
+      </div>
+    </div>`;
+  screenEl.innerHTML = html;
+
+  // 打字机
+  const storyEl = $('#dl-story');
+  typewriter(storyEl, node.text, 16);
+
+  // 渲染行动
+  renderDarklordsActions(node);
+}
+
+function renderDarklordsActions(node) {
+  const el = $('#dl-actions');
+  if (!el) return;
+  const s = DarklordsState;
+
+  if (s.combat) {
+    const c = s.combat;
+    el.innerHTML = `
+      <div class="panel" style="border-color:var(--accent);">
+        <h3 style="color:#e66;">⚔️ 戰鬥：${c.enemyName}</h3>
+        <p style="font-size:0.85rem;color:var(--parchment-dark);">敵人 CS ${c.enemyCs} · EP ${c.enemyEp} | 第 ${c.round} 輪</p>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-sm btn-primary" onclick="darklordsCombatRound()">🎲 進行一輪戰鬥</button>
+          ${s.spells.includes('vigour') && s.ep >= 10 && !c.vigourUsed ? 
+            `<button class="btn btn-sm" onclick="darklordsCastVigour()">💪 施放活力 (CS+3, -3EP)</button>` : ''}
+          ${s.spells.includes('lightning') && s.ep > 3 ? 
+            `<button class="btn btn-sm" onclick="darklordsCastLightning()">⚡ 閃電之手 (-3EP)</button>` : ''}
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (node.ending) {
+    // 結局已在 renderDarklordsEnding 处理
+    if (s.screen !== 'ending') { s.screen = 'ending'; darklordsRender(); }
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="panel">
+      <h3>🤔 你的選擇</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${(node.choices||[]).map((ch,i) => {
+          let disabled = false;
+          if (ch.requires && !s.spells.includes(ch.requires)) {
+            // 不禁用，而是点击时提示
+          }
+          return `<button class="btn" style="text-align:left;justify-content:flex-start;" onclick="darklordsChoose(${i})">
+            ${ch.text}${ch.requires ? ` <span style="font-size:0.7rem;opacity:0.6;">[需 ${DARKLORDS.spells.find(sp=>sp.id===ch.requires)?.name}]</span>` : ''}
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function darklordsChoose(index) {
+  const node = DARKLORDS.nodes[DarklordsState.currentNode];
+  const ch = node.choices[index];
+  if (!ch) return;
+  sfxClick();
+
+  if (ch.requires && !DarklordsState.spells.includes(ch.requires)) {
+    const spellName = DARKLORDS.spells.find(sp => sp.id === ch.requires)?.name || ch.requires;
+    toast(`❌ 你沒有掌握「${spellName}」法術。`);
+    return;
+  }
+
+  if (ch.effect) {
+    const msg = ch.effect(DarklordsState);
+    if (msg) { darklordsLog(msg); toast(msg); }
+  }
+
+  if (DarklordsState.ep <= 0) { darklordsDeath(); return; }
+
+  if (ch.next) {
+    DarklordsState.currentNode = ch.next;
+    const nextNode = DARKLORDS.nodes[ch.next];
+    if (nextNode && nextNode.ending) {
+      DarklordsState.screen = 'ending';
+      DarklordsState.endingType = nextNode.endingType;
+      darklordsLog('結局：' + nextNode.endingMsg);
+      if (nextNode.endingType === 'good') { sfxWin(); unlockAchievement('dl_good', '黎明送達 · 好結局', '🌅'); }
+      else { sfxLose(); unlockAchievement('dl_bad', '黎明未至 · 壞結局', '🌑'); }
+    }
+    darklordsRender();
+  }
+}
+
+function darklordsCombatRound() {
+  const c = DarklordsState.combat;
+  if (!c) return;
+  sfxDice();
+  const ratio = Math.max(-10, Math.min(10, DarklordsState.cs - c.enemyCs));
+  const roll = rollD10();
+  const [myLoss, enemyLoss] = combatResultTable(ratio, roll);
+  DarklordsState.ep = Math.max(0, DarklordsState.ep - myLoss);
+  c.enemyEp = Math.max(0, c.enemyEp - enemyLoss);
+  c.round++;
+  darklordsLog(`⚔️ 戰鬥：比值 ${ratio}，骰 ${roll} → 你 -${myLoss} EP，敵人 -${enemyLoss} EP`);
+  toast(`⚔️ 比值 ${ratio} · 骰 ${roll} → 你 -${myLoss}，敵 -${enemyLoss}`);
+  setTimeout(() => sfxHit(), 100);
+
+  if (DarklordsState.ep <= 0) { darklordsDeath(); return; }
+  if (c.enemyEp <= 0) {
+    darklordsLog(`你擊敗了 ${c.enemyName}！`);
+    toast(`🎉 擊敗 ${c.enemyName}！`);
+    const next = c.victoryNext;
+    DarklordsState.combat = null;
+    DarklordsState.currentNode = next;
+    darklordsRender();
+    return;
+  }
+  darklordsRender();
+}
+
+function darklordsCastVigour() {
+  const c = DarklordsState.combat;
+  if (!c || DarklordsState.ep < 10) return;
+  DarklordsState.ep -= 3;
+  c.vigourUsed = true;
+  DarklordsState.cs += 3;
+  darklordsLog('施放「活力」，CS +3（本場戰鬥），消耗 3 EP。');
+  toast('💪 活力：CS +3');
+  darklordsRender();
+}
+
+function darklordsCastLightning() {
+  const c = DarklordsState.combat;
+  if (!c || DarklordsState.ep <= 3) return;
+  DarklordsState.ep -= 3;
+  const dmg = 4 + rollD10();
+  c.enemyEp = Math.max(0, c.enemyEp - dmg);
+  darklordsLog(`閃電之手造成 ${dmg} 點傷害！消耗 3 EP。`);
+  toast(`⚡ 閃電造成 ${dmg} 點傷害`);
+  sfxHit();
+  if (c.enemyEp <= 0) {
+    darklordsLog(`你擊敗了 ${c.enemyName}！`);
+    const next = c.victoryNext;
+    DarklordsState.combat = null;
+    DarklordsState.currentNode = next;
+  }
+  darklordsRender();
+}
+
+function darklordsDeath() {
+  DarklordsState.screen = 'ending';
+  DarklordsState.endingType = 'bad';
+  darklordsLog('💀 你的 EP 歸零，冒險結束。');
+  sfxLose();
+  unlockAchievement('dl_death', 'Banedon 的隕落', '💀');
+  darklordsRender();
+}
+
+function renderDarklordsEnding() {
+  const isGood = DarklordsState.endingType === 'good';
+  const node = DARKLORDS.nodes[DarklordsState.currentNode];
+  screenEl.innerHTML = `
+    <div class="fade-in" style="display:flex;flex-direction:column;gap:16px;padding-top:20px;">
+      <div class="panel" style="text-align:center;border-color:${isGood?'var(--gold)':'var(--accent)'};">
+        <div style="font-size:3rem;margin-bottom:8px;">${isGood?'🌅':'🌑'}</div>
+        <h2 style="color:${isGood?'var(--gold)':'#e66'};font-weight:normal;">${isGood?'冒險成功':'冒險失敗'}</h2>
+        <p style="color:var(--parchment-dark);margin-top:12px;line-height:1.7;font-size:0.9rem;">
+          ${node?.text || (isGood ? '你成功將密令送到了凱修道院。' : 'Banedon 的旅程在此畫下句點……')}
+        </p>
+      </div>
+      <div class="panel">
+        <h3>📊 最終屬性</h3>
+        <div class="stat-bar">
+          <div class="stat-item"><span class="stat-label">CS</span><span class="stat-value">${DarklordsState.cs}</span></div>
+          <div class="stat-item"><span class="stat-label">EP</span><span class="stat-value">${DarklordsState.ep}/${DarklordsState.maxEp}</span></div>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <button class="btn btn-primary" onclick="darklordsInit();darklordsRender()">🔄 再試一次</button>
+        <button class="btn" style="margin-left:8px;" onclick="darklordsInit();renderDarklordsTitle()">← 返回標題</button>
+      </div>
+    </div>`;
+}
+
+/* ============================================================
+   底部导航功能
+   ============================================================ */
+let currentGame = null; // 'brawl' | 'darklords'
+
+document.querySelectorAll('#bottom-nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    sfxClick();
+    const nav = btn.dataset.nav;
+    if (nav === 'sound') {
+      soundEnabled = !soundEnabled;
+      btn.querySelector('.nav-icon').textContent = soundEnabled ? '🔊' : '🔇';
+      toast(soundEnabled ? '音效已開啟' : '音效已關閉');
+      return;
+    }
+    if (nav === 'help') { showHelp(); return; }
+    if (nav === 'save') { doSave(); return; }
+    if (nav === 'load') { doLoad(); return; }
+    if (nav === 'timeline') { showTimeline(); return; }
+    if (nav === 'achievements') { showAchievements(); return; }
+  });
+});
+
+function showHelp() {
+  if (currentGame === 'brawl') brawlShowHelp();
+  else if (currentGame === 'darklords') darklordsShowHelp();
+  else {
+    const m = document.createElement('div');
+    m.className = 'modal-overlay';
+    m.innerHTML = `<div class="modal">
+      <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>說明</h2>
+      <p>請先選擇一個遊戲開始。</p>
+      <p><strong>🍺 Ragadorn Alehouse Brawl</strong>：酒館鬥毆，四階段回合制，16 輪內完成角色目標。</p>
+      <p><strong>⚔️ Dawn of the Darklords</strong>：Banedon 的單人冒險，選擇法術，分支敘事與戰鬥。</p>
+    </div>`;
+    document.body.appendChild(m);
+  }
+}
+
+function doSave() {
+  let state = null;
+  if (currentGame === 'brawl' && BrawlState.screen === 'play') {
+    state = { game:'brawl', data: {
+      phase: BrawlState.phase, round: BrawlState.round, playerId: BrawlState.playerId,
+      characters: BrawlState.characters, log: BrawlState.log, gameOver: BrawlState.gameOver,
+      winner: BrawlState.winner, sleepTimers: BrawlState.sleepTimers, wandTimers: BrawlState.wandTimers
+    }};
+  } else if (currentGame === 'darklords' && (DarklordsState.screen === 'play' || DarklordsState.screen === 'ending')) {
+    state = { game:'darklords', data: {
+      screen: DarklordsState.screen, cs: DarklordsState.cs, ep: DarklordsState.ep, maxEp: DarklordsState.maxEp,
+      spells: DarklordsState.spells, currentNode: DarklordsState.currentNode, log: DarklordsState.log,
+      combat: DarklordsState.combat, gameOver: DarklordsState.gameOver, endingType: DarklordsState.endingType
+    }};
+  }
+  if (!state) { toast('目前沒有可存檔的進度。'); return; }
+  if (saveGame(state)) toast('💾 存檔成功');
+  else toast('❌ 存檔失敗（瀏覽器儲存空間不足）');
+}
+
+function doLoad() {
+  const saved = loadGame();
+  if (!saved) { toast('📂 沒有找到存檔。'); return; }
+  if (saved.game === 'brawl') {
+    currentGame = 'brawl';
+    brawlInit();
+    Object.assign(BrawlState, saved.data);
+    BrawlState.screen = 'play';
+    BrawlState.player = BrawlState.characters.find(c => c.id === BrawlState.playerId);
+    toast('📂 酒館存檔已載入');
+    brawlRender();
+  } else if (saved.game === 'darklords') {
+    currentGame = 'darklords';
+    darklordsInit();
+    Object.assign(DarklordsState, saved.data);
+    if (!DarklordsState.screen) DarklordsState.screen = 'play';
+    toast('📂 冒險存檔已載入');
+    darklordsRender();
+  }
+}
+
+function showTimeline() {
+  const log = currentGame === 'brawl' ? BrawlState.log : currentGame === 'darklords' ? DarklordsState.log : [];
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.innerHTML = `<div class="modal">
+    <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">✕</button>
+    <h2>📜 歷史時間線</h2>
+    ${log.length ? `<ul class="log-list" style="max-height:50vh;">${log.slice().reverse().map(l => 
+      `<li>${l.round !== undefined ? `<span class="round-tag">R${l.round} ${l.phase||''}</span>` : ''}${l.msg}</li>`
+    ).join('')}</ul>` : '<p style="opacity:0.5;">目前沒有記錄。</p>'}
+  </div>`;
+  document.body.appendChild(m);
+}
+
+function showAchievements() {
+  const list = loadAchievements();
+  const all = [
+    { id:'brawl_win_lonewolf', name:'孤狼的勝利', icon:'🐺' },
+    { id:'brawl_win_knight', name:'騎士的正義', icon:'⚔️' },
+    { id:'brawl_win_magician', name:'法師的逃亡', icon:'🔮' },
+    { id:'brawl_win_herbwarden', name:'草藥師的歸途', icon:'🌿' },
+    { id:'brawl_win_mercenary', name:'傭兵的復仇', icon:'🗡️' },
+    { id:'brawl_lose_lonewolf', name:'孤狼的殞落', icon:'💀' },
+    { id:'brawl_lose_knight', name:'騎士的失敗', icon:'💀' },
+    { id:'brawl_lose_magician', name:'法師的終局', icon:'💀' },
+    { id:'brawl_lose_herbwarden', name:'草藥師的絕路', icon:'💀' },
+    { id:'brawl_lose_mercenary', name:'傭兵的末路', icon:'💀' },
+    { id:'dl_good', name:'黎明送達', icon:'🌅' },
+    { id:'dl_bad', name:'黎明未至', icon:'🌑' },
+    { id:'dl_death', name:'Banedon 的隕落', icon:'💀' }
+  ];
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.innerHTML = `<div class="modal">
+    <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">✕</button>
+    <h2>🏆 成就</h2>
+    <p style="font-size:0.78rem;opacity:0.6;margin-bottom:12px;">已解鎖 ${list.length} / ${all.length}</p>
+    ${all.map(a => {
+      const unlocked = list.find(x => x.id === a.id);
+      return `<div class="achievement-item ${unlocked?'':'locked'}">
+        <span class="badge">${a.icon}</span>
+        <span>${a.name}</span>
+        ${unlocked ? `<span style="margin-left:auto;font-size:0.65rem;color:var(--gold);">${unlocked.date}</span>` : ''}
+      </div>`;
+    }).join('')}
+  </div>`;
+  document.body.appendChild(m);
+}
+
+/* ============================================================
+   游戏切换 / 启动
+   ============================================================ */
+function showGameSelect() {
+  currentGame = null;
+  screenEl.innerHTML = `
+    <div class="title-screen fade-in">
+      <h1>📜 Magnamund Companion</h1>
+      <p class="subtitle">兩款單人遊戲 · 改編自 Joe Dever 原著</p>
+      <div class="game-choice">
+        <div class="game-card" onclick="startBrawl()">
+          <h2>🍺 Ragadorn Alehouse Brawl</h2>
+          <p>酒館鬥毆 · 四階段回合制 · 16 輪目標挑戰 · AI 對手 · Helghast 潛伏</p>
+          <span class="tag">策略 / 戰鬥 / 賭博</span>
+        </div>
+        <div class="game-card" onclick="startDarklords()">
+          <h2>⚔️ Dawn of the Darklords</h2>
+          <p>Banedon 的單人冒險 · 法術選擇 · 分支敘事 · 戰鬥與結局</p>
+          <span class="tag">冒險 / 敘事 / 法術</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function startBrawl() {
+  currentGame = 'brawl';
+  sfxClick();
+  brawlInit();
+  brawlRender();
+}
+function startDarklords() {
+  currentGame = 'darklords';
+  sfxClick();
+  darklordsInit();
+  darklordsRender();
+}
+
+// 启动
+showGameSelect();
+</script>
+</body>
+</html>

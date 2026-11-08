@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大流行戰疫 - 完整戰役版</title>
+    <style>
+        :root {
+            --bg-color: #1e1e24;
+            --panel-bg: #2b2b36;
+            --text-color: #e0e0e0;
+            --red: #c06054;
+            --green: #4b9f4b;
+            --blue: #5a90c5;
+            --white: #f1faee;
+            --black: #1d3557;
+            --btn-bg: #3a3a4a;
+            --btn-hover: #4a4a5e;
+            --btn-disabled: #222;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        h1 { font-size: 24px; margin-bottom: 10px; text-align: center; letter-spacing: 2px; }
+        .subtitle { font-size: 14px; color: #aaa; margin-bottom: 20px; }
+
+        /* 頂部狀態區 */
+        .dashboard {
+            display: flex; flex-wrap: nowrap; gap: 20px;
+            background-color: var(--panel-bg); padding: 15px; border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-bottom: 20px;
+            overflow-x: auto; width: 100%; max-width: 1100px; align-items: flex-start;
+        }
+
+        .panel-section { display: flex; flex-direction: column; gap: 10px; min-width: 150px; }
+        .panel-title { font-size: 12px; font-weight: bold; color: #aaa; text-transform: uppercase; border-bottom: 1px solid #444; padding-bottom: 5px; }
+
+        /* 骰子與軌道 */
+        .track-container { display: flex; gap: 15px; align-items: center; }
+        .dice-group { display: flex; flex-direction: column; align-items: center; gap: 5px; position: relative; }
+        
+        .die {
+            width: 45px; height: 45px; border-radius: 8px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 22px; font-weight: bold; color: white;
+            box-shadow: inset 0 -3px 0 rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.3);
+            transition: transform 0.3s, background-color 0.3s;
+        }
+        .die.red { background-color: var(--red); }
+        .die.green { background-color: var(--green); }
+        .die.blue { background-color: var(--blue); }
+        .die.white { background-color: var(--white); color: black; }
+        
+        /* 隔離狀態 */
+        .die.quarantined { transform: rotate(45deg); border: 2px dashed #f1c40f; }
+
+        .die-label { font-size: 12px; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 4px; color: #fff; white-space: nowrap; }
+
+        /* 數據方塊 */
+        .data-track { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+        .data-row { display: flex; align-items: center; gap: 5px; }
+        .data-cube {
+            width: 16px; height: 16px; border-radius: 3px; background-color: #333; transition: background-color 0.2s;
+        }
+        .data-cube.active.red { background-color: var(--red); box-shadow: 0 0 5px var(--red); }
+        .data-cube.active.green { background-color: var(--green); box-shadow: 0 0 5px var(--green); }
+        .data-cube.active.blue { background-color: var(--blue); box-shadow: 0 0 5px var(--blue); }
+        .data-cube.max { border: 1px solid #fff; }
+        .data-cube.locked { background-color: #555 !important; box-shadow: none !important; border: 1px solid #888; }
+
+        /* 中央地圖區 */
+        .map-container {
+            position: relative; background-color: #2f3b47; border: 2px solid #444;
+            border-radius: 10px; width: 100%; max-width: 1100px; height: 480px;
+            margin-bottom: 20px; display: flex; justify-content: center; align-items: center; overflow: hidden;
+        }
+
+        svg.map-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        .line-path { stroke: #e0e0e0; stroke-width: 3; fill: none; opacity: 0.5; }
+
+        .cities-grid { position: relative; z-index: 2; width: 100%; height: 100%; }
+
+        .city-node {
+            background-color: #222; border: 4px solid #555; border-radius: 15px; 
+            width: 70px; height: 70px; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; position: absolute; transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5); transform: translate(-50%, -50%);
+        }
+        .city-node:hover { transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 0 15px rgba(255,255,255,0.5); }
+        .city-node.selected-target { border-color: #f1c40f; box-shadow: 0 0 20px #f1c40f; }
+
+        .city-node.red { border-color: var(--red); background-color: rgba(192, 96, 84, 0.3); }
+        .city-node.green { border-color: var(--green); background-color: rgba(75, 159, 75, 0.3); }
+        .city-node.blue { border-color: var(--blue); background-color: rgba(90, 144, 197, 0.3); }
+
+        /* 人形米寶 */
+        .meeple {
+            position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
+            width: 24px; height: 32px; z-index: 10; display: none;
+            filter: drop-shadow(0 3px 4px rgba(0,0,0,0.6));
+        }
+        .city-node.has-player .meeple { display: block; }
+
+        .city-info {
+            position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8); padding: 2px 6px; border-radius: 4px;
+            font-size: 12px; white-space: nowrap; text-align: center; color: #fff; font-weight: bold;
+        }
+        .city-icons { font-size: 24px; display: flex; gap: 2px; justify-content: center; color: #fff; }
+
+        /* 底部控制區 */
+        .controls { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 1100px; }
+
+        .status-bar {
+            font-size: 16px; font-weight: bold; background: #2b2b36; padding: 10px 20px;
+            border-radius: 8px; border: 1px solid #444; display: flex;
+            justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px;
+        }
+
+        .action-buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; min-height: 60px; }
+
+        button {
+            background-color: var(--btn-bg); color: var(--text-color); border: 1px solid #555;
+            padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 14px;
+            font-weight: bold; transition: all 0.2s; display: flex; flex-direction: column;
+            align-items: center; min-width: 100px;
+        }
+        button:hover:not(:disabled) { background-color: var(--btn-hover); transform: translateY(-2px); }
+        button:disabled { background-color: var(--btn-disabled); color: #666; border-color: #333; cursor: not-allowed; transform: none; }
+        button .sub-text { font-size: 10px; font-weight: normal; color: #aaa; margin-top: 4px; }
+
+        .btn-special { background-color: #4a3a6a; border-color: #5a4a7a; }
+        .btn-special:hover:not(:disabled) { background-color: #5a4a7a; }
+        #btn-end-turn { background-color: #2a9d8f; border-color: #2a9d8f; color: #fff; }
+        #btn-end-turn:hover:not(:disabled) { background-color: #21867a; }
+
+        /* 彈窗系統 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background-color: var(--panel-bg); padding: 30px; border-radius: 10px;
+            max-width: 600px; max-height: 80vh; overflow-y: auto; border: 1px solid #555;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); text-align: center;
+        }
+        .modal-content h2 { color: #f1c40f; margin-bottom: 15px; }
+        .modal-content p { line-height: 1.6; color: #bbb; margin-bottom: 20px; }
+        .modal-btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .modal-btn-group button { min-width: 120px; }
+
+        /* 遊戲日誌 */
+        .game-log {
+            width: 100%; height: 80px; background: #111; border: 1px solid #333;
+            border-radius: 5px; padding: 10px; overflow-y: auto; font-size: 12px; color: #888; font-family: monospace;
+        }
+        .log-red { color: var(--red); } .log-green { color: var(--green); } .log-blue { color: var(--blue); }
+        .log-yellow { color: #f1c40f; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>大流行戰疫：完整版</h1>
+    <div class="subtitle" id="campaign-status">尚未開始</div>
+
+    <!-- 頂部狀態列 -->
+    <div class="dashboard">
+        <div class="panel-section">
+            <div class="panel-title">時間線與病毒</div>
+            <div class="track-container">
+                <div class="dice-group">
+                    <div id="die-white" class="die white">1</div>
+                    <div class="die-label">時間線</div>
+                </div>
+                <div class="dice-group">
+                    <div id="die-red-virus" class="die red">1</div>
+                    <div class="die-label" id="label-virus-red">紅病毒</div>
+                </div>
+                <div class="dice-group">
+                    <div id="die-green-virus" class="die green">1</div>
+                    <div class="die-label" id="label-virus-green">綠病毒</div>
+                </div>
+                <div class="dice-group">
+                    <div id="die-blue-virus" class="die blue">1</div>
+                    <div class="die-label" id="label-virus-blue">藍病毒</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <div class="panel-title">疫苗研究等級 (目標 6)</div>
+            <div class="track-container">
+                <div class="dice-group">
+                    <div id="die-red-research" class="die red">4</div>
+                    <div class="die-label">紅疫苗</div>
+                </div>
+                <div class="dice-group">
+                    <div id="die-green-research" class="die green">4</div>
+                    <div class="die-label">綠疫苗</div>
+                </div>
+                <div class="dice-group">
+                    <div id="die-blue-research" class="die blue">4</div>
+                    <div class="die-label">藍疫苗</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-section" style="flex-grow: 1; min-width: 250px;">
+            <div class="panel-title">研究數據 (上限 7)</div>
+            <div class="data-track" id="data-track-container">
+                <div class="data-row" id="data-row-red"></div>
+                <div class="data-row" id="data-row-green"></div>
+                <div class="data-row" id="data-row-blue"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 地圖 -->
+    <div class="map-container">
+        <svg class="map-lines" id="map-svg"></svg>
+        <div class="cities-grid" id="cities-grid"></div>
+    </div>
+
+    <!-- 控制區 -->
+    <div class="controls">
+        <div class="status-bar">
+            <span>階段：<span id="game-phase" style="color: #f1c40f;">選單</span></span>
+            <span>剩餘行動：<span id="actions-left" style="color: #f1c40f;">-</span></span>
+            <button onclick="showRules()" style="padding: 5px 15px; min-width: auto; background: #444; font-size: 12px;">查看規則說明</button>
+        </div>
+
+        <div class="action-buttons" id="action-buttons">
+            <!-- 初始按鈕 -->
+            <button id="btn-start-campaign" onclick="showCampaignMenu()" style="background-color: #e63946;">開始戰役模式</button>
+            <button id="btn-start-basic" onclick="startGame(0)" style="background-color: #2a9d8f;">基礎遊戲 (無變體)</button>
+            
+            <!-- 行動按鈕 (預設隱藏) -->
+            <button id="btn-move" onclick="prepareMove()" style="display: none;">移動<span class="sub-text">1 行動</span></button>
+            <button id="btn-flight" onclick="prepareFlight()" style="display: none;">飛行<span class="sub-text">1 行動 + 數據</span></button>
+            <button id="btn-research" onclick="handleResearch()" style="display: none;">研究 (✚)<span class="sub-text">1 行動</span></button>
+            <button id="btn-treat" onclick="handleTreat()" style="display: none;">治療 (💊)<span class="sub-text">1 行動</span></button>
+            <button id="btn-develop" onclick="handleDevelop()" style="display: none;">研發 (💉)<span class="sub-text">1 行動 + 7 數據</span></button>
+            
+            <!-- 特殊行動按鈕 -->
+            <button id="btn-quarantine" onclick="handleQuarantine()" class="btn-special" style="display: none;">隔離<span class="sub-text">旋轉病毒骰</span></button>
+            <button id="btn-combine" onclick="handleCombine()" class="btn-special" style="display: none;">合併疫苗<span class="sub-text">合併 4+ 數據</span></button>
+            <button id="btn-overtime" onclick="handleOvertime()" class="btn-special" style="display: none;">加班<span class="sub-text">本回合 8 行動</span></button>
+            <button id="btn-shared" onclick="handleSharedKnowledge()" class="btn-special" style="display: none;">分享知識<span class="sub-text">三色各 +1 數據</span></button>
+            <button id="btn-quickvac" onclick="handleQuickVaccine()" class="btn-special" style="display: none;">快速疫苗<span class="sub-text">4 數據升 1 級</span></button>
+            
+            <button id="btn-end-turn" onclick="advanceTimeline()" style="display: none; background-color: #2a9d8f;">推進時間線<span class="sub-text">結束回合</span></button>
+        </div>
+
+        <div class="game-log" id="game-log"></div>
+    </div>
+
+    <!-- 通用彈窗 -->
+    <div class="modal-overlay" id="custom-modal">
+        <div class="modal-content">
+            <h2 id="modal-title">提示</h2>
+            <p id="modal-text">內容</p>
+            <div class="modal-btn-group" id="modal-buttons"></div>
+        </div>
+    </div>
+
+    <!-- 規則彈窗 -->
+    <div class="modal-overlay" id="rules-modal">
+        <div class="modal-content" style="text-align: left;">
+            <h2>遊戲規則說明</h2>
+            <h3>你的回合</h3>
+            <p>每回合你有 5 個行動點。行動點用完後，點擊「推進時間線」。時間線會增加病毒強度，若超過 6 則引發爆發（其他病毒 +1）。若單回合爆發 3 次，或回合結束時所有病毒皆為 6，則遊戲失敗。</p>
+            <p>三種疫苗皆研發至等級 6 即可獲勝。</p>
+            <h3>特殊行動說明</h3>
+            <ul>
+                <li><strong>隔離：</strong>轉動病毒骰 45 度。下次該病毒要增加時，抵銷該次增加並轉回原位。</li>
+                <li><strong>合併疫苗：</strong>選擇兩顆數據達 4 的顏色，合併為一顆。勝利條件變為活躍骰子皆達 6。</li>
+                <li><strong>加班：</strong>本回合 8 行動，下回合僅 2 行動。</li>
+                <li><strong>分享知識：</strong>三色各得 1 點數據，該回合該色不可再「研究」。</li>
+                <li><strong>快速疫苗：</strong>支付 4 數據，該色等級 +1，但直到下次大流行前該色數據鎖定。</li>
+            </ul>
+            <button class="btn-close-modal" style="background-color: #e63946; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; margin-top: 20px; width: 100%;" onclick="document.getElementById('rules-modal').style.display='none'">關閉</button>
+        </div>
+    </div>
+
+<script>
+    // ==========================================
+    // 核心狀態機
+    // ==========================================
+    const GameState = {
+        phase: 'MENU', // MENU, SETUP, PLAYER_ACTION, TIMELINE_SETTLE, GAME_OVER
+        campaignMonth: 0, // 0 = 基礎, 1-12 = 戰役月份
+        actionsLeft: 5,
+        research: { red: 1, green: 1, blue: 1 }, 
+        virusStrength: { red: 1, green: 1, blue: 1 }, 
+        virusQuarantine: { red: false, green: false, blue: false }, // 隔離狀態
+        virusEradicated: { red: false, green: false, blue: false }, // 絕跡狀態
+        researchLevel: { red: 4, green: 4, blue: 4 }, 
+        timeline: { position: 1, value: 1 }, 
+        playerLocation: 'stockholm',
+        researchedThisTurn: { red: false, green: false, blue: false },
+        outbreaksThisRound: 0,
+        pendingAction: null,
+        overtimeNextTurn: false, // 加班逞罰標記
+        quickVaccineLocked: { red: false, green: false, blue: false }, // 快速疫苗鎖定
+        combinedColors: [] // 合併的疫苗顏色
+    };
+
+    // 根據截圖設定的北歐地圖
+    const Cities = {
+        'tromso': { name: '特羅姆瑟', color: 'red', x: 40, y: 15, neighbors: ['trondheim', 'umea'], icons: ['💊'] },
+        'trondheim': { name: '特隆赫姆', color: 'red', x: 30, y: 35, neighbors: ['tromso', 'ostersund', 'umea'], icons: ['✚'] },
+        'ostersund': { name: '厄斯特松德', color: 'red', x: 25, y: 65, neighbors: ['trondheim', 'stockholm'], icons: ['💉'] },
+        'umea': { name: '于默奧', color: 'green', x: 55, y: 35, neighbors: ['tromso', 'trondheim', 'rovaniemi', 'stockholm', 'vano'], icons: ['💉'] },
+        'stockholm': { name: '斯德哥爾摩', color: 'green', x: 50, y: 65, neighbors: ['ostersund', 'umea', 'malmo', 'vano'], icons: ['💊'] },
+        'malmo': { name: '馬爾默', color: 'green', x: 45, y: 85, neighbors: ['stockholm'], icons: ['✚'] },
+        'rovaniemi': { name: '羅瓦涅米', color: 'blue', x: 75, y: 15, neighbors: ['umea', 'vano'], icons: ['✚'] },
+        'vano': { name: '韋納島', color: 'blue', x: 75, y: 45, neighbors: ['umea', 'stockholm', 'rovaniemi', 'helsinki'], icons: ['💊'] },
+        'helsinki': { name: '赫爾辛基', color: 'blue', x: 80, y: 75, neighbors: ['vano'], icons: ['💉'] }
+    };
+
+    // SVG 人形米寶
+    const MEEPLE_SVG = `<svg class="meeple" viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="6" r="5" fill="#f1c40f" stroke="#fff" stroke-width="1.5"/>
+        <path d="M 6 32 L 8 15 C 8 13 16 13 16 15 L 18 32 Z" fill="#f1c40f" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>`;
+
+    // ==========================================
+    // 初始化與 UI
+    // ==========================================
+    window.onload = () => { buildMap(); updateUI(); };
+
+    function startGame(month) {
+        GameState.campaignMonth = month;
+        GameState.phase = 'SETUP';
+        document.getElementById('btn-start-campaign').style.display = 'none';
+        document.getElementById('btn-start-basic').style.display = 'none';
+        
+        // 重置狀態
+        GameState.research = { red: 1, green: 1, blue: 1 };
+        GameState.virusStrength = { red: 1, green: 1, blue: 1 };
+        GameState.virusQuarantine = { red: false, green: false, blue: false };
+        GameState.virusEradicated = { red: false, green: false, blue: false };
+        GameState.researchLevel = { red: 4, green: 4, blue: 4 };
+        GameState.timeline = { position: 1, value: 1 };
+        GameState.playerLocation = 'stockholm';
+        GameState.overtimeNextTurn = false;
+        GameState.quickVaccineLocked = { red: false, green: false, blue: false };
+        GameState.combinedColors = [];
+        
+        // 套用月份特殊設定
+        applyMonthSetup(month);
+
+        log(`=== 開始 ${month === 0 ? '基礎遊戲' : month + ' 月戰役'} ===`, "white");
+
+        // 初始爆發
+        let firstColor = rollDie();
+        GameState.virusStrength[firstColor] = 3;
+        let secondColor = rollDie();
+        while (secondColor === firstColor) secondColor = rollDie();
+        GameState.virusStrength[secondColor] = 2;
+
+        log(`初始爆發：${getColorName(firstColor)}+3, ${getColorName(secondColor)}+2`, "white");
+
+        startPlayerTurn();
+    }
+
+    function applyMonthSetup(month) {
+        if (month === 0) {
+            document.getElementById('campaign-status').innerText = "基礎遊戲";
+            return;
+        }
+        document.getElementById('campaign-status').innerText = `戰役模式：第 ${month} 個月`;
+        
+        // 根據月份改變研究等級
+        if (month === 1) GameState.researchLevel = { red: 4, green: 4, blue: 4 };
+        else if (month === 2) GameState.researchLevel = { red: 3, green: 3, blue: 4 };
+        else if (month === 3) GameState.researchLevel = { red: 3, green: 3, blue: 4 };
+        else if (month === 4) GameState.researchLevel = { red: 3, green: 3, blue: 3 };
+        else if (month === 5) GameState.researchLevel = { red: 3, green: 2, blue: 2 };
+        else if (month === 6) { GameState.researchLevel = { red: 1, green: 1, blue: 1 }; GameState.actionsLeft = 8; }
+        else if (month === 7) { 
+            GameState.researchLevel = { red: 2, green: 0, blue: 2 };
+            GameState.virusEradicated.green = true;
+            GameState.virusStrength.green = 0;
+        }
+        else if (month === 8) GameState.researchLevel = { red: 2, green: 2, blue: 2 };
+        else if (month === 9) { GameState.researchLevel = { red: 2, green: 3, blue: 2 }; GameState.timeline.value = 3; GameState.timeline.position = 3; }
+        else if (month === 10) GameState.researchLevel = { red: 2, green: 2, blue: 1 };
+        else if (month === 11) GameState.researchLevel = { red: 2, green: 2, blue: 2 };
+        else if (month === 12) GameState.researchLevel = { red: 1, green: 1, blue: 1 };
+    }
+
+    function startPlayerTurn() {
+        GameState.phase = 'PLAYER_ACTION';
+        GameState.outbreaksThisRound = 0;
+        GameState.researchedThisTurn = { red: false, green: false, blue: false };
+        GameState.pendingAction = null;
+
+        if (GameState.campaignMonth === 6 && !GameState.overtimeNextTurn) {
+            GameState.actionsLeft = 8;
+        } else if (GameState.overtimeNextTurn) {
+            GameState.actionsLeft = 2;
+            GameState.overtimeNextTurn = false;
+        } else {
+            GameState.actionsLeft = 5;
+        }
+
+        updateUI();
+        log(`=== 新回合開始，你有 ${GameState.actionsLeft} 個行動點 ===`, "white");
+    }
+
+    function updateUI() {
+        // 更新骰子與數值
+        document.getElementById('die-white').innerText = GameState.timeline.value;
+        ['red', 'green', 'blue'].forEach(c => {
+            const vDie = document.getElementById(`die-${c}-virus`);
+            const rDie = document.getElementById(`die-${c}-research`);
+            const vLabel = document.getElementById(`label-virus-${c}`);
+            
+            if (GameState.virusEradicated[c]) {
+                vDie.style.display = 'none'; vLabel.style.display = 'none';
+                rDie.innerText = 'X';
+            } else {
+                vDie.style.display = 'flex'; vLabel.style.display = 'block';
+                vDie.innerText = GameState.virusStrength[c];
+                vDie.classList.toggle('quarantined', GameState.virusQuarantine[c]);
+                rDie.innerText = GameState.researchLevel[c];
+            }
+
+            // 更新數據方塊
+            const row = document.getElementById(`data-row-${c}`);
+            row.innerHTML = `<span style="width: 30px; font-size: 12px; color: var(--${c});">${getColorName(c).charAt(0)}</span>`;
+            for (let i = 1; i <= 7; i++) {
+                const cube = document.createElement('div');
+                let isActive = i <= GameState.research[c];
+                let className = `data-cube ${isActive ? 'active ' + c : ''}`;
+                if (i === 7 && GameState.research[c] === 7) className += ' max';
+                if (GameState.quickVaccineLocked[c]) className += ' locked';
+                cube.className = className;
+                row.appendChild(cube);
+            }
+        });
+
+        // 更新狀態列
+        document.getElementById('game-phase').innerText = getPhaseName(GameState.phase);
+        document.getElementById('actions-left').innerText = GameState.phase === 'PLAYER_ACTION' ? GameState.actionsLeft : '-';
+
+        // 更新地圖
+        document.querySelectorAll('.city-node').forEach(node => {
+            node.classList.remove('has-player', 'selected-target');
+            if (node.id === `city-${GameState.playerLocation}`) node.classList.add('has-player');
+        });
+
+        // 狀態機按鈕控制
+        const isSetup = (GameState.phase === 'SETUP');
+        const isAction = (GameState.phase === 'PLAYER_ACTION');
+        const hasActions = (GameState.actionsLeft > 0);
+        const isMoving = (GameState.pendingAction !== null);
+
+        const btns = ['move', 'flight', 'research', 'treat', 'develop', 'quarantine', 'combine', 'overtime', 'shared', 'quickvac', 'end-turn'];
+        btns.forEach(b => {
+            const el = document.getElementById(`btn-${b}`);
+            if (el) el.style.display = (isAction) ? 'flex' : 'none';
+        });
+
+        if (!isAction) return;
+
+        // 基礎按鈕
+        document.getElementById('btn-move').disabled = !hasActions || isMoving;
+        document.getElementById('btn-flight').disabled = !hasActions || isMoving;
+        
+        // 依當前城市判斷
+        const city = Cities[GameState.playerLocation];
+        const color = city.color;
+        
+        document.getElementById('btn-research').disabled = !hasActions || isMoving || !city.icons.includes('✚') || GameState.researchedThisTurn[color] || GameState.virusEradicated[color];
+        document.getElementById('btn-treat').disabled = !hasActions || isMoving || !city.icons.includes('💊') || GameState.virusEradicated[color];
+        document.getElementById('btn-develop').disabled = !hasActions || isMoving || !city.icons.includes('💉') || GameState.research[color] < 7 || GameState.researchLevel[color] >= 6 || GameState.virusEradicated[color];
+
+        // 特殊行動按鈕 (根據月份開放)
+        document.getElementById('btn-quarantine').style.display = (GameState.campaignMonth >= 2 && city.icons.includes('✚')) ? 'flex' : 'none';
+        document.getElementById('btn-combine').style.display = (GameState.campaignMonth >= 4 && city.icons.includes('💉')) ? 'flex' : 'none';
+        document.getElementById('btn-overtime').style.display = (GameState.campaignMonth >= 6) ? 'flex' : 'none';
+        document.getElementById('btn-shared').style.display = (GameState.campaignMonth >= 8 && city.icons.includes('✚')) ? 'flex' : 'none';
+        document.getElementById('btn-quickvac').style.display = (GameState.campaignMonth >= 10 && city.icons.includes('💉')) ? 'flex' : 'none';
+
+        // 結束回合
+        document.getElementById('btn-end-turn').style.display = (!hasActions && !isMoving) ? 'flex' : 'none';
+    }
+
+    // ==========================================
+    // 通用彈窗邏輯
+    // ==========================================
+    function showModal(title, text, buttons) {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-text').innerHTML = text;
+        const btnContainer = document.getElementById('modal-buttons');
+        btnContainer.innerHTML = '';
+        
+        buttons.forEach(btn => {
+            const b = document.createElement('button');
+            b.innerText = btn.text;
+            b.onclick = () => { 
+                document.getElementById('custom-modal').style.display = 'none'; 
+                if (btn.callback) btn.callback(); 
+                updateUI();
+            };
+            btnContainer.appendChild(b);
+        });
+        document.getElementById('custom-modal').style.display = 'flex';
+    }
+
+    // ==========================================
+    // 行動邏輯
+    // ==========================================
+    function prepareMove() {
+        if (GameState.pendingAction === 'MOVE') { GameState.pendingAction = null; updateUI(); return; }
+        GameState.pendingAction = 'MOVE';
+        log("請點擊相鄰的城市進行移動。", "white");
+        updateUI();
+    }
+
+    function prepareFlight() {
+        if (GameState.pendingAction === 'FLIGHT') { GameState.pendingAction = null; updateUI(); return; }
+        GameState.pendingAction = 'FLIGHT';
+        log("請點擊任意城市進行飛行。", "white");
+        updateUI();
+    }
+
+    function handleCityClick(cityId) {
+        if (GameState.phase !== 'PLAYER_ACTION' || GameState.actionsLeft <= 0) return;
+        const current = Cities[GameState.playerLocation];
+        const target = Cities[cityId];
+
+        if (GameState.pendingAction === 'MOVE') {
+            if (current.neighbors.includes(cityId)) {
+                GameState.playerLocation = cityId;
+                GameState.actionsLeft--;
+                GameState.pendingAction = null;
+                log(`移動至 ${target.name}。`, "white");
+                updateUI();
+            } else {
+                log("無法移動到不相鄰的城市！", "red");
+            }
+        } else if (GameState.pendingAction === 'FLIGHT') {
+            if (GameState.campaignMonth === 3) {
+                log("3月邊境管制：無法飛行！", "red");
+                return;
+            }
+            let cost = current.color === target.color ? { [current.color]: 2 } : { [current.color]: 1, [target.color]: 1 };
+            let canAfford = true;
+            for (let c in cost) if (GameState.research[c] < cost[c]) canAfford = false;
+
+            if (canAfford) {
+                for (let c in cost) GameState.research[c] -= cost[c];
+                GameState.playerLocation = cityId;
+                GameState.actionsLeft--;
+                GameState.pendingAction = null;
+                log(`飛行至 ${target.name}。`, "white");
+                updateUI();
+            } else {
+                log("研究數據不足！", "red");
+            }
+        } else {
+            log(`這裡是 ${target.name}。`, "white");
+        }
+    }
+
+    function handleResearch() {
+        const city = Cities[GameState.playerLocation];
+        const c = city.color;
+        if (!city.icons.includes('✚') || GameState.research[c] >= 7) return;
+
+        const roll = rollDie();
+        const gained = roll <= 3 ? 3 : (roll <= 5 ? 4 : 5);
+        GameState.research[c] = Math.min(7, GameState.research[c] + gained);
+        GameState.researchedThisTurn[c] = true;
+        GameState.actionsLeft--;
+        log(`研究（擲出 ${roll}）：獲得 ${gained} 點${getColorName(c)}數據。`, c);
+        updateUI();
+    }
+
+    function handleTreat() {
+        const city = Cities[GameState.playerLocation];
+        const c = city.color;
+        if (!city.icons.includes('💊')) return;
+        if (GameState.virusStrength[c] === 1) { log("病毒已是最低強度。", "white"); return; }
+
+        // 如果疫苗已完成，提供完全治療或根除選項
+        if (GameState.researchLevel[c] >= 6) {
+            showModal("疫苗已完成", `選擇要對 ${getColorName(c)} 病毒執行的行動：`, [
+                { text: "完全治療 (降至1)", callback: () => {
+                    GameState.virusStrength[c] = 1;
+                    GameState.actionsLeft--;
+                    log(`將 ${getColorName(c)} 病毒降至 1。`, c);
+                }},
+                { text: "絕跡病毒 (移除骰子)", callback: () => {
+                    GameState.virusEradicated[c] = true;
+                    GameState.virusStrength[c] = 0;
+                    GameState.actionsLeft--;
+                    log(`🎉 ${getColorName(c)} 病毒已絕跡！`, c);
+                    checkDefeat();
+                }},
+                { text: "取消", callback: () => {} }
+            ]);
+            return;
+        }
+
+        // 一般治療
+        showModal("選擇治療花費", `當前${getColorName(c)}數據：${GameState.research[c]}`, [
+            { text: "花費 0 (降1)", callback: () => applyTreat(c, 0, 1) },
+            { text: "花費 1 (降2)", callback: () => applyTreat(c, 1, 2) },
+            { text: "花費 2 (降3)", callback: () => applyTreat(c, 2, 3) }
+        ]);
+    }
+
+    function applyTreat(color, cost, reduction) {
+        if (GameState.research[color] < cost) { log("數據不足！", "red"); return; }
+        GameState.research[color] -= cost;
+        GameState.virusStrength[color] = Math.max(1, GameState.virusStrength[color] - reduction);
+        GameState.actionsLeft--;
+        log(`治療${getColorName(color)}：花費 ${cost}，降低 ${reduction}。`, color);
+    }
+
+    function handleDevelop() {
+        const city = Cities[GameState.playerLocation];
+        const c = city.color;
+        if (GameState.research[c] >= 7 && GameState.researchLevel[c] < 6) {
+            GameState.research[c] -= 7;
+            GameState.researchLevel[c]++;
+            GameState.actionsLeft--;
+            log(`研發${getColorName(c)}疫苗：等級提升至 ${GameState.researchLevel[c]}。`, c);
+            checkVictory();
+            updateUI();
+        }
+    }
+
+    // ==========================================
+    // 特殊行動邏輯
+    // ==========================================
+    function handleQuarantine() {
+        const city = Cities[GameState.playerLocation];
+        const c = city.color;
+        GameState.virusQuarantine[c] = true;
+        GameState.actionsLeft--;
+        log(`隔離${getColorName(c)}病毒，下次增加時將被抵銷。`, "yellow");
+        updateUI();
+    }
+
+    function handleCombine() {
+        // 簡化版：如果有兩顆 4+ 的骰子，允許合併
+        let activeColors = ['red', 'green', 'blue'].filter(c => !GameState.virusEradicated[c] && GameState.research[c] >= 4);
+        if (activeColors.length < 2) { log("沒有兩顆達 4+ 的數據。", "red"); return; }
+        
+        // 實作彈窗選擇
+        showModal("合併疫苗", "選擇要合併的兩種顏色 (請在控制台查看簡化邏輯)", [
+            { text: "確認合併", callback: () => {
+                // 簡化處理：合併前兩個
+                let c1 = activeColors[0], c2 = activeColors[1];
+                GameState.combinedColors.push([c1, c2]);
+                GameState.research[c2] = 1;
+                GameState.actionsLeft--;
+                log(`合併了 ${getColorName(c1)} 與 ${getColorName(c2)} 的數據！`, "yellow");
+            }},
+            { text: "取消", callback: () => {} }
+        ]);
+    }
+
+    function handleOvertime() {
+        GameState.actionsLeft += 3; // 5 -> 8
+        GameState.overtimeNextTurn = true;
+        log("啟動加班：本回合多 3 行動，下回合少 3 行動。", "yellow");
+        updateUI();
+    }
+
+    function handleSharedKnowledge() {
+        ['red', 'green', 'blue'].forEach(c => {
+            if (!GameState.virusEradicated[c]) GameState.research[c] = Math.min(7, GameState.research[c] + 1);
+        });
+        // 標記為已研究
+        const city = Cities[GameState.playerLocation];
+        GameState.researchedThisTurn[city.color] = true; 
+        GameState.actionsLeft--;
+        log("分享知識：三色數據各 +1。", "yellow");
+        updateUI();
+    }
+
+    function handleQuickVaccine() {
+        const city = Cities[GameState.playerLocation];
+        const c = city.color;
+        if (GameState.research[c] >= 4) {
+            GameState.research[c] -= 4;
+            GameState.researchLevel[c]++;
+            GameState.quickVaccineLocked[c] = true;
+            GameState.actionsLeft--;
+            log(`快速研發${getColorName(c)}疫苗：等級 +1，數據暫時鎖定。`, c);
+            checkVictory();
+            updateUI();
+        }
+    }
+
+    // ==========================================
+    // 時間線與結算
+    // ==========================================
+    function advanceTimeline() {
+        if (GameState.phase !== 'PLAYER_ACTION' || GameState.actionsLeft > 0) return;
+        GameState.phase = 'TIMELINE_SETTLE';
+        updateUI();
+        log("--- 推進時間線 ---", "white");
+
+        GameState.timeline.position++;
+        if (GameState.timeline.position > 6) GameState.timeline.position = 1; 
+
+        // 月份變體影響
+        let effect = 'none';
+        if (GameState.campaignMonth === 11) effect = 'virus'; // 11月侵襲性病毒
+        else if (GameState.timeline.position === 2 || GameState.timeline.position === 4 || GameState.timeline.position === 6) effect = 'virus';
+        else if (GameState.timeline.position === 5) effect = 'pandemic';
+
+        setTimeout(() => resolveTimelineEffect(effect), 500);
+    }
+
+    function resolveTimelineEffect(effect) {
+        if (effect === 'none') {
+            log("時間線：無特殊符號。", "white");
+            increaseVirus(rollDie(), 1);
+        } else if (effect === 'virus') {
+            log("時間線：病毒符號！", "red");
+            increaseVirus(rollDie(), 2);
+        } else if (effect === 'pandemic') {
+            log("時間線：大流行！", "red");
+            handlePandemic();
+        }
+        setTimeout(finishTimelinePhase, 800);
+    }
+
+    function handlePandemic() {
+        let max = 0;
+        ['red', 'green', 'blue'].forEach(c => { if (!GameState.virusEradicated[c] && GameState.virusStrength[c] > max) max = GameState.virusStrength[c]; });
+        
+        let strongest = [];
+        ['red', 'green', 'blue'].forEach(c => { if (!GameState.virusEradicated[c] && GameState.virusStrength[c] === max) strongest.push(c); });
+        
+        let targetColor = strongest[Math.floor(Math.random() * strongest.length)];
+        log(`最強病毒：${getColorName(targetColor)}`, targetColor);
+        
+        increaseVirus(targetColor, 2);
+        ['red', 'green', 'blue'].forEach(c => { if (c !== targetColor && !GameState.virusEradicated[c]) increaseVirus(c, 1); });
+
+        if (GameState.timeline.value < 6) GameState.timeline.value++;
+        GameState.timeline.position = GameState.timeline.value;
+        
+        // 解除快速疫苗鎖定
+        GameState.quickVaccineLocked = { red: false, green: false, blue: false };
+    }
+
+    function increaseVirus(color, amount) {
+        if (GameState.phase === 'GAME_OVER' || GameState.virusEradicated[color]) return;
+
+        // 檢查隔離
+        if (GameState.virusQuarantine[color]) {
+            GameState.virusQuarantine[color] = false;
+            log(`${getColorName(color)} 病毒被隔離抵銷！`, "yellow");
+            return;
+        }
+
+        GameState.virusStrength[color] += amount;
+        log(`${getColorName(color)} 病毒 +${amount}。`, color);
+
+        if (GameState.virusStrength[color] > 6) {
+            GameState.virusStrength[color] = 6;
+            triggerOutbreak(color);
+        }
+        updateUI();
+    }
+
+    function triggerOutbreak(sourceColor) {
+        if (GameState.phase === 'GAME_OVER') return;
+        GameState.outbreaksThisRound++;
+        log(`⚠️ 爆發！${getColorName(sourceColor)} 病毒失控！ (第 ${GameState.outbreaksThisRound} 次)`, "red");
+
+        if (GameState.outbreaksThisRound >= 3) {
+            gameOver("單回合爆發 3 次，世界毀滅！");
+            return;
+        }
+
+        ['red', 'green', 'blue'].forEach(c => {
+            if (c !== sourceColor && !GameState.virusEradicated[c]) increaseVirus(c, 1);
+        });
+    }
+
+    function finishTimelinePhase() {
+        if (GameState.phase === 'GAME_OVER') return;
+        
+        // 5月懲罰
+        if (GameState.campaignMonth === 5) {
+            ['red', 'green', 'blue'].forEach(c => { if (GameState.research[c] > 0) GameState.research[c]--; });
+            log("5月變體：所有顏色數據 -1。", "white");
+        }
+
+        // 檢查失敗
+        let activeViruses = ['red', 'green', 'blue'].filter(c => !GameState.virusEradicated[c]);
+        let allMax = activeViruses.length > 0 && activeViruses.every(c => GameState.virusStrength[c] >= 6);
+        
+        if (allMax) { gameOver("所有活躍病毒皆達到 6，世界毀滅！"); return; }
+        if (GameState.outbreaksThisRound >= 3) { gameOver("爆發次數過多！"); return; }
+
+        startPlayerTurn();
+    }
+
+    // ==========================================
+    // 輔助與勝負
+    // ==========================================
+    function checkVictory() {
+        let activeColors = ['red', 'green', 'blue'].filter(c => !GameState.virusEradicated[c]);
+        // 簡化合併勝利判定
+        if (GameState.campaignMonth === 4) {
+            let levels = activeColors.map(c => GameState.researchLevel[c]);
+            if (levels.every(l => l >= 6) && GameState.combinedColors.length > 0) {
+                gameOver("合併疫苗成功！", true);
+            }
+        } else {
+            if (activeColors.every(c => GameState.researchLevel[c] >= 6)) {
+                gameOver("所有疫苗研發完成！", true);
+            }
+        }
+    }
+
+    function checkDefeat() {
+        let activeColors = ['red', 'green', 'blue'].filter(c => !GameState.virusEradicated[c]);
+        if (activeColors.length > 0 && activeColors.every(c => GameState.virusStrength[c] >= 6)) {
+            gameOver("所有活躍病毒達到 6，世界毀滅！");
+        }
+    }
+
+    function gameOver(msg, isWin = false) {
+        GameState.phase = 'GAME_OVER';
+        updateUI();
+        log(`=== ${isWin ? '勝利' : '失敗'} ===`, isWin ? "green" : "red");
+        log(msg, isWin ? "green" : "red");
+        showModal(isWin ? "🎉 勝利！" : "💀 失敗", msg, [{ text: "重新開始", callback: () => location.reload() }]);
+    }
+
+    function rollDie() {
+        const colors = ['red', 'green', 'blue'];
+        return colors[Math.floor(Math.random() * 3)];
+    }
+
+    function getColorName(c) { return { red: '紅色', green: '綠色', blue: '藍色' }[c] || c; }
+    function getPhaseName(p) { return { MENU: '選單', SETUP: '設置中', PLAYER_ACTION: '玩家行動', TIMELINE_SETTLE: '時間線結算', GAME_OVER: '遊戲結束' }[p] || p; }
+    function log(msg, color = "white") {
+        const d = document.getElementById('game-log');
+        const p = document.createElement('div');
+        p.innerText = msg;
+        if (color !== 'white') p.classList.add(`log-${color}`);
+        d.appendChild(p);
+        d.scrollTop = d.scrollHeight;
+    }
+
+    function showRules() { document.getElementById('rules-modal').style.display = 'flex'; }
+
+    function showCampaignMenu() {
+        let btns = [];
+        for (let i = 1; i <= 12; i++) {
+            btns.push({ text: `${i} 月`, callback: () => startGame(i) });
+        }
+        showModal("戰役模式", "請選擇要挑戰的月份：", btns);
+    }
+
+    // 繪製地圖
+    function buildMap() {
+        const grid = document.getElementById('cities-grid');
+        const svg = document.getElementById('map-svg');
+        grid.innerHTML = ''; svg.innerHTML = '';
+        
+        const lines = new Set();
+        for (let id in Cities) {
+            const city = Cities[id];
+            city.neighbors.forEach(nId => {
+                const pair = [id, nId].sort().join('-');
+                if (!lines.has(pair)) {
+                    lines.add(pair);
+                    const n = Cities[nId];
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', city.x + '%'); line.setAttribute('y1', city.y + '%');
+                    line.setAttribute('x2', n.x + '%'); line.setAttribute('y2', n.y + '%');
+                    line.setAttribute('class', 'line-path');
+                    svg.appendChild(line);
+                }
+            });
+        }
+
+        for (let id in Cities) {
+            const city = Cities[id];
+            const node = document.createElement('div');
+            node.id = `city-${id}`;
+            node.className = `city-node ${city.color}`;
+            node.style.left = `${city.x}%`; node.style.top = `${city.y}%`;
+            
+            node.innerHTML = `
+                <div class="city-icons">${city.icons.join('')}</div>
+                ${MEEPLE_SVG}
+                <div class="city-info">${city.name}</div>
+            `;
+            node.onclick = () => handleCityClick(id);
+            grid.appendChild(node);
+        }
+    }
+</script>
+</body>
+</html>

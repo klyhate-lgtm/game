@@ -1,0 +1,3288 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>時間機器13：皇家寶藏的祕密</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;900&display=swap');
+
+  :root {
+    --parchment: #f4e4c1;
+    --parchment-dark: #e8d4a8;
+    --ink: #2b1d0e;
+    --ink-light: #5a4428;
+    --gold: #b8860b;
+    --gold-light: #d4af37;
+    --crimson: #7b1e1e;
+    --shadow: rgba(43, 29, 14, 0.4);
+    --nav-height: 60px;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'Noto Serif TC', Georgia, 'Times New Roman', serif;
+    background: #1a1209;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* 羊皮紙紋理背景 */
+  #app {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(255, 245, 220, 0.5) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 90%, rgba(200, 170, 120, 0.3) 0%, transparent 50%),
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 2px,
+        rgba(139, 109, 59, 0.03) 2px,
+        rgba(139, 109, 59, 0.03) 4px
+      ),
+      linear-gradient(135deg, #f7ecd4 0%, #f0e0c0 40%, #e8d4a8 70%, #ddc898 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 暗角效果 */
+  #app::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(40, 25, 10, 0.35) 100%);
+  }
+
+  /* 頂部狀態列 */
+  #topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: linear-gradient(180deg, rgba(60, 40, 20, 0.95), rgba(40, 25, 12, 0.9));
+    color: var(--gold-light);
+    font-size: 0.8rem;
+    border-bottom: 2px solid var(--gold);
+    z-index: 10;
+    flex-shrink: 0;
+    letter-spacing: 1px;
+  }
+
+  #topbar .era {
+    font-weight: 900;
+    font-size: 0.95rem;
+    color: #f0d890;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  }
+
+  #topbar .location {
+    opacity: 0.85;
+    font-size: 0.78rem;
+    max-width: 55%;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 主內容區 */
+  #main {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px 14px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 6;
+    position: relative;
+    scroll-behavior: smooth;
+  }
+
+  /* 場景插圖 */
+  #scene-image {
+    width: 100%;
+    height: 200px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 3px solid #8b6d3b;
+    box-shadow: inset 0 0 30px rgba(60, 40, 20, 0.5), 0 4px 12px var(--shadow);
+    background: #3a2814;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  #scene-image svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* 場景文字 */
+  #scene-text {
+    font-size: 1.02rem;
+    line-height: 1.85;
+    color: var(--ink);
+    text-align: justify;
+    padding: 16px 18px;
+    background: rgba(255, 250, 240, 0.55);
+    border-radius: 6px;
+    border-left: 4px solid var(--gold);
+    box-shadow: 0 2px 8px rgba(90, 68, 40, 0.15);
+    min-height: 120px;
+    white-space: pre-wrap;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  #scene-text:active {
+    background: rgba(255, 250, 240, 0.75);
+  }
+
+  #scene-text .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: var(--ink);
+    vertical-align: middle;
+    animation: blink 0.8s infinite;
+    margin-left: 2px;
+  }
+
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  /* 選項按鈕 */
+  #choices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  .choice-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #fdf6e3 0%, #f0e0bb 100%);
+    border: 2px solid #9c7d45;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 0 #7a5d2e, 0 4px 10px rgba(60, 40, 20, 0.2);
+    position: relative;
+    letter-spacing: 0.5px;
+  }
+
+  .choice-btn::before {
+    content: '▸';
+    color: var(--gold);
+    font-size: 1.2rem;
+    font-weight: 900;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+
+  .choice-btn:hover {
+    background: linear-gradient(135deg, #fffbe8 0%, #f5e8c8 100%);
+    border-color: var(--gold);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 0 #7a5d2e, 0 6px 14px rgba(60, 40, 20, 0.3);
+  }
+
+  .choice-btn:hover::before {
+    transform: translateX(4px);
+  }
+
+  .choice-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 #7a5d2e, 0 2px 5px rgba(60, 40, 20, 0.2);
+  }
+
+  .choice-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  .choice-btn.clue-btn {
+    background: linear-gradient(135deg, #e8f4e0 0%, #d4e8c4 100%);
+    border-color: #5a8a3a;
+  }
+
+  .choice-btn.danger-btn {
+    background: linear-gradient(135deg, #f8e0e0 0%, #eed0d0 100%);
+    border-color: #8a3a3a;
+  }
+
+  .choice-btn.jump-btn {
+    background: linear-gradient(135deg, #e0e8f8 0%, #c8d4ee 100%);
+    border-color: #3a5a8a;
+  }
+
+  .choice-btn.jump-btn::before {
+    content: '⏳';
+  }
+
+  /* 底部導航列 */
+  #bottomnav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: var(--nav-height);
+    background: linear-gradient(180deg, rgba(40, 25, 12, 0.95), rgba(25, 15, 8, 0.98));
+    border-top: 2px solid var(--gold);
+    z-index: 20;
+    flex-shrink: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .nav-btn {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: #b09870;
+    font-family: inherit;
+    font-size: 0.62rem;
+    cursor: pointer;
+    transition: color 0.2s;
+    letter-spacing: 0.5px;
+    padding: 4px;
+  }
+
+  .nav-btn .icon {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .nav-btn:hover, .nav-btn:active {
+    color: var(--gold-light);
+    background: rgba(184, 134, 11, 0.1);
+  }
+
+  .nav-btn.active {
+    color: var(--gold-light);
+  }
+
+  /* 彈窗 */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 6, 2, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    padding: 16px;
+  }
+
+  .modal-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal {
+    background: linear-gradient(135deg, #fdf6e3 0%, #f0e0bb 100%);
+    border: 3px solid var(--gold);
+    border-radius: 12px;
+    max-width: 520px;
+    width: 100%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    transform: scale(0.92);
+    transition: transform 0.3s;
+  }
+
+  .modal-overlay.show .modal {
+    transform: scale(1);
+  }
+
+  .modal-header {
+    padding: 14px 18px;
+    background: linear-gradient(180deg, #3a2814, #2b1d0e);
+    color: var(--gold-light);
+    font-weight: 900;
+    font-size: 1.05rem;
+    border-radius: 9px 9px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--gold-light);
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+  }
+
+  .modal-body {
+    padding: 16px 18px;
+    overflow-y: auto;
+    font-size: 0.92rem;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+
+  .modal-body h3 {
+    color: var(--crimson);
+    margin: 14px 0 6px;
+    font-size: 1rem;
+    border-bottom: 1px dashed var(--gold);
+    padding-bottom: 4px;
+  }
+
+  .modal-body h3:first-child {
+    margin-top: 0;
+  }
+
+  .modal-body ul {
+    padding-left: 20px;
+    margin: 6px 0;
+  }
+
+  .modal-body li {
+    margin: 4px 0;
+  }
+
+  .modal-body p {
+    margin: 6px 0;
+  }
+
+  /* 筆記本線索 */
+  .clue-item {
+    background: rgba(255, 250, 235, 0.7);
+    border-left: 3px solid var(--gold);
+    padding: 8px 12px;
+    margin: 8px 0;
+    border-radius: 4px;
+    font-size: 0.88rem;
+  }
+
+  .clue-item .clue-title {
+    font-weight: 900;
+    color: var(--crimson);
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  /* 時間線 */
+  .timeline-item {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px dashed rgba(139, 109, 59, 0.3);
+    font-size: 0.85rem;
+    align-items: flex-start;
+  }
+
+  .timeline-item .t-year {
+    background: var(--crimson);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 900;
+    font-size: 0.72rem;
+    flex-shrink: 0;
+    min-width: 48px;
+    text-align: center;
+  }
+
+  .timeline-item .t-desc {
+    flex: 1;
+    color: var(--ink-light);
+  }
+
+  /* 成就 */
+  .ach-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    margin: 6px 0;
+    border-radius: 8px;
+    background: rgba(255, 250, 235, 0.5);
+    border: 1px solid rgba(139, 109, 59, 0.3);
+  }
+
+  .ach-item.locked {
+    opacity: 0.45;
+    filter: grayscale(1);
+  }
+
+  .ach-item .ach-icon {
+    font-size: 1.6rem;
+    flex-shrink: 0;
+  }
+
+  .ach-item .ach-info {
+    flex: 1;
+  }
+
+  .ach-item .ach-name {
+    font-weight: 900;
+    color: var(--ink);
+    font-size: 0.9rem;
+  }
+
+  .ach-item .ach-desc {
+    font-size: 0.75rem;
+    color: var(--ink-light);
+    margin-top: 2px;
+  }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: calc(var(--nav-height) + 16px);
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(40, 25, 12, 0.96);
+    color: var(--gold-light);
+    padding: 10px 22px;
+    border-radius: 24px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid var(--gold);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.35s;
+    z-index: 200;
+    max-width: 85vw;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    letter-spacing: 0.5px;
+  }
+
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* 結局畫面 */
+  .ending-screen {
+    text-align: center;
+    padding: 20px 10px;
+  }
+
+  .ending-screen .ending-icon {
+    font-size: 3.5rem;
+    margin-bottom: 12px;
+    display: block;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  .ending-screen .ending-title {
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--crimson);
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+
+  .ending-screen .ending-sub {
+    font-size: 0.85rem;
+    color: var(--ink-light);
+    margin-bottom: 16px;
+  }
+
+  /* 過渡動畫 */
+  .fade-overlay {
+    position: fixed;
+    inset: 0;
+    background: #1a1209;
+    z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s;
+  }
+
+  .fade-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* 水平捲動容器（場景卡片用） */
+  .h-scroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 8px;
+    align-items: center;
+    scrollbar-width: thin;
+  }
+
+  .h-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .h-scroll::-webkit-scrollbar-thumb {
+    background: var(--gold);
+    border-radius: 3px;
+  }
+
+  /* 手機優化 */
+  @media (max-width: 480px) {
+    #scene-image { height: 150px; }
+    #scene-text { font-size: 0.95rem; line-height: 1.75; padding: 12px 14px; }
+    .choice-btn { font-size: 0.92rem; padding: 12px 14px; }
+    .nav-btn { font-size: 0.58rem; }
+    .nav-btn .icon { font-size: 1.1rem; }
+    #topbar { font-size: 0.72rem; padding: 6px 10px; }
+  }
+
+  /* 桌面版更寬敞 */
+  @media (min-width: 700px) {
+    #main {
+      max-width: 720px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 16px 24px 24px;
+    }
+    #scene-image { height: 260px; }
+    #scene-text { font-size: 1.08rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- 頂部狀態列 -->
+  <header id="topbar">
+    <span class="era" id="top-era">1599 年</span>
+    <span class="location" id="top-location">倫敦・泰晤士河畔</span>
+  </header>
+
+  <!-- 主內容 -->
+  <main id="main">
+    <div id="scene-image"></div>
+    <div id="scene-text" onclick="skipTyping()"></div>
+    <div id="choices"></div>
+  </main>
+
+  <!-- 底部導航 -->
+  <nav id="bottomnav">
+    <button class="nav-btn" id="nav-help" onclick="openModal('help')">
+      <span class="icon">📖</span>
+      <span>說明</span>
+    </button>
+    <button class="nav-btn" id="nav-clues" onclick="openModal('clues')">
+      <span class="icon">🔍</span>
+      <span>線索</span>
+    </button>
+    <button class="nav-btn" id="nav-timeline" onclick="openModal('timeline')">
+      <span class="icon">🕰️</span>
+      <span>時間線</span>
+    </button>
+    <button class="nav-btn" id="nav-ach" onclick="openModal('achievements')">
+      <span class="icon">🏆</span>
+      <span>成就</span>
+    </button>
+    <button class="nav-btn" id="nav-save" onclick="openModal('save')">
+      <span class="icon">💾</span>
+      <span>存檔</span>
+    </button>
+  </nav>
+</div>
+
+<!-- 淡入淡出遮罩 -->
+<div class="fade-overlay" id="fade-overlay"></div>
+
+<!-- 通用彈窗 -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="modal-title">標題</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   音效系統 (Web Audio API 合成)
+   ============================================================ */
+let audioCtx = null;
+let soundEnabled = true;
+
+function initAudio() {
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      audioCtx = null;
+    }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function playTone(freq, duration, type = 'sine', volume = 0.08) {
+  if (!soundEnabled || !audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch (e) {}
+}
+
+function sfxClick() {
+  playTone(520, 0.08, 'triangle', 0.06);
+  setTimeout(() => playTone(660, 0.06, 'triangle', 0.04), 40);
+}
+
+function sfxType() {
+  playTone(880 + Math.random() * 200, 0.02, 'square', 0.015);
+}
+
+function sfxSuccess() {
+  playTone(523, 0.15, 'sine', 0.08);
+  setTimeout(() => playTone(659, 0.15, 'sine', 0.08), 120);
+  setTimeout(() => playTone(784, 0.25, 'sine', 0.1), 240);
+}
+
+function sfxFail() {
+  playTone(300, 0.2, 'sawtooth', 0.06);
+  setTimeout(() => playTone(200, 0.3, 'sawtooth', 0.06), 150);
+}
+
+function sfxJump() {
+  playTone(400, 0.1, 'sine', 0.05);
+  setTimeout(() => playTone(600, 0.1, 'sine', 0.05), 80);
+  setTimeout(() => playTone(800, 0.15, 'sine', 0.06), 160);
+  setTimeout(() => playTone(1200, 0.2, 'sine', 0.05), 240);
+}
+
+/* ============================================================
+   SVG 場景插圖生成器
+   ============================================================ */
+const SVG_SCENES = {
+  thames: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6b8eab"/><stop offset="100%" stop-color="#c9b896"/>
+      </linearGradient>
+      <linearGradient id="riv1" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#4a6b7a"/><stop offset="100%" stop-color="#2a3f4a"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="220" fill="url(#sky1)"/>
+    <circle cx="320" cy="45" r="22" fill="#f5e6b8" opacity="0.7"/>
+    <!-- 建築剪影 -->
+    <g fill="#3a2a1a" opacity="0.85">
+      <rect x="10" y="110" width="40" height="60"/>
+      <rect x="55" y="95" width="30" height="75"/>
+      <polygon points="55,95 70,75 85,95"/>
+      <rect x="90" y="105" width="45" height="65"/>
+      <rect x="140" y="85" width="35" height="85"/>
+      <polygon points="140,85 157,60 175,85"/>
+      <rect x="180" y="100" width="50" height="70"/>
+      <rect x="235" y="90" width="30" height="80"/>
+      <polygon points="235,90 250,68 265,90"/>
+      <rect x="270" y="108" width="55" height="62"/>
+      <rect x="330" y="95" width="40" height="75"/>
+      <polygon points="330,95 350,70 370,95"/>
+    </g>
+    <!-- 倫敦橋 -->
+    <g stroke="#4a3020" stroke-width="3" fill="none" opacity="0.9">
+      <path d="M0,165 Q100,150 200,158 Q300,166 400,152" stroke-width="5"/>
+      <path d="M30,160 L30,175 M80,156 L80,170 M130,155 L130,168 M180,157 L180,170 M230,159 L230,172 M280,162 L280,175 M330,158 L330,170 M380,154 L380,166" stroke-width="2"/>
+    </g>
+    <!-- 河流 -->
+    <rect x="0" y="165" width="400" height="55" fill="url(#riv1)"/>
+    <!-- 船隻 -->
+    <g>
+      <path d="M50,185 Q70,200 100,185 Z" fill="#5a3a1a"/>
+      <rect x="70" y="170" width="3" height="18" fill="#3a2a1a"/>
+      <polygon points="73,172 90,180 73,186" fill="#e8dcc0"/>
+    </g>
+    <g>
+      <path d="M220,195 Q245,212 280,195 Z" fill="#6a4a2a"/>
+      <rect x="245" y="178" width="3" height="20" fill="#3a2a1a"/>
+      <polygon points="248,180 268,190 248,196" fill="#e8dcc0"/>
+    </g>
+    <g>
+      <path d="M320,180 Q340,194 365,180 Z" fill="#5a3a1a"/>
+      <rect x="340" y="165" width="3" height="18" fill="#3a2a1a"/>
+      <polygon points="343,167 360,175 343,180" fill="#e8dcc0"/>
+    </g>
+    <!-- 水波 -->
+    <g stroke="#7a9aaa" stroke-width="1" fill="none" opacity="0.4">
+      <path d="M20,180 Q40,178 60,180 Q80,182 100,180"/>
+      <path d="M150,190 Q170,188 190,190 Q210,192 230,190"/>
+      <path d="M280,185 Q300,183 320,185 Q340,187 360,185"/>
+      <path d="M60,205 Q80,203 100,205 Q120,207 140,205"/>
+      <path d="M240,208 Q260,206 280,208 Q300,210 320,208"/>
+    </g>
+  </svg>`,
+
+  cathedral: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#8aa8c0"/><stop offset="100%" stop-color="#d8c8a8"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="220" fill="url(#sky2)"/>
+    <circle cx="80" cy="40" r="18" fill="#f5e6b8" opacity="0.6"/>
+    <!-- 聖保羅大教堂 -->
+    <g fill="#5a4a3a">
+      <rect x="160" y="120" width="80" height="90"/>
+      <polygon points="160,120 200,60 240,120"/>
+      <rect x="150" y="130" width="10" height="80"/>
+      <rect x="240" y="130" width="10" height="80"/>
+      <rect x="190" y="40" width="20" height="20"/>
+      <polygon points="190,40 200,20 210,40"/>
+    </g>
+    <g fill="#7a6a5a">
+      <rect x="170" y="140" width="8" height="25"/>
+      <rect x="190" y="140" width="8" height="25"/>
+      <rect x="210" y="140" width="8" height="25"/>
+      <rect x="228" y="140" width="8" height="25"/>
+    </g>
+    <!-- 窗戶光 -->
+    <g fill="#f5d878" opacity="0.6">
+      <ellipse cx="180" cy="152" rx="4" ry="8"/>
+      <ellipse cx="200" cy="152" rx="4" ry="8"/>
+      <ellipse cx="220" cy="152" rx="4" ry="8"/>
+    </g>
+    <!-- 尖塔 -->
+    <g fill="#4a3a2a">
+      <polygon points="155,130 160,110 165,130"/>
+      <polygon points="235,130 240,110 245,130"/>
+    </g>
+    <!-- 地面人群 -->
+    <g fill="#3a2a1a" opacity="0.7">
+      <circle cx="120" cy="200" r="4"/>
+      <rect x="117" y="204" width="6" height="10"/>
+      <circle cx="135" cy="198" r="4"/>
+      <rect x="132" y="202" width="6" height="12"/>
+      <circle cx="280" cy="200" r="4"/>
+      <rect x="277" y="204" width="6" height="10"/>
+      <circle cx="295" cy="198" r="4"/>
+      <rect x="292" y="202" width="6" height="12"/>
+    </g>
+  </svg>`,
+
+  tower: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#4a5a6a"/><stop offset="100%" stop-color="#8a7a6a"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="220" fill="url(#sky3)"/>
+    <circle cx="320" cy="45" r="18" fill="#e8d8a8" opacity="0.5"/>
+    <!-- 烏雲 -->
+    <g fill="#3a3a4a" opacity="0.5">
+      <ellipse cx="80" cy="35" rx="50" ry="15"/>
+      <ellipse cx="120" cy="30" rx="40" ry="12"/>
+    </g>
+    <!-- 倫敦塔 -->
+    <g fill="#4a4038">
+      <rect x="100" y="100" width="200" height="110"/>
+      <rect x="100" y="90" width="30" height="120"/>
+      <rect x="270" y="90" width="30" height="120"/>
+      <rect x="160" y="70" width="80" height="140"/>
+      <rect x="170" y="55" width="60" height="20"/>
+      <!-- 城垛 -->
+      <rect x="100" y="85" width="10" height="12"/>
+      <rect x="120" y="85" width="10" height="12"/>
+      <rect x="270" y="85" width="10" height="12"/>
+      <rect x="290" y="85" width="10" height="12"/>
+      <rect x="165" y="65" width="8" height="10"/>
+      <rect x="180" y="65" width="8" height="10"/>
+      <rect x="195" y="65" width="8" height="10"/>
+      <rect x="210" y="65" width="8" height="10"/>
+      <rect x="225" y="65" width="8" height="10"/>
+    </g>
+    <!-- 窗戶 -->
+    <g fill="#c8a858" opacity="0.7">
+      <rect x="185" y="100" width="8" height="14"/>
+      <rect x="207" y="100" width="8" height="14"/>
+      <rect x="185" y="130" width="8" height="14"/>
+      <rect x="207" y="130" width="8" height="14"/>
+      <rect x="115" y="120" width="6" height="12"/>
+      <rect x="135" y="120" width="6" height="12"/>
+      <rect x="280" y="120" width="6" height="12"/>
+      <rect x="300" y="120" width="6" height="12"/>
+    </g>
+    <!-- 旗幟 -->
+    <g>
+      <rect x="198" y="30" width="3" height="25" fill="#3a2a1a"/>
+      <path d="M201,32 L225,38 L201,44 Z" fill="#8a2020"/>
+    </g>
+    <!-- 地面 -->
+    <rect x="0" y="205" width="400" height="15" fill="#3a3020"/>
+  </svg>`,
+
+  globe: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="sky4" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#9ab0c8"/><stop offset="100%" stop-color="#d8c8a8"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="220" fill="url(#sky4)"/>
+    <circle cx="60" cy="40" r="15" fill="#f5e6b8" opacity="0.6"/>
+    <!-- 環球劇院（八角形） -->
+    <g>
+      <ellipse cx="200" cy="130" rx="120" ry="25" fill="#5a4a3a"/>
+      <path d="M80,130 L95,80 L305,80 L320,130 Z" fill="#6a5a4a"/>
+      <path d="M95,80 L110,75 L290,75 L305,80 Z" fill="#8a7a6a"/>
+      <ellipse cx="200" cy="80" rx="95" ry="18" fill="#4a3a2a"/>
+      <ellipse cx="200" cy="80" rx="80" ry="14" fill="#2a1a0a"/>
+      <!-- 舞台 -->
+      <rect x="160" y="115" width="80" height="30" fill="#3a2a1a"/>
+      <rect x="170" y="105" width="60" height="10" fill="#4a3a2a"/>
+      <!-- 柱子 -->
+      <rect x="100" y="80" width="4" height="50" fill="#3a2a1a"/>
+      <rect x="296" y="80" width="4" height="50" fill="#3a2a1a"/>
+      <!-- 旗幟 -->
+      <rect x="198" y="40" width="3" height="40" fill="#3a2a1a"/>
+      <path d="M201,42 L230,50 L201,58 Z" fill="#c8c0a8"/>
+    </g>
+    <!-- 人群 -->
+    <g fill="#2a1a0a" opacity="0.7">
+      <circle cx="60" cy="195" r="4"/><rect x="57" y="199" width="6" height="10"/>
+      <circle cx="100" cy="200" r="4"/><rect x="97" y="204" width="6" height="10"/>
+      <circle cx="280" cy="195" r="4"/><rect x="277" y="199" width="6" height="10"/>
+      <circle cx="320" cy="200" r="4"/><rect x="317" y="204" width="6" height="10"/>
+      <circle cx="350" cy="195" r="4"/><rect x="347" y="199" width="6" height="10"/>
+    </g>
+    <rect x="0" y="208" width="400" height="12" fill="#3a2a1a"/>
+  </svg>`,
+
+  palace: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="sky5" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6a5a7a"/><stop offset="60%" stop-color="#a88878"/>
+        <stop offset="100%" stop-color="#d8b888"/>
+      </linearGradient>
+      <radialGradient id="light5" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0%" stop-color="#f5d878" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="#f5d878" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="220" fill="url(#sky5)"/>
+    <circle cx="320" cy="40" r="20" fill="#f5e6b8" opacity="0.5"/>
+    <!-- 宮殿建築 -->
+    <g fill="#4a3a2a">
+      <rect x="20" y="90" width="360" height="110"/>
+      <rect x="20" y="80" width="360" height="15"/>
+    </g>
+    <!-- 窗戶光 -->
+    <g>
+      <rect x="40" y="110" width="20" height="35" fill="#f5d878" opacity="0.8"/>
+      <rect x="80" y="110" width="20" height="35" fill="#f5d878" opacity="0.8"/>
+      <rect x="120" y="110" width="20" height="35" fill="#f5d878" opacity="0.8"/>
+      <rect x="260" y="110" width="20" height="35" fill="#f5d878" opacity="0.8"/>
+      <rect x="300" y="110" width="20" height="35" fill="#f5d878" opacity="0.8"/>
+      <rect x="340" y="110" width="20" height="35" fill="#f5d878" opacity="0.8"/>
+    </g>
+    <!-- 大門 -->
+    <g>
+      <rect x="175" y="130" width="50" height="70" fill="#2a1a0a"/>
+      <path d="M175,130 L200,110 L225,130 Z" fill="#5a4a3a"/>
+      <circle cx="195" cy="165" r="2" fill="#d8a848"/>
+      <circle cx="205" cy="165" r="2" fill="#d8a848"/>
+    </g>
+    <!-- 火把光暈 -->
+    <circle cx="160" cy="140" r="25" fill="url(#light5)"/>
+    <circle cx="240" cy="140" r="25" fill="url(#light5)"/>
+    <circle cx="160" cy="140" r="4" fill="#f5a838"/>
+    <circle cx="240" cy="140" r="4" fill="#f5a838"/>
+    <!-- 地面 -->
+    <rect x="0" y="200" width="400" height="20" fill="#2a1a0a"/>
+  </svg>`,
+
+  ring: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="ringBg" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%" stop-color="#3a2a1a"/>
+        <stop offset="100%" stop-color="#1a0a00"/>
+      </radialGradient>
+      <radialGradient id="gemGlow" cx="0.4" cy="0.35" r="0.6">
+        <stop offset="0%" stop-color="#a0d8f8"/>
+        <stop offset="50%" stop-color="#2878c8"/>
+        <stop offset="100%" stop-color="#0a2a6a"/>
+      </radialGradient>
+      <linearGradient id="goldBand" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#f5d878"/>
+        <stop offset="40%" stop-color="#d4a838"/>
+        <stop offset="70%" stop-color="#b8860b"/>
+        <stop offset="100%" stop-color="#8a6010"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="220" fill="url(#ringBg)"/>
+    <!-- 光束 -->
+    <g opacity="0.3">
+      <polygon points="200,40 170,180 230,180" fill="#f5d878"/>
+    </g>
+    <!-- 戒指本體 -->
+    <ellipse cx="200" cy="150" rx="55" ry="18" fill="none" stroke="url(#goldBand)" stroke-width="10"/>
+    <!-- 寶石座 -->
+    <ellipse cx="200" cy="120" rx="22" ry="12" fill="url(#goldBand)"/>
+    <!-- 藍寶石 -->
+    <ellipse cx="200" cy="108" rx="18" ry="16" fill="url(#gemGlow)"/>
+    <!-- 寶石高光 -->
+    <ellipse cx="194" cy="102" rx="6" ry="4" fill="#e8f8ff" opacity="0.8"/>
+    <!-- 閃爍 -->
+    <g fill="#ffffff">
+      <circle cx="175" cy="95" r="1.5" opacity="0.9">
+        <animate attributeName="opacity" values="0.9;0.2;0.9" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="225" cy="115" r="1.5" opacity="0.7">
+        <animate attributeName="opacity" values="0.7;0.1;0.7" dur="1.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="185" cy="140" r="1" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2.5s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+  </svg>`,
+
+  bear: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="sky6" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#5a4a3a"/><stop offset="100%" stop-color="#2a1a0a"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="220" fill="url(#sky6)"/>
+    <!-- 競技場欄杆 -->
+    <g fill="#4a3a2a">
+      <rect x="0" y="0" width="400" height="30"/>
+      <rect x="0" y="0" width="15" height="220"/>
+      <rect x="385" y="0" width="15" height="220"/>
+    </g>
+    <!-- 熊 -->
+    <g fill="#3a2a1a">
+      <ellipse cx="200" cy="160" rx="60" ry="40"/>
+      <ellipse cx="200" cy="110" rx="35" ry="32"/>
+      <circle cx="185" cy="100" r="6" fill="#c8a838"/>
+      <circle cx="215" cy="100" r="6" fill="#c8a838"/>
+      <ellipse cx="200" cy="118" rx="10" ry="6" fill="#2a1a0a"/>
+      <ellipse cx="175" cy="95" rx="10" ry="12"/>
+      <ellipse cx="225" cy="95" rx="10" ry="12"/>
+      <!-- 嘴巴 -->
+      <path d="M192,125 Q200,132 208,125" stroke="#1a0a00" stroke-width="2" fill="none"/>
+      <!-- 爪子 -->
+      <rect x="155" y="175" width="12" height="20" rx="4"/>
+      <rect x="233" y="175" width="12" height="20" rx="4"/>
+      <rect x="175" y="185" width="10" height="18" rx="4"/>
+      <rect x="215" y="185" width="10" height="18" rx="4"/>
+    </g>
+    <!-- 鎖鏈 -->
+    <g stroke="#888" stroke-width="2" fill="none">
+      <path d="M200,130 Q200,150 200,160"/>
+    </g>
+    <!-- 狗 -->
+    <g fill="#5a4a3a">
+      <ellipse cx="100" cy="180" rx="18" ry="10"/>
+      <circle cx="115" cy="172" r="7"/>
+      <rect x="90" y="186" width="4" height="12"/>
+      <rect x="105" y="186" width="4" height="12"/>
+    </g>
+    <g fill="#5a4a3a">
+      <ellipse cx="300" cy="180" rx="18" ry="10"/>
+      <circle cx="285" cy="172" r="7"/>
+      <rect x="295" y="186" width="4" height="12"/>
+      <rect x="310" y="186" width="4" height="12"/>
+    </g>
+    <!-- 群眾 -->
+    <g fill="#2a1a0a" opacity="0.8">
+      <circle cx="30" cy="60" r="6"/><circle cx="50" cy="55" r="6"/>
+      <circle cx="70" cy="62" r="6"/><circle cx="340" cy="58" r="6"/>
+      <circle cx="360" cy="62" r="6"/><circle cx="380" cy="55" r="6"/>
+    </g>
+  </svg>`,
+
+  queen: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="qbg" cx="0.5" cy="0.4" r="0.7">
+        <stop offset="0%" stop-color="#5a4a6a"/>
+        <stop offset="100%" stop-color="#1a1020"/>
+      </radialGradient>
+      <linearGradient id="dress" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f0e8d8"/>
+        <stop offset="100%" stop-color="#c8b898"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="220" fill="url(#qbg)"/>
+    <!-- 燭光 -->
+    <circle cx="80" cy="70" r="40" fill="#f5d878" opacity="0.15"/>
+    <circle cx="80" cy="70" r="10" fill="#f5d878" opacity="0.5"/>
+    <circle cx="320" cy="70" r="40" fill="#f5d878" opacity="0.15"/>
+    <circle cx="320" cy="70" r="10" fill="#f5d878" opacity="0.5"/>
+    <!-- 女王身影 -->
+    <g>
+      <!-- 裙子 -->
+      <path d="M140,200 L160,120 L240,120 L260,200 Z" fill="url(#dress)"/>
+      <!-- 珠寶裝飾 -->
+      <g fill="#d4a838">
+        <circle cx="170" cy="150" r="2"/>
+        <circle cx="190" cy="160" r="2"/>
+        <circle cx="210" cy="150" r="2"/>
+        <circle cx="230" cy="165" r="2"/>
+        <circle cx="200" cy="175" r="2"/>
+        <circle cx="180" cy="185" r="2"/>
+        <circle cx="220" cy="185" r="2"/>
+      </g>
+      <!-- 上身 -->
+      <path d="M160,120 L170,90 L230,90 L240,120 Z" fill="#f0e8d8"/>
+      <!-- 頸部 -->
+      <rect x="190" y="75" width="20" height="18" fill="#f0dcc0"/>
+      <!-- 頭 -->
+      <ellipse cx="200" cy="60" rx="22" ry="26" fill="#f5e8d0"/>
+      <!-- 頭髮 -->
+      <path d="M178,50 Q180,30 200,28 Q220,30 222,50 Q225,60 222,72 Q215,58 200,55 Q185,58 178,72 Q175,60 178,50 Z" fill="#c86030"/>
+      <!-- 皇冠 -->
+      <g fill="#d4a838">
+        <path d="M178,38 L185,25 L192,38 L200,22 L208,38 L215,25 L222,38 L215,42 L185,42 Z"/>
+        <circle cx="200" cy="28" r="3" fill="#e8f0f8"/>
+      </g>
+      <!-- 眼睛 -->
+      <ellipse cx="192" cy="58" rx="2.5" ry="3" fill="#2a1a0a"/>
+      <ellipse cx="208" cy="58" rx="2.5" ry="3" fill="#2a1a0a"/>
+      <!-- 嘴巴 -->
+      <path d="M195,68 Q200,72 205,68" stroke="#8a3a3a" stroke-width="1.5" fill="none"/>
+      <!-- 項鍊 -->
+      <path d="M185,88 Q200,95 215,88" stroke="#d4a838" stroke-width="2" fill="none"/>
+      <circle cx="200" cy="92" r="3" fill="#2878c8"/>
+    </g>
+    <!-- 背景帷幕 -->
+    <path d="M0,0 L60,0 L60,220 L0,220 Z" fill="#3a1a1a" opacity="0.6"/>
+    <path d="M400,0 L340,0 L340,220 L400,220 Z" fill="#3a1a1a" opacity="0.6"/>
+  </svg>`,
+
+  scroll: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="scrollBg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3a2a1a"/><stop offset="100%" stop-color="#1a0a00"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="220" fill="url(#scrollBg)"/>
+    <!-- 捲軸 -->
+    <g>
+      <rect x="80" y="40" width="240" height="140" rx="4" fill="#f0e0c0" stroke="#8a6a3a" stroke-width="2"/>
+      <rect x="70" y="35" width="20" height="150" rx="8" fill="#c8a868"/>
+      <rect x="310" y="35" width="20" height="150" rx="8" fill="#c8a868"/>
+      <!-- 文字線 -->
+      <g stroke="#8a6a3a" stroke-width="1.5" opacity="0.5">
+        <line x1="100" y1="60" x2="300" y2="60"/>
+        <line x1="100" y1="75" x2="280" y2="75"/>
+        <line x1="100" y1="90" x2="300" y2="90"/>
+        <line x1="100" y1="105" x2="260" y2="105"/>
+        <line x1="100" y1="120" x2="290" y2="120"/>
+        <line x1="100" y1="135" x2="270" y2="135"/>
+        <line x1="100" y1="150" x2="300" y2="150"/>
+        <line x1="100" y1="165" x2="240" y2="165"/>
+      </g>
+      <!-- 蠟封 -->
+      <circle cx="200" cy="170" r="12" fill="#8a1a1a"/>
+      <circle cx="200" cy="170" r="8" fill="#a82a2a"/>
+      <path d="M196,167 L200,173 L204,167" stroke="#d4a838" stroke-width="1.5" fill="none"/>
+    </g>
+  </svg>`
+};
+
+function getSceneSVG(key) {
+  return SVG_SCENES[key] || SVG_SCENES.thames;
+}
+
+/* ============================================================
+   場景資料（狀態機核心）
+   ============================================================ */
+const SCENES = {
+  /* ---------- 開場 ---------- */
+  start: {
+    year: "1599",
+    location: "倫敦・泰晤士河北岸",
+    image: "thames",
+    text: `你身處 1599 年 9 月的倫敦，站在泰晤士河北岸。一陣清爽的秋風吹來，卻夾雜著河水、腐爛蔬菜、生污水與未清洗人群的氣味——而且這裡擠滿了人。
+
+泰晤士河像現代高速公路一樣繁忙。旁邊一小段台階通往水邊碼頭，穿著毛皮鑲邊外套的船夫們正競相招攬乘客。
+
+「向東！」「向西！」「過河！」他們大聲吆喝著。
+
+你被匆忙的倫敦人推來推去。街道是泥濘的巷子，建築鮮少超過六層樓，遠處可見一座巨大教堂的尖頂。左邊，橫跨河面的倫敦橋塔樓高高矗立。
+
+一股濃烈的香水味襲來。四位衣著華麗的男女走向附近的船夫。「再見了，齊普賽德的酒館！」一位女士喊道。「再見了，聖保羅大教堂的奇觀！我們要去環球劇院了！」
+
+他們看起來像是宮廷人士，對女王頗為了解。他們剛從聖保羅大教堂出來。也許你該去那裡打聽一下貴族和宮廷的事情。
+
+又或者，你該跟著這四人過泰晤士河到南岸去？你知道可以走倫敦橋過去。`,
+    choices: [
+      { text: "前往聖保羅大教堂打聽消息", next: "stpauls", type: "normal" },
+      { text: "走倫敦橋到南岸跟蹤那四人", next: "london_bridge", type: "normal" }
+    ]
+  },
+
+  /* ---------- 聖保羅大教堂線 ---------- */
+  stpauls: {
+    year: "1599",
+    location: "聖保羅大教堂",
+    image: "cathedral",
+    text: `你踏入聖保羅大教堂，本以為會是涼爽肅穆的教堂氛圍。確實涼爽，但數百人的聲音在巨大的拱頂間迴盪，一排排高聳的拱門像城市街道一樣延伸。
+
+這裡什麼人都有！律師與客戶交談、商人摸著天鵝絨和絲綢、求職者擠在佈告欄前、情侶躲在柱子後面、雜貨商在石棺上擺攤、紳士向漫步的女士脫帽致意。
+
+這跟你印象中的教堂完全不同。
+
+你注意到一位穿制服的警官，正同情地聽著一位衣著講究、明顯憤怒又不安的商人說話。你決定等商人離開後，就向警官報告你撿到錢包的事。
+
+但商人突然僵住，臉漲成紫色。
+
+「就——就是他！」他結結巴巴地喊。「就是這個小賊偷了我的錢包！」
+
+警官和商人朝你衝來。你拔腿就跑！`,
+    choices: [
+      { text: "躲進小禮拜堂避風頭", next: "chapel_weasel", type: "danger" },
+      { text: "直接跳出時間（結束這個麻煩）", next: "tower_1592", type: "jump" }
+    ]
+  },
+
+  chapel_weasel: {
+    year: "1599",
+    location: "聖保羅大教堂・暗處禮拜堂",
+    image: "cathedral",
+    text: `你衝進一條昏暗的側廊，鑽入一間小禮拜堂。追趕的腳步聲從外面呼嘯而過。
+
+你剛鬆一口氣，一隻瘦骨嶙峋的手就抓住了你的肩膀！
+
+「你看起來需要幫助啊。」一個油滑的聲音在你耳邊響起。昏暗光線中，你看清了那張黃鼠狼般的臉——正是你在河邊看到的那個缺了手的男人。
+
+「我不需要幫助，謝謝。」你用力想掙脫。
+
+「我不要你的錢包，」黃鼠狼說。「我要的是你的才華。像你這麼機靈、腳程又快的小傢伙——我的老闆正想找有潛力的學徒。他會樂意教你這門手藝的。」
+
+「什麼手藝？」你問。「放開我！」
+
+「他開了一所學校，」黃鼠狼說。「叫做『竊賊與扒手學院』。你會是我們的明星學生！走吧，不然我就叫警官來領賞——你就準備在新門監獄裡戴著鎖鏈睡覺吧！」
+
+看來你沒什麼選擇了。`,
+    choices: [
+      { text: "跟他走，看看這所「學校」在搞什麼鬼", next: "thief_school", type: "normal" },
+      { text: "用盡全力踩他的腳，趁機逃跑", next: "newgate_escape", type: "danger" }
+    ]
+  },
+
+  thief_school: {
+    year: "1599",
+    location: "倫敦・某間破舊酒館後院",
+    image: "bear",
+    text: `黃鼠狼帶你穿過倫敦小巷，來到一間破爛的酒館。他拉你穿過後門，進入一個開闊的庭院。
+
+庭院裡有十幾個男孩，每人手裡都拿著一把閃亮的刀。他們正圍著一根木柱，柱上掛著一個綴滿小鈴鐺的皮袋。一個接一個男孩衝向木柱，用刀劈砍皮袋。鈴鐺的叮噹聲伴隨著歡呼和嘲笑。
+
+「這是什麼遊戲？」你問。「擊劍學校嗎？」
+
+「正是，」黃鼠狼得意地說。「我們會教你擊劍！很快你就會像劍一樣鋒利、像匕首一樣迅速。」
+
+一個灰鬍子老頭走了過來。「我是這裡的店主，歡迎來到『竊賊與扒手學院』。從現在起，你為我工作。作為回報，我會給你安全的住處，教你一門歷史悠久的行業。」
+
+「看好了，」他指著木柱說。「能無聲無息砍下皮袋而不弄響鈴鐺的，就是一流『割包手』。再高一級的是『扒手』，他們只靠手法就能偷走錢包。」
+
+「這邊我們練習騙術，」店主說。「這招叫『昏倒詐術』。」一個男孩假裝暈倒，另一個男孩彎腰扶他時，假裝暈倒的男孩割下「幫手」腰帶上的錢包，一溜煙跑了。
+
+「做得好，」店主說。但你只覺得毛骨悚然——你被送進了一所小偷學校！
+
+你必須離開這裡。你注意到庭院磚牆上有一道門。`,
+    choices: [
+      { text: "假裝配合，找機會從側門溜走並跳出時間", next: "tower_1592", type: "jump" }
+    ]
+  },
+
+  newgate_escape: {
+    year: "1599",
+    location: "新門監獄",
+    image: "tower",
+    text: `你使盡全力踩在黃鼠狼的腳上，趁他鬆手衝出禮拜堂——卻直接撞上警官！
+
+「終於逮到你了！」警官喊道。
+
+「對，警官，逮捕這個混蛋！」黃鼠狼一瘸一拐地走出禮拜堂。
+
+「滾開，黃鼠狼，不然連你一起抓，」警官警告他。然後轉向你：「所以你是黃鼠狼的新扒手？肯定是新手，我以前沒見過你。錢包在哪裡？」
+
+「我撿到的，我沒有偷，」你解釋著，把錢包交出去。
+
+警官大笑。「看得出來你受過很好的詐術訓練。勇氣可嘉，不過還是得去新門監獄。」
+
+「監獄？」你的聲音發顫。
+
+「對，監獄，」警官說著把錢包扔還給你。你笨拙地接住，困惑地瞪著他。
+
+「第一次進去吧，我看得出來，」他同情地說。「在新門監獄裡你需要錢。好了，走吧！」
+
+新門監獄的守衛是個穿著髒衣服的粗漢。「你得付『入門費』。沒錢？那就凍著餓著關進地牢。或者你可以買毯子和食物，跟其他付得起的人擠一擠。再有錢一點，你可以想吃什麼吃什麼、招待朋友、做你的買賣、睡在床上。選吧！」
+
+你運氣不錯，身上有些錢。「我要享受一晚有錢人的待遇，」你告訴他。「帶我去私人牢房。」
+
+前往牢房的路上，你看到可怕的景象：女人和孩子睡在冰冷的石地板上；打架的、賭博的、醉漢、小偷，鎖鏈叮噹作響，咆哮和尖叫不絕於耳。
+
+一道又一道上鎖的門，每到一道都要付費。最後你被帶到富人區，牢房還算舒適。但連被鎖進牢房都要付錢！你賄賂守衛讓他離開，然後跳出這個噩夢般的地方。`,
+    choices: [
+      { text: "跳出時間", next: "tower_1592", type: "jump" }
+    ]
+  },
+
+  /* ---------- 倫敦塔線 ---------- */
+  tower_1592: {
+    year: "1592",
+    location: "倫敦塔・囚室",
+    image: "tower",
+    text: `現在是 1592 年。你置身於倫敦塔內一間潮濕但佈置尚可的房間。門半開著，你看見一名僕人匆匆沿著陰暗走廊離去。
+
+一名囚犯趴在桌上，頭埋在臂彎裡。門口的晚餐托盤原封不動。你端起托盤，清了清喉嚨。
+
+「打擾了，先生，」你說。「請問您是……」
+
+「沃爾特·雷利爵士？正是在下，如你所見，一個最悲慘的傢伙。你一定是新來的侍從。」
+
+「這是您的晚餐，先生，」你說，努力掩飾驚訝。沃爾特·雷利爵士——被囚禁在倫敦塔！
+
+「我會心懷感激地吃掉的，」雷利說，「因為我必須保持健康，直到女王願意釋放我。她對我秘密迎娶她的一名侍女感到憤怒。她一定是嫉妒了！但我會贏回她的心，你等著瞧！」
+
+「您試過送她禮物嗎？」你暗示。「也許一枚戒指。」
+
+「這主意不賴，」雷利若有所思地拉著他戴在耳朵上的大珍珠。「女王愛珠寶。我送過她好幾件，但從沒送過戒指。更好的是，我要為她寫一首珠寶般的詩。我要把她比作月亮和星辰！我要許諾她黃金國的所有黃金！」
+
+如果雷利真的送過伊麗莎白戒指，你推斷，至少你知道那是 1592 年之後的事。
+
+走廊外傳來沉重的腳步聲。守衛！你躲到厚重的木門後面，等待守衛進門。門開了——你正好在門後。是時候跳躍了！`,
+    choices: [
+      { text: "跳回 38 年前（1554 年）", next: "tower_1554", type: "jump" }
+    ]
+  },
+
+  tower_1554: {
+    year: "1554",
+    location: "倫敦塔・公主寢室",
+    image: "tower",
+    text: `現在是 1554 年。你在倫敦塔內，必須忍住咳嗽——你正站在厚重的天鵝絨窗簾後面，吸著灰塵。
+
+附近傳來哭泣聲。你從窗簾後窺看，見到一位大約二十歲、面容蒼白的紅髮少女，穿著樸素的棕色錦緞和毛皮鑲邊斗篷。
+
+「伊麗莎白公主！」她簡樸房間的門被推開，幾名守衛走進來，陪同一位黑衣男子。
+
+「您的醫生來了，小姐，」一名守衛鞠躬說道。黑衣男子揮手示意他們退下，獨自留下與公主相處。
+
+「晚安，醫生，」伊麗莎白說。「如你所見，我被嚴密看守。你是這座該死的塔裡唯一允許來訪的人，所以你的陪伴很受歡迎。」
+
+「您過得如何，小姐？」醫生問。
+
+「我擔心自己的性命，」公主回答。「瑪麗女王懷疑我叛國。我的親姐姐！確實她的人民反抗她，因為她打算嫁給西班牙國王腓力，我們最大的敵人。但我與叛軍沒有任何聯繫，也不會背叛自己的血親。」
+
+「真相終將勝利，」醫生安慰道。「您會看到的。總有一天您會取代瑪麗成為女王。」
+
+「除非她先砍了我的頭，就像我母親失去她的頭一樣，」伊麗莎白回答。「說真的，這是個悲傷的地方！我害怕我母親和其他在此喪命者的鬼魂。」
+
+「很遺憾我必須這麼快離開您，」醫生說著召喚守衛。「請寬心，小姐。一切都會好起來的。」
+
+「但願我能如此確定。」醫生離開後，伊麗莎白嘆息。她輕輕地又開始哭泣。
+
+難怪伊麗莎白討厭倫敦塔！她差點在這裡丟了腦袋。現在問她關於晚年戒指的事還太早。但你決定在跳躍前安慰這個孤獨的女孩。
+
+「伊麗莎白，」你用尖細的聲音低語。「不要害怕。」
+
+「母親，是您嗎？」公主害怕地問，環顧房間。
+
+「是我，伊麗莎白，」你回答，聲音鬼魅卻溫暖。「聽好了。平息你的恐懼，因為你將成為女王，你的統治將充滿榮耀。你將成為女王。」
+
+伊麗莎白的眼中充滿希望。你跳躍時空，天鵝絨窗簾揚起一陣灰塵。`,
+    choices: [
+      { text: "跳到 1599 年的環球劇院", next: "globe_theater", type: "jump" }
+    ]
+  },
+
+  /* ---------- 環球劇院線 ---------- */
+  london_bridge: {
+    year: "1599",
+    location: "倫敦橋",
+    image: "thames",
+    text: `現在是 1599 年 9 月下旬，你在倫敦橋上。這座石橋兩側排列著優雅的房屋和精品店，就像陸地上的街道。當你隨著人群從北岸走向南岸時，心想這一定是倫敦最繁忙的街道。
+
+走到橋的南端，你穿過一座門樓，那裡聚集了一大群巨大的黑鳥。你抬頭想看牠們在吃什麼。
+
+「食腐鳶，」旁邊一個聲音說。你驚恐地移開目光——鳥兒們正在啄食掛在門樓塔上的人頭！
+
+「鳶鳥吃叛徒的頭，」那個聲音解釋。「先吃眼睛。」
+
+「別說了！」你轉向聲音來源。是那個掉錢包的衣衫襤褸少年！
+
+「抱歉，」他愉快地說。「上面有你朋友？我懂。我也認識一兩個。」
+
+你搖搖頭，但少年似乎沒注意到。他挽起你的手臂，帶你走進南岸的街道。`,
+    choices: [
+      { text: "自我介紹並問路", next: "globe_theater", type: "normal" }
+    ]
+  },
+
+  globe_theater: {
+    year: "1599",
+    location: "環球劇院外",
+    image: "globe",
+    text: `「我想這是你的，」你說著，把一直帶著的錢包遞給那個衣衫襤褸的少年。
+
+他看到錢包時眼睛瞪得老大。但出乎意料的是，少年開始大笑。
+
+「天哪，你一定很厲害，竟然能從我『扒手吉普』身上偷走錢包！我能扒任何人的口袋、割任何人的錢包，卻從沒被人反扒過！你讓我慚愧！」吉普誇張地朝你鞠躬。
+
+一個扒手！而且他以為是你偷了他的錢包！
+
+「不不，」你堅持。「是你跑過去時掉的！」
+
+「你真好，想幫我留面子，」吉普回答。「我欣賞你的謙虛。但我更欣賞你的技術！留著錢包吧，朋友，你應得的。再說，這種東西多得是。」
+
+你決定轉移話題，把錢包重新繫在腰帶上。也許你可以在南岸某處還給警官。
+
+「很高興認識你，吉普先生，」你說。「我是來倫敦的訪客，正在找新劇院。你能指路嗎？」
+
+「我就知道你不是本地人，不然我們早就見過了，」吉普說。「所以你要在環球劇院工作？小心點——那是黃鼠狼的地盤，他會抽走你一半的收入！」
+
+你想起那個黃鼠狼臉的獨手男人，不禁打了個冷顫。你謝謝這位年輕扒手的警告，告訴他你只是在找今天早些時候遇到的朋友。「他們說要去看環球劇院的戲，」你說。
+
+「已經鎖定目標了，是吧？」吉普眨眨眼。「喏，這就是環球劇院。」
+
+你站在一棟八角形的木造灰泥建築前。三層樓高的上方飄著一面白絲綢旗幟，上面繪著赫拉克勒斯扛著地球。門前貼著一張戲單：《尤利烏斯·凱撒的悲劇》。
+
+「這些悲劇要演一整個下午，」吉普說。「你的『朋友們』晚點還會在。不如跟我來？我要去看巴黎花園的『大薩克森』。」他指著環球劇院不遠處另一棟八角形建築，上面也飄著旗幟。那一定是另一座劇院。
+
+「大薩克森是誰？」你問。
+
+「倫敦最棒的！」吉普驚呼。「別告訴我你沒聽過他！哦，他是個英俊的猛獸——女王的最愛！」
+
+「女王的寵兒？」你問。也許這位薩克森能幫你見到女王！但吉普已經大步走向巴黎花園了。
+
+「快來，要來就快！」他喊道。
+
+你不確定是否想跟一個扒手打交道，即使他很友善。你掃視環球劇院入口的人群，看到了之前在泰晤士河邊見到的那四位紳士和貴婦。你該跟著他們嗎？`,
+    choices: [
+      { text: "進環球劇院看戲，接近那四位貴族", next: "globe_inside", type: "normal" },
+      { text: "跟吉普去巴黎花園看「大薩克森」", next: "paris_garden", type: "normal" }
+    ]
+  },
+
+  globe_inside: {
+    year: "1599",
+    location: "環球劇院・後台",
+    image: "globe",
+    text: `你走進環球劇院，跟著一群穿著與你相同深藍色制服的年輕學徒。你來到大片磚砌庭院，面對舞台。庭院上方是開放的天空，但三層有頂座位環繞著大部分八角形建築，給付得起錢的人坐。
+
+整棟建築的一側都是舞台。好幾層舞台——一個大平台伸入庭院。後面是三層帶幕簾的陽台，最上方是砲塔。樂手在最高層陽台演奏，演員從平台兩側和陽台的門進出。
+
+戲已經開演了。但令你驚訝的是，大部分觀眾都在聊天。有人打牌，有人向小販買水果。
+
+人群突然安靜下來，一位英俊的演員走上前。他打扮成伊麗莎白時代的宮廷人士，頭戴羅馬頭盔。
+
+「朋友們、羅馬人、同胞們，」他開口。「請借我你們的耳朵；我來埋葬凱撒，不是來讚美他。」
+
+你旁邊的人用手肘碰你。「馬克·安東尼的演說真精彩，最偉大的羅馬人。」
+
+「呸！凱撒更偉大，」他的同伴說。
+
+「凱撒被自己人幹掉了，」第一個人回答。
+
+你急於避開爭論，在人群中尋找稍早見到的那四位貴族。發現他們在舞台左側的包廂後，你穿過喧鬧的庭院，爬上一段樓梯。
+
+你來到一條狹窄走廊，通往較富裕觀眾的私人包廂。一位看起來很富有的商人正沿著走廊走來。
+
+「站住，學徒，」他看到你時說。「你在走廊做什麼？你應該跟其他吵鬧的傢伙一起待在庭院裡。」他懷疑地打量你。突然他的目光停在你腰帶上。
+
+「就是你！」他憤怒地大喊。「站住，小偷！站住！」
+
+你不確定他在說什麼，但沒等他說完就跑了！`,
+    choices: [
+      { text: "衝進後台躲藏", next: "backstage_globe", type: "danger" }
+    ]
+  },
+
+  backstage_globe: {
+    year: "1599",
+    location: "環球劇院・後台",
+    image: "globe",
+    text: `你跑進後台！尋找躲藏之處，你一頭鑽進道具堆後面，拉過一頂羅馬頭盔蓋住腦袋。
+
+粗魯的手從後面抓住你！
+
+「你還等什麼？」一個戴著與你相同頭盔的年輕演員催促道。他把一把劍和一面盾塞進你手裡，推你走向布幕，掀開布幕，走了出去。
+
+「跟著我！」他說。「你上場了！」
+
+你別無選擇——上場吧！你深吸一口氣，踏上環球劇院的舞台。你是三名士兵中的第二名。場景正在進行。但接下來該怎麼做？
+
+「我該……」你低聲說。
+
+「站著！」第一名士兵用手肘碰你。
+
+「站著？」你結巴地說。
+
+「站著！」第三名士兵說。
+
+第一名士兵對你眨眼。「做得好，」他低聲說。「這一幕你沒有其他台詞了。」
+
+鬆了一口氣，你等到士兵們退場，然後大步走下舞台。
+
+回到後台，演員們正匆忙換裝準備下一幕。你驚訝地看到一位年輕女士從頭上摘下長捲髮假髮，從胸衣裡掏出兩個橘子！是個男孩！
+
+「騙到你了吧！」他笑著說。「你演得不錯。說起來，你扮女孩也會挺漂亮的——我們正需要多才多藝的人。你會演戲嗎？」
+
+「哦，我會演，」你告訴他，臉紅了。他哪裡知道！好演技和快速思考是時光旅人最重要的兩項才能！
+
+「我叫安德魯，」男孩說。「你叫什麼？」
+
+「我、呃，托比，」你回答，盯著自己的腳趾。
+
+「好吧，托比，」安德魯說，「你覺得你能在宮廷演出嗎？」
+
+「當然！」你回答。「我最想做的就是向女王鞠躬，模仿沃爾特·雷利爵士或埃塞克斯伯爵的風度！」
+
+「啊，加的斯英雄！」安德魯會意地笑道。「如果你想學風度，沒有人比沃爾特·雷利爵士更好的了。他在宮廷的勝利十七年後仍是傳奇。女王永遠不會忘記他的殷勤！但我不會模仿埃塞克斯伯爵——你沒聽說嗎？」
+
+你搖搖頭。
+
+「他剛從愛爾蘭戰場回來，如果傳言屬實，他渾身泥濘、模樣嚇人地衝去見女王。據說她氣壞了——不過女王經常對她的寵臣發怒。」
+
+「你真的在女王面前演出過？」你問。
+
+「是啊——如果你加入莎士比亞劇團，你也能。我們需要人在他的新喜劇《第十二夜》裡扮演侍女。這會是女王聖誕慶典的一部分。」
+
+聖誕節！但現在才九月！
+
+「我不知道……」你開口。
+
+「一定會成功的，」安德魯熱情地說。「我們的劇團在伯利莊園演出莎士比亞的婚禮劇《仲夏夜之夢》時，女王一定非常滿意。我在那齣戲裡演一個叫芥菜籽的仙子！我也在理查二世的宮廷裡演過侍從——看，我的服裝掛在那邊！而且……」
+
+「安德魯！」舞台門邊傳來嘶嘶聲。
+
+「我上場了！」安德魯說著，重新戴上假髮、調整橘子。「待會見，托比！」
+
+侍從的服裝！你運氣真好！那會是時光旅人在伊麗莎白宮廷的完美偽裝！
+
+知道隨時可以回到劇院後，你決定借用安德魯的服裝，並考慮你的線索。你該跳回十七年前去見宮廷裡的沃爾特·雷利爵士？還是跳到伯利莊園的婚禮，試著見到女王？`,
+    choices: [
+      { text: "跳到 1582 年，去見沃爾特·雷利爵士", next: "greenwich_1582", type: "jump" },
+      { text: "跳到 1595 年伯利莊園婚禮，試著見到女王", next: "wedding_1595", type: "jump" }
+    ]
+  },
+
+  paris_garden: {
+    year: "1599",
+    location: "巴黎花園・熊鬥場",
+    image: "bear",
+    text: `你跟著吉普前往巴黎花園。如果大薩克森是女王的寵兒，也許她會來看他的表演。至少薩克森也許能幫你找到雷利或埃塞克斯。
+
+吉普消失在人群中——毫無疑問是在幹他的老本行。貧富都聚集來看表演。你在腰帶上的錢包裡找到一便士，進入巴黎花園，被引導爬上三層樓到你的座位。
+
+劇院露天，三層木製座位環繞著下方競技場。但沒有舞台。你只看到一片泥土地，中央釘著一根大柱子。
+
+「這是什麼戲？」你問旁邊的人。
+
+「如果你要看戲，最好去環球劇院，」他回答。「這裡是熊鬥場。」
+
+「那大薩克森呢？」你問。
+
+「馴熊師來了！」那人興奮地說。「他正帶薩克森進來！我賭薩克森贏。你呢？」
+
+你張大嘴巴看著薩克森——牠是一頭熊！馴熊師把這頭巨獸鏈在競技場中央的柱子上。一條粗繩從柱子連到牠的項圈，熊可以在任何方向自由移動約十五英尺。
+
+人群歡呼，五隻咆哮的狗被放進場中。薩克森咆哮回應。你可以看到牠的牙齒被銼平了，但牠仍有又長又尖的爪子。
+
+狗群慢慢圍住熊。一隻狗發動攻擊！人群為熊歡呼，賭注飛舞，金錢易手。薩克森壓碎那隻搗亂的狗，像布娃娃一樣把牠甩到競技場邊緣。但另外四隻狗露出獠牙衝向他！
+
+你幾乎看不清——只有一團旋轉的毛皮、爪子、牙齒和鮮血。你厭惡地轉過身。
+
+「這太殘忍了！」你驚呼。
+
+「又一個該死的清教徒，」你旁邊的人厲聲說。「你想取締鬥熊，是吧？還有鬥牛和鬥猿？都是紳士的運動！」
+
+「夠了，」你說。你下樓時捂住耳朵，擋住動物們的嚎叫和瘋狂人群幾乎相同的聲音。
+
+你溜進一道門，以為會到外面，卻進入熊鬥場內側的一個小院子。馴熊師正在喝麥酒，等待騷動平息。
+
+「這要持續多久？」你問。
+
+「不會太久了，」他說。「狗快用完了。薩克森像個驕傲的士兵一樣帶著傷疤呢。但牠是主要賣點，也是女王的寵兒，所以我要帶牠回倫敦塔休息。」
+
+「倫敦塔？」你問。
+
+「正是——女王的寵兒像皇室一樣住在塔裡。」馴熊師仔細打量你。「你看起來挺能幹的。我需要幫手。你幫熊梳過毛嗎？」
+
+「沒、沒有，」你承認。
+
+「薩克森不工作的時候像隻小貓，」馴熊師說。「甜食吃太多了。他們說牠被寵壞了，像皇室一樣。」
+
+人群爆出巨大的吼聲。
+
+「就是這樣，」馴熊師喝完麥酒，走向競技場。「想要這份工作就待在這裡。」`,
+    choices: [
+      { text: "跟馴熊師去倫敦塔", next: "tower_visit", type: "normal" },
+      { text: "回到環球劇院", next: "globe_theater", type: "normal" }
+    ]
+  },
+
+  tower_visit: {
+    year: "1599",
+    location: "倫敦塔外",
+    image: "tower",
+    text: `倫敦塔不是你想像中優雅的宮殿。它是一座巨大的石頭堡壘，有許多塔樓，像山一樣雄偉。
+
+你和馴熊師穿過門樓。大薩克森平靜地跟在後面。你保持距離！但疲憊的熊似乎很滿足地回到牠黑暗的籠子和溫暖的晚餐。
+
+「女王住在哪裡？」你問。
+
+「才不住倫敦塔呢！」馴熊師笑道。「你知道她小時候被囚禁在這裡。現在她連一晚都不願在這老地方過。而且據說她母親安妮·博林的鬼魂在此出沒。他們說她晚上會在血腥塔裡走動，把頭夾在腋下！」
+
+你不禁發抖。倫敦塔真恐怖。
+
+馴熊師消失回自己的住處。你決定該繼續前進了。你現在在這裡找不到女王。不過，跟年輕的伊麗莎白談談也許有幫助。但你該跳回多久以前？`,
+    choices: [
+      { text: "跳回七年前（1592 年）", next: "tower_1592", type: "jump" },
+      { text: "跳回四十五年前（1554 年）", next: "tower_1554", type: "jump" }
+    ]
+  },
+
+  /* ---------- 1582 年格林威治 ---------- */
+  greenwich_1582: {
+    year: "1582",
+    location: "格林威治宮",
+    image: "palace",
+    text: `現在是 1582 年。你穿著侍從服裝，站在格林威治宮後方一道氣勢恢宏的樓梯腳下。
+
+宮廷一定正在這裡駐留，因為你可以看到一群群貴族在草坪上漫步，女士們在花園長椅上搧扇子。
+
+突然女士們起身行屈膝禮，裙擺沙沙作響，華麗的假髮低垂。你急忙轉身，也跟著跪下。伊麗莎白女王正走下樓梯！
+
+一瞬間你明白女王為何被稱為「榮光女王」。她光彩照人、青春洋溢，雖然已不再年輕。她大概四十好幾。她的禮服是白色絲綢，綴滿小珍珠，用金線刺繡。
+
+她修長纖細的手指上珠光閃閃，手腕、脖子、耳朵和頭髮上都閃爍著珠寶。她的頭髮是橘子色，高高盤起，長長的捲髮垂在蒼白的肩上。她的臉敷著和白裙一樣白的粉，被高高的蕾絲領環繞，領子鑲著珍珠，布料薄如霧。
+
+女王由侍女、武裝侍衛和爭相吸引女王注意的紳士們陪同。好幾位年輕女孩抬著她綴滿珍珠的裙襬。
+
+「侍從！你！」一位貴族向你招手。
+
+「陪我走這趟，侍從。女王想散散步，我想引起她的注意。也許需要你幫我拿斗篷！」他眨眨眼，帶著心照不宣的神情。
+
+「非常榮幸，先生，」你回答，跟上皇家隊伍。「但容我說一句，先生，您怎麼可能不引起她的注意呢？」
+
+因為這位朝臣不僅黝黑英俊、身材高大，衣著之華麗幾乎可與女王匹敵。
+
+「你太抬舉我了，侍從，」他笑道。「如你所見，我只穿黑白兩色，女王的最愛色。」
+
+你點點頭。這位貴族穿著白色緞面緊身上衣和褲襪、黑白相間的馬褲、黑色天鵝絨斗篷。他耳朵上戴著一顆珍珠耳墜！
+
+「但唉，」他繼續說，「我的全部財富都穿在身上了。我剛從愛爾蘭戰場回來，把財產都花在衣服上，好在宮廷立足。我用最後一便士買了這件華麗的斗篷。但女王還沒注意到我。沃爾特·雷利，聽候差遣！」
+
+雷利！你緊跟其後，隊伍沿著蜿蜒的白色碎石小徑漫步，穿過以鮮豔圖案種植的花壇。不久你們到達森林公園，沿著一條因剛下過雨而鬆軟的泥土小路前行。
+
+突然，隊伍停了下來。
+
+「我們別再往前走了，」女王說。「我怕踩到這片泥濘。」
+
+你跟隨雷利，擠到停在一個大泥水坑旁的女王身邊。
+
+「陛下，容我來，」雷利說著，解開肩上的天鵝絨斗篷。「大自然豈能阻擋女王陛下的雅興！」
+
+說著，他把斗篷鋪在泥水坑上，邀請女王踏過去。
+
+伊麗莎白挽著雷利的手臂，眼中閃爍著光芒，輕盈地踏過泥水坑。
+
+「這般殷勤不可沒有回報！」她笑著說。然後她從手指上取下一枚閃亮的鑽石戒指，遞給驚訝的雷利。
+
+「這是我的榮幸，陛下，」他深深鞠躬。「侍從，請取回我的斗篷，我會永遠珍藏它，作為美曾經駐足片刻的橋樑。」
+
+所有目光都集中在雷利身上，女王微笑著挽起他的手臂繼續散步。
+
+「告訴我，沃爾特爵士，你覺得愛爾蘭如何？」她一邊走一邊問。
+
+你對雷利咧嘴一笑，急忙去撿那件毀掉的斗篷。
+
+「我要叫你『水爵士』。」女王笑著說。你跟上時，她顯然已被他迷住了！
+
+繞回宮殿時，女王在窗邊停下來。她似乎不願離開這位風度翩翩的雷利，回去處理公務。
+
+你困惑地看著雷利取下新得的鑽石戒指，在窗玻璃上刻字。女王微笑著，用自己的一枚戒指也刻了些什麼。然後她對雷利點點頭，消失在宮殿裡。
+
+雷利大笑，轉身抓住斗篷甩到肩上，神氣地走開，愉快地吹著口哨。
+
+你溜到窗前，讀出雷利寫給女王的話：
+
+「我願攀登，但恐跌落。」
+
+以及更模糊的女王回應：
+
+「若汝心怯，則莫攀登。」
+
+你上了一堂殷勤課。但在 1582 年，是女王給了雷利戒指，而非相反。而且此時完全不見埃塞克斯的蹤影。你該十年後再去看看雷利？還是跳到伯利莊園的婚禮去見女王？`,
+    choices: [
+      { text: "跳十年到 1592 年", next: "tower_1592", type: "jump" },
+      { text: "跳到 1595 年伯利莊園婚禮", next: "wedding_1595", type: "jump" }
+    ]
+  },
+
+  /* ---------- 1595 年婚禮 ---------- */
+  wedding_1595: {
+    year: "1595",
+    location: "伯利莊園・宴會廳",
+    image: "palace",
+    text: `現在是 1595 年 1 月 26 日。你站在一座伊麗莎白時代大宅宴會廳的入口，穿著借來的侍從服裝。
+
+地板上鋪著新鮮燈心草，鑲板牆上掛著掛毯，巨大的壁爐裡燃著熊熊烈火。數百支銀燭台上的蠟燭將閃爍的光芒灑滿巨大的房間。
+
+婚禮慶典正在熱烈進行。賓客坐在長桌旁，歡笑聲和銀杯中的葡萄酒不斷。你走到中央桌子後面，貴賓們坐在高台上。樂手在樓座上演奏，幾對男女正在跳舞。
+
+音樂加快，舞者越跳越快——前五步、後五步。突然舞者躍入空中，雙腳靈巧交叉離開地面。
+
+一圈人圍住一對活力四射的舞者。男子身材高大，捲曲的紅棕色頭髮，眼神調皮。看起來不到三十歲。他的舞伴從絲扇後風情萬種地眨眼，一面跳著。
+
+她的低胸禮服縫滿珍珠和銀線。戴著閃亮的鑽石吊墜，高高的蕾絲領鑲著金子和珠寶。她的頭髮是火紅色——一定是假髮——裝飾著各色珠寶和一頂金冠。
+
+這會是新郎新娘嗎？你正要發問，那位女士放下了扇子。即使她的臉敷得和珍珠一樣白，也無法掩飾她的年齡。她至少六十歲了！
+
+坐在你面前的這對優雅男女手牽手喝著酒。他們一定是新郎新娘。
+
+「女王今晚像年輕女孩一樣跳著加亞德舞，」新郎說。
+
+「這是莫大的榮幸，」新娘說。「但我不認為她是被我們的婚禮激勵。我敢打賭是埃塞克斯伯爵讓她眼中如此光彩！」
+
+女王和埃塞克斯伯爵！你瞪大眼睛看著伯爵領著伊麗莎白女王走向新娘新郎旁邊的高背扶手椅。
+
+「別這樣盯著看，侍從，」女王發現了你。「給我們拿些酒來。」
+
+你匆匆離開，找到一個裝滿紅酒的銀壺，鞠躬奉上。然後你為女王的珠寶高腳杯斟滿酒。
+
+「還等什麼？」女王把高腳杯遞給你。「嘗嘗！」
+
+你緊張地抿了一口。你不確定毒藥是什麼味道，但感覺沒事，便把杯子還給女王。她親切地微笑，舉杯向你致意，然後喝下。
+
+「戲要開始了！」新娘興奮地說。
+
+大廳盡頭已清理出來，音樂響起時，你看到安德魯——還是個男孩——打扮成仙后的侍從。你不擔心他會認出你——你們還要四年才會相遇！
+
+《仲夏夜之夢》是一個關於被施了魔法的戀人和命運多舛婚禮的奇幻故事。
+
+「真愛之路從來不平坦，」一名演員說。
+
+「確實如此，」埃塞克斯說著，俯身向女王低語。「我擔心您比我更珍愛另一個人。」
+
+「今天哪位仰慕者讓你嫉妒了？」女王問。「會是那位即將為我贏得黃金國度的冒險家雷利嗎？」
+
+「胡說，」埃塞克斯回答。「這黃金國只是夢之國度，和您眼前這齣戲裡的王國一樣不真實。」
+
+「雷利的探險以我的名義宣稱維吉尼亞，並從我們在新大陸的第一個殖民地羅阿諾克帶回了前所未聞的寶藏，」女王帶著戲謔的微笑說。「他為何不能在十年後這次遠征中做得更好呢？」
+
+「羅阿諾克——黃金國——胡說！」埃塞克斯賭氣地說，把注意力轉回戲劇。
+
+舞台上，仙后泰坦妮亞的一名仙子遇到了調皮的帕克，又名羅賓·古德費洛。仙子說：
+
+「若非我認錯你的身形樣貌，
+否則你就是那精明狡黠的精靈，
+人稱羅賓·古德費洛。你是不是他，
+那個嚇唬村中少女的……」
+
+女王愉快地笑了。「也許我該叫你羅賓·古德費洛，我的羅賓，」她對伯爵說。埃塞克斯因她親暱的語氣而容光煥發。
+
+伊麗莎白女王很享受這齣戲。因為仙后泰坦妮亞登場了，很明顯她代表伊麗莎白本人。
+
+你仔細觀察女王修長的手。她戴著許多戒指，但沒有一枚符合你尋找的戒指描述。她似乎非常迷戀埃塞克斯伯爵。但如果戒指是伯爵送的禮物，她難道不會戴著嗎？
+
+也許你該去查查沃爾特·雷利爵士。戒指會不會是他從新大陸帶回來的「前所未聞的寶藏」的一部分？還是來自神秘的黃金國？`,
+    choices: [
+      { text: "航行到 1585 年的維吉尼亞羅阿諾克", next: "roanoke_1585", type: "jump" },
+      { text: "留在 1595 年，前往黃金國", next: "eldorado", type: "jump" }
+    ]
+  },
+
+  /* ---------- 羅阿諾克線 ---------- */
+  roanoke_1585: {
+    year: "1585",
+    location: "大西洋・虎號船上",
+    image: "thames",
+    text: `現在是 1585 年 4 月，你在虎號船上，準備啟航前往新大陸。
+
+最後一批補給正裝入船艙：鹹牛肉和豬肉、米和燕麥、豌豆和豆子、水和啤酒。還有武器、工具和一袋袋種子，準備在新殖民地種植。大約兩百名水手、士兵和殖民者擠在船上，另外四百人將乘坐六艘較小的船。
+
+「起錨！」大副喊道。你能感受到空氣中的緊張和興奮，船員們急忙執行命令。
+
+「轉絞盤！」水手們哼哧哼哧地推著粗木桿，轉動幾個高鼓狀的絞盤。沉重的錨鏈慢慢繞上鼓輪，錨被升起。出發了！
+
+虎號嘎吱作響、起伏前進，駛向開闊大海。水手們升起巨大的白帆，拉繩索、轉絞盤。真美！
+
+她乘風破浪！上上下下，上上下下。你感覺不太舒服——你的胃該跟身體一起下來時卻留在上面了。
+
+「那個該死的艙友在哪？」一名水手在甲板上尋找。「快來，夥計，格倫維爾將軍要你下船艙！」
+
+「格倫維爾？」你虛弱地說。
+
+「理查德·格倫維爾爵士，艦隊指揮官，」水手不耐煩地回答。「他的表親沃爾特·雷利爵士組織了這次航行，他想要投資回報！女王已任命雷利為維吉尼亞總督。」
+
+「雷利指揮哪艘船？」你困惑地問。
+
+他大笑。「女王絕不會允許寵臣進行如此漫長危險的航行！雷利當然留在英格蘭。」
+
+英格蘭正迅速從視野中消失，虎號上下搖晃。
+
+「請告訴理查德爵士我病了，」你懇求。「我會盡快下去。」
+
+「每個人第一次都這樣，」水手同情地說。「眼睛盯著地平線。」
+
+盯著地平線讓你的胃穩定下來，你決定該怎麼辦。你該跳到新大陸去看看探險者發現了什麼寶藏？還是等雷利的船回來後再去找他？`,
+    choices: [
+      { text: "跳到三個月後的美洲", next: "roanoke_colony", type: "jump" },
+      { text: "留在英格蘭，跳到六個月後", next: "tobacco", type: "jump" }
+    ]
+  },
+
+  roanoke_colony: {
+    year: "1585",
+    location: "羅阿諾克島・西科坦村",
+    image: "thames",
+    text: `虎號擱淺了！現在是 1585 年 6 月下旬，你在北卡羅來納外灘群島上一艘進水的船裡。
+
+人們正忙著修理船隻。但大部分貨物已經損失。
+
+「喂！艙友！」一名水手對你喊。「將軍計劃派探險隊內陸。你要加入嗎？還是幫忙在羅阿諾克島上建新堡壘？」
+
+你加入約五十名殖民者的岸上隊伍，擠進四艘小船。令你驚訝的是，其中有兩名印第安人！
+
+「認識一下曼蒂奧和萬奇斯，」水手說。「他們去年加入雷利的第一次探險，前往英格蘭學習我們的語言。現在他們將擔任我們的嚮導。我們要去印第安村莊西科坦。」
+
+你急切地爬上船，問候新同伴。
+
+西科坦令人著迷。印第安人居住和聚集在圓頂的長方形建築裡，全都覆蓋著編織墊，看起來像麵包。村莊一側是玉米田——有些剛播種、有些半熟、有些完全成熟。
+
+印第安人為你舉行儀式。穿著獸皮纏腰布、戴著羽毛頭飾，他們圍圈跳舞，搖著葫蘆，有節奏地唱歌、跺腳、拍手。
+
+英國人驚嘆於印第安人在熊熊烈火上焚燒、用陶土煙斗吸食的珍貴粉末。但你認出那味道——菸草！
+
+「舒緩的烏波克葉對身體和靈魂都有益，」曼蒂奧解釋。「你們必須吸菸來清除體內邪氣。它能平息風暴、治癒疾病。你們要帶很多烏波克回英格蘭。」
+
+你幫格倫維爾的人把一捆捆菸草裝上船。「雷利會很高興的！」格倫維爾看著手下工作時說。
+
+原來這就是新大陸的寶藏，你想。菸草！
+
+格倫維爾計劃留下一百多人作為殖民者，其餘的隨他回英格蘭。你決定跳躍時空。殖民者會以為你回到虎號上，虎號船員會以為你留下來了。`,
+    choices: [
+      { text: "跳到三個月後的英格蘭，去找沃爾特·雷利爵士", next: "tobacco", type: "jump" }
+    ]
+  },
+
+  tobacco: {
+    year: "1585",
+    location: "宮廷大廳",
+    image: "palace",
+    text: `現在是 1585 年 10 月。你在伊麗莎白女王的宮廷大廳裡。
+
+突然幾位時髦的女士跑進大廳，邊咳邊捂鼻子。
+
+「沃爾特爵士又來了，」一位女士邊咳邊說。
+
+「有人說他想用這種所謂來自美洲的寶藏毒害女王！」另一位喘著氣說。
+
+「你們聽說了嗎？他的僕人看到他鼻子和嘴巴冒煙，以為他著火了？」另一位說。「那可憐人把一壺加香料的麥酒倒在他主人頭上！」
+
+女士們咯咯笑著離開大廳，一對優雅的男女走了進來。你認出沃爾特·雷利爵士——他正抽著銀煙斗，被一團煙霧環繞。
+
+他穿著優雅的黑色和白色。與他同行的還有女王！
+
+他們進門時你鞠躬，在壁龕裡停下。雷利和女王在附近桌旁坐下。女王皺了皺鼻子。
+
+「我必須說，沃爾特，」女王說，「你這個新習慣在宮廷已經蔚為風潮。但這味道真糟糕！」
+
+「我們打個小賭如何，陛下？」沃爾特爵士微笑。「我對這令人愉悅的植物已經很在行，我敢跟您賭我能稱出一煙斗煙的重量！」
+
+「稱煙？」女王笑道。「我接受你的賭注。」
+
+雷利拿出一個鍍金皮革袋子，用手指在一個小銀天平上稱出一煙斗的菸草。然後他裝滿煙斗、點燃，慢慢抽著，看著煙霧裊裊上升消失。
+
+煙斗抽完後，他把菸灰倒在秤上，從菸草重量中減去灰的重量。
+
+「差值，陛下，就是煙的重量！」
+
+女王因輸了賭注而生氣，但很快開始大笑。
+
+「我聽說過有人把金子變成煙，」她說，「但你一定是第一個把煙變成金子的人！」
+
+你看到一道金光閃過——女王把獎品扔給雷利。然後她氣沖沖地走了。
+
+新大陸的寶藏不過如此。如果雷利送過女王戒指，那一定是更晚的事。也許是 1595 年在黃金國找到的。
+
+跳十年後。`,
+    choices: [
+      { text: "跳到十年後（1596 年）", next: "cadiz_1596", type: "jump" }
+    ]
+  },
+
+  /* ---------- 黃金國線 ---------- */
+  eldorado: {
+    year: "1595",
+    location: "南美洲・奧里諾科河",
+    image: "scroll",
+    text: `現在是 1595 年 5 月。沃爾特·雷利爵士的艦隊停泊在千里達島外海，奧里諾科河口。
+
+奧里諾科河流經南美洲圭亞那的叢林。這條河對雷利的艦隊來說太淺了。但其中一艘大船——一艘槳帆船——被改裝並裝上槳。雷利將乘坐這艘駁船，率領精選船員沿奧里諾科河而上尋找黃金。你加入水手們，把一個月的補給裝上船。
+
+「還有一個位置，」探險家喊道。「你個子小，」他指著你說。「跟我們來！」
+
+男人們輪流划槳。天色尚早，河流美麗，蜿蜒穿過南美叢林的茂密綠意。你看到各種顏色的鳥和奇異的熱帶花卉——橙色、紫色、紅色。
+
+天氣酷熱，你驚訝地看到雷利仍戴著頭盔、穿著胸甲和厚重的伊麗莎白時代服裝。但他既因炎熱也因興奮而汗流浹背，因為你們要去發現失落的黃金國！
+
+「為什麼叫黃金國？」你問。
+
+「意思是『黃金之人』，」雷利回答。「只有一個人——一個西班牙人——見過它並活著回來講述。他說叢林深處有一座城市，一切皆由黃金製成，叫做馬諾亞。每天馬諾亞國王沐浴在一種油中，然後臣民用空心蘆葦把金粉吹到他身上，使他從頭到腳鍍金。他被稱為黃金國。」
+
+「您希望怎麼找到這個地方？」你問。
+
+「見見我們的嚮導，」雷利說著，介紹你認識一位年輕印第安人。「我們叫他費迪南多。他會帶我們度過河流的第一段。從那裡，我們得靠問路。」
+
+你對費迪南多微笑點頭，他看起來不太自在和困惑。
+
+你很快就知道原因了。探險隊在迷宮般的河流和支流中徹底迷路了，到處是相同的島嶼和無法穿越的森林！
+
+「我們在哪裡？」你傍晚時問費迪南多。
+
+費迪南多聳聳肩。「我其實已經超過十二年沒在這條河上了，」他尷尬地解釋。「但我記得奧里諾科河沿岸有些印第安部落是食人族！有些部落用毒箭攻擊入侵者！」這可不是令人鼓舞的想法。
+
+經過許多個日夜，你輪流划槳、睡在敞篷船的硬甲板上，全身僵硬痠痛。人和補給都被雨水淋濕、被無情的太陽曝曬、被昆蟲叮咬。
+
+「打起精神，」雷利鼓勵道。「很快我們都會發財！」
+
+但食物快吃完了。六十個悲慘男人的氣味難以形容。你幾乎準備跳出這裡，即使你就在眾目睽睽之下。
+
+突然費迪南多歡呼起來。「我認得這個地方！」他喊道。「再過幾天就到一個村莊，我們可以在那裡問路。」
+
+又過了四天，你睡了又划、划了又睡。總有人警戒。
+
+而且從來沒有可以跳躍的時機。看來你被困在這場尋寶之旅中了。`,
+    choices: [
+      { text: "繼續跟雷利尋找黃金國", next: "eldorado_lost", type: "normal" }
+    ]
+  },
+
+  eldorado_lost: {
+    year: "1595",
+    location: "圭亞那山區",
+    image: "scroll",
+    text: `你跟著煙柱爬上山。遠處傳來雷聲，你擔心會遇到熱帶風暴。
+
+越爬雷聲越大。但山丘炎熱晴朗，不時有鹿穿過小徑。
+
+雷利彎腰撿起一些石頭。
+
+「是黃鐵礦！」他興奮地喊道。「這種礦石出現在黃金附近！」
+
+空氣變得潮濕，細霧般的水花從山上飄下。
+
+小徑轉彎，雷聲如雪崩般轟鳴。然後，突然間，你看到了：一道和聖保羅大教堂一樣高、甚至更高的瀑布。水霧如煙般升起。而在一切之上，一道彩虹拱入天空，如絲帶般閃爍。
+
+你深吸一口氣。奔騰水流的飛沫刺癢著你的鼻孔。
+
+雷利敬畏地停下來欣賞這景象。但他的驚嘆中帶著悲傷。因為沒有煙、沒有城市、沒有黃金、沒有戒指。贏回伊麗莎白歡心的機會渺茫。他發現了大自然的寶藏之一，但必須空手回到船上。
+
+懷著沉重的心情，你們沿原路返回托皮瓦里村。
+
+「雨季開始了，」費迪南多說。「今年不會再有探險了。」
+
+「我們必須啟程回英格蘭，」雷利悲傷地同意。
+
+「我會派一個兒子去學習你們的方式，」托皮瓦里宣布。「你們有人願意留下來和我們的人一起生活嗎？」
+
+你看到了擺脫這場徒勞追逐的方法！
+
+「我留下！」你告訴雷利，溜到托皮瓦里的茅屋後面。兩名年輕英國人留在南美村莊，看著雷利的人準備對抗奧里諾科河的洶湧水流。
+
+「我會在一年後回來！」雷利發誓。「我不會放棄尋找黃金國王國。」
+
+你看著船消失，然後跳回英格蘭繼續你的任務。`,
+    choices: [
+      { text: "跳到 1596 年的英格蘭", next: "cadiz_1596", type: "jump" },
+      { text: "跳到 1587 年的英格蘭", next: "cadiz_1596", type: "jump" }
+    ]
+  },
+
+  /* ---------- 1596 年加的斯 ---------- */
+  cadiz_1596: {
+    year: "1596",
+    location: "倫敦・街頭慶典",
+    image: "palace",
+    text: `全倫敦都在慶祝。現在是 1596 年 8 月，你置身歡騰的人群中。
+
+「前進埃塞克斯府！」他們喊道。「加的斯騎士萬歲！」「雷利萬歲！」「埃塞克斯萬歲！」
+
+你跟上一位抱著孩子的年輕女子。
+
+「發生什麼事了？」你問。
+
+「哎呀，你一定聽說了！」她說。「我們的艦隊攻下了西班牙城市加的斯。那是一場大戰！雷利和埃塞克斯是英雄！他們共同指揮戰艦。他們證明了英格蘭的榮耀！」
+
+「雷利和埃塞克斯是朋友？」你問。
+
+「哦，是啊！」女子回答。
+
+「女王一定很高興，」你說。
+
+「女王也許高興她的寵臣贏了戰役，」女子告訴你。「但據說她也很生氣，因為幾乎沒搶到黃金，國庫還受了損失。人民不在乎，如你所見。」她指著人群。「他們知道英格蘭何時勝利了。」
+
+「女王真的很難取悅，」你自言自語。「要是我能問她就好了……」
+
+「你想求女王恩典？」年輕女子問。
+
+「算是吧，」你回答。「我想知道她的未來。」
+
+「如果你想跟女王說話，」女子說，「她進行從倫敦宮殿到鄉間莊園的夏季巡遊時，總會聽取人民的聲音。但如果你想知道她的未來，你得去找她的占星師約翰·迪伊。他住在莫特萊克的大房子裡。」
+
+「謝謝你，」你告訴女子。「你幫了大忙！」
+
+你想不出在這麼混亂的情況下如何找到埃塞克斯伯爵或沃爾特·雷利爵士。但看來他們現在是朋友，都受女王寵信。
+
+你該試著問女王本人關於戒指的事？還是跳躍時空去請教她的占星師？他也許知道她真正青睞誰。你決定跳到接近女王去世的年份。`,
+    choices: [
+      { text: "跳到 1598 年女王巡遊", next: "progress_1598", type: "jump" },
+      { text: "跳到 1603 年莫特萊克", next: "mortlake_1603", type: "jump" }
+    ]
+  },
+
+  /* ---------- 1598 年巡遊 ---------- */
+  progress_1598: {
+    year: "1598",
+    location: "倫敦近郊・鄉間道路",
+    image: "palace",
+    text: `現在是 1598 年夏天。你和一群農民站在倫敦不遠的鄉間道路旁，看著一輛又一輛馬車隆隆駛過，每輛都裝滿箱子和櫃子。一定有數百輛！
+
+女王正在鄉間莊園之間進行夏季巡遊，她的整個宮廷——連同所有排場——都跟著她。
+
+孩子們在路上跑來跑去，興奮地等待一睹優雅朝臣的風采。很快他們出現了，偉大的貴族和女士們，每人騎著駿馬。
+
+接著你看到一支衛隊圍繞著一輛由六匹馬拉著的馬車。馬匹戴著羽毛頭飾，馬車看起來像灰姑娘故事裡的東西。女王！而她馬車後面，還有一百多輛馬車！
+
+「伊麗莎白女王萬歲！」村民們喊道。女王從馬車窗戶伸出手，向人民揮手。
+
+「請願，陛下，」一位年輕農夫喊道。女王探出窗戶，示意車夫。
+
+「喂！」他喊道。「停！」命令傳遞下去，整個隊伍停了下來，女王專注地點頭微笑，聽取那人的請求。
+
+你向前擠，排在農夫後面、鄉村牧師前面。很快輪到你了，你向女王鞠躬。
+
+「我可以只問一個問題嗎，陛下？」女王親切地點頭，等你繼續。
+
+「願陛下聖安，在您所有精美的珠寶中，您有最喜歡的戒指嗎？」你問。
+
+「這問題真奇怪，」女王說。「但我還是回答你。我最珍視加冕戒指，自成為女王那天起從未取下。」
+
+你正要問她是否有第二喜歡的——雷利或埃塞克斯送的禮物——牧師上前輪到他了。你深深鞠躬，退到一旁。
+
+當你回頭望向蜿蜒到遠方的馬車隊伍時，一個笨拙的動作引起了你的注意。一個黃鼠狼臉的男人正鬼鬼祟祟地沿著一輛裝滿財寶的馬車旁走。他鬆開了一個輪子！
+
+你立刻認出他。就是你在 1599 年泰晤士河邊見到的黃鼠狼臉男人。但在 1599 年——一年後——他只剩一隻手！
+
+馬車開始搖晃，馬匹嘶鳴。你走過去看看怎麼回事。
+
+「喂！」黃鼠狼朝一群馬車喊道。「這輛車鬆了。最好減輕載重！」但車伕們自顧自聊天，沒注意到。黃鼠狼扛起一個沉重的袋子，彷彿想幫忙。透過袋子上的洞，你看到銀盃的閃光。黃鼠狼開始往隊伍末端走！他在偷女王的銀器！
+
+伊麗莎白示意隨從出發。很快，損壞的馬車就會倒塌，黃鼠狼肯定會趁亂逃走。
+
+你該往左跑去告訴女王？還是往右提醒車伕？`,
+    choices: [
+      { text: "往左跑，告訴女王", next: "tell_queen", type: "normal" },
+      { text: "往右跑，提醒車伕", next: "warn_drivers", type: "danger" }
+    ]
+  },
+
+  tell_queen: {
+    year: "1598",
+    location: "女王巡遊隊伍",
+    image: "queen",
+    text: `你向左衝，在女王車夫舉起鞭子時趕到女王馬車旁。
+
+突然鬆脫的馬車搖晃倒塌，三名騎馬侍衛奔去追捕黃鼠狼。
+
+「等等！」你對女王車夫喊道。「有小偷帶著一袋銀盃逃走了！」
+
+「你的眼力真好！」車夫說。
+
+「確實！」女王從馬車裡探出身子說。「但別擔心！我們見過這種把戲！」
+
+車夫眨眨眼。「這次不會得逞！」
+
+不一會兒，三名侍衛帶著不高興的小偷回來了。
+
+「我認識他，」一名侍衛說。「他是臭名昭著的割包賊，叫黃鼠狼！」
+
+「你這次要被砍掉一隻手，」第二名侍衛怒氣沖沖地對小偷說。黃鼠狼低下頭，什麼也沒說。
+
+「你早該知道不該對女王的衛隊耍這種老把戲！」第三名侍衛說。
+
+「這混蛋真大膽，竟敢割女王的錢包！」一位騎在女王附近的貴族說。他轉向你。「而你的眼力真好！」
+
+「謝謝你的機警和忠誠，」女王告訴你。「也許我的埃塞克斯伯爵在即將到來的愛爾蘭戰役中需要一位聰明的助手！」她對那位貴族微笑。是埃塞克斯伯爵！
+
+「確實，」伯爵說。「你跟我一起去。找匹馬！」
+
+幾分鐘後，你騎上了一匹貴族的駿馬。埃塞克斯伯爵策馬到你身旁。
+
+「你四月跟我去愛爾蘭，」他命令道。「你會是個好士兵！」`,
+    choices: [
+      { text: "跳到 1599 年 4 月的愛爾蘭", next: "ireland_1599", type: "jump" }
+    ]
+  },
+
+  warn_drivers: {
+    year: "1598",
+    location: "女王巡遊隊伍",
+    image: "palace",
+    text: `你向右跑，想提醒車伕。但太遲了！馬車搖晃倒塌，車伕們圍住了你！
+
+「你就是那個問女王珠寶的人！」一個車伕指責道。
+
+「我們看到你在這輛車旁鬼鬼祟祟。你在耍什麼把戲？」另一個問。
+
+「少了一個袋子！」第三個說。「小偷！你把銀器藏哪了？」
+
+「我沒有！」你喊道。「是他幹的！」你指向黃鼠狼。但他已經消失在馬車隊伍中。你最好快點行動！
+
+你從車伕們的腿間鑽過，滾到一輛馬車底下，然後跳躍！
+
+你跳回五分鐘前，這次直接去告訴女王！`,
+    choices: [
+      { text: "跳回五分鐘前，直接告訴女王", next: "tell_queen", type: "jump" }
+    ]
+  },
+
+  /* ---------- 1599 愛爾蘭 ---------- */
+  ireland_1599: {
+    year: "1599",
+    location: "愛爾蘭・都柏林城堡",
+    image: "tower",
+    text: `春天的愛爾蘭氣味甜美。現在是 1599 年 4 月，你置身一片鮮綠大地，被珍珠灰色的天空籠罩。但幽靈般的薄霧掠過樹林和山脈，溪流和鬆軟的沼澤吸著毛毛細雨。
+
+埃塞克斯伯爵和他的軍隊駐紮在都柏林城堡，位於愛爾蘭中部一小塊被稱為「英格蘭治區」的地區。治區內，英格蘭移民安全掌權。但治區之外，南北兩方的愛爾蘭領主和酋長率領叛軍保衛家園，對抗英格蘭人。
+
+埃塞克斯對軍隊講話，聲音在苔蘚石牆間迴盪。
+
+「女王命令我平定北方的叛亂，」他說，「並擊敗叛軍領袖休·奧尼爾——蒂龍伯爵兼阿爾斯特霸主。據說他是個狡猾的敵人！
+
+「我們奉命從都柏林北上，在他的根據地與蒂龍對決。但春雨水位上漲，河流氾濫。沒有足夠的運輸工具供軍隊使用，也沒有牧場供馬匹吃草。而且蒂龍的人馬潛伏在我們西邊和南邊，隨時準備伏擊我們的後衛。
+
+「因此，我們將推遲北上進攻，直到夏天來臨。明天我們將從都柏林出發，先確保南方和西方！」
+
+大多數士兵似乎對推遲感到寬慰。但你旁邊的士兵很不滿。
+
+「女王不會喜歡這個計劃，」他說。「她只想推翻蒂龍。這對埃塞克斯恐怕不利。」
+
+「你也許是對的，」你回答。
+
+「我是加馬利爾·拉特賽，」他說。「很高興認識你。」
+
+「你好，」你說。雖然他是個強壯的戰士，拉特賽似乎也受過良好教育。在漫長的泥濘沼澤行軍中，他會是個好同伴。
+
+埃塞克斯正忙著規劃戰役，現在沒空跟你談伊麗莎白的戒指。你決定跳過一些行軍和戰鬥，稍後再找他。`,
+    choices: [
+      { text: "跳到六個月後", next: "ireland_later", type: "jump" }
+    ]
+  },
+
+  ireland_later: {
+    year: "1599",
+    location: "愛爾蘭・北方行軍",
+    image: "tower",
+    text: `現在是 1599 年 9 月，你正行軍北上愛爾蘭，準備與蒂龍伯爵作戰。你走到加馬利爾·拉特賽旁邊。
+
+「你又回來了？」他說。「你一定像很多人一樣發燒病倒了。」
+
+「是啊，」你說，「但我現在感覺沒事了。」
+
+「自從上次見到你，我們已經損失了數千名士兵，」拉特賽告訴你。「很多人病倒，有些人在戰鬥中喪生。我們到處遭遇雨霧，在濕透的森林和沼澤中迷路。」
+
+「完全沒有成功嗎？」你問。
+
+「一點也沒有，」拉特賽回答。「愛爾蘭人很狡猾。在一個城鎮，叛軍指揮官挑戰我們比武——但他們沒出現！另一次我們遭到伏擊！帽子上的羽毛都被射掉了！在另一個城鎮，我們受到遊行歡呼，所以沒有理由進攻。但我們受到的歡迎只是假象，因為村民忠於自己的愛爾蘭領袖，不是女王！」
+
+「我們現在要去哪裡？」你問。
+
+「我們要留在後方，讓埃塞克斯與蒂龍面對面會談。愛爾蘭軍隊人數至少是我們的兩倍。」
+
+你停在一座俯瞰河流的山丘上。蒂龍伯爵獨自在河岸等候，他的叛軍分佈在對面山丘上。
+
+埃塞克斯騎著駿馬經過時對你眨眼。他策馬到河岸與蒂龍伯爵會面。他們平靜地交談了一小時，然後兩位領袖都回到自己人馬中。
+
+「我已與愛爾蘭人達成停戰協議！」埃塞克斯宣布。「敵對行動結束！我們不建立新堡壘。他們保留現有領地。這是偉大的一天！我將立即回英格蘭告訴女王！」
+
+埃塞克斯策馬離去。一切發生得太快了！你怎麼問他任何事？
+
+「我也要回去，」拉特賽說，「去公路上討生活。我在這裡的用處已經結束了。如果你願意，跟我來。女王一定會對埃塞克斯沒有征服愛爾蘭大發雷霆，他得在宮廷承受她的怒氣！」`,
+    choices: [
+      { text: "跟加馬利爾·拉特賽回英格蘭", next: "rat_say", type: "normal" },
+      { text: "回倫敦，試圖追上埃塞克斯", next: "essex_return", type: "jump" }
+    ]
+  },
+
+  rat_say: {
+    year: "1599",
+    location: "英格蘭・鄉間旅店",
+    image: "scroll",
+    text: `現在是 1599 年秋天。你和加馬利爾·拉特賽在英格蘭崎嶇的泥土路上策馬奔馳。他是個出色的騎手，你很難跟上他！
+
+「籲！」他穿過一個村莊時喊道。「我們今晚要在旅店過夜。」
+
+拉特賽向馬伕示意，下馬大步走進一家舒適的鄉間旅店。你跟在後面，又累又餓。
+
+裡面，疲倦的旅客坐在木桌旁，享受熊熊爐火、熱騰騰的晚餐和麥酒。拉特賽已經和老闆娘聊得起勁，你看到銀幣閃光。老闆娘朝一桌有錢商人點點頭，然後走開，口袋叮噹作響。
+
+拉特賽在你桌旁坐下。「我們今晚要趕路，」他說。「好好吃，我們還要趕好幾英里才能睡。」
+
+「為什麼不住旅店？」你問。
+
+「有事要辦！」拉特賽眨眨眼。
+
+你們很快又上路，在月光下奔馳。拉特賽的斗篷在月光下飄動，看起來像隻烏鴉。你們在離村莊有些距離的樹林山谷裡紮營。拉特賽生起火，從馬鞍袋裡拿出一塊布，開始縫紉。
+
+「你在做什麼？」你問。「看起來像頭罩，但臉好可怕！」
+
+「是啊，天亮時我會像個魔鬼，」拉特賽回答。
+
+伊麗莎白時代有萬聖節服裝嗎？你邊想邊睡著了。
+
+你突然在光天化日下醒來。
+
+「噓！」拉特賽嘶嘶說。「待在這裡！」他策馬穿過樹林一小段距離。從你的藏身處，你能聽到樹葉沙沙作響。一個農夫走進空地。
+
+突然拉特賽躍入空地——手槍拔出，戴著可怕的魔鬼面具。
+
+「啊——！」農夫尖叫，嚇得縮成一團。
+
+「錢包還是命！」拉特賽宣布。
+
+「魔鬼！」農夫喊道，把錢包扔給拉特賽。「這是我存了五年的所有錢！」
+
+拉特賽打開錢包。「五枚金幣？你真是個窮人！你打算用這筆財富做什麼？」
+
+「我要去市場買一頭乳牛，」農夫用顫抖的聲音回答。
+
+「那麼拿回你的錢包，再給你五枚金幣，」拉特賽說著摘下面具。「去買兩頭牛，讓你的家人永遠有牛奶喝。走吧！」
+
+農夫跪地感謝，但拉特賽輕輕推他一下，他便匆匆穿過森林離去。
+
+「你是公路劫匪！」你指著同伴說。
+
+「我可能是公路劫匪，但我只搶有錢人——那些靠窮人生活的人。留或走，隨你。但如果你獨自在森林騎馬，會有比我更殘忍的人等著搶你的錢。」
+
+「你知道我沒錢，」你說。但你必須決定。`,
+    choices: [
+      { text: "跟拉特賽騎馬去倫敦", next: "london_arrival", type: "normal" },
+      { text: "跳躍時空，去倫敦找埃塞克斯", next: "essex_return", type: "jump" }
+    ]
+  },
+
+  london_arrival: {
+    year: "1601",
+    location: "環球劇院",
+    image: "globe",
+    text: `你決定跟拉特賽一起去倫敦。突然你聽到馬蹄聲。「這就是我們在等的！」拉特賽低聲說。「躲起來！」
+
+你躲在一棵樹後，看著一群商人騎進空地。他們正是昨晚老闆娘指出的那些商人！拉特賽急忙換衣服。很快他也打扮成商人，一頂軟帽壓低遮住眼睛！
+
+「喂，朋友們！」他說。「市場行情好嗎？」
+
+「確實好，陌生人，」一人回答。「我把所有布以兩倍價錢賣光了，還不止這些。這些鄉下人真是傻瓜！」
+
+「但沒有貪婪的人那麼傻！」拉特賽喊道。「要錢還是要命！」他揮舞手槍，向每個商人收取錢包，還順便添了幾件衣服。
+
+「現在滾吧，」他命令道，「不然我讓你們身上開的洞比乞丐的斗篷還多！」
+
+他們像鴿子一樣四散。
+
+「你為什麼拿他們的衣服？」你問。
+
+「這世上很少有地方是你穿著合適服裝進不去的，」拉特賽告訴你。「只要我願意，我甚至能見到女王本人……」
+
+突然你聽到附近有人唱歌。
+
+「嘿呵，嘿德里迪，」一個好奇的小個子男人跳舞進入空地，跟著一個吹笛子的男孩。
+
+「我認識你，」拉特賽說。「你是威爾·坎普，著名的丑角。你離開宮內大臣劇團了嗎？」
+
+「我要從倫敦跳舞到諾里奇，」丑角說，「一路靠打賞過活。劇院已經沒有我這種人的位置了。都是那個暴發戶威爾·莎士比亞。他的悲劇太嚴肅，喜劇太輕浮，沒有不守規矩的丑角角色」——他大聲打嗝——「而且他不准我在幕間搞怪。」
+
+公路劫匪同情地大笑，慷慨捐贈給丑角的錢包。他甚至提出帶他穿過森林，以防盜賊！
+
+但你留在後面。拉特賽給了你靈感。如果你偽裝自己，也許能見到女王！坎普也提醒了你安德魯的邀請——加入《第十二夜》劇組扮演侍女！但也許你該先去找埃塞克斯。`,
+    choices: [
+      { text: "重新加入莎士比亞劇團", next: "shakespeare_meet", type: "jump" },
+      { text: "跳躍時空去倫敦找埃塞克斯", next: "essex_return", type: "jump" }
+    ]
+  },
+
+  /* ---------- 1601 環球劇院 ---------- */
+  shakespeare_meet: {
+    year: "1601",
+    location: "環球劇院・服裝間",
+    image: "globe",
+    text: `你決定留在環球劇院。你在《理查二世》中沒有角色。但你可以在演員排練時溜進服裝間！
+
+你溜到後台，匆忙翻找箱子和衣櫃，尋找侍女的禮服。
+
+你找到一件優雅的絲綢禮服，爬進去。看著鏡中的自己，你沮喪地嘆了口氣。太大了，你看起來很滑稽。
+
+突然一個男人走進服裝間。他看起來心事重重，用袖子擦著禿頂上的汗。看到你時，他大吃一驚，掉落了手裡的紙張。
+
+「喂！」他說。「你以為你在做什麼？偷我們最好的服裝？打算拿到街上賣？」
+
+「不是！」你抗議著，掙扎著脫下禮服。「我只是在試穿！真的，我……」
+
+安德魯來救你了。
+
+「沒事的，先生，」年輕演員說。「這是托比，兼職演員！你不記得了嗎？《尤利烏斯·凱撒》裡的士兵？《第十二夜》裡的侍女？」你驚訝地抬頭。你不記得那個！但你閉嘴不言。
+
+「托比，」安德魯繼續說，「讓我向你介紹有史以來最偉大的劇作家，威廉·莎士比亞！」
+
+「很高興見到您，先生，」你興奮地笨拙鞠躬。然後急忙撿起散落在地的紙張。
+
+「我也很高興認識你，托比，」莎士比亞說。然後他的注意力回到你遞給他的那疊紙上。
+
+「托比？」他若有所思地打量你。「托比，還是不是托比？這是個問題！」他說道。一時間，你懷疑他是否發現你是來自伊麗莎白時代的訪客！
+
+但莎士比亞只是禮貌地點點頭，走出房間，一邊翻著紙張，一邊低聲念叨：「托比，還是不是托比？」
+
+「別介意他，」安德魯說。「他工作時總是這樣。這齣戲是關於一個丹麥王子，我想叫哈姆雷特。」
+
+「我相信莎士比亞的新戲會流傳後世！」你告訴安德魯。「而且我敢打賭裡面會有你的角色。但我現在得走了。謝謝你——你幫的忙比你知道的還多！」
+
+你從側門溜出環球劇院，跳躍一天到埃塞克斯府。`,
+    choices: [
+      { text: "跳到埃塞克斯府", next: "essex_house_1601", type: "jump" }
+    ]
+  },
+
+  essex_house_1601: {
+    year: "1601",
+    location: "埃塞克斯府",
+    image: "palace",
+    text: `現在是 1601 年 2 月 7 日晚上。你在埃塞克斯府為一群看完戲的貴族倒麥酒。
+
+「喂，年輕侍從！」伯爵喊道。「從愛爾蘭沼澤回來後能暖和乾燥真好，不是嗎？你怎麼來我家的？」
+
+「我從愛爾蘭戰役回來後發燒生病，」你解釋。「倒麥酒總比膿瘡好！」埃塞克斯和朋友們被你的雙關語逗得哈哈大笑。
+
+門口傳來響亮的敲門聲。你急忙去開門，迎進一位優雅的訪客，他快步走進餐廳。
+
+他對埃塞克斯伯爵說話，伯爵沒有從椅子上起身。
+
+「作為女王樞密院的秘書，我被派來請您立即出席樞密院會議，」他宣布。
+
+「很遺憾我身體不適，」埃塞克斯回答，「而且我害怕離開自己家的範圍，因為有敵人想害我。」埃塞克斯虛弱地朝你揮手。「送我們的訪客出去。」
+
+當你回到餐廳時，埃塞克斯的人一片騷動。
+
+「樞密院起疑了！」一位你曾在劇院見過的貴族說。「我們必須立刻行動！」
+
+「明早我們可以召集一千三百人！」另一個說。「我們可以在中午前控制女王，然後佔領白廳宮！」
+
+「我知道全倫敦都支持我，」埃塞克斯說。「我們必須連夜行動，到早上，女王所有的不公都將被糾正。」
+
+人們歡呼著四散忙於組織叛亂。
+
+一場推翻女王的陰謀！你該跟著埃塞克斯？還是偷偷溜走去警告伊麗莎白？`,
+    choices: [
+      { text: "跟隨埃塞克斯叛亂", next: "essex_rebellion", type: "danger" },
+      { text: "偷偷溜走，警告女王", next: "warn_queen_1601", type: "normal" }
+    ]
+  },
+
+  essex_rebellion: {
+    year: "1601",
+    location: "倫敦街頭・埃塞克斯府",
+    image: "tower",
+    text: `現在是 1601 年 2 月 8 日早晨。人群聚集在埃塞克斯府內外。叛亂氣氛瀰漫！
+
+埃塞克斯在書房裡緊張地踱步。「事情竟到了這個地步！」他大聲說。「女王禁止我入宮。剝奪了我的收入！她指控我違抗命令、浪費金錢、在愛爾蘭戰爭中封了太多騎士。好吧，現在她要看看她錯得多離譜。我要證明自己是偉大的領袖！」
+
+女王怎麼會愛上這個男人？你心想。也許戒指真的來自雷利。
+
+你沒時間多想。門口又傳來雷鳴般的敲門聲。這次你迎進四位女王樞密院議員。
+
+「這是什麼集會？」一人質問。「庭院裡有三百名武裝騎馬的人！」他朝敞開的門口喊道。「我以女王之名命令你們放下武器離開！」
+
+人群發出嘲笑，議員砰地關上門面對埃塞克斯。
+
+「我稍後會回來跟你們談，各位先生，」埃塞克斯說著，向幾名手下示意。「把議員們鎖在書房，派人看守！」然後，強壯的火槍手照辦，他大步走出門。
+
+「去宮廷！去宮廷！」暴民喊道。埃塞克斯跳上一匹駿馬，率領追隨者穿過埃塞克斯府大門。你加入人群，徒步跟隨騎馬的人。
+
+「為了女王！」埃塞克斯喊道。「有人陰謀害我！」暴民歡呼，埃塞克斯叛亂開始了。
+
+「但他為什麼騎離白廳？」一名追隨者問。
+
+「我們要去集合更多人——增援，」另一個解釋。
+
+但是，你們在倫敦城裡行進了大半個上午，承諾的人馬始終沒有出現。旁觀者歡呼揮手，但沒有人武裝加入。最後埃塞克斯困惑絕望，決定停下來吃午餐！
+
+聽到附近廣場傳令官的宣告，你停下來聽。「埃塞克斯伯爵已被宣布為叛徒！」他宣布。「放下武器，你們將被赦免！」
+
+你注意到埃塞克斯的許多追隨者溜進小巷和側街。他的軍隊正在瓦解！
+
+「侍從！」埃塞克斯喊道。「過來報告！」
+
+「您已被宣布為叛徒，大人，」你說，「許多支持者已經逃走了。」
+
+「我要用扣押的議員與樞密院談判，」埃塞克斯宣布。「我們必須逃往泰晤士河！」
+
+你和伯爵及少數剩餘追隨者匆匆趕到河邊。擠進船裡，你們很快經水路回到埃塞克斯府。
+
+一個畏縮的僕人迎接你們。「議員們已經被釋放了，大人，」他害怕地說。埃塞克斯呻吟一聲，猛地打開一箱文件。
+
+「幫我燒掉這些，」他急切地懇求。「每一份文件都必須銷毀！」你把脆弱的紙頁扔進壁爐，看著歷史的碎片枯萎化為灰燼。
+
+突然你聽到槍聲和玻璃破碎的聲音！你尋找跳躍時空的地方，但武裝守衛衝進房間。
+
+「把這些叛徒帶到倫敦塔！」他們命令。
+
+很快，你被拖到倫敦塔，扔進一間悲慘的牢房。你最好現在跳躍！`,
+    choices: [
+      { text: "跳出時間", next: "fail_ending", type: "jump" }
+    ]
+  },
+
+  warn_queen_1601: {
+    year: "1601",
+    location: "白廳宮",
+    image: "queen",
+    text: `你趕到白廳宮。
+
+「我必須見女王，」你氣喘吁吁地說。「埃塞克斯伯爵即將叛亂！」
+
+守衛懷疑地看著你，但帶你穿過迷宮般的走廊，來到一間華麗的覲見廳。你跪在女王面前。
+
+「我去過埃塞克斯府，陛下，」你說。「伯爵正在集結軍隊要攻打白廳。」
+
+「我記得你，」女王驚訝地說。「你以前在夏季巡遊時提醒過我危險。再次感謝你！我們已清楚伯爵的陰謀。但我把你推薦給我的衛隊長。保護我的人身安全是他的職責。」
+
+你向衛隊長鞠躬，起身面對他。是沃爾特·雷利爵士！
+
+「叛亂會失敗的，」女王繼續說。然後她悲傷地笑了。「埃塞克斯從來組織不善。」
+
+伊麗莎白嘆了口氣，茫然地凝視遠方。她顯然沒心情討論珠寶！
+
+「我已加倍守衛，」雷利說。「您不必害怕。」
+
+「我不害怕，」伊麗莎白說。「我充滿悲傷。因為埃塞克斯必須被宣布為叛徒，送進倫敦塔。然後他將失去他的頭。」
+
+你與雷利目光交匯，女王起身回寢宮。雷利似乎也充滿遺憾。
+
+「想想幾個月前我多麼快樂，」伊麗莎白說，「在宮內大臣劇團又跳舞又大笑。那是個美好的聖誕節，不是嗎，沃爾特？」
+
+雷利點頭同意，女王離開時他低頭行禮。然後他在女王門外站崗。
+
+「給自己找點食物和休息的地方，」他溫和地告訴你。「今天肯定會很漫長。」
+
+你在白廳宮找到一間空房間。你該回到兩個月前，加入宮內大臣劇團的聖誕慶典？還是試著在埃塞克斯人頭落地前見他？`,
+    choices: [
+      { text: "跳到 1600-01 年聖誕節", next: "twelfth_night", type: "jump" },
+      { text: "去倫敦塔找埃塞克斯伯爵", next: "tower_essex", type: "jump" }
+    ]
+  },
+
+  twelfth_night: {
+    year: "1601",
+    location: "白廳宮・聖誕慶典",
+    image: "queen",
+    text: `現在是 1601 年 1 月 6 日——白廳宮聖誕慶典的第十二夜。
+
+歡樂和笑聲充滿裝飾華麗的大廳，朝臣們唱歌跳舞。
+
+「我很高興你趕上聖誕節加入劇團，托比，」安德魯眨眨眼說。「我告訴過你會是個出色的侍女！」
+
+「希望如此！」你回答。你的任務全靠這個了！
+
+安德魯最後調整你的侍女服裝，扶正假髮。「戲結束後見，」他說。「別緊張！」
+
+你已經熟記台詞——你沒有台詞，直到第五幕才上場！——但你心裡還是七上八下。想到要在皇室面前演出莎士比亞的《第十二夜》，你就緊張！
+
+而且你不太舒服。你從沒在胸前塞過橘子，荷葉領還刺癢！
+
+號角聲響起，朝臣們在舒適的座位上坐定。戲要開始了！
+
+「如果音樂是愛情的食糧，繼續演奏吧，」微笑的演員以奧西諾公爵的身分宣布。
+
+觀眾愉悅地低語。
+
+戲順利進行，你決定找個安靜角落，跳躍時空到女王寢宮。第五幕前你至少有兩個小時。
+
+你漫步穿過無盡的房間和走廊，到處是匆忙的僕人，你有一種被跟蹤的奇怪感覺。你猛地回頭。
+
+「驚喜！」一個年輕人說。「我在宮廷沒見過你，不過我怎麼可能錯過你甜美的魅力呢！但為何如此可愛的人要離開慶典？也許你想和我獨處？」
+
+「只是獨處，也許！」你回答，臉紅了。這位年輕朝臣似乎是個糾纏型的。你能躲到哪裡？
+
+「你躲不過我的！」這位英俊的登徒子說，彷彿讀懂了你的心思。「我來證明。我們玩個捉迷藏！你想躲哪就躲哪——我會找到你！」他用手遮住眼睛。
+
+你接受他的遊戲，跳躍時空。
+
+跳躍到 1603 年女王寢宮。`,
+    choices: [
+      { text: "跳到 1603 年女王寢宮", next: "richmond_1603", type: "jump" }
+    ]
+  },
+
+  tower_essex: {
+    year: "1601",
+    location: "倫敦塔・埃塞克斯囚室",
+    image: "tower",
+    text: `現在是 1601 年 2 月 20 日。你在倫敦塔。
+
+經過一間空房時，你看到桌上散落著空白紙張、羽毛筆和墨水。也許這些東西能幫你進去。你收集補給品，走向守衛看守的厚重木門。
+
+「我給埃塞克斯伯爵送紙和墨水，」你說。
+
+「叛徒不見任何人，」守衛咆哮。
+
+「也許他有話要懺悔，」你暗示。守衛簡短點頭，讓你進去。
+
+「您的紙和墨水，大人，」你說著，把補給品放在華麗的桌上。
+
+「我沒什麼好寫的了，」伯爵說。「五天後，我將作為叛徒被處決。女王等我求饒。但她不會從我這裡聽到任何話。」
+
+「我聽說她戴著您送的戒指，」你說。
+
+埃塞克斯看起來很驚訝。「我確實送過她一枚金藍寶石戒指，但我不認為她會戴我的信物。她的侍女都會認出來。而且，她不再愛我了。我犯了叛國罪，她必須砍我的頭。不，你弄錯了。」
+
+「也許吧，」你告訴他。「但我認為她仍然愛您。再見，大人。」敲門離開時，你腦筋飛轉。金藍寶石戒指！聽起來就是那一枚！它後來怎麼了？
+
+守衛讓你出去。但埃塞克斯提到侍女，讓你靈光一閃。你將接受安德魯的邀請，在《第十二夜》中扮演侍女。穿著戲服，你就能進入女王寢宮！`,
+    choices: [
+      { text: "跳回 1601 年 1 月 6 日《第十二夜》演出", next: "twelfth_night", type: "jump" }
+    ]
+  },
+
+  /* ---------- 1603 里士滿宮 ---------- */
+  richmond_1603: {
+    year: "1603",
+    location: "里士滿宮・女王寢宮外",
+    image: "queen",
+    text: `現在是 1603 年 2 月。你站在里士滿宮女王寢宮門外。
+
+幾位侍女匆匆走過走廊，裙襬沙沙作響。她們中間走著一個矮瘦的男人，提著一袋工具。她們引他進入伊麗莎白的寢宮。
+
+一位女士停下來跟你說話。她認出你的偽裝了嗎？你緊張地行屈膝禮，沉重的裙子像其他人一樣沙沙作響。
+
+「哎呀，你一定是安妮夫人最小的女兒，」她說。「我們一直在等你。但這是多麼悲傷的時刻啊！來吧。」
+
+你鬆了口氣，加入這小隊伍。
+
+女王坐在一堆枕頭上。她看起來虛弱而蒼老。那個提工具袋的矮小男人跪在她面前。
+
+「珠寶匠，你終於來了。這是悲傷的時刻，但必須這麼做。如你所見，我的手指因疾病腫脹，我的加冕戒指——我像婚戒一樣戴了這麼多年的戒指——已經長進肉裡。它讓我疼痛。很遺憾我必須請你把它鋸下來。」
+
+「我會很輕柔的，陛下。別擔心。」珠寶匠從工具袋裡取出細銼刀，開始切割女王左手無名指上的純金戒指。終於，戒指鬆脫了。
+
+「我與人民的婚姻結束了，」伊麗莎白輕聲哭泣。
+
+「哦，不！」侍女們齊聲說。「您不能這麼說！」
+
+伊麗莎白不理她們。她揉著手指上光禿的地方，繼續哭泣。但她突然振作起來。
+
+「斯克罗普夫人，」她命令道，「把我床邊的匣子拿來！」
+
+一位英俊的侍女跪在女王身旁，捧著一個小首飾盒。裡面裝著伊麗莎白最珍視的信件、紀念品和珠寶。
+
+「金藍寶石戒指，斯克罗普夫人，」女王說。
+
+侍女們發出讚嘆聲，伊麗莎白把華麗的戒指戴在新裸露的手指上。凝視著閃耀的寶石，你感覺到你的任務即將結束。但女王又開始哭泣。侍女們悄悄退出房間，你也跟著出去。
+
+一到走廊，幾位侍女就放聲大哭。
+
+「她終於戴上他的戒指了！」其中一位邊哭邊說。
+
+「她仍在為埃塞克斯哭泣，」另一位悲傷地說。
+
+「我祈禱她臨終迅速安詳，」第三位說，就是你認識的斯克罗普夫人。很快所有人都哭著消失在走廊盡頭。
+
+現在你知道女王戴著誰的戒指了。女王下令處決埃塞克斯時一定多麼痛苦！她仍然愛他！但你的任務還沒完全結束。你必須查明女王死後戒指的下落。
+
+在你跳回白廳宮演出《第十二夜》並歸還借來的服裝之前，你決定跳到幾週後完成任務！`,
+    choices: [
+      { text: "跳到幾週後", next: "queen_death", type: "jump" }
+    ]
+  },
+
+  queen_death: {
+    year: "1603",
+    location: "里士滿宮・女王寢宮",
+    image: "ring",
+    text: `現在是 1603 年 3 月 24 日。你在女王寢宮。錦緞帷幕拉在伊麗莎白的大床周圍，侍女們在房裡輕聲啜泣。
+
+女王在睡夢中安詳離世。一隻修長的手從床簾後伸出。白皙的手指上閃耀著一枚金藍寶石戒指——她珍視的埃塞克斯伯爵禮物。
+
+一個黑衣身影無聲滑到床邊。你認出是斯克罗普夫人。其他侍女慢慢退出房間，斯克罗普夫人整理覆蓋女王的被褥。但她還在做什麼？
+
+你躲到寢宮門後，驚訝地看著斯克罗普夫人從女王無生命的手上取下珍貴的戒指。
+
+她打開臥室窗戶，朝黑暗中發出信號。然後她把戒指包在一塊乾淨的白布裡，把柔軟的包裹繫在一條長繩上，降到下面等待的人手中！
+
+你最好下樓去！你迅速溜出寢宮，跳躍時空。
+
+幾分鐘後，你來到里士滿宮外，女王寢宮窗下。一位穿深色斗篷的貴族在下面等待，他的馬拴在附近。
+
+看到你走近，他急忙把柔軟的白布包裹塞進斗篷下，把繩子踢到灌木叢後。
+
+但你有辦法查明你想知道的事。「我是斯克罗普夫人派來的，」你低聲說，「確認你拿到了戒指。你有命令嗎？」
+
+「確實有，」貴族說著翻身上馬。「斯克罗普夫人已發出信號。我必須立即把戒指交給蘇格蘭國王詹姆斯六世，他正等著得知自己將繼承英格蘭王位，成為詹姆斯一世。女王死了！國王萬歲！」
+
+說著，信差策馬消失在夜色中。
+
+你的任務解決了。埃塞克斯的戒指，如此珍貴地戴在伊麗莎白心上，承載了她最後的信息：「榮光女王的時代結束了，英格蘭將有新國王。」
+
+最後一次時空跳躍，你回到白廳宮。伊麗莎白女王——榮光女王——正被莎士比亞劇團的滑稽表演逗得大笑。她穿著皇家華服，是你永遠會記住的模樣。
+
+你走上舞台，演出《第十二夜》的終曲。然後你最後一次離開舞台。
+
+當你脫下戲服回到自己的時代時，一個丑角唱著最後一首歌。
+
+「很久以前世界開始了，
+嘿呵，風和雨；
+但這都無妨，我們的戲演完了，
+我們會每天努力取悅你們。」`,
+    choices: [
+      { text: "任務完成", next: "victory", type: "normal" }
+    ]
+  },
+
+  /* ---------- 1603 莫特萊克 ---------- */
+  mortlake_1603: {
+    year: "1603",
+    location: "莫特萊克・約翰·迪伊宅邸",
+    image: "scroll",
+    text: `現在是 1603 年 1 月中旬。下著雪，你的頭髮濕漉漉、亂糟糟。你站在莫特萊克村一棟氣派房屋的門前，敲了敲大門。
+
+一位留著長而尖的白鬍子的老人迎接你。他穿著黑色長袍，戴著黑色小帽。「有什麼能幫你的嗎？」他問，聲音像碎裂的紙一樣乾澀。
+
+「我在找占星師約翰·迪伊，」你回答。
+
+「我就是迪伊博士，數學大師、科學學生、煉金術士和占星師，」老人說。他對自己點點頭，彷彿確認自己列全了，然後側身讓開，心不在焉地招手。「進我書房暖和一下吧。」
+
+你跟著他進入一間擺滿書籍的昏暗房間。噼啪作響的爐火在橡木桌上堆積的奇特物品上投射橙色光芒。有地圖和圖表、研缽和坩堝。一個水晶球放在紅絲綢方巾上，標有數字和行星的圖表散落在椅子上。一面凸面鏡映出你的臉，像河豚一樣拉伸扁平。
+
+「我看你在欣賞我的鏡子，」占星師說。「女王親自來訪，凝視過這面魔鏡。她一直對新事物感興趣。自從我為她的加冕典禮預測了吉日……」迪伊的聲音漸弱。
+
+「我來找您就是為了女王的事，」你說。
+
+「啊，是的。」迪伊嘆息。「她快死了。我在那裡看到了……」他悲傷地朝水晶球揮手。「她為埃塞克斯哀悼。過去兩年，自伯爵被斬首以來，她逐漸厭倦了活著。」
+
+迪伊焦慮地在書房裡踱步。他似乎忘了你的存在。
+
+「我警告過她不要去白廳，」他說。「太通風了。」迪伊打了個冷顫。「我今天早上為她算了星盤，派了信差。她必須離開白廳，搬到里士滿，她最喜歡的宮殿。星象如此顯示……」
+
+老占星師匆匆出門，呼喚僕人。
+
+聽起來女王已臥病在床。也許她正戴著那枚戒指！為何不直接跳到她的寢宮問她戴的是誰的戒指？還是你該在埃塞克斯被砍頭前找到他，問他戒指的事？`,
+    choices: [
+      { text: "跳到女王寢宮", next: "madhouse", type: "danger" },
+      { text: "在 1599 年找到埃塞克斯", next: "ireland_1599", type: "jump" }
+    ]
+  },
+
+  /* ---------- 失敗結局 ---------- */
+  madhouse: {
+    year: "1603",
+    location: "伯利恆醫院（瘋人院）",
+    image: "tower",
+    text: `你還在 1603 年 1 月。你抖掉頭髮上的融雪，環顧四周。你在白廳宮一間燭光照明的寢宮，一位老婦人躺在巨大的四柱床上。她打著瞌睡，睡夢中虛弱地呻吟。
+
+你幾乎認不出這位老女王。她皺紋滿佈、蒼白消瘦。
+
+「陛下，」你低聲說。你輕輕清了清喉嚨。老婦人睜開眼睛，在閃爍光線中凝視你。然後她用骨瘦如柴的手指抓住被褥，眼睛瞪大。你注意到她只戴著一枚戒指——一枚素金戒指。
+
+「咿——！」她尖叫。「滾開，鬼魂！」
+
+「我不是鬼，我……」你開口。守衛衝進房間。
+
+「我從迪伊博士那裡帶了訊息！」你堅持說。
+
+「迪伊博士的信差一小時前就走了，」一名守衛厲聲說。
+
+「是埃塞克斯的鬼魂，從愛爾蘭回來了！」女王尖叫。「你還在糾纏我？你又闖進我的寢宮，滿身泥濘濕透？哦，滾開，鬼魂！」
+
+伊麗莎白緊閉雙眼，幾位侍女急忙趕到床邊。
+
+「噓，陛下，」一位說。「只是夢。」
+
+守衛把你拖出寢宮。
+
+「想嚇女王進墳墓嗎？」一名守衛咆哮。
+
+「只有瘋子才會做這種事！」另一個說，不理你的抗議。「送你去貝德拉姆！」
+
+守衛把你拖到伯利恆醫院——瘋人院。
+
+「這個人冒充埃塞克斯伯爵，」一名守衛告訴看守。
+
+「好，這邊走。」看守帶你走進一條又長又暗的走廊。穿著破爛的男人女人在走廊裡遊蕩。你聽到胡言亂語、尖聲狂笑和瘋狂哭喊。一個女人抱著假嬰兒搖晃，兩個男人玩跳背遊戲，一個蜷縮在角落盯著空氣。他們把你關進了瘋人院！
+
+你經過一個大房間，守衛正在鞭打嚎叫的病人。幾名訪客付了幾枚硬幣，被允許進去觀看這景象。
+
+「這太可怕了！」你說。「我沒瘋！」
+
+「當然沒有，大人，」看守笑著說。「我們就把你放在這裡，隔壁是諾福克公爵。你們會相處得很好的。」
+
+他把你推進一個小房間，除了一張稻草床什麼都沒有，然後閂上門。一隻大老鼠從稻草裡爬出來，跑過地板。
+
+你要離開這裡！`,
+    choices: [
+      { text: "跳出時間，重新來過", next: "start", type: "jump" }
+    ]
+  },
+
+  /* ---------- 勝利結局 ---------- */
+  victory: {
+    year: "1603",
+    location: "任務完成",
+    image: "ring",
+    text: `### 🏆 任務完成
+
+你成功解開了皇家寶藏的祕密！
+
+**真相是這樣的：**
+
+伊麗莎白一世女王臨終時，手上戴著的是**埃塞克斯伯爵**（Robert Devereux）送給她的**金藍寶石戒指**。
+
+雖然女王曾下令處決埃塞克斯，但她從未停止愛他。在生命最後的日子裡，她讓人取下戴了一輩子的加冕戒指，換上了埃塞克斯的戒指，作為對這段感情最後的紀念。
+
+女王去世後，斯克罗普夫人將戒指從遺體上取下，透過窗戶用繩子降給樓下等待的信差，送往蘇格蘭，交給即將繼承英格蘭王位的**詹姆斯六世**（詹姆斯一世）。
+
+這枚戒指承載了女王最後的信息：「榮光女王的時代結束了，英格蘭將有新國王。」
+
+你完成了時光旅人的使命，親眼見證了歷史的轉折點。現在，你將帶著這個祕密，回到屬於你的時代……`,
+    choices: [
+      { text: "重新開始冒險", next: "start", type: "jump" }
+    ]
+  },
+
+  fail_ending: {
+    year: "1601",
+    location: "倫敦塔",
+    image: "tower",
+    text: `### 💀 冒險失敗
+
+你因為參與埃塞克斯叛亂，被關進了倫敦塔。
+
+在陰暗潮濕的牢房裡，你聽到遠處傳來的鐘聲。你錯過了完成任務的機會，被困在歷史的洪流中……
+
+也許下次，你該做出不同的選擇。
+
+**提示：** 埃塞克斯伯爵曾送給女王一枚金藍寶石戒指。要查明真相，你需要接近女王，而不是參與叛亂。`,
+    choices: [
+      { text: "重新開始冒險", next: "start", type: "jump" }
+    ]
+  }
+};
+
+/* ============================================================
+   遊戲狀態與核心邏輯
+   ============================================================ */
+
+const GAME_PHASE = {
+  STORY: 'story',
+  CHOICE: 'choice',
+  END: 'end'
+};
+
+let gameState = {
+  currentSceneId: 'start',
+  phase: GAME_PHASE.STORY,
+  clues: [],
+  timeline: [],
+  achievements: [],
+  visitedScenes: [],
+  soundEnabled: true
+};
+
+/* 成就定義 */
+const ACHIEVEMENTS = [
+  { id: 'first_step', name: '第一步', desc: '開始你的時光旅行', icon: '👣' },
+  { id: 'tower_visitor', name: '塔中訪客', desc: '造訪倫敦塔', icon: '🏰' },
+  { id: 'ring_seen', name: '戒指之謎', desc: '看到女王戴上金藍寶石戒指', icon: '💍' },
+  { id: 'royal_audience', name: '覲見女王', desc: '親眼見到伊麗莎白女王', icon: '👑' },
+  { id: 'elizabeth_confidant', name: '女王密友', desc: '安慰年輕的伊麗莎白公主', icon: '🕊️' },
+  { id: 'essex_confession', name: '伯爵的告白', desc: '從埃塞克斯口中確認戒指來歷', icon: '⚔️' },
+  { id: 'victory', name: '任務完成', desc: '解開皇家寶藏的祕密', icon: '🏆' },
+  { id: 'defeat', name: '時空旅人陷阱', desc: '體驗一次失敗結局', icon: '💀' }
+];
+
+/* 線索定義 */
+const CLUES = {
+  'raleigh_ring': {
+    title: '雷利的鑽石戒指',
+    desc: '1582年，女王在格林威治宮贈予雷利一枚鑽石戒指，以表彰他鋪斗篷過泥水坑的殷勤。'
+  },
+  'raleigh_no_ring': {
+    title: '雷利從未送戒指',
+    desc: '雷利曾說：「我從未送過女王戒指。」這排除了他是金藍寶石戒指主人的可能。'
+  },
+  'essex_ring': {
+    title: '埃塞克斯的金藍寶石戒指',
+    desc: '埃塞克斯伯爵在獄中親口承認：「我確實送過她一枚金藍寶石戒指。」'
+  },
+  'queen_coronation': {
+    title: '加冕戒指',
+    desc: '女王說：「我最珍視加冕戒指，自成為女王那天起從未取下。」'
+  },
+  'queen_death_ring': {
+    title: '臨終的戒指',
+    desc: '1603年3月24日，女王去世時手上戴著埃塞克斯送的金藍寶石戒指，而非加冕戒指。'
+  },
+  'ring_transfer': {
+    title: '戒指的轉移',
+    desc: '斯克罗普夫人將戒指從女王遺體上取下，用繩子降給樓下信差，送往蘇格蘭國王詹姆斯六世。'
+  }
+};
+
+/* DOM 元素引用 */
+const els = {
+  topEra: document.getElementById('top-era'),
+  topLocation: document.getElementById('top-location'),
+  sceneImage: document.getElementById('scene-image'),
+  sceneText: document.getElementById('scene-text'),
+  choices: document.getElementById('choices'),
+  fadeOverlay: document.getElementById('fade-overlay'),
+  modalOverlay: document.getElementById('modal-overlay'),
+  modalTitle: document.getElementById('modal-title'),
+  modalBody: document.getElementById('modal-body'),
+  toast: document.getElementById('toast')
+};
+
+/* 打字機效果狀態 */
+let typingTimer = null;
+let isTyping = false;
+let fullText = '';
+let typeCallback = null;
+
+function typeText(element, text, speed, callback) {
+  if (typingTimer) clearInterval(typingTimer);
+  isTyping = true;
+  fullText = text;
+  typeCallback = callback || null;
+  element.innerHTML = '';
+  let i = 0;
+
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  element.appendChild(cursor);
+
+  typingTimer = setInterval(() => {
+    if (i < text.length) {
+      // 處理換行
+      if (text[i] === '\n') {
+        cursor.before(document.createElement('br'));
+      } else {
+        cursor.before(document.createTextNode(text[i]));
+      }
+      i++;
+      // 每隔幾個字播放音效
+      if (i % 3 === 0) sfxType();
+    } else {
+      clearInterval(typingTimer);
+      typingTimer = null;
+      isTyping = false;
+      cursor.remove();
+      if (typeCallback) typeCallback();
+    }
+  }, speed);
+}
+
+function skipTyping() {
+  if (!isTyping) return;
+  if (typingTimer) {
+    clearInterval(typingTimer);
+    typingTimer = null;
+  }
+  isTyping = false;
+  // 直接顯示全文
+  const temp = document.createElement('div');
+  temp.innerHTML = '';
+  els.sceneText.innerHTML = fullText.replace(/\n/g, '<br>');
+  if (typeCallback) typeCallback();
+}
+
+/* Toast 通知 */
+let toastTimer = null;
+function showToast(message, duration = 2500) {
+  els.toast.textContent = message;
+  els.toast.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    els.toast.classList.remove('show');
+  }, duration);
+}
+
+/* 淡入淡出過渡 */
+function fadeTransition(callback, duration = 350) {
+  els.fadeOverlay.classList.add('active');
+  setTimeout(() => {
+    callback();
+    setTimeout(() => {
+      els.fadeOverlay.classList.remove('active');
+    }, 50);
+  }, duration);
+}
+
+/* 解鎖成就 */
+function unlockAchievement(id) {
+  if (gameState.achievements.includes(id)) return;
+  gameState.achievements.push(id);
+  const ach = ACHIEVEMENTS.find(a => a.id === id);
+  if (ach) {
+    showToast(`🏆 成就解鎖：${ach.name}`);
+    sfxSuccess();
+  }
+  saveGame(true);
+}
+
+/* 添加線索 */
+function addClue(id) {
+  if (!CLUES[id] || gameState.clues.includes(id)) return;
+  gameState.clues.push(id);
+  showToast(`🔍 獲得線索：${CLUES[id].title}`);
+  saveGame(true);
+}
+
+/* 添加時間線 */
+function addTimeline(year, desc) {
+  gameState.timeline.push({ year, desc, time: Date.now() });
+}
+
+/* 根據場景解鎖線索 */
+function processSceneEffects(sceneId) {
+  switch (sceneId) {
+    case 'tower_1592':
+      unlockAchievement('tower_visitor');
+      break;
+    case 'tower_1554':
+      unlockAchievement('elizabeth_confidant');
+      addClue('queen_coronation');
+      break;
+    case 'greenwich_1582':
+      addClue('raleigh_ring');
+      unlockAchievement('royal_audience');
+      break;
+    case 'progress_1598':
+      addClue('queen_coronation');
+      break;
+    case 'tower_essex':
+      addClue('essex_ring');
+      unlockAchievement('essex_confession');
+      break;
+    case 'richmond_1603':
+      addClue('queen_death_ring');
+      unlockAchievement('ring_seen');
+      break;
+    case 'queen_death':
+      addClue('ring_transfer');
+      break;
+    case 'victory':
+      unlockAchievement('victory');
+      break;
+    case 'madhouse':
+    case 'fail_ending':
+    case 'essex_rebellion':
+      unlockAchievement('defeat');
+      break;
+  }
+  if (sceneId === 'start' && !gameState.achievements.includes('first_step')) {
+    unlockAchievement('first_step');
+  }
+}
+
+/* ============================================================
+   渲染場景
+   ============================================================ */
+function renderScene(sceneId) {
+  const scene = SCENES[sceneId];
+  if (!scene) {
+    console.error('Scene not found:', sceneId);
+    return;
+  }
+
+  gameState.currentSceneId = sceneId;
+  if (!gameState.visitedScenes.includes(sceneId)) {
+    gameState.visitedScenes.push(sceneId);
+  }
+
+  processSceneEffects(sceneId);
+
+  // 更新頂部狀態列
+  els.topEra.textContent = scene.year + ' 年';
+  els.topLocation.textContent = scene.location;
+
+  // 更新插圖
+  els.sceneImage.innerHTML = getSceneSVG(scene.image);
+
+  // 清空選項
+  els.choices.innerHTML = '';
+
+  // 淡入淡出過渡
+  fadeTransition(() => {
+    // 打字機效果
+    const speed = 22;
+    typeText(els.sceneText, scene.text, speed, () => {
+      // 打字完成後顯示選項
+      gameState.phase = GAME_PHASE.CHOICE;
+      renderChoices(scene.choices);
+    });
+
+    // 添加時間線記錄
+    const existing = gameState.timeline.find(t => t.year === scene.year && t.desc === scene.location);
+    if (!existing) {
+      addTimeline(scene.year, scene.location);
+    }
+  });
+
+  // 儲存遊戲
+  saveGame(true);
+}
+
+/* 渲染選項按鈕 */
+function renderChoices(choices) {
+  els.choices.innerHTML = '';
+  if (!choices || choices.length === 0) {
+    // 如果沒有選項，自動導向起點
+    return;
+  }
+
+  choices.forEach((choice, index) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    if (choice.type === 'jump') btn.classList.add('jump-btn');
+    if (choice.type === 'danger') btn.classList.add('danger-btn');
+    if (choice.type === 'clue') btn.classList.add('clue-btn');
+    btn.textContent = choice.text;
+
+    btn.addEventListener('click', () => {
+      initAudio();
+      sfxClick();
+
+      // 檢查特殊條件
+      if (choice.condition && !choice.condition()) {
+        showToast(choice.toast || '你無法選擇這個選項。');
+        return;
+      }
+
+      // 播放跳躍音效
+      if (choice.type === 'jump') {
+        sfxJump();
+      }
+
+      // 禁用所有按鈕
+      disableAllButtons();
+
+      // 跳轉
+      setTimeout(() => {
+        renderScene(choice.next);
+      }, 150);
+    });
+
+    els.choices.appendChild(btn);
+  });
+}
+
+function disableAllButtons() {
+  document.querySelectorAll('.choice-btn').forEach(btn => {
+    btn.disabled = true;
+  });
+}
+
+/* ============================================================
+   存檔 / 讀檔
+   ============================================================ */
+const SAVE_KEY = 'timemachine13_save';
+
+function saveGame(silent = false) {
+  try {
+    const data = {
+      state: gameState,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    if (!silent) {
+      showToast('💾 遊戲已儲存');
+    }
+  } catch (e) {
+    if (!silent) showToast('儲存失敗：' + e.message);
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) {
+      showToast('沒有找到存檔');
+      return false;
+    }
+    const data = JSON.parse(raw);
+    if (!data.state || !data.state.currentSceneId) {
+      showToast('存檔損壞');
+      return false;
+    }
+    gameState = data.state;
+    if (!gameState.achievements) gameState.achievements = [];
+    if (!gameState.clues) gameState.clues = [];
+    if (!gameState.timeline) gameState.timeline = [];
+    if (!gameState.visitedScenes) gameState.visitedScenes = [];
+    closeModal();
+    showToast('📂 讀取存檔成功');
+    renderScene(gameState.currentSceneId);
+    return true;
+  } catch (e) {
+    showToast('讀取失敗：' + e.message);
+    return false;
+  }
+}
+
+function hasSave() {
+  return !!localStorage.getItem(SAVE_KEY);
+}
+
+/* ============================================================
+   彈窗內容
+   ============================================================ */
+const MODAL_CONTENT = {
+  help: {
+    title: '📖 遊戲說明',
+    body: `
+      <h3>🎯 你的任務</h3>
+      <p>你是一名時光旅人，被送回 400 年前的伊麗莎白時代英格蘭。你的任務是：</p>
+      <ul>
+        <li>親眼見到伊麗莎白一世女王</li>
+        <li>查明她臨終時戴著誰的戒指</li>
+        <li>查明女王死後戒指的下落</li>
+      </ul>
+
+      <h3>⏳ 時光旅行四法則</h3>
+      <ul>
+        <li>不可殺害任何人或動物</li>
+        <li>不可試圖改變歷史，不可將未來物品遺留在過去</li>
+        <li>不可帶任何人一起穿越時空</li>
+        <li>必須遵守時間機器的指示，只能從提供的選項中選擇</li>
+      </ul>
+
+      <h3>📜 遊戲玩法</h3>
+      <p>點擊文字區域可以跳過打字機效果，立即顯示全文。做出選擇後，時間機器會帶你前往下一個場景。</p>
+      <p>你的選擇將影響故事走向。有些選擇會導致失敗結局，但你可以重新開始。</p>
+
+      <h3>🔍 線索與時間線</h3>
+      <p>在冒險中獲得的關鍵線索會記錄在「線索」面板中。你走過的路線會顯示在「時間線」面板中。</p>
+
+      <h3>🏆 成就系統</h3>
+      <p>解鎖不同的結局和發現可以獲得成就。試著找出所有結局吧！</p>
+
+      <h3>💾 存檔功能</h3>
+      <p>遊戲會自動儲存進度。你也可以手動存檔或讀取存檔。</p>
+
+      <h3>🔊 音效</h3>
+      <p>點擊右上角的喇叭圖示可以開啟或關閉音效。</p>
+    `
+  },
+  clues: {
+    title: '🔍 線索筆記本',
+    body: () => {
+      if (gameState.clues.length === 0) {
+        return '<p style="text-align:center;color:#8a6a3a;">還沒有發現任何線索。繼續冒險吧！</p>';
+      }
+      return gameState.clues.map(id => {
+        const clue = CLUES[id];
+        if (!clue) return '';
+        return `<div class="clue-item">
+          <span class="clue-title">📌 ${clue.title}</span>
+          ${clue.desc}
+        </div>`;
+      }).join('');
+    }
+  },
+  timeline: {
+    title: '🕰️ 時間線紀錄',
+    body: () => {
+      if (gameState.timeline.length === 0) {
+        return '<p style="text-align:center;color:#8a6a3a;">還沒有任何旅行紀錄。</p>';
+      }
+      return gameState.timeline.map(t => `
+        <div class="timeline-item">
+          <span class="t-year">${t.year}</span>
+          <span class="t-desc">${t.desc}</span>
+        </div>
+      `).join('');
+    }
+  },
+  achievements: {
+    title: '🏆 成就',
+    body: () => {
+      return ACHIEVEMENTS.map(ach => {
+        const unlocked = gameState.achievements.includes(ach.id);
+        return `<div class="ach-item ${unlocked ? '' : 'locked'}">
+          <span class="ach-icon">${ach.icon}</span>
+          <div class="ach-info">
+            <div class="ach-name">${unlocked ? ach.name : '???'}</div>
+            <div class="ach-desc">${unlocked ? ach.desc : '尚未解鎖'}</div>
+          </div>
+          ${unlocked ? '<span style="color:#5a8a3a;font-size:1.2rem;">✓</span>' : ''}
+        </div>`;
+      }).join('');
+    }
+  },
+  save: {
+    title: '💾 存檔管理',
+    body: () => {
+      const saveInfo = hasSave() ? (() => {
+        try {
+          const raw = localStorage.getItem(SAVE_KEY);
+          const data = JSON.parse(raw);
+          const date = new Date(data.timestamp);
+          return `上次存檔：${date.toLocaleString('zh-TW')}<br>場景：${data.state.currentSceneId}`;
+        } catch (e) {
+          return '存檔資訊無法讀取';
+        }
+      })() : '沒有存檔';
+
+      return `
+        <p style="margin-bottom:12px;">${saveInfo}</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button class="choice-btn" onclick="saveGame();closeModal();" style="justify-content:center;">
+            儲存遊戲進度
+          </button>
+          <button class="choice-btn jump-btn" onclick="loadGame();" style="justify-content:center;" ${hasSave() ? '' : 'disabled'}>
+            讀取存檔
+          </button>
+          <button class="choice-btn danger-btn" onclick="if(confirm('確定要清除存檔嗎？')){localStorage.removeItem(SAVE_KEY);showToast('存檔已清除');closeModal();}" style="justify-content:center;">
+            清除存檔
+          </button>
+        </div>
+      `;
+    }
+  }
+};
+
+function openModal(key) {
+  initAudio();
+  sfxClick();
+  const content = MODAL_CONTENT[key];
+  if (!content) return;
+  els.modalTitle.textContent = content.title;
+  if (typeof content.body === 'function') {
+    els.modalBody.innerHTML = content.body();
+  } else {
+    els.modalBody.innerHTML = content.body;
+  }
+  els.modalOverlay.classList.add('show');
+}
+
+function closeModal() {
+  els.modalOverlay.classList.remove('show');
+  sfxClick();
+}
+
+function closeModalOnOverlay(e) {
+  if (e.target === els.modalOverlay) {
+    closeModal();
+  }
+}
+
+/* ============================================================
+   初始化
+   ============================================================ */
+function init() {
+  // 點擊任何地方初始化音頻
+  document.addEventListener('click', initAudio, { once: true });
+  document.addEventListener('touchstart', initAudio, { once: true });
+
+  // 檢查是否有存檔
+  if (hasSave()) {
+    // 不自動讀取，但提示
+    setTimeout(() => {
+      showToast('發現存檔，點擊「存檔」按鈕讀取');
+    }, 800);
+  }
+
+  // 渲染起始場景
+  renderScene('start');
+}
+
+window.addEventListener('DOMContentLoaded', init);
+
+// 視窗大小改變時重新渲染（避免手機旋轉問題）
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    // 重新渲染當前場景（不重新打字）
+    const scene = SCENES[gameState.currentSceneId];
+    if (scene) {
+      els.topEra.textContent = scene.year + ' 年';
+      els.topLocation.textContent = scene.location;
+      els.sceneImage.innerHTML = getSceneSVG(scene.image);
+    }
+  }, 300);
+});
+
+</script>
+</body>
+</html>

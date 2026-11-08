@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>時間機器6：土星之環 - 互動冒險</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(20, 30, 50, 0.85);
+            --text-main: #e0e6ed;
+            --text-highlight: #4ade80;
+            --btn-bg: #1e293b;
+            --btn-hover: #334155;
+            --btn-border: #38bdf8;
+            --accent: #fbbf24;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 2px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 3px);
+            background-size: 550px 550px, 350px 350px, 250px 250px;
+            background-position: 0 0, 40px 60px, 130px 270px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* 頂部導航 */
+        header {
+            background: rgba(11, 15, 25, 0.9);
+            border-bottom: 1px solid #1e293b;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            color: var(--accent);
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+
+        .header-controls button {
+            background: var(--btn-bg);
+            color: white;
+            border: 1px solid var(--btn-border);
+            padding: 8px 16px;
+            margin-left: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-controls button:hover {
+            background: var(--btn-hover);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+
+        /* 主佈局 */
+        .game-container {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+        }
+
+        /* 主故事區 */
+        .story-panel {
+            background: var(--panel-bg);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .illustration {
+            width: 100%;
+            height: 200px;
+            background: #0f172a;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #1e293b;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .illustration svg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .story-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            flex: 1;
+            animation: fadeIn 0.8s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .choices {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .choice-btn {
+            background: var(--btn-bg);
+            color: var(--text-main);
+            border: 1px solid #334155;
+            padding: 15px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            text-align: left;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .choice-btn:hover:not(:disabled) {
+            background: var(--btn-hover);
+            border-color: var(--btn-border);
+            padding-left: 25px;
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .choice-btn::before {
+            content: '▶';
+            position: absolute;
+            left: 5px;
+            opacity: 0;
+            transition: all 0.2s;
+            color: var(--accent);
+        }
+
+        .choice-btn:hover:not(:disabled)::before {
+            opacity: 1;
+            left: 15px;
+        }
+
+        /* 側邊面板 */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .panel h2 {
+            font-size: 1rem;
+            color: var(--accent);
+            margin-bottom: 15px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 10px;
+        }
+
+        .log-list {
+            list-style: none;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+
+        .log-list li {
+            padding: 8px 0;
+            border-bottom: 1px dashed #1e293b;
+            line-height: 1.4;
+        }
+        
+        .log-list li span {
+            color: var(--text-highlight);
+            font-weight: bold;
+        }
+
+        /* 彈窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--panel-bg);
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            border: 1px solid var(--btn-border);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h2 {
+            color: var(--accent);
+            margin-bottom: 15px;
+        }
+
+        .modal-content p, .modal-content ul {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .modal-content ul {
+            padding-left: 20px;
+        }
+
+        .close-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            float: right;
+        }
+
+        /* 結局畫面 */
+        .game-over-screen {
+            text-align: center;
+            padding: 50px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .game-over-screen h2 {
+            font-size: 2.5rem;
+            color: var(--danger);
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+        }
+
+        .game-over-screen.win h2 {
+            color: var(--text-highlight);
+            text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+        }
+
+        .game-over-screen button {
+            margin-top: 20px;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background: var(--btn-bg);
+            color: white;
+            border: 1px solid var(--btn-border);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .game-over-screen button:hover {
+            background: var(--btn-hover);
+        }
+
+        /* 響應式 */
+        @media (max-width: 768px) {
+            .game-container {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                order: -1;
+            }
+            .log-list {
+                max-height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>時間機器6：土星之環</h1>
+        <div class="header-controls">
+            <button onclick="openModal('helpModal')">遊戲說明</button>
+            <button onclick="saveGame()">存檔</button>
+            <button onclick="loadGame()">讀檔</button>
+        </div>
+    </header>
+
+    <div class="game-container">
+        <!-- 主故事面板 -->
+        <div class="story-panel" id="storyPanel">
+            <div class="illustration" id="illustration">
+                <!-- SVG 會由 JS 動態插入 -->
+            </div>
+            <div class="story-text" id="storyText">
+                正在載入時間機器...
+            </div>
+            <div class="choices" id="choicesContainer">
+                <!-- 按鈕會由 JS 動態生成 -->
+            </div>
+        </div>
+
+        <!-- 側邊面板 -->
+        <div class="sidebar">
+            <div class="panel">
+                <h2>任務日誌</h2>
+                <ul class="log-list" id="logList">
+                    <li>時間機器啟動完畢，準備前往 2085 年。</li>
+                </ul>
+            </div>
+            <div class="panel">
+                <h2>目前狀態</h2>
+                <p style="font-size: 0.9rem; line-height: 1.6;">
+                    目標：土星<br>
+                    任務：調查神秘訊號<br>
+                    身份：時空旅人
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 說明彈窗 -->
+    <div class="modal" id="helpModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal('helpModal')">關閉</button>
+            <h2>遊戲說明</h2>
+            <p>歡迎來到 2085 年。這是一本互動式遊戲書，你將扮演一名時空旅人，前往未來調查來自土星的神秘無線電訊號。</p>
+            <p><strong>操作方式：</strong>閱讀劇情後，點擊下方的選項按鈕來推進故事。每個選擇都會影響你的結局。</p>
+            <p><strong>時間旅行守則：</strong></p>
+            <ul>
+                <li>不可殺害任何人或動物。</li>
+                <li>不可試圖改變歷史，不可將未來的物品留在過去。</li>
+                <li>跳躍時空時不可帶走任何人。</li>
+                <li>必須遵守時間機器的指示。</li>
+            </ul>
+            <p>目標：成功接觸外星文明並完成任務。祝你旅途愉快！</p>
+        </div>
+    </div>
+
+    <script>
+        // --- 遊戲資料 (State Machine Nodes) ---
+        const gameData = {
+            // 開場
+            start: {
+                text: "你走出時間裂縫，降落在 2085 年的聯邦變種人保留區邊緣。空氣中瀰漫著悶熱的氣息，周圍是龜裂的乾燥土地，遠方隱約可見綠意盎然的山脈。你正準備往山脈走去時，耳邊突然響起一個聲音。\n\n「入侵者，這裡有危險！我和我的朋友需要你的幫助——立刻！我們需要你的精神力量！你願意幫我們嗎？」\n\n這個聲音似乎直接在你的腦海中響起，對方顯然是一位心靈感應者。",
+                illustration: 'telepath',
+                options: [
+                    { text: "幫助這位心靈感應者。", next: "meet_paul" },
+                    { text: "無視他，繼續走自己的路。", next: "ignore_telepath" }
+                ]
+            },
+            ignore_telepath: {
+                text: "你決定不理會這個聲音，繼續往山脈走去。然而，沒走幾步，你突然感到一陣暈眩，時間機器發出警告：「錯誤選擇！你必須遵循任務指示。」\n\n你被強制拉回了時間裂縫中。",
+                illustration: 'error',
+                options: [
+                    { text: "重新開始", next: "start" }
+                ]
+            },
+            meet_paul: {
+                text: "你順著聲音的方向跑去，看到一個高瘦的男人穿著黑色長袍，正抓著他朋友的手腕。他的朋友看起來非常虛弱。\n\n「我是保羅·林巴格（Paul Linebarger），」心靈感應者說道，「這是我朋友詹姆斯·麥克雷（James MacCreigh）。我們正被一個『棄兒』（Outcast）追殺。快握住我的手，借給我你的精神力！」\n\n你握住保羅的手，閉上眼睛。你感覺到自己的意識與森林融為一體，隨後你們三人合力擊退了那個可怕的棄兒。",
+                illustration: 'meet_paul',
+                options: [
+                    { text: "詢問他們該如何前往土星。", next: "choose_path" }
+                ]
+            },
+            choose_path: {
+                text: "麥克雷拍了拍你的肩膀：「謝謝你，夥伴！我叫詹姆斯·麥克雷。如果你需要幫忙，儘管說！」\n\n保羅則說：「我只能幫你踏出第一步。」他指著自己手腕上刻有火箭飛船的鐲子。\n\n麥克雷興奮地說：「如果你願意等，我可以籌點錢，我們一起去土星採礦！怎麼樣？」\n\n你必須做出選擇。",
+                illustration: 'choice',
+                options: [
+                    { text: "跟隨麥克雷去冒險。", next: "with_maccreigh" },
+                    { text: "跟隨保羅尋求官方管道。", next: "with_paul" }
+                ]
+            },
+            with_maccreigh: {
+                text: "你跟隨麥克雷來到了田納西州的布里斯托爾，參加一場電子藍草音樂節。這裡充滿了霓虹燈和吵雜的合成器音樂。\n\n麥克雷帶你到一台遊戲機前，他將設備插在自己手臂上，準備贏得比賽以賺取前往太空的資金。然而，遊戲機突然故障，一隻由純粹電能組成的藍色怪物從螢幕中竄出！\n\n「是心靈扭曲者！」周圍的人群驚恐地逃跑。\n\n你該怎麼辦？",
+                illustration: 'monster',
+                options: [
+                    { text: "拿起旁邊的收音機天線，當作避雷針丟向怪物。", next: "defeat_monster" },
+                    { text: "轉身逃跑。", next: "run_away_monster" }
+                ]
+            },
+            run_away_monster: {
+                text: "你轉身就跑，但電能怪物速度極快，一道閃電擊中了你。時間機器緊急啟動，將你拉回。\n\n「任務失敗：你未能保護你的同伴。」",
+                illustration: 'error',
+                options: [
+                    { text: "重新開始", next: "start" }
+                ]
+            },
+            defeat_monster: {
+                text: "你將收音機天線對準怪物，強大的電流通過天線被引導到地面。怪物發出刺耳的尖叫，最終爆炸消失。\n\n你救了麥克雷一命。他虛弱地說：「你救了我兩次……我必須坦白，我其實從沒上過太空。但我認識一個叫莫里斯·胡吉（Maurice Hugi）的賽博格，他在華盛頓有門路。我們去找他吧！」\n\n幾天後，你們在華盛頓見到了胡吉。",
+                illustration: 'cyborg',
+                options: [
+                    { text: "信任胡吉，跟他上車。", next: "with_hugi" },
+                    { text: "覺得胡吉不對勁，離開他。", next: "reject_hugi" }
+                ]
+            },
+            with_paul: {
+                text: "保羅帶你來到了聯邦變種人保留區的長老議會。長老們同意幫助你前往華盛頓的太空學院。\n\n「閉上眼睛，集中精神，」長老瑞秋說道，「我會送你一程。」\n\n一陣黃光閃過，你發現自己站在一列高速列車上。列車正駛入地下。\n\n「嗶嗶——」一個機械聲音響起：「發現未授權乘客。聯邦警察將在下一站逮捕你。」\n\n你該如何應對？",
+                illustration: 'train',
+                options: [
+                    { text: "信任警察，向他們解釋你的任務。", next: "trust_police" },
+                    { text: "叫醒車廂後方那位正在睡覺的長官。", next: "wake_colonel" }
+                ]
+            },
+            trust_police: {
+                text: "你被聯邦警察逮捕並關進了監獄。雖然後來變種人議會提供了證據讓你獲釋，但你浪費了太多時間。\n\n你在華盛頓街頭徘徊，看著全息報紙，發現那位在火車上睡覺的長官竟然是太空學院的指揮官安森·麥克唐納上校！\n\n你決定直接去他家找他。",
+                illustration: 'washington',
+                options: [
+                    { text: "前往上校的住處。", next: "wake_colonel" }
+                ]
+            },
+            wake_colonel: {
+                text: "你用座墊丟醒了那位沉睡的長官。他生氣地質問列車長，並下令釋放你。\n\n「我是安森·麥克唐納上校，」他自我介紹，「保羅·林巴格已經用心靈感應告訴我你會來。你想去土星？那你必須先從太空學院畢業。明天早上就去報到吧！」\n\n你順利進入了太空學院，開始了嚴格的訓練。",
+                illustration: 'academy',
+                options: [
+                    { text: "進行重力訓練（跳入空水池）。", next: "jump_pool" },
+                    { text: "拒絕跳入空水池。", next: "refuse_pool" }
+                ]
+            },
+            jump_pool: {
+                text: "你毫不猶豫地跳入「空」水池，卻發現自己像羽毛一樣緩緩下沉。原來這是反重力池！\n\n你在這裡學會了如何在無重力環境中移動。接下來的幾週，你努力學習，並與搭檔喬治·戴爾一起駕駛實驗性戰機。\n\n然而，戰機在空中遭遇亂流，系統失控！",
+                illustration: 'jet',
+                options: [
+                    { text: "嘗試降落在高速公路上。", next: "land_highway" },
+                    { text: "嘗試降落在紐澤西的叢林中。", next: "land_jungle" }
+                ]
+            },
+            refuse_pool: {
+                text: "你拒絕跳入，結果被教官派去進行「海底拘留訓練」。\n\n你穿上潛水服，在海底基地進行檢查。突然，一隻巨大的海豚游向你，牠的臉上紋有聯合國標誌，嘴裡長滿了鋒利的牙齒。\n\n你該怎麼做？",
+                illustration: 'dolphin',
+                options: [
+                    { text: "開槍射擊海豚。", next: "shoot_dolphin" },
+                    { text: "放下魚槍，向海豚敬禮。", next: "salute_dolphin" }
+                ]
+            },
+            shoot_dolphin: {
+                text: "你扣下扳機，但海豚輕鬆閃避，並用心靈感應將你擊暈。你被開除了。\n\n「任務失敗：你攻擊了友軍。」",
+                illustration: 'error',
+                options: [
+                    { text: "重新開始", next: "start" }
+                ]
+            },
+            salute_dolphin: {
+                text: "你放下魚槍並敬禮。海豚滿意地點點頭：「我是『偉心』，你們的訓練官。現在給我好好學！」\n\n在偉心的嚴格訓練下，你學會了在深海壓力下工作。某天，海底發生強烈地震，油井即將崩塌！\n\n「快使用信號彈！」偉心大喊。",
+                illustration: 'earthquake',
+                options: [
+                    { text: "將信號彈射向海面，警告緊急救援隊。", next: "flare_surface" },
+                    { text: "將信號彈射向鯨魚，嚇跑牠。", next: "flare_whale" }
+                ]
+            },
+            flare_whale: {
+                text: "你將信號彈射向鯨魚，雖然嚇跑了牠，但油井最終還是崩塌了，造成了嚴重的生態災難。\n\n雖然你活了下來，但你的評價大打折扣。",
+                illustration: 'error',
+                options: [
+                    { text: "繼續前進", next: "return_academy" }
+                ]
+            },
+            flare_surface: {
+                text: "信號彈成功升空，救援隊及時趕到，阻止了油井崩塌。偉心對你的表現非常滿意，推薦你重返太空學院。\n\n你順利畢業，並被分配到月球基地。",
+                illustration: 'moon_base',
+                options: [
+                    { text: "前往月球基地報到。", next: "moon_base" }
+                ]
+            },
+            land_highway: {
+                text: "你成功將戰機降落在高速公路上，但造成了大規模的交通混亂和車輛損毀。\n\n雖然你展現了高超的駕駛技術，但因為違反了「保護他人生命」的法則，被派去進行海底訓練。\n\n（接下來的訓練與海豚篇類似）",
+                illustration: 'highway',
+                options: [
+                    { text: "接受海底訓練。", next: "refuse_pool" } // 簡化流程，導向海豚
+                ]
+            },
+            land_jungle: {
+                text: "你成功降落在紐澤西的叢林中，雖然戰機損毀，但你保護了其他人的生命安全。\n\n教官對你的表現給予高度評價：「你有成為優秀太空人的潛力！」\n\n你順利畢業，並被分配到月球基地。",
+                illustration: 'jungle',
+                options: [
+                    { text: "前往月球基地報到。", next: "moon_base" }
+                ]
+            },
+            moon_base: {
+                text: "在月球基地，你接到了新任務：追捕臭名昭著的海盜埃利斯·哈特（Ellis Hart）。\n\n你和搭檔雪梨追蹤哈特的飛船，卻被偷襲擊落。你幸運生還，並在隕石坑中發現了哈特的秘密基地。\n\n你舉起雷射槍對準哈特。\n\n哈特笑著說：「我知道你想去土星。跟我走，我可以帶你去。或者你可以把我交給聯邦警察，然後永遠等不到去土星的機會。」\n\n你該怎麼做？",
+                illustration: 'pirate',
+                options: [
+                    { text: "逮捕哈特。", next: "arrest_hart" },
+                    { text: "跟隨哈特逃跑。", next: "escape_hart" }
+                ]
+            },
+            arrest_hart: {
+                text: "你逮捕了哈特，立下大功。聯邦艦隊隨後包圍了海盜基地。\n\n指揮官娜塔莉亞·約夫斯賓斯基對你讚賞有加：「你做得很好。雖然我不能直接派你去土星，但我可以把你調到火星基地，那裡有更多機會。」\n\n你被調往火星。",
+                illustration: 'mars',
+                options: [
+                    { text: "前往火星。", next: "mars_adventure" }
+                ]
+            },
+            escape_hart: {
+                text: "你跟隨哈特登上了他的飛船，逃離了月球。然而，哈特是個狡猾的海盜，他帶你來到了隱藏在小行星帶的基地，並將你交給海盜頭子羅伯特·蘭德爾。\n\n「這小子就交給你們了，」哈特說，「好好招待他。」\n\n你意識到受騙了，趁機躲進了通風管道。",
+                illustration: 'pirate_base',
+                options: [
+                    { text: "在通風管道裡遇到一位老人，跟他走。", next: "meet_vancott" },
+                    { text: "獨自逃走，尋找飛船。", next: "steal_ship" }
+                ]
+            },
+            mars_adventure: {
+                text: "在火星上，你和搭檔基思在探險時遭遇沙塵暴，意外發現了一個古老的洞穴。裡面竟然有一具外星人的太空衣殘骸和金屬碎片！\n\n這證明了太陽系曾經有外星訪客。你們的發現引起了轟動。\n\n在慶功宴後，保羅·林巴格來找你：「因為你的發現，你被選為前往土星探險隊的成員。我們要找出神秘訊號的來源。」\n\n你們出發了。",
+                illustration: 'saturn_approach',
+                options: [
+                    { text: "繼續前往土星。", next: "saturn_approach" }
+                ]
+            },
+            meet_vancott: {
+                text: "老人帶你穿過通風管，進入了一個秘密實驗室。「我是柯蒂斯·范科特（Curtis van Cott），」他說，「這是我發明的跨次元旅行裝置。如果你想逃走，就站進去吧。」\n\n突然，你後腦勺遭到重擊，暈了過去。當你醒來時，你發現自己被綁在一個充滿奇異生物的次元實驗室裡。\n\n你掙脫束縛，跳回時間裂縫，回到了月球。",
+                illustration: 'dimension',
+                options: [
+                    { text: "回到月球基地。", next: "moon_base" }
+                ]
+            },
+            steal_ship: {
+                text: "你成功偷走了海盜的飛船，並通知了聯邦警察。海盜基地被摧毀。\n\n雖然你立了功，但未經授權使用飛船還是讓你受到了處分。長官決定把你調到火星去歷練。",
+                illustration: 'mars',
+                options: [
+                    { text: "前往火星。", next: "mars_adventure" }
+                ]
+            },
+            saturn_approach: {
+                text: "你和保羅駕駛著兩人探測船，終於來到了土星軌道。雄偉的土星環在窗外閃耀。\n\n保羅說：「訊號似乎來自土星的衛星。我們可以穿過土星環的縫隙直達土衛八（Iapetus），或者繞遠路避開土星環。」\n\n你該如何選擇？",
+                illustration: 'saturn_rings',
+                options: [
+                    { text: "冒險穿過土星環的縫隙。", next: "through_rings" },
+                    { text: "繞遠路避開土星環。", next: "around_rings" }
+                ]
+            },
+            through_rings: {
+                text: "你決定穿過土星環。但土星環的縫隙其實充滿了高速移動的冰塊和碎石。飛船撞上了一塊巨石，嚴重受損。\n\n你們花了好幾個小時才修好飛船，但已經浪費了大量時間和燃料。\n\n（接下來必須選擇登陸的衛星）",
+                illustration: 'crash',
+                options: [
+                    { text: "繼續前往衛星。", next: "choose_moon" }
+                ]
+            },
+            around_rings: {
+                text: "你選擇繞遠路，雖然花費了更多時間，但飛船完好無損。你們安全抵達了土星衛星區域。\n\n保羅說：「我們要登陸哪顆衛星？土衛六（Titan）有大氣層，土衛二（Enceladus）有奇怪的熱源，土衛八（Iapetus）則有黑白分明的表面。」",
+                illustration: 'moons',
+                options: [
+                    { text: "登陸土衛六（Titan）。", next: "land_titan" },
+                    { text: "登陸土衛二（Enceladus）。", next: "land_enceladus" },
+                    { text: "登陸土衛八（Iapetus）。", next: "land_iapetus" }
+                ]
+            },
+            choose_moon: {
+                text: "經過一番波折，你們終於來到了土星衛星附近。保羅問：「我們要登陸哪顆衛星？」",
+                illustration: 'moons',
+                options: [
+                    { text: "登陸土衛六（Titan）。", next: "land_titan" },
+                    { text: "登陸土衛二（Enceladus）。", next: "land_enceladus" },
+                    { text: "登陸土衛八（Iapetus）。", next: "land_iapetus" }
+                ]
+            },
+            land_titan: {
+                text: "你們登陸了土衛六。但這裡的氮氣和甲烷大氣層太濃厚了，訊號在這裡根本無法精確定位。你們浪費了時間。",
+                illustration: 'titan',
+                options: [
+                    { text: "離開土衛六，前往其他衛星。", next: "choose_moon" }
+                ]
+            },
+            land_iapetus: {
+                text: "你們登陸了土衛八。這裡的黑色地表覆蓋著冰層。突然，地表裂開，噴發出大量的甲烷氣體！\n\n「快跑！」保羅大喊。你們匆忙起飛，勉強逃脫。",
+                illustration: 'iapetus',
+                options: [
+                    { text: "離開土衛八，前往其他衛星。", next: "choose_moon" }
+                ]
+            },
+            land_enceladus: {
+                text: "你們登陸了土衛二。這裡的表面異常光滑。保羅興奮地說：「訊號非常清晰！就在下面！」\n\n你們用雷射融化冰層，發現了一艘巨大的外星飛船殘骸。你們進入飛船，發現裡面有兩個玻璃艙，分別冷凍著一隻鳥形外星人和一隻貓形外星人。\n\n保羅說：「我們應該喚醒其中一個。」",
+                illustration: 'alien_ship',
+                options: [
+                    { text: "喚醒鳥形外星人。", next: "wake_bird" },
+                    { text: "喚醒貓形外星人。", next: "wake_cat" }
+                ]
+            },
+            wake_cat: {
+                text: "你選擇喚醒貓形外星人。牠醒來後，第一件事就是張開血盆大口撲向你！\n\n「牠餓了！」保羅大喊。雖然你們最終用雷射槍制服了牠，但這次接觸失敗了。\n\n（你不得不重新嘗試）",
+                illustration: 'error',
+                options: [
+                    { text: "重新選擇", next: "land_enceladus" }
+                ]
+            },
+            wake_bird: {
+                text: "你喚醒了鳥形外星人。牠起初有些迷茫，但很快通過心靈感應與你們交流。\n\n「感謝你們，我的朋友。我的飛船在數百萬年前故障，我將自己冷凍起來，並發射訊號求救。」\n\n你們幫牠修好了飛船。外星人送給你們一枚刻有牠們種族標誌的徽章，作為人類與外星文明和平接觸的見證。\n\n當巨大的外星飛船從土衛二升起，消失在宇宙中時，保羅對你說：「你完成了任務。人類永遠不會忘記這一天。」",
+                illustration: 'victory',
+                options: [
+                    { text: "任務完成", next: "victory" }
+                ]
+            },
+            victory: {
+                text: "恭喜你！你成功完成了時間機器的任務，找到了神秘訊號的來源，並與外星文明建立了和平的接觸。\n\n你可以選擇回到你的時代，或者留在 2085 年繼續探索。",
+                illustration: 'victory',
+                options: []
+            }
+        };
+
+        // --- 遊戲狀態管理 (State Machine) ---
+        let gameState = {
+            currentNode: 'start',
+            history: [],
+            isTransitioning: false
+        };
+
+        // --- SVG 圖像生成器 ---
+        const getSVG = (type) => {
+            const svgs = {
+                telepath: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><circle cx="200" cy="100" r="60" fill="none" stroke="#38bdf8" stroke-width="2" opacity="0.6"/><circle cx="200" cy="100" r="80" fill="none" stroke="#38bdf8" stroke-width="1" opacity="0.3"/><path d="M180 120 Q200 90 220 120" stroke="#38bdf8" fill="none" stroke-width="3"/><circle cx="190" cy="95" r="5" fill="#38bdf8"/><circle cx="210" cy="95" r="5" fill="#38bdf8"/><text x="200" y="180" text-anchor="middle" fill="#38bdf8" font-size="12" font-family="monospace">心靈感應者</text></svg>`,
+                error: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#1a0a0a"/><text x="200" y="110" text-anchor="middle" fill="#ef4444" font-size="60" font-weight="bold">✕</text></svg>`,
+                meet_paul: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><path d="M100 150 L120 80 L140 150 Z" fill="#1e293b"/><circle cx="120" cy="70" r="15" fill="#38bdf8"/><path d="M250 150 L270 80 L290 150 Z" fill="#1e293b"/><circle cx="270" cy="70" r="15" fill="#fbbf24"/><text x="200" y="180" text-anchor="middle" fill="#94a3b8" font-size="12">相遇</text></svg>`,
+                choice: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><polygon points="150,50 250,100 150,150" fill="none" stroke="#fbbf24" stroke-width="3"/><line x1="250" y1="100" x2="300" y2="100" stroke="#fbbf24" stroke-width="3"/></svg>`,
+                monster: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0a0a1a"/><circle cx="200" cy="100" r="50" fill="none" stroke="#38bdf8" stroke-width="4" stroke-dasharray="10 5"/><path d="M170 80 L230 80 M170 120 L230 120" stroke="#38bdf8" stroke-width="2"/></svg>`,
+                cyborg: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><rect x="180" y="60" width="40" height="80" fill="#334155" rx="5"/><circle cx="200" cy="70" r="10" fill="#ef4444"/><line x1="200" y1="80" x2="200" y2="120" stroke="#94a3b8" stroke-width="2"/></svg>`,
+                train: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><rect x="50" y="120" width="300" height="40" fill="#1e293b" rx="5"/><rect x="60" y="80" width="80" height="40" fill="#38bdf8" opacity="0.5"/><rect x="160" y="80" width="80" height="40" fill="#38bdf8" opacity="0.5"/><rect x="260" y="80" width="80" height="40" fill="#38bdf8" opacity="0.5"/><circle cx="100" cy="170" r="15" fill="#1e293b"/><circle cx="300" cy="170" r="15" fill="#1e293b"/></svg>`,
+                washington: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><rect x="180" y="40" width="40" height="120" fill="#94a3b8"/><polygon points="200,20 160,40 240,40" fill="#94a3b8"/></svg>`,
+                academy: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><polygon points="200,40 100,80 300,80" fill="#1e293b"/><rect x="120" y="80" width="160" height="80" fill="#334155"/><text x="200" y="130" text-anchor="middle" fill="#38bdf8" font-size="20">★</text></svg>`,
+                jet: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><polygon points="100,120 200,100 300,120 250,140 150,140" fill="#1e293b"/><polygon points="200,100 220,60 240,100" fill="#38bdf8"/></svg>`,
+                dolphin: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0a1a2a"/><path d="M150 100 Q200 50 250 100 Q200 150 150 100 Z" fill="#38bdf8" opacity="0.6"/><circle cx="180" cy="90" r="5" fill="#fff"/><path d="M250 100 L280 80 L280 120 Z" fill="#38bdf8" opacity="0.6"/></svg>`,
+                earthquake: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#1a0a0a"/><path d="M0 100 Q50 80 100 120 T200 80 T300 130 T400 90" stroke="#ef4444" fill="none" stroke-width="3"/><line x1="200" y1="50" x2="200" y2="150" stroke="#ef4444" stroke-width="2" stroke-dasharray="5 5"/></svg>`,
+                moon_base: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><circle cx="200" cy="150" r="80" fill="#1e293b"/><rect x="180" y="80" width="40" height="20" fill="#38bdf8"/><rect x="190" y="100" width="20" height="30" fill="#334155"/></svg>`,
+                highway: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><rect x="0" y="120" width="400" height="40" fill="#1e293b"/><line x1="0" y1="140" x2="400" y2="140" stroke="#fbbf24" stroke-width="2" stroke-dasharray="10 10"/></svg>`,
+                jungle: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0a1a0a"/><path d="M100 200 L120 80 L140 200 Z" fill="#1e293b"/><path d="M250 200 L280 60 L310 200 Z" fill="#1e293b"/><path d="M50 200 L70 100 L90 200 Z" fill="#334155"/></svg>`,
+                pirate: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><circle cx="200" cy="100" r="40" fill="#1e293b"/><circle cx="185" cy="90" r="5" fill="#ef4444"/><circle cx="215" cy="90" r="5" fill="#ef4444"/><path d="M180 120 Q200 140 220 120" stroke="#ef4444" fill="none" stroke-width="2"/></svg>`,
+                mars: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><circle cx="200" cy="100" r="70" fill="#c2410c"/><circle cx="170" cy="80" r="10" fill="#9a3412"/><circle cx="220" cy="120" r="15" fill="#9a3412"/></svg>`,
+                pirate_base: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0a0a0a"/><polygon points="200,20 150,100 250,100" fill="#334155"/><rect x="170" y="100" width="60" height="60" fill="#1e293b"/></svg>`,
+                dimension: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#1a0a2a"/><ellipse cx="200" cy="100" rx="80" ry="40" fill="none" stroke="#d946ef" stroke-width="3" stroke-dasharray="10 5"/><ellipse cx="200" cy="100" rx="60" ry="20" fill="none" stroke="#d946ef" stroke-width="2"/></svg>`,
+                saturn_approach: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><circle cx="200" cy="100" r="60" fill="#b45309"/><ellipse cx="200" cy="100" rx="100" ry="20" fill="none" stroke="#fbbf24" stroke-width="4"/><ellipse cx="200" cy="100" rx="90" ry="15" fill="none" stroke="#fbbf24" stroke-width="2"/></svg>`,
+                saturn_rings: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><circle cx="200" cy="100" r="50" fill="#b45309"/><ellipse cx="200" cy="100" rx="120" ry="25" fill="none" stroke="#fbbf24" stroke-width="6"/><ellipse cx="200" cy="100" rx="110" ry="20" fill="none" stroke="#fbbf24" stroke-width="2"/></svg>`,
+                crash: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#1a0a0a"/><polygon points="200,50 150,150 250,150" fill="#ef4444" opacity="0.5"/><text x="200" y="120" text-anchor="middle" fill="#fff" font-size="30">💥</text></svg>`,
+                moons: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><circle cx="100" cy="100" r="20" fill="#94a3b8"/><circle cx="200" cy="100" r="30" fill="#fbbf24"/><circle cx="300" cy="100" r="15" fill="#38bdf8"/></svg>`,
+                titan: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><circle cx="200" cy="100" r="60" fill="#d97706" opacity="0.8"/><ellipse cx="200" cy="100" rx="80" ry="15" fill="none" stroke="#d97706" stroke-width="2" opacity="0.5"/></svg>`,
+                iapetus: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><circle cx="200" cy="100" r="60" fill="#e2e8f0"/><path d="M140 100 A60 60 0 0 1 260 100" fill="#1e293b"/></svg>`,
+                alien_ship: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0a1a2a"/><ellipse cx="200" cy="100" rx="80" ry="30" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/><rect x="180" y="70" width="40" height="40" fill="#38bdf8" opacity="0.3"/><rect x="190" y="80" width="20" height="20" fill="#fff" opacity="0.5"/></svg>`,
+                victory: `<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="200" fill="#0f172a"/><text x="200" y="110" text-anchor="middle" fill="#4ade80" font-size="40" font-weight="bold">★</text><circle cx="200" cy="100" r="80" fill="none" stroke="#4ade80" stroke-width="2" stroke-dasharray="10 10"/></svg>`
+            };
+            return svgs[type] || svgs.choice;
+        };
+
+        // --- UI 更新邏輯 ---
+        const updateUI = () => {
+            const node = gameData[gameState.currentNode];
+            if (!node) return;
+
+            // 更新插圖
+            document.getElementById('illustration').innerHTML = getSVG(node.illustration);
+
+            // 更新文字（逐字顯示效果）
+            const textEl = document.getElementById('storyText');
+            textEl.innerHTML = '';
+            let i = 0;
+            const text = node.text;
+            
+            const typeWriter = () => {
+                if (i < text.length) {
+                    textEl.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, 15);
+                } else {
+                    // 文字顯示完畢後，啟用按鈕
+                    gameState.isTransitioning = false;
+                    renderChoices(node.options);
+                }
+            };
+            typeWriter();
+
+            // 更新日誌
+            updateLog(node.text.substring(0, 20) + '...');
+            
+            // 處理結局
+            if (gameState.currentNode === 'victory') {
+                setTimeout(() => {
+                    document.getElementById('storyPanel').innerHTML = `
+                        <div class="game-over-screen win">
+                            <h2>任務完成！</h2>
+                            <p style="color:#e0e6ed; max-width: 600px; margin: 0 auto; line-height: 1.8;">
+                                你成功與外星文明接觸，並證明了人類的善意。<br>
+                                時間機器的任務圓滿結束，你成為了人類歷史上的英雄。
+                            </p>
+                            <button onclick="location.reload()">再次遊玩</button>
+                        </div>
+                    `;
+                    document.getElementById('choicesContainer').innerHTML = '';
+                }, text.length * 15 + 500);
+            }
+        };
+
+        const renderChoices = (options) => {
+            const container = document.getElementById('choicesContainer');
+            container.innerHTML = '';
+            
+            if (!options || options.length === 0) return;
+
+            options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.innerHTML = opt.text;
+                btn.onclick = () => handleChoice(opt.next, btn);
+                container.appendChild(btn);
+            });
+        };
+
+        const handleChoice = (nextNode, btn) => {
+            if (gameState.isTransitioning) return;
+            gameState.isTransitioning = true;
+
+            // 禁用所有按鈕，防止重複點擊
+            const allBtns = document.querySelectorAll('.choice-btn');
+            allBtns.forEach(b => b.disabled = true);
+
+            // 記錄歷史
+            gameState.history.push(gameState.currentNode);
+            
+            // 延遲後跳轉
+            setTimeout(() => {
+                gameState.currentNode = nextNode;
+                updateUI();
+            }, 500);
+        };
+
+        const updateLog = (text) => {
+            const logList = document.getElementById('logList');
+            const li = document.createElement('li');
+            li.innerHTML = `<span>▶</span> ${text}`;
+            logList.appendChild(li);
+            logList.scrollTop = logList.scrollHeight;
+        };
+
+        // --- 存讀檔功能 ---
+        const saveGame = () => {
+            const saveData = {
+                currentNode: gameState.currentNode,
+                history: gameState.history,
+                logs: document.getElementById('logList').innerHTML
+            };
+            localStorage.setItem('timeMachineSave', JSON.stringify(saveData));
+            alert('遊戲已存檔！');
+        };
+
+        const loadGame = () => {
+            const saved = localStorage.getItem('timeMachineSave');
+            if (saved) {
+                const data = JSON.parse(saved);
+                gameState.currentNode = data.currentNode;
+                gameState.history = data.history;
+                document.getElementById('logList').innerHTML = data.logs;
+                updateUI();
+                alert('遊戲已讀檔！');
+            } else {
+                alert('沒有找到存檔紀錄。');
+            }
+        };
+
+        // --- 彈窗控制 ---
+        const openModal = (id) => {
+            document.getElementById(id).classList.add('active');
+        };
+
+        const closeModal = (id) => {
+            document.getElementById(id).classList.remove('active');
+        };
+
+        // 點擊彈窗外部關閉
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        };
+
+        // --- 初始化遊戲 ---
+        window.onload = () => {
+            // 檢查是否有存檔
+            const saved = localStorage.getItem('timeMachineSave');
+            if (saved) {
+                if(confirm('發現存檔紀錄，是否讀取？')) {
+                    loadGame();
+                    return;
+                }
+            }
+            // 從頭開始
+            gameState.currentNode = 'start';
+            updateUI();
+        };
+
+    </script>
+</body>
+</html>

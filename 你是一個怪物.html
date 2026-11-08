@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>你是一個怪物 - 互動式小說</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --accent-color: #ff4d4d;
+            --panel-bg: #2a2a2a;
+            --btn-bg: #3a3a3a;
+            --btn-hover: #505050;
+            --btn-disabled: #222;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 0.5s ease;
+        }
+
+        /* 玩家狀態面板 */
+        #status-panel {
+            width: 90%;
+            max-width: 800px;
+            background-color: var(--panel-bg);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .progress-container {
+            width: 100%;
+            background-color: #111;
+            border-radius: 8px;
+            height: 20px;
+            overflow: hidden;
+            border: 1px solid #444;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
+            transition: width 0.5s ease;
+        }
+
+        /* 遊戲主要區域 */
+        #game-container {
+            width: 90%;
+            max-width: 800px;
+            background-color: var(--panel-bg);
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: opacity 0.3s ease;
+        }
+
+        #story-title {
+            color: var(--accent-color);
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+            text-shadow: 0 0 5px rgba(255, 77, 77, 0.5);
+        }
+
+        #story-text {
+            font-size: 1.1em;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            white-space: pre-wrap;
+        }
+
+        #choices-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .choice-btn {
+            background-color: var(--btn-bg);
+            color: var(--text-color);
+            border: 1px solid #555;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 1.05em;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .choice-btn:hover:not(:disabled) {
+            background-color: var(--btn-hover);
+            border-color: var(--accent-color);
+            transform: translateX(5px);
+        }
+
+        .choice-btn:disabled {
+            background-color: var(--btn-disabled);
+            color: #666;
+            cursor: not-allowed;
+            border-color: #333;
+        }
+
+        /* 控制按鈕 */
+        #controls {
+            width: 90%;
+            max-width: 800px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+
+        .ctrl-btn {
+            background-color: #444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+
+        .ctrl-btn:hover {
+            background-color: #666;
+        }
+
+        /* 結局畫面 */
+        .ending-screen {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .ending-screen h2 {
+            color: var(--accent-color);
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        /* 響應式 */
+        @media (max-width: 600px) {
+            #game-container {
+                padding: 20px;
+            }
+            #story-text {
+                font-size: 1em;
+            }
+            .status-header {
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 狀態面板 -->
+    <div id="status-panel">
+        <div class="status-header">
+            <span>🧬 變異程度: <span id="monster-level-text">0%</span></span>
+            <span>📌 狀態: <span id="player-status">人類</span></span>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar" id="monster-bar"></div>
+        </div>
+    </div>
+
+    <!-- 遊戲主畫面 -->
+    <div id="game-container">
+        <h1 id="story-title">載入中...</h1>
+        <div id="story-text">正在準備您的命運...</div>
+        <div id="choices-container">
+            <!-- 按鈕由 JS 動態生成 -->
+        </div>
+    </div>
+
+    <!-- 控制按鈕 -->
+    <div id="controls">
+        <button class="ctrl-btn" onclick="saveGame()">💾 存檔</button>
+        <button class="ctrl-btn" onclick="loadGame()">📂 讀檔</button>
+        <button class="ctrl-btn" onclick="restartGame()" style="background-color: #8b0000;">🔄 重新開始</button>
+    </div>
+
+    <script>
+        // ==========================================
+        // 遊戲狀態機與資料結構 (State Machine & Data)
+        // ==========================================
+        
+        // 狀態機枚舉
+        const GameState = {
+            READING: 'READING',         // 等待玩家選擇
+            TRANSITIONING: 'TRANSITIONING', // 切換節點中，按鈕禁用
+            ENDED: 'ENDED'              // 遊戲結束
+        };
+
+        // 當前遊戲狀態
+        let currentState = {
+            phase: GameState.READING,
+            nodeId: 'start',
+            monsterLevel: 0, // 0 - 100
+            status: '人類',
+            history: [] // 記錄走過的路徑
+        };
+
+        // 故事節點資料庫
+        const storyData = {
+            'start': {
+                title: "藍色賓士車",
+                text: "一輛藍色賓士車在你身旁急煞。\n\n「上車！」\n\n車內戴著黑帽的壯漢並非在開玩笑。在你反應過來之前，後座跳出另一個人將你猛力推入車內。車子疾駛而去，路過的駕駛沒有人注意到——你被綁架了！\n\n你被夾在兩個惡徒中間，嘗試尋找脫身的機會。\n\n「聽著，你們一定認錯人了——」\n\n「閉嘴。我們要的就是你。」冰冷的槍管頂著你的腰際。",
+                choices: [
+                    { text: "趁機打開車門跳車逃跑！", nextId: 'escape_car', effect: { level: 0, status: '受傷昏迷' } },
+                    { text: "保持冷靜，暫時配合他們。", nextId: 'lab_arrive', effect: { level: 0, status: '被綁架' } }
+                ]
+            },
+            'escape_car': {
+                title: "失敗的逃亡",
+                text: "你趁著轉彎的瞬間，猛然打開車門滾了出去！\n\n但迎接你的不是自由，而是堅硬的地面與隨之而來的重擊。\n\n「砰！」\n\n歹徒用槍托狠狠砸在你的後腦勺上。你眼前一黑，徹底失去了意識。",
+                choices: [
+                    { text: "...", nextId: 'lab_wakeup', effect: { level: 0, status: '昏迷中' } }
+                ]
+            },
+            'lab_arrive': {
+                title: "實驗室",
+                text: "不知過了多久，你被粗暴地拉下車。這裡是一棟破舊的紅磚建築。\n\n你被帶到一個充滿不銹鋼設備的房間。一個留著山羊鬍、聲音尖銳的男人走了進來。\n\n「別擔心頭上的腫包。你是我們實驗的完美對象。我叫亨德里克·奈爾博士。」\n\n「基因工程——聽過嗎？你將成為我最重要病人。」",
+                choices: [
+                    { text: "試圖掙脫並反擊！", nextId: 'lab_struggle', effect: { level: 0, status: '被制服' } },
+                    { text: "接受現實，觀察他的動作。", nextId: 'lab_inject', effect: { level: 0, status: '實驗品' } }
+                ]
+            },
+            'lab_struggle': {
+                title: "徒勞的掙扎",
+                text: "你猛力推開奈爾博士，準備衝向門口。但門外立刻湧入兩名持槍守衛，將你死死壓制在床上。\n\n「看來你還沒準備好。」奈爾博士冷笑著，拿出一支裝著綠色液體的針筒。\n\n冰冷的液體注入你的血管，你感到一陣暈眩。",
+                choices: [
+                    { text: "...", nextId: 'lab_inject', effect: { level: 10, status: '被注射' } }
+                ]
+            },
+            'lab_wakeup': {
+                title: "醒來",
+                text: "你在一張堅硬的床上醒來。頭痛欲裂。\n\n那個自稱奈爾博士的男人站在你面前。\n\n「你醒了。很好。我已經為你注射了年輕大猩猩的基因，而這隻大猩猩又被植入過巨熊的基因。好好休息吧。」\n\n他轉身離開，門被重重鎖上。你看向自己的手臂——它們似乎變得更粗壯了，手背上長出了深棕色的絨毛。",
+                choices: [
+                    { text: "繼續觀察自己的變化。", nextId: 'lab_inject', effect: { level: 20, status: '基因變異中' } }
+                ]
+            },
+            'lab_inject': {
+                title: "基因改造",
+                text: "接下來的幾天，你經歷了難以言喻的痛苦。\n\n骨頭在劈啪作響，肌肉被強行撐開。你看著自己的臉在鏡子裡扭曲——突出的口鼻、巨大的 brow、兩顆尖銳的獠牙。\n\n「吼——！」你試圖說話，卻只能發出野獸的咆哮。\n\n你已經不再是原本的你了。你變成了一個怪物。",
+                choices: [
+                    { text: "憑藉蠻力破壞房門，逃出去！", nextId: 'escape_lab', effect: { level: 50, status: '怪物' } }
+                ]
+            },
+            'escape_lab': {
+                title: "破門而出",
+                text: "你揮舞巨大的拳頭，將厚重的木門連同門框一起砸爛。\n\n「它逃出來了！」走廊上傳來驚恐的尖叫。\n\n你衝下樓梯，看見奈爾博士和兩個手下跳進一輛藍色賓士車。你試圖抓住車尾，但車子加速駛離，只留下你站在原地。\n\n你逃出來了，但外面的世界對一個怪物並不友善。",
+                choices: [
+                    { text: "躲在暗處，觀察外面的情況。", nextId: 'hide_observe', effect: { level: 50, status: '通緝中' } }
+                ]
+            },
+            'hide_observe': {
+                title: "警車來臨",
+                text: "你躲進一處灌木叢中。不一會兒，幾輛警車呼嘯而至，停在奈爾博士的據點前。\n\n警察們拔出手槍，包圍了建築物。\n\n你該怎麼辦？如果你走出去，警察可能會因為你的外貌而直接開槍；但如果你不出去，你將永遠背負怪物的罪名。",
+                choices: [
+                    { text: "走出去，向警察解釋一切。", nextId: 'police_confront', effect: { level: 50, status: '自首' } },
+                    { text: "保持隱藏，等警察離開。", nextId: 'wander_woods', effect: { level: 50, status: '逃亡中' } }
+                ]
+            },
+            'police_confront': {
+                title: "面對警察",
+                text: "你舉起雙手，從灌木叢中走了出來。\n\n「別開槍！我是人類！」你努力擠出含糊的字句。\n\n警察們被你的樣貌嚇壞了，但他們沒有立刻開槍。分局長走上前，打量著你。\n\n「你這個樣子...我們不能讓你在大街上遊蕩。你必須跟我們走。」\n\n你被帶回了警局，關在一個特殊的牢房裡。幾天後，市長親自來見你。\n\n「我們為你的遭遇感到遺憾。你有兩個選擇：去偏遠的伐木營工作，或者去聯邦醫院的基因實驗室，嘗試變回人類。」",
+                choices: [
+                    { text: "前往伐木營，遠離人群。", nextId: 'lumber_camp', effect: { level: 50, status: '伐木工' } },
+                    { text: "前往聯邦醫院，接受治療。", nextId: 'hospital_arrive', effect: { level: 50, status: '接受治療' } }
+                ]
+            },
+            'wander_woods': {
+                title: "流浪",
+                text: "你悄悄退入森林深處。\n\n你靠著捕食小動物和採集野果維生。雖然擁有了強大的力量，但你感到無比的孤獨。\n\n有一天，你偶然遇到了一個在花園裡修剪花草的婦人。她看到你，發出了震耳欲聾的尖叫。\n\n你慌張地逃離，卻在無意間闖入了一座巨大的莊園。",
+                choices: [
+                    { text: "繼續逃跑", nextId: 'meet_amanda', effect: { level: 60, status: '逃亡中' } }
+                ]
+            },
+            'meet_amanda': {
+                title: "阿曼達",
+                text: "你跑過一片廣闊的草坪，在一棵巨大的山毛櫸樹下停了下來。\n\n「我看到你了，怪物。」樹上傳來一個聲音。\n\n一個大約十歲的小女孩跳了下來。\n\n「我叫阿曼達·范德格拉夫。我喜歡你。」\n\n「喜歡我？其他人都怕我。」\n\n「你沒有傷害我的狗，所以我知道你是好怪物。你可以來我們家住幾天，我們家有很多空房間和食物。」",
+                choices: [
+                    { text: "接受阿曼達的邀請。", nextId: 'vandergraft_house', effect: { level: 60, status: '被收留' } },
+                    { text: "婉拒她的好意，繼續流浪。", nextId: 'lumber_camp', effect: { level: 60, status: '流浪者' } }
+                ]
+            },
+            'vandergraft_house': {
+                title: "范德格拉夫莊園",
+                text: "阿曼達帶你見了她的父母。雖然他們一開始被嚇壞了，但在阿曼達的堅持下，他們同意讓你留下來。\n\n在這裡，你度過了平靜的幾週。但范德格拉夫先生認為，你應該徹底變回人類。\n\n「聯邦醫院有一位弗蘭斯博士，他是基因領域的天才。也許他能幫助你。但這有風險，失敗的話你可能會變得更糟。」\n\n阿曼達則建議：「為什麼不找奈爾博士？是他把你變成這樣的，他一定有辦法把你變回來！」",
+                choices: [
+                    { text: "前往聯邦醫院尋求弗蘭斯博士的幫助。", nextId: 'hospital_arrive', effect: { level: 60, status: '希望' } },
+                    { text: "僱用偵探尋找奈爾博士，逼他交出解藥。", nextId: 'find_nair', effect: { level: 60, status: '復仇' } }
+                ]
+            },
+            'hospital_arrive': {
+                title: "聯邦醫院",
+                text: "你來到了聯邦醫院的基因實驗室。弗蘭斯博士熱情地接待了你。\n\n「我已經研究過奈爾博士的技術，我有信心能逆轉你的基因。但這是一項實驗性治療，如果失敗，你可能會變成比現在更可怕的怪物。」\n\n你坐在巨大的椅子上，思考著自己的命運。",
+                choices: [
+                    { text: "接受實驗，我相信博士。", nextId: 'experiment_success', effect: { level: 80, status: '實驗中' } },
+                    { text: "拒絕實驗，我無法承受失敗的風險。", nextId: 'lumber_camp', effect: { level: 50, status: '拒絕治療' } }
+                ]
+            },
+            'experiment_success': {
+                title: "逆轉",
+                text: "你躺在病床上，身體再次經歷了劇烈的變化。但這次，你感覺到的是希望。\n\n你的口鼻縮短，毛髮脫落，獠牙掉落。幾天後，你看著鏡子裡的自己——你變回了人類！\n\n阿曼達和家人為你慶祝。你雖然還有些虛弱，但從未如此快樂過。\n\n最終，奈爾博士也被警方抓獲，並被強制進行了人格改造。你重新回到了學校，開始了正常的生活。",
+                choices: [
+                    { text: "這是個好結局 (The End)", isEnd: true, nextId: null, effect: { level: 0, status: '恢復人類' } }
+                ]
+            },
+            'find_nair': {
+                title: "尋找奈爾博士",
+                text: "范德格拉夫先生僱用了頂尖偵探澤娜。經過幾週的追查，她終於找到了奈爾博士的藏身之處。\n\n你們帶著保鑣突襲了他的實驗室。奈爾博士被逼到了角落。\n\n「你必須把我變回人類！」你怒吼道。\n\n奈爾博士顫抖著為你注射了逆轉血清。然而，在最後關頭，他故意弄錯了劑量。\n\n你感到身體再次發生變化，但這次不是變回人類，而是變成了一隻猴子！\n\n「至少你不再是個可怕的怪物了，你看起來真可愛。」阿曼達無奈地說。\n\n你只能發出「吱吱」的叫聲。你的未來只剩下兩個選擇：叢林，或者動物園。",
+                choices: [
+                    { text: "這是個壞結局 (The End)", isEnd: true, nextId: null, effect: { level: 100, status: '猴子' } }
+                ]
+            },
+            'lumber_camp': {
+                title: "雙湖伐木營",
+                text: "你被送到了加拿大偏遠的伐木營。這裡的人雖然害怕你，但你的巨大力量讓你能輕鬆完成工作。\n\n然而，營地裡有個叫麥克·芬威克的壯漢，他嫉妒你搶了他的風頭，處處針對你。\n\n有一天，你正在砍樹，芬威克突然拿著電鋸朝你衝過來！",
+                choices: [
+                    { text: "躲開攻擊，並奪下他的電鋸。", nextId: 'bear_encounter', effect: { level: 60, status: '伐木工' } },
+                    { text: "直接將他打飛。", nextId: 'bear_encounter', effect: { level: 60, status: '伐木工' } }
+                ]
+            },
+            'bear_encounter': {
+                title: "灰熊",
+                text: "你輕易地制服了芬威克，但他趁亂逃跑了。\n\n你感到無比的沮喪，漫無目的地在森林裡遊蕩。突然，一隻巨大的雄性灰熊擋住了你的去路。\n\n牠發出震耳欲聾的咆哮，準備攻擊你。\n\n但就在這一刻，你意識到——你也是個怪物。",
+                choices: [
+                    { text: "與灰熊戰鬥，證明自己的力量！", nextId: 'become_king', effect: { level: 70, status: '野獸' } }
+                ]
+            },
+            'become_king': {
+                title: "森林之王",
+                text: "你與灰熊展開了一場驚天動地的搏鬥。最終，你憑藉著更強的力量將牠壓制在地。\n\n灰熊低下頭，向你臣服。不久後，幾隻其他的灰熊和幼熊也出現了，牠們默默地跟隨在你身後。\n\n你成為了這片森林的霸主。歲月流逝，你偶爾會被人類目擊，他們稱你為「大腳怪」。\n\n你不再渴望變回人類，因為你找到了屬於自己的歸屬。",
+                choices: [
+                    { text: "這是個傳奇結局 (The End)", isEnd: true, nextId: null, effect: { level: 100, status: '森林之王' } }
+                ]
+            }
+        };
+
+        // ==========================================
+        // 核心邏輯與狀態機 (State Machine Logic)
+        // ==========================================
+
+        const ui = {
+            title: document.getElementById('story-title'),
+            text: document.getElementById('story-text'),
+            choicesContainer: document.getElementById('choices-container'),
+            monsterLevelText: document.getElementById('monster-level-text'),
+            monsterBar: document.getElementById('monster-bar'),
+            playerStatus: document.getElementById('player-status'),
+            gameContainer: document.getElementById('game-container')
+        };
+
+        function initGame() {
+            currentState = {
+                phase: GameState.READING,
+                nodeId: 'start',
+                monsterLevel: 0,
+                status: '人類',
+                history: []
+            };
+            renderNode(currentState.nodeId);
+        }
+
+        function renderNode(nodeId) {
+            const node = storyData[nodeId];
+            if (!node) return;
+
+            // 狀態機：設置為過渡中，禁用按鈕
+            currentState.phase = GameState.TRANSITIONING;
+            currentState.nodeId = nodeId;
+            updateButtonsState(true);
+
+            // 更新 UI (加入淡入淡出動畫)
+            ui.gameContainer.style.opacity = 0;
+
+            setTimeout(() => {
+                // 更新文字
+                ui.title.textContent = node.title;
+                ui.text.textContent = node.text;
+                
+                // 清空並生成按鈕
+                ui.choicesContainer.innerHTML = '';
+                
+                if (node.choices && node.choices.length > 0) {
+                    node.choices.forEach(choice => {
+                        const btn = document.createElement('button');
+                        btn.className = 'choice-btn';
+                        btn.textContent = `➤ ${choice.text}`;
+                        btn.onclick = () => handleChoice(choice);
+                        ui.choicesContainer.appendChild(btn);
+                    });
+                }
+
+                // 更新狀態面板
+                updateStatusPanel();
+
+                // 恢復畫面
+                ui.gameContainer.style.opacity = 1;
+
+                // 狀態機：恢復為閱讀中，啟用按鈕
+                setTimeout(() => {
+                    currentState.phase = GameState.READING;
+                    updateButtonsState(false);
+                    if (node.choices && node.choices.length > 0 && node.choices[0].isEnd) {
+                        // 如果是結局，改變按鈕樣式
+                        currentState.phase = GameState.ENDED;
+                        const btns = ui.choicesContainer.querySelectorAll('.choice-btn');
+                        btns.forEach(b => {
+                            b.style.backgroundColor = '#8b0000';
+                            b.style.textAlign = 'center';
+                        });
+                    }
+                }, 100);
+
+            }, 300); // 配合 CSS transition 時間
+        }
+
+        function handleChoice(choice) {
+            if (currentState.phase !== GameState.READING) return;
+
+            // 應用效果
+            if (choice.effect) {
+                if (choice.effect.level !== undefined) {
+                    currentState.monsterLevel = choice.effect.level;
+                }
+                if (choice.effect.status !== undefined) {
+                    currentState.status = choice.effect.status;
+                }
+            }
+
+            // 記錄歷史
+            currentState.history.push(currentState.nodeId);
+
+            // 如果有下一個節點，則跳轉
+            if (choice.nextId) {
+                renderNode(choice.nextId);
+            }
+        }
+
+        function updateStatusPanel() {
+            // 更新文字
+            ui.monsterLevelText.textContent = `${currentState.monsterLevel}%`;
+            ui.playerStatus.textContent = currentState.status;
+
+            // 更新進度條
+            ui.monsterBar.style.width = `${currentState.monsterLevel}%`;
+
+            // 根據變異程度改變背景色調 (從深藍漸變到暗紅)
+            const r = Math.floor(26 + (currentState.monsterLevel * 1.2)); // 26 -> 146
+            const g = Math.floor(26 + (currentState.monsterLevel * 0.1)); // 26 -> 36
+            const b = Math.floor(26 + (currentState.monsterLevel * 0.1)); // 26 -> 36
+            document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        }
+
+        function updateButtonsState(isDisabled) {
+            const btns = ui.choicesContainer.querySelectorAll('.choice-btn');
+            btns.forEach(btn => {
+                btn.disabled = isDisabled;
+            });
+        }
+
+        // ==========================================
+        // 存檔 / 讀檔 / 重新開始 (Save/Load/Restart)
+        // ==========================================
+
+        function saveGame() {
+            if (currentState.phase === GameState.TRANSITIONING) return;
+            
+            const saveData = {
+                nodeId: currentState.nodeId,
+                monsterLevel: currentState.monsterLevel,
+                status: currentState.status,
+                phase: GameState.READING
+            };
+            localStorage.setItem('monsterGameSave', JSON.stringify(saveData));
+            alert('✅ 遊戲進度已儲存！');
+        }
+
+        function loadGame() {
+            const saved = localStorage.getItem('monsterGameSave');
+            if (!saved) {
+                alert('❌ 沒有找到存檔記錄。');
+                return;
+            }
+
+            try {
+                const data = JSON.parse(saved);
+                currentState.nodeId = data.nodeId;
+                currentState.monsterLevel = data.monsterLevel;
+                currentState.status = data.status;
+                currentState.phase = GameState.READING;
+                
+                renderNode(currentState.nodeId);
+                alert('📂 存檔讀取成功！');
+            } catch (e) {
+                alert('❌ 存檔損壞，無法讀取。');
+            }
+        }
+
+        function restartGame() {
+            if (confirm('確定要重新開始遊戲嗎？目前的進度將會丟失。')) {
+                localStorage.removeItem('monsterGameSave');
+                initGame();
+            }
+        }
+
+        // 啟動遊戲
+        window.onload = () => {
+            initGame();
+        };
+
+    </script>
+</body>
+</html>

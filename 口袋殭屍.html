@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>口袋裡的殭屍 (Zombie in my Pocket) - 9x9 棋盤拼圖版</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --panel-bg: #1a1a1a;
+            --text-color: #e0e0e0;
+            --accent-red: #d32f2f;
+            --tile-size: 90px; /* 縮小以容納 9x9 */
+            --gap-size: 6px;
+            --indoor-bg: #3e2723;
+            --outdoor-bg: #2e7d32;
+            --door-color: #8d6e63;
+            --arrow-color: #ffffff;
+            --path-color: #9e9e9e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+        }
+
+        /* 頂部狀態列 */
+        #top-bar {
+            display: flex; justify-content: space-between; align-items: stretch;
+            padding: 10px 20px; background-color: var(--panel-bg);
+            border-bottom: 3px solid var(--accent-red); z-index: 10; gap: 20px;
+        }
+
+        .character-card {
+            display: flex; gap: 15px; background: #000;
+            border: 2px solid var(--accent-red); border-radius: 8px;
+            padding: 10px 15px; flex: 1; max-width: 800px;
+            box-shadow: inset 0 0 20px rgba(211, 47, 47, 0.2);
+        }
+
+        .stat-box {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border: 1px solid #444; padding: 5px 10px; border-radius: 5px;
+            background: #111; min-width: 100px;
+        }
+
+        .stat-box h3 { font-size: 0.8rem; color: #aaa; margin-bottom: 5px; text-transform: uppercase; }
+        .stat-value { font-size: 1.4rem; font-weight: bold; color: #fff; }
+
+        .health-bar { display: flex; gap: 4px; margin-top: 5px; flex-wrap: wrap; max-width: 150px; justify-content: center;}
+        .heart {
+            width: 14px; height: 14px; background-color: var(--accent-red);
+            clip-path: polygon(50% 15%, 80% 0, 100% 30%, 50% 100%, 0 30%, 20% 0);
+        }
+
+        .inventory-box {
+            flex: 1; display: flex; flex-direction: column; justify-content: center;
+            background: #111; border: 1px solid #444; border-radius: 5px; padding: 10px;
+        }
+        
+        .inventory-box h3 { font-size: 0.8rem; color: #aaa; margin-bottom: 8px; text-transform: uppercase; }
+        #inventory { display: flex; gap: 10px; flex-wrap: wrap; }
+        .item-tag {
+            background: #333; padding: 5px 10px; border-radius: 4px;
+            border: 1px solid #666; font-size: 0.9rem; cursor: pointer;
+            transition: all 0.2s; display: flex; align-items: center; gap: 5px;
+        }
+        .item-tag:hover { background: #555; border-color: #fff; transform: translateY(-2px); }
+        .item-tag.totem { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+
+        .time-box { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; min-width: 150px; }
+        .time-text { font-size: 1.5rem; font-weight: bold; color: var(--accent-red); text-shadow: 0 0 10px rgba(211, 47, 47, 0.5);}
+        .deck-text { font-size: 0.9rem; color: #aaa; }
+
+        /* 地圖區域 (9x9 網格) */
+        #map-container {
+            flex: 1; position: relative; overflow: auto; background: #000;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        #map {
+            display: grid;
+            grid-template-columns: repeat(9, var(--tile-size));
+            grid-template-rows: repeat(9, var(--tile-size));
+            gap: var(--gap-size);
+            padding: 20px;
+        }
+
+        .tile {
+            width: 100%; height: 100%;
+            border-radius: 4px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: all 0.2s;
+            background-color: #111;
+            border: 1px solid #222;
+            position: relative;
+        }
+
+        .tile.explored { box-shadow: 0 4px 10px rgba(0,0,0,0.8); }
+        .tile.explored.indoor { background: linear-gradient(135deg, #4e342e 0%, #3e2723 100%); border-color: #5d4037; }
+        .tile.explored.outdoor { background: linear-gradient(135deg, #388e3c 0%, #1b5e20 100%); border-color: #2e7d32; }
+
+        .tile.player-here {
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.4), 0 0 15px rgba(255, 255, 255, 0.6);
+            z-index: 2; border-color: #fff;
+        }
+        
+        .tile.player-here::after {
+            content: '🧍'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); font-size: 2rem;
+            filter: drop-shadow(0 0 5px #000); animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+            50% { transform: translate(-50%, -50%) translateY(-5px); }
+        }
+
+        .tile-icon { font-size: 2rem; margin-bottom: 2px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));}
+        .tile-name {
+            background: rgba(0,0,0,0.8); padding: 2px 6px; border-radius: 4px;
+            font-size: 0.7rem; border: 1px solid #555; white-space: nowrap;
+        }
+
+        /* 可移動到的已探索房間 */
+        .tile.walkable {
+            cursor: pointer; border: 2px solid #00e676;
+            animation: pulseGreen 1.5s infinite;
+        }
+        .tile.walkable:hover {
+            transform: scale(1.05); box-shadow: 0 0 15px #00e676; z-index: 3;
+        }
+        @keyframes pulseGreen {
+            0%, 100% { box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1), 0 0 5px #00e676; }
+            50% { box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2), 0 0 15px #00e676; }
+        }
+
+        /* 空白可探索的格子 */
+        .tile.empty-slot {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 2px dashed #00e676; cursor: pointer; color: #00e676;
+            font-weight: bold; font-size: 0.8rem;
+            box-shadow: inset 0 0 10px rgba(0, 230, 118, 0.2);
+        }
+        .tile.empty-slot:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 230, 118, 0.4);
+        }
+
+        /* 牆壁格子 */
+        .tile.wall-slot {
+            background-color: rgba(0, 0, 0, 0.5); border: 2px solid #222;
+            color: #444; font-weight: bold; font-size: 0.9rem;
+            cursor: not-allowed; display: flex; justify-content: center;
+            align-items: center; border-radius: 4px; opacity: 0.3;
+        }
+
+        /* 連接點樣式 */
+        .conn { position: absolute; z-index: 3; pointer-events: none; }
+        .conn.indoor-door { background-color: var(--door-color); border: 1px solid #000; }
+        .conn.indoor-door.N { top: -2px; left: 30%; width: 40%; height: 4px; }
+        .conn.indoor-door.S { bottom: -2px; left: 30%; width: 40%; height: 4px; }
+        .conn.indoor-door.E { right: -2px; top: 30%; height: 40%; width: 4px; }
+        .conn.indoor-door.W { left: -2px; top: 30%; height: 40%; width: 4px; }
+
+        .conn.outdoor-path { background-color: transparent; border: 2px dashed var(--path-color); }
+        .conn.outdoor-path.N { top: -2px; left: 20%; width: 60%; height: 4px; border-top: none; border-left: none; border-right: none; }
+        .conn.outdoor-path.S { bottom: -2px; left: 20%; width: 60%; height: 4px; border-bottom: none; border-left: none; border-right: none; }
+        .conn.outdoor-path.E { right: -2px; top: 20%; height: 60%; width: 4px; border-right: none; border-top: none; border-bottom: none; }
+        .conn.outdoor-path.W { left: -2px; top: 20%; height: 60%; width: 4px; border-left: none; border-top: none; border-bottom: none; }
+
+        .conn.arrow {
+            display: flex; justify-content: center; align-items: center;
+            color: var(--arrow-color); font-size: 1.2rem; font-weight: bold; text-shadow: 0 0 5px #000;
+        }
+        .conn.arrow.N { top: -12px; left: 50%; transform: translateX(-50%); }
+        .conn.arrow.S { bottom: -12px; left: 50%; transform: translateX(-50%) rotate(180deg); }
+        .conn.arrow.E { right: -12px; top: 50%; transform: translateY(-50%) rotate(90deg); }
+        .conn.arrow.W { left: -12px; top: 50%; transform: translateY(-50%) rotate(-90deg); }
+
+        /* 底部控制區 */
+        #bottom-panel {
+            height: 200px; background-color: var(--panel-bg);
+            display: flex; border-top: 3px solid #333; z-index: 10;
+            position: relative;
+        }
+
+        #card-area {
+            flex: 1; display: flex; justify-content: center; align-items: center;
+            position: relative; background: #111; border-right: 2px solid #333;
+            overflow: hidden;
+        }
+
+        .card {
+            width: 140px; height: 190px;
+            background: linear-gradient(135deg, #e0e0e0 0%, #a0a0a0 100%);
+            border-radius: 10px; color: #111; padding: 10px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8); position: absolute;
+            opacity: 0; transform: translateY(30px) scale(0.8);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none; border: 2px solid #fff; z-index: 5;
+        }
+
+        .card.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+        .card.combat { background: linear-gradient(135deg, #ff8a80 0%, #d32f2f 100%); color: #fff; border-color: #b71c1c;}
+
+        .card-header { font-weight: bold; text-align: center; border-bottom: 2px solid currentColor; padding-bottom: 5px; font-size: 0.9rem;}
+        .card-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 0.85rem; gap: 5px;}
+        .card-icon { font-size: 3rem; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));}
+
+        #dice-container {
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 20; flex-direction: column; align-items: center;
+            background: rgba(0,0,0,0.95); padding: 15px; border-radius: 15px;
+            border: 3px solid var(--accent-red); box-shadow: 0 0 40px rgba(0,0,0,1);
+        }
+
+        .dice {
+            width: 70px; height: 70px; background: white; border-radius: 10px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 3rem; font-weight: bold; color: black; margin-bottom: 10px;
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+
+        @keyframes shake {
+            0% { transform: rotate(0deg); } 25% { transform: rotate(20deg); }
+            50% { transform: rotate(0deg); } 75% { transform: rotate(-20deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        /* 放置板塊 UI (在卡牌區內) */
+        #placement-container {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            justify-content: center; align-items: center; gap: 20px; background: #111;
+            z-index: 10;
+        }
+
+        #preview-tile {
+            width: var(--tile-size); height: var(--tile-size);
+            position: relative; border-radius: 4px;
+            display: flex; justify-content: center; align-items: center;
+            transition: transform 0.3s;
+        }
+        #preview-tile .tile-icon { font-size: 2rem; }
+        #preview-tile .tile-name {
+            position: absolute; bottom: 5px; background: rgba(0,0,0,0.8);
+            padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;
+        }
+
+        /* 右側控制區 */
+        #action-area {
+            width: 280px; padding: 15px;
+            display: flex; flex-direction: column; gap: 8px; justify-content: center; background: #1a1a1a;
+        }
+
+        button {
+            padding: 10px; font-size: 0.9rem; font-weight: bold;
+            background-color: #333; color: white; border: none; border-radius: 6px;
+            cursor: pointer; transition: all 0.2s; border-bottom: 4px solid #111;
+            text-transform: uppercase; letter-spacing: 1px; width: 100%;
+        }
+        button:hover:not(:disabled) { background-color: #444; transform: translateY(-2px); border-bottom-width: 6px; }
+        button:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; }
+        button:disabled { background-color: #1a1a1a; color: #444; cursor: not-allowed; border-bottom: 4px solid #000; }
+        button.primary { background-color: var(--accent-red); border-bottom-color: #8e0000; }
+        button.primary:hover:not(:disabled) { background-color: #f44336; }
+        button.success { background-color: #2e7d32; border-bottom-color: #1b5e20; }
+        button.success:hover:not(:disabled) { background-color: #43a047; }
+        button.warning { background-color: #f57c00; border-bottom-color: #e65100; }
+        button.warning:hover:not(:disabled) { background-color: #fb8c00; }
+
+        #modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center;
+        }
+        #modal-content {
+            background: var(--panel-bg); padding: 25px; border-radius: 12px;
+            max-width: 450px; width: 90%; max-height: 80vh; overflow-y: auto;
+            border: 3px solid var(--accent-red); box-shadow: 0 0 50px rgba(211, 47, 47, 0.3);
+        }
+        #modal-content h2 { color: var(--accent-red); margin-bottom: 15px; text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; font-size: 1.4rem;}
+        #modal-content p, #modal-content li { line-height: 1.6; margin-bottom: 10px; font-size: 0.95rem;}
+        #modal-content ul { padding-left: 20px; }
+        .game-over-text { font-size: 2rem; text-align: center; font-weight: bold; margin: 20px 0; color: var(--accent-red); text-shadow: 0 0 20px red;}
+    </style>
+</head>
+<body>
+
+    <header id="top-bar">
+        <div class="character-card">
+            <div class="stat-box">
+                <h3>生命力</h3>
+                <div class="stat-value" id="hp-text">6</div>
+                <div class="health-bar" id="health-bar"></div>
+            </div>
+            <div class="stat-box">
+                <h3 id="attack-title">徒手攻擊</h3>
+                <div class="stat-value" id="attack-value">+1</div>
+                <div id="attack-desc" style="font-size:0.7rem; color:#888; margin-top:5px;">(擲骰加成)</div>
+            </div>
+            <div class="inventory-box">
+                <h3>手持物品 (上限2)</h3>
+                <div id="inventory"></div>
+            </div>
+        </div>
+        <div class="time-box">
+            <div class="time-text" id="time-display">9:00 PM</div>
+            <div class="deck-text" id="deck-display">牌堆剩餘: 8</div>
+            <button id="btn-help" style="padding: 5px 10px; font-size: 0.8rem; margin-top: 10px; border-bottom-width: 2px; width: auto;">遊戲說明</button>
+        </div>
+    </header>
+
+    <main id="map-container">
+        <div id="map"></div>
+    </main>
+
+    <section id="bottom-panel">
+        <div id="card-area">
+            <div id="dice-container">
+                <div class="dice" id="dice-face">?</div>
+                <div id="dice-result-text" style="margin-bottom: 10px; font-weight: bold; color: #fff; text-align: center; font-size: 0.9rem; max-width: 180px;"></div>
+                <button id="btn-roll" class="primary" style="width: 100%;">擲骰子</button>
+            </div>
+
+            <div id="placement-container">
+                <div id="preview-tile" class="tile indoor"></div>
+                <div style="display: flex; flex-direction: column; gap: 8px; width: 180px;">
+                    <p style="color: #aaa; font-size: 0.85rem; text-align: center;">旋轉板塊對準出口</p>
+                    <button id="btn-rotate" class="warning">旋轉 (順時針)</button>
+                    <button id="btn-place" class="success" disabled>確認放置</button>
+                    <button id="btn-cancel-placement" class="primary" style="background-color: #555; border-bottom-color: #222;">取消</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="action-area">
+            <button id="btn-fight" class="primary" style="display: none;">戰鬥 (擲骰)</button>
+            <button id="btn-run" class="warning" style="display: none;">逃跑 (抽卡判定)</button>
+            <button id="btn-search-item" class="success" style="display: none;">搜尋物品 (抽卡)</button>
+            <button id="btn-search-totem" class="success" style="display: none;">尋找圖騰 (抽卡)</button>
+            <button id="btn-bury" class="success" style="display: none;">埋葬圖騰 (抽卡)</button>
+            <button id="btn-end-turn" style="display: none;">結束回合 (抽卡)</button>
+            <button id="btn-close-card" class="primary" style="display: none;">確認</button>
+            <button id="btn-recover" class="primary" style="display: none; background-color: #f57c00;" onclick="location.reload()">遊戲卡住？點此重置</button>
+        </div>
+    </section>
+
+    <div id="modal">
+        <div id="modal-content">
+            <h2 id="modal-title">系統提示</h2>
+            <div id="modal-body"></div>
+            <button id="btn-close-modal" class="primary" style="margin-top: 15px; width: 100%;">關閉</button>
+        </div>
+    </div>
+
+<script>
+    // --- 基礎設定與資料 ---
+    const GRID_SIZE = 9;
+    const CENTER = 4; // 0-based, 代表第 5 行第 5 列
+
+    const TILE_POOL = [
+        // 室內 (Indoor)
+        { name: '餐廳', icon: '🍽️', type: 'indoor', conns: { N: 'arrow', W: 'indoor-door', S: 'indoor-door' } },
+        { name: '家庭室', icon: '🛋️', type: 'indoor', conns: { N: 'indoor-door', E: 'indoor-door', S: 'indoor-door' } },
+        { name: '廚房', icon: '🍳', type: 'indoor', conns: { N: 'indoor-door', W: 'indoor-door', S: 'indoor-door' } },
+        { name: '浴室', icon: '🛁', type: 'indoor', conns: { W: 'indoor-door', S: 'indoor-door' }, special: 'bathroom_zombies' },
+        { name: '儲藏室', icon: '📦', type: 'indoor', conns: { W: 'indoor-door', S: 'indoor-door' } },
+        { name: '臥室', icon: '🛏️', type: 'indoor', conns: { N: 'indoor-door', E: 'indoor-door' } },
+        { name: '邪惡神殿', icon: '🩸', type: 'indoor', conns: { W: 'indoor-door', S: 'indoor-door' } },
+        
+        // 室外 (Outdoor)
+        { name: '花園', icon: '🌻', type: 'outdoor', conns: { S: 'outdoor-path', E: 'outdoor-path' } },
+        { name: '休息區', icon: '🪵', type: 'outdoor', conns: { S: 'outdoor-path', W: 'outdoor-path' } },
+        { name: '庭院 (左上)', icon: '🌳', type: 'outdoor', conns: { S: 'outdoor-path', E: 'outdoor-path' } },
+        { name: '墓園', icon: '🪦', type: 'outdoor', conns: { S: 'outdoor-path', W: 'outdoor-path' } },
+        { name: '車庫', icon: '🚗', type: 'outdoor', conns: { N: 'outdoor-path', E: 'outdoor-path' } },
+        { name: '露臺', icon: '🪑', type: 'outdoor', conns: { N: 'outdoor-path', E: 'outdoor-path', S: 'arrow' } }, 
+        { name: '庭院 (中下)', icon: '🌳', type: 'outdoor', conns: { S: 'outdoor-path', W: 'outdoor-path', N: 'outdoor-path' } },
+        { name: '庭院 (右下)', icon: '🌳', type: 'outdoor', conns: { S: 'outdoor-path', E: 'outdoor-path', W: 'outdoor-path' } }
+    ];
+
+    const CARDS = {
+        9: [
+            { type: 'zombie', val: 4, text: '4 隻殭屍', hasZombie: true },
+            { type: 'item', item: 'Oil', text: '物品: 油燈 (殺1隻)', hasZombie: false },
+            { type: 'zombie', val: 6, text: '6 隻殭屍', hasZombie: true },
+            { type: 'event', hp: -1, text: '你感覺末日將至。 -1 生命', hasZombie: false },
+            { type: 'zombie', val: 3, text: '3 隻殭屍', hasZombie: true },
+            { type: 'event', hp: 0, text: '你聽到可怕的尖叫聲。', hasZombie: false },
+            { type: 'item', item: 'Candy', text: '物品: 糖果 (+1生命)', hasZombie: false },
+            { type: 'event', hp: 0, text: '你的身體不由自主地顫抖。', hasZombie: false }
+        ],
+        10: [
+            { type: 'event', hp: 0, text: '你努力不弄濕自己。', hasZombie: false },
+            { type: 'zombie', val: 5, text: '5 隻殭屍', hasZombie: true },
+            { type: 'item', item: 'Gasoline', text: '物品: 汽油 (殺全部)', hasZombie: false },
+            { type: 'event', hp: -1, text: '蝙蝠在你眼裡拉屎。 -1 生命', hasZombie: false },
+            { type: 'event', hp: -1, text: '你的靈魂不被需要。 -1 生命', hasZombie: false },
+            { type: 'item', item: 'Machete', text: '武器: 開山刀 (+1戰鬥)', hasZombie: false },
+            { type: 'event', hp: 1, text: '你感到一絲希望。 +1 生命', hasZombie: false },
+            { type: 'zombie', val: 4, text: '4 隻殭屍', hasZombie: true }
+        ],
+        11: [
+            { type: 'event', hp: -1, text: '你嘴裡有噁心的東西。 -1 生命', hasZombie: false },
+            { type: 'zombie', val: 6, text: '6 隻殭屍', hasZombie: true },
+            { type: 'item', item: 'GolfClub', text: '武器: 高爾夫球桿 (+1戰鬥)', hasZombie: false },
+            { type: 'zombie', val: 5, text: '5 隻殭屍', hasZombie: true },
+            { type: 'item', item: 'Chainsaw', text: '武器: 電鋸 (戰鬥殺1隻)', hasZombie: false },
+            { type: 'event', hp: 0, text: '空氣中瀰漫著血腥味。', hasZombie: false },
+            { type: 'zombie', val: 4, text: '4 隻殭屍', hasZombie: true }
+        ]
+    };
+
+    const State = {
+        EXPLORING: 'EXPLORING',
+        PLACING: 'PLACING',
+        COMBAT: 'COMBAT',
+        ROLLING: 'ROLLING',
+        ESCAPING: 'ESCAPING',
+        ITEM_LIMIT: 'ITEM_LIMIT',
+        GAMEOVER: 'GAMEOVER',
+        WIN: 'WIN'
+    };
+
+    let state = State.EXPLORING;
+    let time = 9;
+    let health = 6;
+    let inventory = [];
+    let hasTotem = false;
+    let totemBuried = false;
+    
+    let currentDeck = [];
+    let decks = { 9: [], 10: [], 11: [] };
+    let tilePool = [];
+    
+    let mapData = {};
+    let playerPos = { x: CENTER, y: CENTER };
+    let prevPos = { x: CENTER, y: CENTER };
+    let currentTile = null;
+    let currentZombies = 0;
+    let currentCard = null;
+    let currentAction = 'move';
+
+    // 放置地圖相關
+    let pendingTile = null;
+    let pendingPos = { x: 0, y: 0 };
+    let pendingRotation = 0;
+    let pendingTargetConnType = null;
+    let pendingReverseDir = null;
+
+    const ui = {
+        hpText: document.getElementById('hp-text'),
+        health: document.getElementById('health-bar'),
+        inventory: document.getElementById('inventory'),
+        time: document.getElementById('time-display'),
+        deckDisplay: document.getElementById('deck-display'),
+        map: document.getElementById('map'),
+        cardArea: document.getElementById('card-area'),
+        diceContainer: document.getElementById('dice-container'),
+        diceFace: document.getElementById('dice-face'),
+        diceResultText: document.getElementById('dice-result-text'),
+        btnFight: document.getElementById('btn-fight'),
+        btnRun: document.getElementById('btn-run'),
+        btnSearchItem: document.getElementById('btn-search-item'),
+        btnSearchTotem: document.getElementById('btn-search-totem'),
+        btnBury: document.getElementById('btn-bury'),
+        btnEndTurn: document.getElementById('btn-end-turn'),
+        btnRoll: document.getElementById('btn-roll'),
+        btnCloseCard: document.getElementById('btn-close-card'),
+        btnRecover: document.getElementById('btn-recover'),
+        modal: document.getElementById('modal'),
+        modalTitle: document.getElementById('modal-title'),
+        modalBody: document.getElementById('modal-body'),
+        btnHelp: document.getElementById('btn-help'),
+        btnCloseModal: document.getElementById('btn-close-modal'),
+        attackTitle: document.getElementById('attack-title'),
+        attackValue: document.getElementById('attack-value'),
+        attackDesc: document.getElementById('attack-desc'),
+        
+        placementContainer: document.getElementById('placement-container'),
+        previewTile: document.getElementById('preview-tile'),
+        btnRotate: document.getElementById('btn-rotate'),
+        btnPlace: document.getElementById('btn-place'),
+        btnCancelPlacement: document.getElementById('btn-cancel-placement')
+    };
+
+    function clearCards() {
+        const oldCards = ui.cardArea.querySelectorAll('.card');
+        oldCards.forEach(c => c.remove());
+    }
+
+    function init() {
+        resetGame();
+        bindEvents();
+        showMessage('歡迎來到《口袋裡的殭屍》', `
+            <p>你必須在午夜（12:00 AM）前，找到邪惡圖騰並在墓園埋葬它。</p>
+            <p><strong>移動：</strong>點擊相鄰的「虛線空白格」探索，或點擊有綠色光暈的房間回走。</p>
+            <p><strong>拼圖規則：</strong>抽到新板塊時，請利用下方的「旋轉」按鈕將缺口對準，即可放置。</p>
+        `);
+    }
+
+    function resetGame() {
+        state = State.EXPLORING;
+        time = 9;
+        health = 6;
+        inventory = [];
+        hasTotem = false;
+        totemBuried = false;
+        currentAction = 'move';
+        
+        decks[9] = [...CARDS[9]].sort(() => Math.random() - 0.5);
+        decks[10] = [...CARDS[10]].sort(() => Math.random() - 0.5);
+        decks[11] = [...CARDS[11]].sort(() => Math.random() - 0.5);
+        currentDeck = decks[9];
+
+        tilePool = [...TILE_POOL].sort(() => Math.random() - 0.5);
+
+        mapData = {};
+        playerPos = { x: CENTER, y: CENTER };
+        prevPos = { x: CENTER, y: CENTER };
+        
+        currentTile = { name: '門廳', icon: '🚪', type: 'indoor', conns: { N: 'indoor-door', S: 'indoor-door', E: 'indoor-door', W: 'indoor-door' } };
+        mapData[`${CENTER},${CENTER}`] = currentTile;
+
+        renderMap();
+        updateUI();
+    }
+
+    function renderMap() {
+        ui.map.innerHTML = '';
+        
+        for (let y = 0; y < GRID_SIZE; y++) {
+            for (let x = 0; x < GRID_SIZE; x++) {
+                const key = `${x},${y}`;
+                const tile = mapData[key];
+                
+                const tileEl = document.createElement('div');
+                tileEl.className = 'tile';
+                tileEl.id = `tile-${x}-${y}`;
+                
+                if (tile) {
+                    tileEl.classList.add('explored', tile.type);
+                    tileEl.innerHTML = `
+                        <div class="tile-icon">${tile.icon}</div>
+                        <div class="tile-name">${tile.name}</div>
+                    `;
+
+                    if (tile.conns) {
+                        Object.keys(tile.conns).forEach(dir => {
+                            const type = tile.conns[dir];
+                            const connEl = document.createElement('div');
+                            connEl.className = `conn ${type} ${dir}`;
+                            if (type === 'arrow') connEl.innerHTML = '➤';
+                            tileEl.appendChild(connEl);
+                        });
+                    }
+
+                    if (playerPos.x === x && playerPos.y === y) {
+                        tileEl.classList.add('player-here');
+                    } else if (Math.abs(playerPos.x - x) + Math.abs(playerPos.y - y) === 1) {
+                        // 相鄰可回走
+                        let dir = '';
+                        if (x > playerPos.x) dir = 'E';
+                        else if (x < playerPos.x) dir = 'W';
+                        else if (y > playerPos.y) dir = 'S';
+                        else if (y < playerPos.y) dir = 'N';
+                        
+                        const targetConnType = currentTile.conns ? currentTile.conns[dir] : null;
+                        const reverseDir = dir === 'E' ? 'W' : dir === 'W' ? 'E' : dir === 'S' ? 'N' : 'S';
+                        
+                        // 檢查入口是否相通
+                        if (targetConnType && tile.conns && tile.conns[reverseDir] === targetConnType) {
+                            tileEl.classList.add('walkable');
+                            tileEl.onclick = () => moveToRoom(x, y);
+                        }
+                    }
+                } else {
+                    // 未探索空間
+                    if (Math.abs(playerPos.x - x) + Math.abs(playerPos.y - y) === 1) {
+                        let dir = '';
+                        if (x > playerPos.x) dir = 'E';
+                        else if (x < playerPos.x) dir = 'W';
+                        else if (y > playerPos.y) dir = 'S';
+                        else if (y < playerPos.y) dir = 'N';
+
+                        const targetConnType = currentTile.conns ? currentTile.conns[dir] : null;
+
+                        if (targetConnType) {
+                            tileEl.classList.add('empty-slot');
+                            tileEl.textContent = '探索';
+                            tileEl.onclick = () => startPlacement(x, y, dir);
+                        } else {
+                            tileEl.classList.add('wall-slot');
+                            tileEl.textContent = '🚫 牆壁';
+                        }
+                    } else {
+                        tileEl.style.background = '#050505';
+                        tileEl.style.border = '1px solid #111';
+                    }
+                }
+                ui.map.appendChild(tileEl);
+            }
+        }
+    }
+
+    function getRotatedConns(conns, rotation) {
+        const dirs = ['N', 'E', 'S', 'W'];
+        const newConns = {};
+        for (let dir in conns) {
+            let idx = dirs.indexOf(dir);
+            let newIdx = (idx + rotation) % 4;
+            newConns[dirs[newIdx]] = conns[dir];
+        }
+        return newConns;
+    }
+
+    function startPlacement(tx, ty, dir) {
+        if (state !== State.EXPLORING) return;
+        if (tilePool.length === 0) {
+            showMessage('地圖探索完畢', '牌堆已經空了，無法繼續探索新房間。');
+            return;
+        }
+
+        clearCards();
+
+        pendingPos = { x: tx, y: ty };
+        pendingTargetConnType = currentTile.conns[dir];
+        pendingReverseDir = dir === 'E' ? 'W' : dir === 'W' ? 'E' : dir === 'S' ? 'N' : 'S';
+
+        let validTileIndex = -1;
+        let bestRotation = 0;
+
+        for (let i = 0; i < tilePool.length; i++) {
+            for (let rot = 0; rot < 4; rot++) {
+                const rotatedConns = getRotatedConns(tilePool[i].conns, rot);
+                if (rotatedConns[pendingReverseDir] === pendingTargetConnType) {
+                    validTileIndex = i;
+                    bestRotation = rot;
+                    break;
+                }
+            }
+            if (validTileIndex !== -1) break;
+        }
+
+        if (validTileIndex === -1) {
+            validTileIndex = 0;
+            bestRotation = 0;
+        }
+
+        pendingTile = tilePool.splice(validTileIndex, 1)[0];
+        pendingRotation = bestRotation;
+        state = State.PLACING;
+
+        ui.diceContainer.style.display = 'none';
+        ui.placementContainer.style.display = 'flex';
+        updatePreview();
+    }
+
+    function updatePreview() {
+        const rotatedConns = getRotatedConns(pendingTile.conns, pendingRotation);
+        
+        ui.previewTile.className = `tile ${pendingTile.type}`;
+        ui.previewTile.innerHTML = '';
+        
+        Object.keys(rotatedConns).forEach(dir => {
+            const type = rotatedConns[dir];
+            const connEl = document.createElement('div');
+            connEl.className = `conn ${type} ${dir}`;
+            if (type === 'arrow') connEl.innerHTML = '➤';
+            ui.previewTile.appendChild(connEl);
+        });
+
+        const iconEl = document.createElement('div');
+        iconEl.className = 'tile-icon';
+        iconEl.textContent = pendingTile.icon;
+        ui.previewTile.appendChild(iconEl);
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'tile-name';
+        nameEl.textContent = pendingTile.name;
+        ui.previewTile.appendChild(nameEl);
+
+        if (rotatedConns[pendingReverseDir] === pendingTargetConnType) {
+            ui.btnPlace.disabled = false;
+            ui.btnPlace.textContent = '確認放置';
+            ui.btnPlace.className = 'success';
+        } else {
+            ui.btnPlace.disabled = true;
+            ui.btnPlace.textContent = '出口未對準';
+            ui.btnPlace.className = 'primary';
+            ui.btnPlace.style.backgroundColor = '#555';
+        }
+    }
+
+    function confirmPlacement() {
+        if (state !== State.PLACING) return;
+
+        const finalConns = getRotatedConns(pendingTile.conns, pendingRotation);
+        pendingTile.conns = finalConns; 
+
+        mapData[`${pendingPos.x},${pendingPos.y}`] = pendingTile;
+        
+        prevPos = { ...playerPos };
+        playerPos = { ...pendingPos };
+        currentTile = pendingTile;
+        
+        state = State.EXPLORING;
+        ui.placementContainer.style.display = 'none';
+        pendingTile = null;
+
+        currentAction = 'move';
+        renderMap();
+        updateUI();
+
+        if (currentTile.special === 'bathroom_zombies' && !currentTile.triggered) {
+            currentTile.triggered = true;
+            showMessage('突發事件！', '三隻殭屍破牆而入！你必須立刻戰鬥！', false, () => {
+                currentCard = { type: 'zombie', val: 3, text: '3 隻殭屍 (破牆而入)' };
+                showCard(currentCard);
+            });
+            return;
+        }
+
+        drawCard();
+    }
+
+    function cancelPlacement() {
+        if (state !== State.PLACING) return;
+        tilePool.unshift(pendingTile); 
+        state = State.EXPLORING;
+        ui.placementContainer.style.display = 'none';
+        pendingTile = null;
+        renderMap();
+        updateUI();
+    }
+
+    function moveToRoom(tx, ty) {
+        if (state !== State.EXPLORING) return;
+        
+        prevPos = { ...playerPos };
+        playerPos = { x: tx, y: ty };
+        currentTile = mapData[`${tx},${ty}`];
+        
+        currentAction = 'move';
+        renderMap();
+        updateUI();
+        
+        drawCard();
+    }
+
+    function updateUI() {
+        const displayHour = time === 12 ? '12:00 AM' : `${time}:00 PM`;
+        ui.time.textContent = displayHour;
+        ui.deckDisplay.textContent = `牌堆剩餘: ${tilePool.length}`;
+        
+        ui.hpText.textContent = health;
+        ui.health.innerHTML = '';
+        for (let i = 0; i < health; i++) {
+            const heart = document.createElement('div');
+            heart.className = 'heart';
+            ui.health.appendChild(heart);
+        }
+
+        if (inventory.includes('Chainsaw')) {
+            ui.attackTitle.textContent = '電鋸';
+            ui.attackValue.textContent = '+0';
+            ui.attackDesc.textContent = '(戰鬥自動殺1隻)';
+        } else if (inventory.includes('Machete')) {
+            ui.attackTitle.textContent = '開山刀';
+            ui.attackValue.textContent = '+1';
+            ui.attackDesc.textContent = '(武器加成)';
+        } else if (inventory.includes('GolfClub')) {
+            ui.attackTitle.textContent = '高爾夫球桿';
+            ui.attackValue.textContent = '+1';
+            ui.attackDesc.textContent = '(武器加成)';
+        } else {
+            ui.attackTitle.textContent = '徒手攻擊';
+            ui.attackValue.textContent = '+1';
+            ui.attackDesc.textContent = '(擲骰加成)';
+        }
+
+        ui.inventory.innerHTML = '';
+        if (inventory.length === 0 && !hasTotem) {
+            ui.inventory.innerHTML = '<span style="color:#555; font-style:italic;">空無一物</span>';
+        }
+        inventory.forEach((item, index) => {
+            const tag = document.createElement('span');
+            tag.className = 'item-tag';
+            let icon = '🎒';
+            if (item === 'Oil') icon = '🛢️';
+            if (item === 'Gasoline') icon = '⛽';
+            if (item === 'Machete') icon = '🔪';
+            if (item === 'GolfClub') icon = '🏌️';
+            if (item === 'Chainsaw') icon = '🪚';
+            if (item === 'Candy') icon = '🍬';
+            tag.innerHTML = `${icon} ${item}`;
+            tag.onclick = () => handleItemClick(index);
+            ui.inventory.appendChild(tag);
+        });
+        if (hasTotem) {
+            const tag = document.createElement('span');
+            tag.className = 'item-tag totem';
+            tag.innerHTML = '🗿 邪惡圖騰';
+            ui.inventory.appendChild(tag);
+        }
+
+        ui.btnFight.style.display = 'none';
+        ui.btnRun.style.display = 'none';
+        ui.btnSearchItem.style.display = 'none';
+        ui.btnSearchTotem.style.display = 'none';
+        ui.btnBury.style.display = 'none';
+        ui.btnEndTurn.style.display = 'none';
+        ui.btnCloseCard.style.display = 'none';
+        ui.btnRecover.style.display = 'none';
+        ui.btnRoll.disabled = true;
+
+        if (state !== State.PLACING) {
+            ui.diceContainer.style.display = 'none';
+        }
+
+        if (state === State.EXPLORING) {
+            ui.btnEndTurn.style.display = 'block';
+            if (currentTile.name === '廚房' || currentTile.name === '花園') {
+                ui.btnEndTurn.textContent = '結束回合 (休息回血)';
+            } else {
+                ui.btnEndTurn.textContent = '結束回合 (抽卡)';
+            }
+
+            if (currentTile.name === '儲藏室') {
+                ui.btnSearchItem.style.display = 'block';
+            } else if (currentTile.name === '邪惡神殿' && !hasTotem) {
+                ui.btnSearchTotem.style.display = 'block';
+            } else if (currentTile.name === '墓園' && hasTotem && !totemBuried) {
+                ui.btnBury.style.display = 'block';
+            }
+        } else if (state === State.COMBAT) {
+            ui.btnFight.style.display = 'block';
+            ui.btnRun.style.display = 'block';
+            
+            let weaponText = "";
+            if (inventory.includes('Machete') || inventory.includes('GolfClub')) weaponText += " (+1)";
+            if (inventory.includes('Chainsaw')) weaponText += " (電鋸)";
+            ui.btnFight.textContent = `戰鬥 (擲骰${weaponText})`;
+
+            if (currentTile.name === '浴室') {
+                ui.btnRun.textContent = '逃跑 (必定成功)';
+                ui.btnRun.style.backgroundColor = '#2e7d32';
+                ui.btnRun.style.borderBottomColor = '#1b5e20';
+            } else {
+                ui.btnRun.textContent = '逃跑 (抽卡判定)';
+                ui.btnRun.style.backgroundColor = '#f57c00';
+                ui.btnRun.style.borderBottomColor = '#e65100';
+            }
+        } else if (state === State.ROLLING) {
+            ui.diceContainer.style.display = 'flex';
+            ui.btnRoll.disabled = false;
+        } else if (state === State.ESCAPING || state === State.ITEM_LIMIT) {
+            ui.btnCloseCard.style.display = 'block';
+            ui.btnCloseCard.textContent = '確認';
+            ui.btnCloseCard.className = 'primary';
+        }
+    }
+
+    function handleItemClick(index) {
+        const item = inventory[index];
+        const isWeapon = ['Machete', 'GolfClub', 'Chainsaw'].includes(item);
+        
+        if (isWeapon) {
+            let html = `<p>你選擇了 <strong>${item}</strong>。</p>`;
+            html += `<p style="color:#aaa; font-size:0.9rem;">效果：被動裝備。戰鬥時自動生效，無需主動使用。</p>`;
+            html += `<div style="display:flex; gap:10px; margin-top:20px;">`;
+            html += `<button disabled style="flex:1; background-color:#2e7d32; color:#fff;">已裝備 (被動)</button>`;
+            html += `<button class="primary" style="flex:1; background-color:#8e0000;" onclick="executeDiscardItem(${index})">丟棄</button>`;
+            html += `</div>`;
+            showMessage('物品資訊', html);
+            return;
+        }
+
+        let useEffect = "";
+        let canUse = false;
+
+        if (state === State.COMBAT) {
+            if (item === 'Oil') { useEffect = "消滅 1 隻殭屍！"; canUse = true; }
+            if (item === 'Gasoline') { useEffect = "消滅全部殭屍！"; canUse = true; }
+            if (item === 'Candy') { useEffect = "恢復 1 點生命。"; canUse = true; }
+        } else if (state === State.EXPLORING) {
+            if (item === 'Candy') { useEffect = "恢復 1 點生命。"; canUse = true; }
+            if (['Oil', 'Gasoline'].includes(item)) {
+                useEffect = "只能在戰鬥中使用。";
+            }
+        }
+
+        let html = `<p>你選擇了 <strong>${item}</strong>。</p>`;
+        if (useEffect) html += `<p style="color:#aaa; font-size:0.9rem;">效果：${useEffect}</p>`;
+        
+        html += `<div style="display:flex; gap:10px; margin-top:20px;">`;
+        if (canUse) {
+            html += `<button class="primary" style="flex:1;" onclick="executeUseItem(${index})">使用</button>`;
+        } else {
+            html += `<button disabled style="flex:1;">無法使用</button>`;
+        }
+        html += `<button class="primary" style="flex:1; background-color:#8e0000;" onclick="executeDiscardItem(${index})">丟棄</button>`;
+        html += `</div>`;
+
+        showMessage('物品選單', html);
+    }
+
+    window.executeUseItem = function(index) {
+        const item = inventory[index];
+        ui.modal.style.display = 'none';
+
+        if (item === 'Oil') {
+            currentZombies = Math.max(0, currentZombies - 1);
+            inventory.splice(index, 1);
+            showMessage('使用油燈', '你點燃油燈，燒死了 1 隻殭屍！');
+            if (currentZombies === 0) {
+                state = State.EXPLORING;
+                currentAction = 'move';
+            }
+        } else if (item === 'Gasoline') {
+            currentZombies = 0;
+            inventory.splice(index, 1);
+            state = State.EXPLORING;
+            currentAction = 'move';
+            showMessage('使用汽油', '你潑灑汽油並點燃，所有殭屍瞬間化為灰燼！');
+        } else if (item === 'Candy') {
+            health++;
+            inventory.splice(index, 1);
+            showMessage('吃下糖果', '你吃下糖果，恢復了 1 點生命。');
+        }
+        updateUI();
+    };
+
+    window.executeDiscardItem = function(index) {
+        ui.modal.style.display = 'none';
+        inventory.splice(index, 1);
+        
+        if (state === State.ITEM_LIMIT && currentCard && currentCard.type === 'item') {
+            inventory.push(currentCard.item);
+            if (currentCard.item === 'Candy') health++;
+            state = State.EXPLORING;
+            applyActionMode(currentCard.type);
+        } else {
+            updateUI();
+        }
+    };
+
+    function drawCard() {
+        if (currentDeck.length === 0) {
+            advanceTime();
+            if (state === State.GAMEOVER) return;
+        }
+        currentCard = currentDeck.shift();
+        showCard(currentCard);
+    }
+
+    function advanceTime() {
+        if (time === 9) { time = 10; currentDeck = decks[10]; showMessage('時間推進', '時鐘滴答作響... 現在是 10:00 PM。'); }
+        else if (time === 10) { time = 11; currentDeck = decks[11]; showMessage('時間推進', '午夜將至... 現在是 11:00 PM。'); }
+        else if (time === 11) { 
+            time = 12; 
+            gameOver('午夜來臨！殭屍大軍將你吞噬。'); 
+        }
+        updateUI();
+    }
+
+    function showCard(card) {
+        const oldCards = ui.cardArea.querySelectorAll('.card');
+        oldCards.forEach(c => c.remove());
+
+        const cardEl = document.createElement('div');
+        cardEl.className = 'card';
+        if (card.type === 'zombie') cardEl.classList.add('combat');
+        
+        let icon = '❓';
+        let title = '未知';
+        if (card.type === 'zombie') { icon = '🧟'; title = '殭屍來襲'; }
+        if (card.type === 'item') { icon = '🎒'; title = '發現物品'; }
+        if (card.type === 'event') { icon = '⚡'; title = '事件'; }
+
+        cardEl.innerHTML = `
+            <div class="card-header">${time}:00 PM<br>${title}</div>
+            <div class="card-body">
+                <div class="card-icon">${icon}</div>
+                <div>${card.text}</div>
+            </div>
+        `;
+        ui.cardArea.appendChild(cardEl);
+        setTimeout(() => cardEl.classList.add('show'), 50);
+
+        if (card.type === 'zombie') {
+            state = State.COMBAT;
+            currentZombies = card.val;
+            updateUI();
+        } else {
+            resolveCardEffects(card);
+        }
+    }
+
+    function resolveCardEffects(card) {
+        if (card.type === 'item') {
+            if (inventory.length < 2) {
+                inventory.push(card.item);
+                if (card.item === 'Candy') health++;
+            } else {
+                state = State.ITEM_LIMIT;
+                showMessage('背包已滿', `發現 ${card.item}，請點擊背包丟棄一件舊物品。`);
+                updateUI();
+                return;
+            }
+        } else if (card.type === 'event') {
+            health += card.hp;
+            if (health <= 0) {
+                gameOver('你死了。');
+                return;
+            }
+        }
+        
+        applyActionMode(card.type);
+    }
+
+    function applyActionMode(cardType) {
+        if (currentAction === 'search-item') {
+            if (cardType !== 'item') {
+                let itemCard = currentDeck.find(c => c.type === 'item');
+                if (itemCard) {
+                    currentDeck.splice(currentDeck.indexOf(itemCard), 1);
+                    if (inventory.length < 2) {
+                        inventory.push(itemCard.item);
+                        if (itemCard.item === 'Candy') health++;
+                    }
+                }
+            }
+        } else if (currentAction === 'search-totem') {
+            hasTotem = true;
+        } else if (currentAction === 'bury') {
+            gameWin();
+            return;
+        }
+        currentAction = 'move';
+        state = State.EXPLORING;
+        updateUI();
+    }
+
+    function endTurn() {
+        if (state !== State.EXPLORING) return;
+        currentAction = 'move';
+        if (currentTile.name === '廚房' || currentTile.name === '花園') {
+            health++;
+        }
+        drawCard();
+    }
+
+    function startCombat() {
+        if (state !== State.COMBAT) return;
+        state = State.ROLLING;
+        updateUI();
+        
+        let baseMsg = `殭屍數量: ${currentZombies} | 基礎: +1`;
+        if (inventory.includes('Machete') || inventory.includes('GolfClub')) baseMsg += ` + 武器: +1`;
+        if (inventory.includes('Chainsaw')) baseMsg += ` + 電鋸: 自動殺1隻`;
+        
+        ui.diceResultText.textContent = baseMsg;
+        ui.diceFace.textContent = '?';
+        ui.diceFace.style.animation = 'none';
+    }
+
+    function rollDice() {
+        if (state !== State.ROLLING) return;
+        ui.btnRoll.disabled = true;
+        ui.diceFace.style.animation = 'shake 0.5s infinite';
+        
+        let interval = setInterval(() => {
+            ui.diceFace.textContent = Math.floor(Math.random() * 6) + 1;
+        }, 50);
+
+        setTimeout(() => {
+            clearInterval(interval);
+            const roll = Math.floor(Math.random() * 6) + 1;
+            ui.diceFace.textContent = roll;
+            ui.diceFace.style.animation = 'none';
+            resolveCombat(roll);
+        }, 1000);
+    }
+
+    function resolveCombat(roll) {
+        let attack = roll + 1;
+        let log = `擲出 ${roll} + 徒手(1) = ${attack}`;
+        
+        if (inventory.includes('Machete') || inventory.includes('GolfClub')) {
+            attack += 1;
+            log += ` + 武器(1) = ${attack}`;
+        }
+        
+        if (inventory.includes('Chainsaw')) {
+            currentZombies = Math.max(0, currentZombies - 1);
+            log += ` | 電鋸殺1隻，剩 ${currentZombies}`;
+        }
+
+        ui.diceResultText.textContent = log;
+
+        setTimeout(() => {
+            if (attack >= currentZombies) {
+                showMessage('勝利', '你成功擊退了殭屍！');
+                state = State.EXPLORING;
+                currentZombies = 0;
+                
+                if (currentAction === 'search-item') {
+                    let itemCard = currentDeck.find(c => c.type === 'item');
+                    if (itemCard) {
+                        currentDeck.splice(currentDeck.indexOf(itemCard), 1);
+                        if (inventory.length < 2) {
+                            inventory.push(itemCard.item);
+                            if (itemCard.item === 'Candy') health++;
+                        }
+                    }
+                } else if (currentAction === 'search-totem') {
+                    hasTotem = true;
+                } else if (currentAction === 'bury') {
+                    gameWin();
+                    return;
+                }
+                
+                currentAction = 'move';
+                updateUI();
+            } else {
+                let damage = currentZombies - attack;
+                if (damage > 4) damage = 4;
+                health -= damage;
+                
+                if (health <= 0) {
+                    gameOver('你被殭屍吃掉了。');
+                } else {
+                    showMessage('受傷', `受到 ${damage} 點傷害。殭屍仍在房間內！`);
+                    state = State.COMBAT;
+                    updateUI();
+                }
+            }
+        }, 1000);
+    }
+
+    function runAway() {
+        if (state !== State.COMBAT) return;
+        
+        if (currentTile.name === '浴室') {
+            showMessage('逃跑成功', '你利用浴室的地形，成功擺脫了殭屍！');
+            state = State.EXPLORING;
+            currentZombies = 0;
+            currentAction = 'move';
+            playerPos = { ...prevPos };
+            currentTile = mapData[`${prevPos.x},${prevPos.y}`];
+            renderMap();
+            updateUI();
+            return;
+        }
+
+        state = State.ESCAPING;
+        
+        if (currentDeck.length === 0) {
+            advanceTime();
+            if (state === State.GAMEOVER) return;
+        }
+        
+        const card = currentDeck.shift();
+        
+        const oldCards = ui.cardArea.querySelectorAll('.card');
+        oldCards.forEach(c => c.remove());
+
+        const cardEl = document.createElement('div');
+        cardEl.className = 'card show';
+        cardEl.innerHTML = `
+            <div class="card-header">${time}:00 PM<br>逃跑判定</div>
+            <div class="card-body">
+                <div class="card-icon">${card.hasZombie ? '🧟' : '🚪'}</div>
+                <div>${card.hasZombie ? '遭遇殭屍！逃跑失敗！' : '安全！逃跑成功！'}</div>
+                <div style="font-size:0.8rem; color:#555;">(抽到: ${card.text})</div>
+            </div>
+        `;
+        ui.cardArea.appendChild(cardEl);
+        
+        if (card.hasZombie) {
+            health -= 1;
+            if (health <= 0) {
+                gameOver('逃跑時被殭屍咬死了。');
+                return;
+            }
+            state = State.COMBAT;
+        } else {
+            state = State.EXPLORING;
+            currentAction = 'move';
+            playerPos = { ...prevPos };
+            currentTile = mapData[`${prevPos.x},${prevPos.y}`];
+        }
+        updateUI();
+    }
+
+    function closeCardAction() {
+        if (state === State.ESCAPING) {
+            if (health <= 0) return;
+            renderMap();
+            updateUI();
+        } else if (state === State.ITEM_LIMIT) {
+            if (inventory.length >= 2) {
+                showMessage('背包已滿', '請先丟棄物品。');
+            } else {
+                applyActionMode(currentCard ? currentCard.type : 'none');
+            }
+        }
+    }
+
+    function gameWin() {
+        state = State.WIN;
+        updateUI();
+        showMessage('🏆 勝利！', '你成功將圖騰埋葬在墓園！\n恭喜你逃離了這個鬼地方！', true);
+    }
+
+    function gameOver(reason) {
+        state = State.GAMEOVER;
+        updateUI();
+        showMessage('💀 遊戲結束', `<div class="game-over-text">${reason}</div>`, true);
+    }
+
+    function bindEvents() {
+        ui.btnHelp.onclick = () => showMessage('遊戲規則', `
+            <ul>
+                <li><strong>目標：</strong>在午夜 (12:00 AM) 前找到圖騰，並在「墓園」埋葬它。</li>
+                <li><strong>移動：</strong>點擊四周的格子。空白格會進入旋轉介面，已探索的可以直接走。</li>
+                <li><strong>拼圖規則：</strong>利用旋轉按鈕將出口對準，確認後即可放置。</li>
+                <li><strong>特殊效果：</strong>廚房/花園休息回血；儲藏室搜尋物品；神殿尋找圖騰；墓園埋葬圖騰。</li>
+                <li><strong>浴室：</strong>進入時會有三隻殭屍破牆而入！但在浴室逃跑必定成功。</li>
+                <li><strong>時間：</strong>分為 9PM, 10PM, 11PM 三疊牌堆。抽完就推進。</li>
+                <li><strong>戰鬥：</strong>基礎攻擊力 1 + 骰子 + 武器加成。武器為被動裝備。</li>
+            </ul>
+        `);
+        ui.btnCloseModal.onclick = () => {
+            ui.modal.style.display = 'none';
+            if (state === State.GAMEOVER || state === State.WIN) location.reload();
+            else {
+                if (typeof ui.modalCloseCallback === 'function') {
+                    ui.modalCloseCallback();
+                    ui.modalCloseCallback = null;
+                }
+                updateUI();
+            }
+        };
+        ui.btnFight.onclick = startCombat;
+        ui.btnRun.onclick = runAway;
+        ui.btnSearchItem.onclick = () => {
+            if (state !== State.EXPLORING) return;
+            currentAction = 'search-item';
+            drawCard();
+        };
+        ui.btnSearchTotem.onclick = () => {
+            if (state !== State.EXPLORING) return;
+            currentAction = 'search-totem';
+            drawCard();
+        };
+        ui.btnBury.onclick = () => {
+            if (state !== State.EXPLORING) return;
+            currentAction = 'bury';
+            drawCard();
+        };
+        ui.btnEndTurn.onclick = endTurn;
+        ui.btnRoll.onclick = rollDice;
+        ui.btnCloseCard.onclick = closeCardAction;
+
+        ui.btnRotate.onclick = () => {
+            pendingRotation = (pendingRotation + 1) % 4;
+            updatePreview();
+        };
+        ui.btnPlace.onclick = confirmPlacement;
+        ui.btnCancelPlacement.onclick = cancelPlacement;
+    }
+
+    function showMessage(title, text, isEnd = false, callback = null) {
+        ui.modalTitle.textContent = title;
+        ui.modalBody.innerHTML = text;
+        ui.modal.style.display = 'flex';
+        
+        ui.modalCloseCallback = callback;
+
+        if (isEnd) {
+            ui.btnCloseModal.textContent = '重新開始';
+        } else {
+            ui.btnCloseModal.textContent = '關閉';
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>

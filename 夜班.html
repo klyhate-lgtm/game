@@ -1,0 +1,2834 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>夜班 Night Shift ─ 互動小說</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#141b24; --panel2:#1b2430; --panel3:#101720;
+    --text:#d9e0e8; --muted:#8a97a8; --accent:#c0392b; --accent2:#e0b25a;
+    --border:#2a3646; --ok:#3fa66b; --danger:#c0392b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    background:radial-gradient(circle at 50% -10%, #1b2635 0%, #080b10 60%, #05070a 100%);
+    color:var(--text);
+    min-height:100vh;
+  }
+  header{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 18px;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,rgba(20,27,36,.95),rgba(11,15,20,.85));
+    position:sticky;top:0;z-index:50;backdrop-filter:blur(6px);
+  }
+  header h1{
+    font-size:18px;margin:0;letter-spacing:2px;color:#e8eef6;
+    display:flex;align-items:center;gap:10px;
+  }
+  header h1 span.badge{
+    font-size:10px;letter-spacing:1px;color:#0b0f14;background:var(--accent2);
+    padding:2px 6px;border-radius:4px;font-weight:700;
+  }
+  header .tools{display:flex;gap:8px;flex-wrap:wrap}
+  button.tool{
+    background:var(--panel2);color:var(--text);border:1px solid var(--border);
+    padding:7px 11px;border-radius:7px;font-size:13px;cursor:pointer;
+    transition:.15s;font-family:inherit;
+  }
+  button.tool:hover{border-color:var(--accent2);color:#fff}
+  button.tool:disabled{opacity:.4;cursor:not-allowed}
+  main{
+    display:flex;gap:16px;padding:16px;max-width:1400px;margin:0 auto;
+    align-items:flex-start;
+  }
+  #storyPanel{
+    flex:2 1 0;min-width:0;background:linear-gradient(180deg,var(--panel),var(--panel3));
+    border:1px solid var(--border);border-radius:14px;padding:22px 24px;
+    box-shadow:0 10px 30px rgba(0,0,0,.4);
+  }
+  #sidePanel{flex:1 1 300px;min-width:280px;display:flex;flex-direction:column;gap:12px}
+  @media(max-width:880px){
+    main{flex-direction:column}
+    #sidePanel{width:100%}
+  }
+  .passageNum{
+    font-size:11px;letter-spacing:2px;color:var(--muted);margin-bottom:10px;
+    text-transform:uppercase;
+  }
+  .storyText p{
+    margin:0 0 12px;line-height:1.85;font-size:15.5px;color:#cfd8e3;
+  }
+  .storyText p:last-child{margin-bottom:0}
+  .choices{margin-top:20px;display:flex;flex-direction:column;gap:9px}
+  .choiceBtn{
+    display:block;width:100%;text-align:left;padding:13px 16px;
+    background:linear-gradient(90deg,#1e2a3a,#161e28);
+    border:1px solid #33425a;color:var(--text);border-radius:9px;
+    cursor:pointer;font-size:15px;line-height:1.4;transition:.16s;
+    font-family:inherit;position:relative;
+  }
+  .choiceBtn:hover:not(:disabled){
+    border-color:var(--accent2);transform:translateX(3px);
+    background:linear-gradient(90deg,#243347,#1a2330);
+  }
+  .choiceBtn:disabled{opacity:.35;cursor:not-allowed}
+  .choiceBtn .req{font-size:11px;color:var(--accent2);display:block;margin-top:3px}
+  .puzzleBox{
+    margin-top:18px;padding:16px;background:#0d141c;border:1px dashed #3a4a60;
+    border-radius:10px;
+  }
+  .puzzleBox .pTitle{font-size:14px;color:var(--accent2);margin-bottom:8px}
+  .puzzleBox .pHint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6}
+  .puzzleRow{display:flex;gap:8px;flex-wrap:wrap}
+  .puzzleRow input{
+    flex:1 1 180px;min-width:0;background:#080d12;border:1px solid #33425a;
+    color:#fff;padding:11px 13px;border-radius:8px;font-size:15px;font-family:inherit;
+    letter-spacing:1px;
+  }
+  .puzzleRow input:focus{outline:none;border-color:var(--accent2)}
+  .puzzleRow button{
+    background:var(--accent);color:#fff;border:none;padding:11px 20px;
+    border-radius:8px;cursor:pointer;font-size:14px;font-family:inherit;font-weight:600;
+  }
+  .puzzleRow button:hover{background:#d64534}
+  .puzzleRow button:disabled{opacity:.4;cursor:not-allowed}
+  .endCard{
+    margin-top:18px;padding:18px;border-radius:10px;text-align:center;
+    border:1px solid var(--border);
+  }
+  .endCard.dead{background:rgba(192,57,43,.12);border-color:#7a2a22}
+  .endCard.win{background:rgba(63,166,107,.12);border-color:#2c6b47}
+  .endCard h2{margin:0 0 8px;font-size:20px}
+  .endCard p{margin:0 0 14px;color:var(--muted);font-size:14px}
+  .sideCard{
+    background:linear-gradient(180deg,var(--panel),var(--panel3));
+    border:1px solid var(--border);border-radius:12px;padding:12px;
+  }
+  .sideCard h3{
+    margin:0 0 10px;font-size:13px;letter-spacing:1px;color:var(--accent2);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .sideCard h3 .count{color:var(--muted);font-size:11px;letter-spacing:0}
+  .cardRow{
+    display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px;
+    padding:4px 2px 8px;align-items:stretch;
+    scrollbar-width:thin;scrollbar-color:#33425a transparent;
+  }
+  .cardRow::-webkit-scrollbar{height:7px}
+  .cardRow::-webkit-scrollbar-thumb{background:#33425a;border-radius:4px}
+  .card{
+    flex:0 0 86px;display:flex;flex-direction:column;align-items:center;
+    background:linear-gradient(180deg,#1d2735,#121a24);
+    border:1px solid #2e3b4d;border-radius:9px;padding:7px 5px 5px;
+    transition:.15s;
+  }
+  .card:hover{border-color:var(--accent2);transform:translateY(-2px)}
+  .card svg{width:42px;height:42px;display:block}
+  .card .label{
+    margin-top:5px;background:rgba(0,0,0,.6);color:#e8eef6;font-size:10.5px;
+    padding:3px 4px;border-radius:4px;text-align:center;line-height:1.25;
+    width:100%;min-height:26px;display:flex;align-items:center;justify-content:center;
+    word-break:break-all;
+  }
+  .emptyNote{font-size:12px;color:var(--muted);padding:6px 2px}
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:#1e2a3a;border:1px solid var(--accent2);color:#fff;
+    padding:10px 18px;border-radius:8px;font-size:14px;opacity:0;
+    pointer-events:none;transition:.3s;z-index:200;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .modal{
+    position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;
+    align-items:center;justify-content:center;z-index:100;padding:18px;
+  }
+  .modal.hidden{display:none}
+  .modalBox{
+    background:#111922;border:1px solid var(--border);border-radius:14px;
+    max-width:820px;width:100%;max-height:86vh;overflow:auto;padding:24px;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);
+  }
+  .modalBox h2{margin:0 0 14px;font-size:20px;color:var(--accent2)}
+  .modalBox h3{margin:18px 0 8px;font-size:15px;color:#e8eef6}
+  .modalBox p,.modalBox li{line-height:1.75;font-size:14px;color:#c3cdd9}
+  .modalBox ul{padding-left:20px;margin:6px 0}
+  .modalBox .closeRow{display:flex;justify-content:flex-end;margin-top:18px;gap:8px}
+  .modalBox button{
+    background:var(--accent);color:#fff;border:none;padding:9px 18px;
+    border-radius:8px;cursor:pointer;font-size:14px;font-family:inherit;
+  }
+  .modalBox button.ghost{background:var(--panel2);border:1px solid var(--border)}
+  table.mini{width:100%;border-collapse:collapse;margin:8px 0;font-size:13px}
+  table.mini th,table.mini td{border:1px solid var(--border);padding:6px 8px;text-align:left}
+  table.mini th{background:#1b2430;color:var(--accent2)}
+  .colorDot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>夜班 <span class="badge">NIGHT SHIFT</span></h1>
+  <div class="tools">
+    <button class="tool" id="btnHelp">遊戲說明</button>
+    <button class="tool" id="btnBook">顏色力量</button>
+    <button class="tool" id="btnSave">存檔</button>
+    <button class="tool" id="btnLoad">讀檔</button>
+    <button class="tool" id="btnRestart">重新開始</button>
+  </div>
+</header>
+
+<main>
+  <section id="storyPanel">
+    <div class="passageNum" id="passageNum"></div>
+    <div class="storyText" id="storyText"></div>
+    <div id="choicesArea"></div>
+    <div id="endArea"></div>
+  </section>
+
+  <aside id="sidePanel">
+    <div class="sideCard">
+      <h3>背包 <span class="count" id="invCount">0</span></h3>
+      <div class="cardRow" id="invRow"></div>
+      <div class="emptyNote" id="invEmpty">尚未取得任何物品。</div>
+    </div>
+    <div class="sideCard">
+      <h3>線索 <span class="count" id="clueCount">0</span></h3>
+      <div class="cardRow" id="clueRow"></div>
+      <div class="emptyNote" id="clueEmpty">尚未記錄任何線索。</div>
+    </div>
+  </aside>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal hidden" id="modal">
+  <div class="modalBox" id="modalBox"></div>
+</div>
+
+<script>
+/* ============================================================
+   夜班 ─ 單人互動小說（精簡可通關版）
+   狀態機：story / dead / win / missing
+   ============================================================ */
+
+const S = {
+  cur: null,
+  inv: [],
+  clues: [],
+  flags: {},
+  visited: [],
+  history: [],
+  mode: 'story',
+  missingId: null
+};
+
+const SAVE_KEY = 'nightshift_save_v1';
+
+/* ---------- SVG 圖示產生器 ---------- */
+function svgIcon(name){
+  const common = 'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"';
+  switch(name){
+    case '青金石護身符': return `<svg ${common}><polygon points="32,4 56,32 32,60 8,32" fill="#1f4fa8" stroke="#e0b25a" stroke-width="3"/><polygon points="32,16 44,32 32,48 20,32" fill="#3a7bd5"/><circle cx="32" cy="32" r="4" fill="#e0b25a"/></svg>`;
+    case '黑曜石護身符': return `<svg ${common}><polygon points="32,4 56,32 32,60 8,32" fill="#111" stroke="#555" stroke-width="3"/><polygon points="32,16 44,32 32,48 20,32" fill="#222"/><circle cx="32" cy="32" r="4" fill="#666"/></svg>`;
+    case '阿薩邁刀': return `<svg ${common}><rect x="30" y="26" width="6" height="26" fill="#222"/><polygon points="32,4 40,30 24,30" fill="#c9d4e0"/><rect x="22" y="30" width="20" height="4" fill="#8a6b2f"/></svg>`;
+    case '白柄刀': return `<svg ${common}><rect x="30" y="26" width="6" height="26" fill="#eee"/><polygon points="32,4 40,30 24,30" fill="#c9d4e0"/><rect x="22" y="30" width="20" height="4" fill="#bbb"/></svg>`;
+    case '銀聖杯': return `<svg ${common}><path d="M18 12 h28 v12 a14 14 0 0 1 -28 0z" fill="#cdd7e2" stroke="#8a97a8" stroke-width="2"/><rect x="29" y="38" width="6" height="12" fill="#aab6c4"/><rect x="20" y="50" width="24" height="5" rx="2" fill="#8a97a8"/></svg>`;
+    case '金酒杯': return `<svg ${common}><path d="M18 12 h28 v12 a14 14 0 0 1 -28 0z" fill="#e0b25a" stroke="#9a7220" stroke-width="2"/><rect x="29" y="38" width="6" height="12" fill="#c99a3a"/><rect x="20" y="50" width="24" height="5" rx="2" fill="#9a7220"/></svg>`;
+    case '木碗': return `<svg ${common}><path d="M8 26 h48 a24 18 0 0 1 -48 0z" fill="#8a5a2b" stroke="#5c3a18" stroke-width="2"/><ellipse cx="32" cy="26" rx="24" ry="6" fill="#a06c38"/></svg>`;
+    case '錫鈴': return `<svg ${common}><path d="M32 8 a14 14 0 0 0 -14 14 v14 l-6 6 h40 l-6 -6 v-14 a14 14 0 0 0 -14 -14z" fill="#d8c27a" stroke="#9a8240" stroke-width="2"/><circle cx="32" cy="48" r="5" fill="#9a8240"/></svg>`;
+    case '黃銅鑰匙21': return `<svg ${common}><circle cx="20" cy="20" r="10" fill="none" stroke="#c9a24a" stroke-width="6"/><rect x="26" y="26" width="28" height="6" fill="#c9a24a" transform="rotate(45 26 26)"/><rect x="44" y="44" width="8" height="6" fill="#c9a24a"/></svg>`;
+    case '銅製坩堝': return `<svg ${common}><path d="M12 28 h40 a20 16 0 0 1 -40 0z" fill="#b06a3a" stroke="#6b3d1f" stroke-width="2"/><ellipse cx="32" cy="28" rx="20" ry="5" fill="#d08a4a"/><rect x="28" y="48" width="8" height="6" fill="#6b3d1f"/></svg>`;
+    case '海綠花': return `<svg ${common}><circle cx="32" cy="32" r="6" fill="#e0b25a"/><circle cx="32" cy="14" r="7" fill="#c0392b"/><circle cx="48" cy="24" r="7" fill="#c0392b"/><circle cx="43" cy="44" r="7" fill="#c0392b"/><circle cx="21" cy="44" r="7" fill="#c0392b"/><circle cx="16" cy="24" r="7" fill="#c0392b"/></svg>`;
+    case '影之書': return `<svg ${common}><rect x="12" y="8" width="40" height="48" rx="4" fill="#6b1f1f" stroke="#3a0f0f" stroke-width="2"/><rect x="20" y="14" width="24" height="4" fill="#e0b25a"/><rect x="20" y="24" width="24" height="3" fill="#a06c38"/><rect x="20" y="32" width="18" height="3" fill="#a06c38"/></svg>`;
+    case '月長石戒指': return `<svg ${common}><circle cx="32" cy="38" r="16" fill="none" stroke="#cdd7e2" stroke-width="5"/><circle cx="32" cy="20" r="9" fill="#bcd4e6" stroke="#8aa8c0" stroke-width="2"/></svg>`;
+    case '蛇皮手鐲': return `<svg ${common}><path d="M12 36 q10 -16 20 0 q10 16 20 0" fill="none" stroke="#4a8a5a" stroke-width="6"/><circle cx="50" cy="36" r="4" fill="#2e5c3a"/></svg>`;
+    case '蠟燭': return `<svg ${common}><rect x="24" y="20" width="16" height="34" rx="3" fill="#eee8d8"/><path d="M32 6 q6 8 0 14 q-6 -6 0 -14z" fill="#e0b25a"/></svg>`;
+    case '烏頭粉末': return `<svg ${common}><path d="M14 24 h36 v26 a4 4 0 0 1 -4 4 h-28 a4 4 0 0 1 -4 -4z" fill="#d8d0bc" stroke="#8a8068" stroke-width="2"/><path d="M14 24 l18 -12 l18 12z" fill="#b8ae98"/><circle cx="32" cy="40" r="6" fill="#7a5aa0"/></svg>`;
+    case '聽診器': return `<svg ${common}><path d="M18 8 v16 a14 14 0 0 0 28 0 v-16" fill="none" stroke="#8a97a8" stroke-width="4"/><circle cx="32" cy="46" r="8" fill="none" stroke="#cdd7e2" stroke-width="4"/></svg>`;
+    case '手術刀': return `<svg ${common}><rect x="30" y="24" width="5" height="30" fill="#888"/><polygon points="32,4 38,26 27,26" fill="#dfe7ef"/></svg>`;
+    case '銀項鍊玉墜': return `<svg ${common}><path d="M14 12 q18 20 36 0" fill="none" stroke="#cdd7e2" stroke-width="3"/><ellipse cx="32" cy="36" rx="10" ry="13" fill="#4a8a5a" stroke="#2e5c3a" stroke-width="2"/></svg>`;
+    case '海鸚喙': return `<svg ${common}><path d="M8 32 q20 -18 48 -8 q-8 18 -32 18 q-12 0 -16 -10z" fill="#e07030" stroke="#a04a18" stroke-width="2"/><path d="M40 28 q8 2 12 6" stroke="#222" stroke-width="2" fill="none"/></svg>`;
+    case '風鈴草': return `<svg ${common}><path d="M32 8 v20" stroke="#4a8a5a" stroke-width="4"/><path d="M22 28 q10 24 20 0z" fill="#6a8ad0" stroke="#3a5a9a" stroke-width="2"/><circle cx="32" cy="52" r="4" fill="#6a8ad0"/></svg>`;
+    case '顏色力量': return `<svg ${common}><circle cx="20" cy="20" r="10" fill="#c0392b"/><circle cx="44" cy="20" r="10" fill="#e0b25a"/><circle cx="20" cy="44" r="10" fill="#3a7bd5"/><circle cx="44" cy="44" r="10" fill="#3fa66b"/></svg>`;
+    default: return `<svg ${common}><circle cx="32" cy="32" r="22" fill="#1e2a3a" stroke="#e0b25a" stroke-width="3"/><text x="32" y="40" text-anchor="middle" font-size="22" fill="#e0b25a">?</text></svg>`;
+  }
+}
+
+/* ---------- 段落資料 ---------- */
+/* text: 段落文字（陣列）
+   choices: [{label, to, cond?, reqText?}]
+   puzzle: {prompt, hint, answer:[...], success, fail}
+   onEnter: {addItem:[], addClue:[], flag:{}}
+   dead: true / win: true
+*/
+const P = {};
+
+P["1"] = {
+  text: [
+    "你猛地驚醒，起初被黑暗弄得暈頭轉向。你在哪兒？心跳得飛快，你漫無目的地摸索著，試圖弄清自己的位置。你正躺在幾張實用卻略帶黏膩的人造皮革椅子上。",
+    "手術室的這個夜班格外忙碌。你一到崗就投入緊急主動脈瘤手術，病人還是死在了手術台上。隨後又是緊急神經科病例——血栓被成功取出，但腦損傷程度未知。那時是凌晨 3:30。你和南希拖著疲憊的腳步來到休息室，南希打開網飛，你去補眠。",
+    "你察覺到周圍的寂靜。走廊一片漆黑——醫院的燈從來不會關。接著，你聽到了聲音：一陣緩慢而沉重的「滴答——滴答」聲。",
+    "你走向門口，開門的瞬間便意識到情況絕對不對勁。你看到黑暗中閃爍著一點微光，是螢幕照亮了眼前的景象。你倒吸一口涼氣——南希側身癱在地上，喉嚨被從左耳到右耳劃開一道大口子，身上布滿刺傷。帶血的腳印從屍體旁延伸到走廊。",
+    "他還在這裡，兇手還沒走。你脫下木屐，光著腳幾乎無聲地穿過小走廊，溜進手術室主通道，朝著走廊盡頭那扇鎖著的門跑去——那扇門連接手術室和 ICU。你躲進壁龕，胃裡一陣翻江倒海。現在，你只需要輸入密碼打開這扇門。",
+    "就在這時，你聽到了一聲清晰的咳嗽，接著是開門聲。沉重的腳步聲傳來，從容不迫……而且正朝著你這邊走來。你只有一次機會。"
+  ],
+  puzzle: {
+    prompt: "鍵盤鎖：密碼是「前 4 個質數」組成的四位數。",
+    hint: "質數是只能被 1 和自己整除的數。從 2 開始：2、3、5、7……",
+    answer: ["2357"],
+    success: "230",
+    fail: "97"
+  }
+};
+
+P["97"] = {
+  text: [
+    "你用力下拉門把手，拼命拉門，但門被鎖得死死的。他的影子籠罩在你身上，你轉過身，尖叫起來。",
+    "你舉起雙手防禦，但他太強壯了，刀也太鋒利了。幸運的是，黑暗很快吞噬了你，你的痛苦很快就結束了。"
+  ],
+  dead: true,
+  deadTitle: "你輸入錯了密碼。"
+};
+
+P["230"] = {
+  text: [
+    "你用力拉開門，從縫隙裡滑進去，急切地轉身想關門。他的影子越來越近，門慢慢關上——太慢了，太慢了。你感覺喉嚨裡像有什麼東西要炸開，在心裡吶喊：快點！",
+    "終於，門「咔嗒」一聲關上了，就在這時，門把手傳來「咔嗒咔嗒」的搖晃聲。你的心臟停跳了一秒，隨後聽到一聲咒罵和拳頭砸在門上的聲音。你沿著牆滑坐在地上，雙腿發軟。",
+    "你慢慢恢復呼吸，然後環顧四周。你在一個熟悉的走廊裡，但這裡卻變得陌生——夜晚微弱的光線也無法掩蓋它的破敗和廢棄。牆上滿是霉斑和霉點，油漆剝落。你扶著牆站起來，卻立刻縮回手——一隻蜘蛛從手上爬了過去。",
+    "你背靠著剛剛逃進來的門，左手邊的走廊通向重症監護室，直走則通向醫院主通道。"
+  ],
+  choices: [
+    { label: "左轉，走向重症監護室（ICU）", to: "127" },
+    { label: "直走，前往醫院主通道", to: "276" }
+  ]
+};
+
+P["127"] = {
+  text: [
+    "你繼續沿著走廊走。ICU 根本不是你希望的安全之地，你看到的只有一片狼藉。寫著「重症監護室——請按鈴進入」的標牌扭曲地躺在地上；通常用來阻止未授權人員進入的安全門從鉸鏈上脫落下來——門上有巨大的洞。",
+    "門後的情況更是不堪設想。你小心翼翼地走過碎片，不知道這個決定是否正確。"
+  ],
+  choices: [
+    { label: "悄悄進入 ICU", to: "52" },
+    { label: "按下門鈴，尋求幫助", to: "218" }
+  ]
+};
+
+P["218"] = {
+  text: [
+    "你顫抖著伸出手，希望有人能來幫你。門鈴發出刺耳、走調的尖嘯，然後突然停了。隨後，你聽到了聲音——低語聲，從四面八方傳來。",
+    "「有人來了。有人來了。現在遊戲開始了。他們能活多久？他們會來這裡嗎？」",
+    "你小聲地叫了一聲，然後沿著走廊飛快地跑開。你不敢再回頭。"
+  ],
+  choices: [
+    { label: "退回走廊，往主通道方向走", to: "311" }
+  ]
+};
+
+P["52"] = {
+  text: [
+    "你輕手輕腳地溜進沒有窗戶的重症監護室，眼睛慢慢適應了黑暗。第一個病房區清楚地空著。病床的金屬框架生了鏽，有些床墊破了，有些還鋪著沾著棕色污漬的床單，但沒有病人，也沒有護士。點滴架散落在地板上，窗簾桿上掛滿了蜘蛛網。",
+    "起初，你只能聽到自己的心跳，但很快，你聽到了另一種聲音，來自第二個病房區，像是汩汩聲和哽咽聲。是病人嗎？你從角落探出頭去，卻什麼也看不見，不過你注意到遠處的牆上有一扇開著的門。"
+  ],
+  choices: [
+    { label: "朝遠處牆上那扇開著的門走去", to: "23" },
+    { label: "履行職責，尋找那個哽咽的病人", to: "186" }
+  ]
+};
+
+P["186"] = {
+  text: [
+    "你慢慢走進第二個病房區，循著那奇怪的聲音往前。越靠近，聲音越大，隨後你看到了——一張病床上躺著一個病人。床單被踢到一邊，病人細細的雙腿在扭動。病人穿著病號服，嘴裡插著氣管插管，那汩汩聲就是從插管裡發出來的。",
+    "病人沒有頭髮，你無法判斷其性別，也不知道躺了多久，看起來只剩皮包骨。隨後，病人注意到了你，直直地盯著你，然後開始拉扯插管。",
+    "插管越拉越長，病人還在不停地拉。病人一邊乾嘔、咳嗽，一邊把插管從喉嚨裡拽出來，但插管彷彿沒有盡頭。你驚恐地後退，用手捂住嘴。"
+  ],
+  choices: [
+    { label: "離開 ICU，往遠處那扇門走", to: "23" },
+    { label: "離開 ICU，回到走廊", to: "311" }
+  ]
+};
+
+P["23"] = {
+  text: [
+    "走近門口時，你看到裡面透出詭異的綠光。你往這個小辦公室裡瞥了一眼，發現一台電腦顯示器亮著待機綠燈。你驚呼一聲——有電？有網路？你急忙跑到書桌前，卻很快發現根本沒有真正的電腦，蹲到桌子底下一看，顯示器甚至都沒插電。",
+    "你站起身準備離開時，注意到螢幕上的游標在閃爍，隨後突然出現了一串字母：「我小時最長，我大時最短，我是人體的哪個部位？」",
+    "說真的？竟然是個謎語？你難以置信地搖了搖頭。左邊牆上的布告欄吸引了你的目光——上面釘著一張休假表和一張明信片。"
+  ],
+  choices: [
+    { label: "查看那張休假表", to: "292" },
+    { label: "仔細看看那張明信片", to: "179" },
+    { label: "不理會這些，直接離開這個科室", to: "311" }
+  ]
+};
+
+P["292"] = {
+  text: [
+    "你伸手去拿那張綠色的排班表，圖釘掉了下來，排班表也掉到了地上。你不耐煩地嘖了一聲，但蹲下去撿之前，注意到布告欄上有個被排班表擋住的洞——這個洞還穿透了牆壁！",
+    "你把眼睛湊到洞口，往裡看。隔壁的腎臟科看起來竟然很正常：護士來回走動，病人躺在病床上，環境乾淨，沒有兇殺案。但空氣似乎在輕微閃爍，像兩個畫面疊在了一起。",
+    "隨後，一陣響亮的嗡嗡聲傳來，像是數百萬隻昆蟲在飛。這聲音充斥著你的大腦，你從布告欄旁退開。嗡嗡聲立刻停止了。"
+  ],
+  choices: [
+    { label: "離開這個科室", to: "311" }
+  ]
+};
+
+P["179"] = {
+  text: [
+    "走近些你就能看清，這張明信片是為一個化學學會的活動做宣傳的，上面印著「銜尾蛇」的符號——一條蛇在咬自己的尾巴。你隱約記得這個符號與苯結構的發現有關，但想不通 ICU 為什麼會把它顯眼地貼在這裡。",
+    "儘管無法解釋為什麼會被它吸引，你還是把明信片從布告欄上取下來，放進衣袋裡。"
+  ],
+  choices: [
+    { label: "離開這個科室", to: "311" }
+  ],
+  onEnter: { addItem: ["銜尾蛇明信片"] }
+};
+
+P["311"] = {
+  text: [
+    "你沿著走廊往回走，思考現在該去哪裡。現在已經不是簡單地尋找幫助了，而是要弄明白到底發生了什麼——前提是你能活那麼久！",
+    "走到岔路口時你放慢了腳步。你向右瞥了一眼，心臟幾乎停止跳動——通往手術室的門大開著。腎上腺素湧上全身，你僵在原地，但慢慢開始觀察周圍的環境，尤其注意到你工作了多年的科室看起來和記憶中不太一樣。"
+  ],
+  choices: [
+    { label: "右轉，回到手術室調查", to: "366" },
+    { label: "左轉，前往醫院主通道", to: "276" }
+  ]
+};
+
+P["366"] = {
+  text: [
+    "你推開門走進手術室，等著眼睛適應黑暗，就在這時……一隻手掐住了你的喉嚨，把你從地上提起來，又狠狠摔向門。",
+    "你感覺脊椎「咔嗒」一聲——一陣劇烈的疼痛後，身體變得麻木。你的腿無力地晃著，那個男人抓住你的腋下，把你扛到肩上。你能聞到他衣服上浸透的血腥味——是南希的血。",
+    "「你真以為靠猜就能逃掉嗎？在這裡，沒人能靠猜。要麼知道答案，要麼死。我的主人會很高興得到第十二個，最後一個！他會非常高興的。」",
+    "他扛著你往前走，你的頭隨著他的腳步一次次撞在他背上。你不禁想：他要摘取我的哪個器官？"
+  ],
+  dead: true,
+  deadTitle: "你走回了兇手所在的地方。"
+};
+
+P["276"] = {
+  text: [
+    "你小心翼翼地走著，時不時低下頭，避開垂下的厚厚蜘蛛網。你無法想像正在發生的一切，也不知道該做什麼。你只知道自己在被一個兇手追捕，唯一能做的就是努力找到幫助。",
+    "你走到走廊盡頭，推開雙開門，進入主通道。你小心翼翼地打開門，以為那個瘋子會突然跳出來，但裡面只有更多的破敗和寂靜，彷彿這裡只剩下你一個活人。"
+  ],
+  choices: [
+    { label: "左轉，走向 B 樓梯間方向", to: "93" },
+    { label: "右轉，走向血管外科病房", to: "242" }
+  ]
+};
+
+P["242"] = {
+  text: [
+    "你沿著主通道走，心裡一沉——你本來希望這裡能恢復正常，但現實並非如此，甚至比之前更糟。天花板的瓷磚從扭曲的金屬支架上垂下來，牆上僅存的幾塊灰泥上還有深長的劃痕。",
+    "你深吸一口氣，走到走廊左轉的拐角處。"
+  ],
+  choices: [
+    { label: "沿著走廊拐彎", to: "61" },
+    { label: "查看附近右手邊的血管外科病房", to: "177" }
+  ]
+};
+
+P["177"] = {
+  text: [
+    "你的手握住門把手，正要轉動，卻聽到裡面傳來咳嗽聲。你僵在原地。咳嗽聲之後是口哨聲——一段歡快的小曲——還有沉重的腳步聲在病房裡迴盪。",
+    "他在裡面！你踮著腳尖，快速沿著走廊離開。"
+  ],
+  choices: [
+    { label: "繼續沿走廊走", to: "61" }
+  ]
+};
+
+P["61"] = {
+  text: [
+    "往前走了一會兒，你看到牆上腰際的位置掛著個東西，看起來很不正常！你慢慢走近，想看看那是什么，但只能判斷出那是一團黑色的霧氣狀物質。它只有西瓜那麼大，但看起來像個繭，而且你確定能看到它在蠕動。",
+    "你想像著它突然爆裂、無數蜘蛛湧出來的場景，於是決定繞著它走。"
+  ],
+  choices: [
+    { label: "左轉，進入普通外科病房", to: "45" },
+    { label: "右轉，進入骨科病房", to: "65" },
+    { label: "繼續沿走廊往前走", to: "159" }
+  ]
+};
+
+P["45"] = {
+  text: [
+    "你走進普通外科病房，門只發出一點微弱的「吱呀」聲就開了，但關上時卻「砰」的一聲巨響。瞬間，一陣「窸窸窣窣」的聲音傳來——無數尖利的爪子在地板上快速劃過。",
+    "你沿著廢棄的病房往前走，查看每張病床，但裡面沒有屍體，什麼都沒有，卻能聞到一股很難聞的氣味。隨後你意識到，自己看得太低了。在其中一張病床周圍的窗簾桿上，像聖誕花環一樣掛著一整套腸子。紫色的腸管一會兒膨脹，一會兒收縮。",
+    "你注意到掛著腸子的那張病床編號是 5。你搖了搖頭，清醒過來，離開病房。"
+  ],
+  choices: [
+    { label: "回到主通道", to: "362" }
+  ],
+  onEnter: { addClue: ["腸子＝5 號＝瞬間移動能力"] }
+};
+
+P["65"] = {
+  text: [
+    "你以為開門會聽到不祥的「吱呀」聲，卻驚訝地發現門無聲地開了，明亮的月光幾乎讓你睜不開眼睛。這個病房看起來像是被遺棄了十年。你衝到窗邊向外看——窗外只有茂密的森林，環繞著醫院。",
+    "「一直都是這樣，無論我們去哪裡。」",
+    "你尖叫著轉過身。聲音來自病房的盡頭，但你看不到任何人。「你得再走近點，我動不了。」",
+    "你繼續走進病房，看到最後一個病床區域拉著窗簾。你深呼吸，鼓起勇氣，撥開窗簾走了進去——一個普通的女人趴在皺巴巴、沾滿血跡的床單上。她安慰地朝你笑了笑，但你很快就發現她的身體異常扁平。",
+    "「這些骨頭都是我的。」她用眼神示意著地板上那堆骨頭，「他把我的骨頭都拿走了，連頭骨都沒留下，但這些都不是他要找的。」"
+  ],
+  choices: [
+    { label: "幫她把骨頭塞回身體裡", to: "105" },
+    { label: "去給她倒杯水", to: "358" }
+  ]
+};
+
+P["105"] = {
+  text: [
+    "你快速評估了一下情況，認為最好先從長長的腿骨開始。你在那堆骨頭裡翻找，把骨盆輕輕放在一邊，就在你找到左股骨時，突然傳來一陣令人心碎的痛苦尖叫聲。",
+    "「別碰它們，」她勉強喊道，「這些骨頭被取出來的那一刻就被下了詛咒。我被詛咒永遠這樣，除非他最終死去。」",
+    "你被一個景象打斷了——所有的骨頭都開始碎成白色的細粉。女人哭了起來，眼淚順著臉頰流下，然後她閉上眼睛，不再說話。",
+    "你不知道是不是因為痛苦太劇烈，你「殺」了她，但你能清楚地看到，沒有胸骨遮擋的胸腔裡，一顆心臟還在跳動。你離開病房。"
+  ],
+  choices: [
+    { label: "回到走廊", to: "30" }
+  ]
+};
+
+P["358"] = {
+  text: [
+    "你記得進來時經過一個小廚房，於是去拿了一杯水，送到她嘴邊。她沒有下頜骨，喝水很困難，你慢慢地把水倒進她乾渴的嘴裡。她咳嗽了幾聲，然後感激地笑了笑。",
+    "「是誰把你弄成這樣的？」你問道。",
+    "「羅伯特·卡邁克爾醫生，你肯定聽說過他。他骨子裡就是個怪物。他在尋找人体器官，這些器官很特殊，對他很重要。他殺了很多很多女人，就是為了得到這些器官。」",
+    "「請阻止他，我現在想死去，已經太久了。」她癱倒下去，儘管你問道：「怎麼阻止？我該怎麼阻止他？」卻沒有得到任何回應。"
+  ],
+  choices: [
+    { label: "離開病房，回到走廊", to: "30" }
+  ],
+  onEnter: { addClue: ["卡邁克爾在收集特殊人體器官"] }
+};
+
+P["30"] = {
+  text: [
+    "你站在走廊裡，回想剛才看到的一切，但就在你努力決定下一步該怎麼做時，你驚恐地發現那個黑色的、像霧氣一樣的繭消失了。你左右張望，卻完全看不到它的蹤影。",
+    "一個可怕的念頭閃過你的腦海，你抬頭向上看去——它也不在你頭頂上，儘管天花板上有黑色的痕跡，沿著痕跡能看出它朝著未知的方向移動了。"
+  ],
+  choices: [
+    { label: "繼續沿走廊右轉", to: "159" },
+    { label: "繼續沿走廊左轉", to: "299" },
+    { label: "查看對面的骨科病房", to: "65" }
+  ]
+};
+
+P["362"] = {
+  text: [
+    "門在你身後關上，你鬆了口氣，至少害蟲不會突然湧出來偷襲你了。但現在你需要決定，是繼續沿著走廊右轉或左轉，還是去查看對面的骨科病房。"
+  ],
+  choices: [
+    { label: "右轉", to: "299" },
+    { label: "左轉", to: "159" },
+    { label: "查看對面的骨科病房", to: "65" }
+  ]
+};
+
+P["159"] = {
+  text: [
+    "你走到走廊左轉的拐角處，但正前方是 A 樓梯間的入口。這意味著你可以下樓，但如果你更想待在這一層，也可以繼續沿著走廊走。"
+  ],
+  choices: [
+    { label: "下樓", to: "323" },
+    { label: "繼續沿這一層走廊走", to: "199" }
+  ]
+};
+
+P["199"] = {
+  text: [
+    "你覺得在這條連接走廊上很安全，這裡沒有房間，也沒有門，不會有東西突然跳出來。但就在你快要放鬆警惕時，腳滑了一下，差點摔倒。",
+    "你低頭看了看地板——在昏暗的光線下，你發現地上不只是一小片血跡，而是到處都是！厚厚的血滴和腳印覆蓋了地板——彷彿有人渾身是血，在這裡搜尋過什麼……",
+    "你的脈搏加速，加快腳步走到岔路口。左轉能回到手術室方向，右轉通常能到內科病房，但現在那裡被一道奇怪的屏障擋住了。"
+  ],
+  choices: [
+    { label: "左轉，回到手術室方向", to: "226" },
+    { label: "右轉，走向那道屏障", to: "202" }
+  ]
+};
+
+P["226"] = {
+  text: [
+    "你沿著熟悉的走廊快步走，突然陷入一片漆黑的噩夢——應急燈滅了。你僵在原地，唯一的声音是來自右邊的沉悶、有節奏的「砰砰」聲。隨後，隨著一陣電流聲，燈又閃爍著亮了起來。",
+    "你正站在兩個房間中間。"
+  ],
+  choices: [
+    { label: "走進右手邊的神經外科病房", to: "268" },
+    { label: "走進左手邊的祈禱室", to: "11" },
+    { label: "沿著走廊繼續走", to: "338" }
+  ]
+};
+
+P["202"] = {
+  text: [
+    "你慢慢走向那道奇怪的屏障，內心充滿厭惡。那是……你湊近一看，證實了最可怕的猜想——那是皮膚，用很多人的皮膚縫合在一起，鋪滿了整個走廊的寬度，從地板一直到天花板。",
+    "你能看到肚臍、雀斑和紋身，右上角還有一個符號——「三曲腿圖」，由三個相互交疊的圓圈組成。"
+  ],
+  choices: [
+    { label: "仔細檢查這片皮膚", to: "350" },
+    { label: "撕開皮膚，走到另一邊", to: "209" }
+  ]
+};
+
+P["350"] = {
+  text: [
+    "你的鼻子離皮膚只有幾英吋遠，能清楚地看到毛孔、毛囊和各種深淺不一的膚色，但那些紋身尤其令人心酸。你看到一束綠色的三葉草紋身、一條紅色橫幅紋身，上面寫著「當心狐狸和白骨精」、一個帶著薄紗翅膀的精緻仙女紋身，還有哥德式字體的紋身，寫著「Mein Haut ist mein Grimoire」（德語，意為「我的皮膚就是我的魔法書」）。",
+    "你還是不知道發生了什麼，於是轉過身。"
+  ],
+  choices: [
+    { label: "回到岔路口", to: "125" }
+  ]
+};
+
+P["209"] = {
+  text: [
+    "你找到縫合處最接近的部分，把手指伸進去。感覺有點噁心，但工作中你見過更糟的情況，所以繼續努力，直到雙手都伸了進去。然後你開始拉扯，成功了——縫線開始崩開。",
+    "但這時情況變得奇怪起來。你低頭一看，發現自己的皮膚和那道屏障接觸的地方起了緊繃的皺褶，兩種皮膚正在纏繞在一起——你正在變成屏障的一部分！",
+    "你恐慌地胡亂往後退，皮膚被撕裂的疼痛讓你大叫起來。你眼睜睜地看著自己的皮膚填補了剛才撕開的縫隙。"
+  ],
+  choices: [
+    { label: "忍痛離開，回到岔路口", to: "125" }
+  ]
+};
+
+P["125"] = {
+  text: [
+    "這條連接走廊沒有門，也沒有房間——不會有東西突然跳出來，但你突然聽到上方傳來聲音，一種故意弄出來的「嘎吱」聲。聲音又響了一次，再響了一次。",
+    "你毫不懷疑，上方有什麼東西——或者什麼人——在走動，還試圖不發出聲音。但……你已經在頂樓了，那麼屋頂空間裡藏著什麼？",
+    "你深吸一口氣，努力不去想這些。你慢慢呼氣，環顧四周。"
+  ],
+  choices: [
+    { label: "走進 A 樓梯間，下樓", to: "323" },
+    { label: "沿走廊右轉，去查看更多病房", to: "392" }
+  ]
+};
+
+P["392"] = {
+  text: [
+    "你走到走廊中間時，有樣東西吸引了你的全部注意力！牆上腰際的位置附著一團黑色的霧氣狀物質，只有西瓜那麼大，看起來像個繭，而且你確定能看到它在蠕動。",
+    "你決定繞著它走。右手邊是普通外科病房的門，左手邊是骨科病房。"
+  ],
+  choices: [
+    { label: "進入普通外科病房", to: "45" },
+    { label: "進入骨科病房", to: "65" },
+    { label: "繼續沿走廊往前走", to: "299" }
+  ]
+};
+
+P["299"] = {
+  text: [
+    "走廊盡頭又有一個右轉拐角，你意識到自己繞回了起點！正前方是血管外科病房，門是半開著的。"
+  ],
+  choices: [
+    { label: "進入血管外科病房", to: "380" },
+    { label: "前往 A 樓梯間，下樓", to: "323" }
+  ]
+};
+
+P["380"] = {
+  text: [
+    "最後一秒，你看到門縫裡地板上有一個淡淡的血腳印。是他！兇手肯定在裡面！你屏住呼吸，盡量不發出聲音，沿著走廊快步走向 A 樓梯間。"
+  ],
+  choices: [
+    { label: "前往 A 樓梯間，下樓", to: "323" }
+  ]
+};
+
+P["323"] = {
+  text: [
+    "樓梯間呈 U 形，圍繞著電梯井。你向右轉時，驚呼一聲，向後退去——樓梯上蜷縮著一具人類骸骨，呈胎兒姿勢。你短暫地想，這個人發生了什麼，為什麼會死在這裡，但還是快速從白骨旁側身走過。",
+    "你走進主通道寬闊的走廊，一大灘濃稠的綠色池塘水濺到你的襪子上，你皺了皺眉。據你所見，整個通道都被淹了，空氣中瀰漫著污濁的氣味。"
+  ],
+  choices: [
+    { label: "左轉，去急診科", to: "146" },
+    { label: "右轉，往醫院正門和通往其他區域的走廊", to: "280" }
+  ]
+};
+
+P["280"] = {
+  text: [
+    "你小心翼翼地在淤泥中跋涉，擔心會有沼澤生物纏住你的腳踝，但唯一的「攻擊」來自死水中滋生的昆蟲。",
+    "左手邊是一樓手術室的門，門上新畫著一個符號——一個八輻輪。你被這個符號吸引，走了過去，伸出胳膊。但當你觸摸它時，才意識到符號是用鮮血畫的。",
+    "主通道的右手邊是通往實驗室的門。"
+  ],
+  choices: [
+    { label: "進入實驗室調查", to: "34" },
+    { label: "繼續在淤泥中跋涉，走向走廊盡頭", to: "256" }
+  ]
+};
+
+P["34"] = {
+  text: [
+    "實驗室內部的窄走廊沒有窗戶，你只能靠手電筒照明。臭味消失了，走路時也沒有濺水聲，儘管你的腳還是濕的，還沾著綠色的藻類。",
+    "你沿著走廊往前走，經過幾個辦公室和小實驗室，但門都鎖著。走廊盡頭有個大房間，但那扇門也鎖著。你把臉貼在磨砂玻璃上，試圖看清裡面，卻什麼也看不見，不過你確定裡面有個東西泛著粉紅色的光。",
+    "你放棄了破門而入的念頭，轉身回到主通道。"
+  ],
+  choices: [
+    { label: "回到主通道，繼續朝醫院入口走去", to: "256" }
+  ]
+};
+
+P["256"] = {
+  text: [
+    "你沿著走廊走，直到一個急轉彎，朝右轉。路上，你經過左手邊的一個樓梯間，但小心翼翼地嘗試開門時，驚訝地發現門是鎖著的。",
+    "這意味著你的選擇有限：可以右轉，沿著走廊去醫院的其他區域；或者直走，穿過雙開門進入門廳。"
+  ],
+  choices: [
+    { label: "右轉，沿走廊去醫院其他區域", to: "135" },
+    { label: "直走，穿過雙開門進入門廳", to: "343" }
+  ]
+};
+
+P["135"] = {
+  text: [
+    "寬闊的主通道在你面前延伸。左手邊是醫院商店，你瞥了一眼，震驚地僵在原地——商店的門大開著，中間站著一個女人。她微笑著，示意你進去。你盯著她，不知道是否安全，這時注意到了另一個人——收銀台後面站著一個面帶怒容的男人。"
+  ],
+  choices: [
+    { label: "走進商店，問那個女人想幹什麼", to: "363" },
+    { label: "繼續往前走", to: "260" }
+  ]
+};
+
+P["363"] = {
+  text: [
+    "她很漂亮，身材嬌小，當她溫柔地說「你肯定很困惑吧」時，你能聽出她明顯的法國口音。奇怪的是，她還抱著一個毛絨玩具——一隻毛絨狐狸。",
+    "「我小時候，喜歡透過窗戶看埃菲爾鐵塔一點點建起來。如果你能找到一個和我的家鄉城市有關聯的房間，就能觸發秘密通道，幫你離開這裡。你要畫一個圓圈，站在裡面，念出這些話：『牙齒、骨頭與磚紅色的火焰，站在圓圈中央；用繩子鋪滿通道，感謝白骨精的饋贈。』」",
+    "她慢慢地念出每個音節：「By-goo-shing」，確保你能正確發音。「你現在該走了。」",
+    "顯然，你和她的對話結束了。"
+  ],
+  choices: [
+    { label: "離開商店，繼續沿主通道走", to: "260" }
+  ],
+  onEnter: { addClue: ["巴黎灰泥房間 → 畫圓圈念咒（白骨精）"] }
+};
+
+P["260"] = {
+  text: [
+    "走了一分鐘後，泥濘的地面變乾了，恢復成正常的地板。主通道變寬，成為一個候診區，有樓梯間、電梯和供人休息的長椅。但……那些人不只是在休息。你瞇著眼睛看著候診區另一邊那些一動不動的人影，他們的皮膚看起來腐爛了——腫脹，泛著綠色，表面還蔓延著深色的紋路。"
+  ],
+  choices: [
+    { label: "快速穿過候診區，走到另一邊", to: "377" },
+    { label: "轉身回到那條潮濕的走廊", to: "42" }
+  ]
+};
+
+P["377"] = {
+  text: [
+    "幸運的是，你經過那些屍體時沒有發生意外，但這個地方給人的感覺很不對勁。你加快速度，幾乎跑了起來，突然——砰！你撞到了……空氣？",
+    "你差點被撞暈，頭暈目眩時，伸出手，摸到一個看不見的固體。你順著它的形狀摸，意識到這是一個玻璃立方體，而你被困在裡面了。",
+    "你歇斯底里地踢打著玻璃，但沒注意到傳來的「嘶嘶」聲。你最後的想法是「一切都在旋轉」，因為一氧化碳濃度達到了致命水平。"
+  ],
+  dead: true,
+  deadTitle: "你被困在看不見的玻璃立方體裡。"
+};
+
+P["42"] = {
+  text: [
+    "雙腳再次踩進綠色的淤泥裡，你反而感到一陣慶幸。你注意到右手邊的牆上有樣東西，好奇地走了過去——是一幅肖像畫，畫著一群表情嚴肅的維多利亞時代男性，你猜他們是醫生。",
+    "其中一個名字引起了你的注意：羅伯特·卡邁克爾醫生。你回頭看向畫中從左數第三個人——他身材魁梧，留著濃密的深色連鬢鬍和八字鬍，表情陰沉。",
+    "你繼續沿著走廊往前走，經過右手邊的商店。走到走廊盡頭，你左轉，朝著急診科的方向走去。"
+  ],
+  choices: [
+    { label: "去急診科", to: "146" },
+    { label: "右轉去醫院入口的門廳", to: "343" }
+  ],
+  onEnter: { addClue: ["羅伯特·卡邁克爾醫生"] }
+};
+
+P["343"] = {
+  text: [
+    "你走進門廳，大步走向出口，感到一陣興奮，儘管不確定離開這個惡臭的地方後該做什麼。你雙手分別抓住一個門把手，用力推開雙開門，然後……",
+    "你的視線變得狹窄，眼前一片明亮，幾乎要暈過去，感覺像被人打了一拳肚子。是一堵磚牆！沒有出路，只有一堵磚牆。你跪倒在地，眼淚湧了出來。幾分鐘後，你站了起來——還能怎麼辦呢？",
+    "你轉過身，讓磚牆在你身後。右手邊是自助餐廳和諮詢台，整個區域看起來空無一人，卻亂七八糟。"
+  ],
+  choices: [
+    { label: "進一步探索自助餐廳", to: "180" },
+    { label: "查看諮詢台", to: "239" }
+  ]
+};
+
+P["180"] = {
+  text: [
+    "你在桌子之間走動，偶爾搖一搖桌子，看看有沒有東西從垃圾裡跑出來，但除了一堆垃圾掉下來，什麼都沒有。遠處的牆邊是收銀台，你注意到收銀機是開著的。好奇心驅使你看了一眼——裡面沒有錢，但兩個不同的格子裡各放著一樣東西：一個是黑曜石雕像護身符，另一個是蛇皮編織的手鐲。",
+    "直覺告訴你，拿走兩樣東西會帶來厄運——畢竟偷竊就是偷竊——但你忍不住想拿其中一樣。"
+  ],
+  choices: [
+    { label: "拿走黑曜石護身符", to: "180a" },
+    { label: "拿走蛇皮手鐲", to: "180b" },
+    { label: "什麼都不拿，去諮詢台", to: "239" }
+  ]
+};
+
+P["180a"] = {
+  text: ["你把黑曜石護身符放進口袋。它摸起來異常冰冷。"],
+  choices: [{ label: "前往諮詢台", to: "239" }],
+  onEnter: { addItem: ["黑曜石護身符"] }
+};
+
+P["180b"] = {
+  text: ["你把蛇皮編織的手鐲戴在手腕上。它緊緊貼著皮膚，有種奇異的溫熱感。"],
+  choices: [{ label: "前往諮詢台", to: "239" }],
+  onEnter: { addItem: ["蛇皮手鐲"] }
+};
+
+P["239"] = {
+  text: [
+    "你從諮詢台的櫃台上方瞥了一眼，看看有沒有有用的東西。常春藤纏繞著桌面生長，但你看到藤蔓間有一卷羊皮紙。你伸手把它拿出來，展開，盡量不去聞那股發霉的氣味，讀道：",
+    "「若你需要阿薩邁刀，需向彭德爾的妻子請教。」",
+    "你把羊皮紙捲起來，塞進右邊的襪子裡，藏在手術服下面。"
+  ],
+  choices: [
+    { label: "繼續探索門廳", to: "108" }
+  ],
+  onEnter: { addClue: ["阿薩邁刀 → 問彭德爾的妻子（愛麗絲）"] }
+};
+
+P["108"] = {
+  text: [
+    "門廳鋪著一塊巨大的波斯地毯，正前方是兩扇雕刻精美的橡木雙開門。門廳左手邊是一面裝在鍍金巴洛克風格畫框裡的巨大鏡子，右手邊立著一尊真人大小的大理石雕像，雕像上的男人穿著清教徒風格的衣服。"
+  ],
+  choices: [
+    { label: "穿過雙開門", to: "41" },
+    { label: "仔細查看鏡子", to: "386" },
+    { label: "仔細查看雕像", to: "244" }
+  ]
+};
+
+P["244"] = {
+  text: [
+    "你走到門廳的右手邊，抬頭盯著這座雕刻出來的臉。雕像用傲慢的表情看著你，底座上的銘文顯示，這是馬修·霍普金斯——英格蘭 17 世紀著名「女巫獵人」，被稱為「女巫獵人將軍」的雕像。",
+    "你忍不住想觸摸那光滑的大理石臉頰。"
+  ],
+  choices: [
+    { label: "仔細查看雕像", to: "269" },
+    { label: "去查看鏡子", to: "386" },
+    { label: "走向雙開門", to: "41" }
+  ]
+};
+
+P["269"] = {
+  text: [
+    "你的指尖還沒碰到這座雕像精緻的面部雕刻，就感覺到有東西在動，趕緊向後縮，但還是太慢了——雕像的手像鉗子一樣抓住了你的手腕。他彎下腰，盯著你的眼睛，說道：「我的工作永遠做不完嗎？我必須被這些害蟲、這些女巫糾纏嗎？」",
+    "你試圖告訴他你不是女巫，是護士，但他厭惡地嗤之以鼻。「我已經聽過無數次這個蹩腳的藉口了。『只是個治療者』？別騙人了！你和撒旦勾結，為此你必須死！」",
+    "他現在用手掐住了你的喉嚨，把你整個人舉離地面。你的腳一開始還在瘋狂地踢動，後來漸漸無力了。"
+  ],
+  dead: true,
+  deadTitle: "你碰了不該碰的雕像。"
+};
+
+P["386"] = {
+  text: [
+    "你站在鏡子前，一時驚訝於自己憔悴的模樣——眼下有紫色的黑眼圈，臉色蒼白得泛著蠟光。你湊近細看，又覺得視線變得模糊，但後退一步後才發現，是鏡子本身在起霧。",
+    "鏡面被霧氣完全覆蓋後，開始浮現出字跡，彷彿有一隻無形的手指在霧氣中塗鴉——是一道謎語：",
+    "My first is in WITCH but not in CHASTE",
+    "My second is in SIN but not in WASTE",
+    "My third is in LOVE but not in VEX",
+    "My fourth is in HOLE but not in HEX",
+    "My fifth is in MOON but not in MAIN",
+    "My last is in WICCA but not in VAIN",
+    "My whole has a sap that will soothe when you're ill",
+    "And whose name is the same as when tears start to spill"
+  ],
+  puzzle: {
+    prompt: "輸入謎語的答案（英文單字）。",
+    hint: "首字母在 WITCH 不在 CHASTE → W；第二個在 SIN 不在 WASTE → I；第三個在 LOVE 不在 VEX → L；第四個在 HOLE 不在 HEX → L；第五個在 MOON 不在 MAIN → O；最後在 WICCA 不在 VAIN → W。整個詞是一種樹，汁液可鎮痛。",
+    answer: ["WILLOW"],
+    success: "94",
+    fail: "386f"
+  }
+};
+
+P["386f"] = {
+  text: [
+    "霧氣漸漸消散，謎語也隨之消失。你沒能解開它。"
+  ],
+  choices: [
+    { label: "去查看雕像", to: "244" },
+    { label: "走向雙開門", to: "41" }
+  ]
+};
+
+P["94"] = {
+  text: [
+    "「答案是 WILLOW（柳樹）。」一開始，你以為自己錯了，因為什麼都沒發生，但當你仔細看鏡子時，發現鏡子裡的影像不太對勁。你看到腳邊有一個小盒子，於是蹲下來摸索，眼睛緊緊盯著鏡子裡的影像。",
+    "雖然你能看到自己的手碰到了盒子，卻感覺不到它的存在。除了「盒子在鏡子的另一邊」，你想不出其他解釋。"
+  ],
+  choices: [
+    { label: "試著穿過鏡子去拿盒子", to: "331" },
+    { label: "去看看門廳右手邊的雕像", to: "244" },
+    { label: "穿過那扇雙開門", to: "41" }
+  ]
+};
+
+P["331"] = {
+  text: [
+    "你小心翼翼地用指尖碰了碰鏡子，感覺和普通鏡子沒什麼區別，但就在你開始責怪自己輕信他人時，鏡面突然有了彈性，你的手伸了進去。",
+    "你聳了聳肩，心想「管他呢！」，抬起腿，邁了過去。"
+  ],
+  choices: [
+    { label: "走進鏡中的房間", to: "234" }
+  ]
+};
+
+P["234"] = {
+  text: [
+    "你穿過鏡子，走進一個與鏡像完全不同的房間。這裡更像是一座豪宅裡的男士書房，有切斯特菲爾德式的扶手椅，到處散落著書，空氣中瀰漫著難聞的陳腐威士忌味和雪茄味。這是卡邁克爾的藏身處嗎？",
+    "你伸手去拿盒子，卻感到肩胛骨之間傳來一陣灼燒般的疼痛，像是有人用熱刀在皮膚上反覆劃動。你掀起衣服，透過剛剛穿過的鏡子查看，發現背上被烙了一個黑色的螺旋形印記。",
+    "你不知道這是怎麼回事，所以最好還是離開，但你想先快速查看一下這個「鏡像房間」——這裡有很多在「真實世界」裡沒有的秘密物品。"
+  ],
+  choices: [
+    { label: "查看書桌上的顯微鏡", to: "173" },
+    { label: "查看餐具櫃上的水晶酒瓶", to: "295" }
+  ],
+  onEnter: { flag: { mirrorBrand: true } }
+};
+
+P["173"] = {
+  text: [
+    "這台顯微鏡是黃銅材質的古董。你透過目鏡看去，調整了一下鏡子的角度。光線照亮視野後，你看到有東西在動，但很模糊。你上下轉動調焦旋鈕。",
+    "圖像變得清晰了——是一隻仙女。它非常小，身體半透明，不同顏色的光在它人形的身體上流動。它在誇張地做著手勢——跪下，前傾，深吸一口氣，然後跳起來，重複整個動作。",
+    "儘管這很有趣，但你意識到自己在鏡子後面待得太久了——該走了！你拿起盒子，夾在胳膊下，深吸一口氣，穿過鏡子。"
+  ],
+  choices: [
+    { label: "帶著盒子穿回鏡子", to: "10" }
+  ]
+};
+
+P["295"] = {
+  text: [
+    "你走向裝飾華麗的餐具櫃，櫃子上放著水晶酒瓶和配套的平底杯。你不得不承認，你有點想嘗嘗那看起來像白蘭地的液體，但你知道在這裡不能相信任何東西。",
+    "就在你糾結的時候，從拋光的漆面反射中看到了自己的樣子——你的臉變成了骷髏，眼窩是巨大的黑洞，嘴裡伸出長長的彎曲獠牙。你尖叫著向後退，用手摸了摸自己的臉，確認自己看起來不是那樣。",
+    "那是什么？是預兆嗎？是警告嗎？誰知道呢，此刻你已經受夠了——該走了！"
+  ],
+  choices: [
+    { label: "帶著盒子穿回鏡子", to: "10" }
+  ]
+};
+
+P["10"] = {
+  text: [
+    "成功了！你回到門廳的波斯地毯上，雙腿發抖，癱倒在地。脊椎上的皮膚還在刺痛，但等你平靜下來後，你把盒子放在面前的地板上，打開蓋子。",
+    "紫色天鵝絨襯裡中，放著一把黑色手柄的雙刃刀——盒蓋內側的銘文顯示，這是「阿薩邁刀」（用於巫術儀式的刀）。你小心翼翼地把它放進包裡，站起身來。"
+  ],
+  choices: [
+    { label: "去查看雕像", to: "244" },
+    { label: "走向那扇雙開門", to: "41" }
+  ],
+  onEnter: { addItem: ["阿薩邁刀"] }
+};
+
+P["41"] = {
+  text: [
+    "你推開雙開門，大步走了進去，完全不知道自己要往哪裡去。穿過一條鋪著橡木鑲板的短走廊後，你走進一個大房間，裡面有半圓形的階梯式座位——這是演講廳嗎？不對，再仔細一看，演講者的講台位置放著一張手術台。",
+    "瞬間你明白了，這是一個維多利亞時代的手術室，周圍的看台是給觀眾用的。你輕輕觸摸手術台，想像著無數人被按住、被切割時感受到的極度恐懼和痛苦。",
+    "就在你腦海中浮現出「維多利亞時代的外科醫生」這個念頭時，你聽到身後傳來腳步聲。"
+  ],
+  choices: [
+    { label: "轉身面對來者（你有阿薩邁刀）", to: "101", cond: { item: "阿薩邁刀" } },
+    { label: "轉身面對來者（你沒有阿薩邁刀）", to: "254", cond: { noItem: "阿薩邁刀" } }
+  ]
+};
+
+P["254"] = {
+  text: [
+    "你轉過身，準備面對無論什麼即將出現的東西。一個身材魁梧的中年男人站在手術台和黑板之間，留著深色的連鬢鬍和八字鬍。儘管你憑直覺就知道他是誰，但還是看到黑板上用粉筆寫著「卡邁克爾·耶洗別」。",
+    "「我的最後一個女巫，」他熱情地說道，「我等你和你的能力，等了太久了。」",
+    "「我不是女巫，」你結結巴巴地說，「我是護士，我沒有超能力，我只想回家。」但你的話沒有任何作用。",
+    "「沒錯，我的『護士女巫』，擁有治癒之手的女巫。很快，這雙手就會變成我的了。」",
+    "你轉身想跑，卻迎面撞上了另一個人——那個兇手。他立刻用手臂勒住你的脖子，你的臉貼在他沾滿血的襯衫上，儘管你努力反抗，他的力氣卻太大了。你最後的清醒想法是聽到他感謝你「送」給他的「禮物」，還聽到他說你是「0 號」。"
+  ],
+  dead: true,
+  deadTitle: "你沒有帶刀就來見卡邁克爾。"
+};
+
+P["101"] = {
+  text: [
+    "你轉過身，準備面對無論什麼即將出現的東西。一個身材魁梧的中年男人站在手術台和黑板之間，留著深色的連鬢鬍和八字鬍。儘管你憑直覺就知道他是誰，但還是看到黑板上用粉筆寫著「卡邁克爾·耶洗別」。",
+    "「我的最後一個女巫，」他熱情地說道，「我等你和你的能力，等了太久了。」",
+    "「我不是女巫，」你結結巴巴地說，「我是護士，我沒有超能力，我只想回家。」但你的話沒有任何作用。",
+    "「沒錯，我的『護士女巫』，擁有治癒之手的女巫。很快，這雙手就會變成我的了。」",
+    "你意識到他在說什麼，血液彷彿瞬間從頭部流走，但一股腎上腺素湧上全身。「才不會呢。」你心想。",
+    "「你休想砍掉我的手！」你說著，從包裡掏出阿薩邁刀。現在，輪到他害怕了，但這種恐懼只持續了幾秒，隨後他的臉上就浮現出怒容。",
+    "「你想用這把刀幹什麼？」他問道。這是個好問題。"
+  ],
+  choices: [
+    { label: "把他的喉嚨從左耳割到右耳", to: "378" },
+    { label: "把他的名字從黑板上劃掉", to: "86" }
+  ]
+};
+
+P["378"] = {
+  text: [
+    "你跳起來，舉起刀，準備劃開他的氣管，就在這時……他消失了。你震驚地把刀掉在地上，刀「噹啷」一聲落在地板上。",
+    "一片寂靜中，你聽到身後傳來一聲輕笑——他現在站在看台的最高層，低頭看著你。當然，他有「瞬間移動」的能力。",
+    "但你為什麼不用能力直接攻擊你？你的目光落在地上的刀上，同時意識到——是刀在保護你。但這個念頭剛出現，你就感到身體傳來一陣奇怪的感覺，像被別人控制了。",
+    "你只能眼睜睜地看著自己伸手越過手術台，拿起那把屠刀，朝自己的手腕砍去。骨頭碎裂的聲音和鮮血從斷肢處噴湧而出的景象映入眼簾。"
+  ],
+  dead: true,
+  deadTitle: "你選錯了使用阿薩邁刀的方式。"
+};
+
+P["86"] = {
+  text: [
+    "你繞著手術台大步走，一隻眼睛盯著這個半人半魔的東西。你舉起刀，準備劃掉那個名字。",
+    "你要劃掉哪個名字？"
+  ],
+  choices: [
+    { label: "卡邁克爾", to: "360" },
+    { label: "耶洗別", to: "290" }
+  ]
+};
+
+P["290"] = {
+  text: [
+    "你認為，隨著他收集的能力越來越多，他變了，變成了一個惡魔。而在這個地方，你只聽過一個惡魔的名字——耶洗別。你開始用力劃黑板上的名字，刀刃劃過黑板的聲音讓你皺起眉頭，直到這個名字消失不見。",
+    "你靠在黑板上，喘著氣。隨後……",
+    "「你們這些女巫真是愚蠢，再怎麼有能力也一樣愚蠢。」",
+    "你難以置信地慢慢轉過身——不！不可能！但確實是他，卡邁克爾還站在那裡，那個兇手堵住了出口。你無處可逃，想到他們可能會對你施加的折磨，你開始發抖。",
+    "但至少你可以做最後一件事——你果斷地舉起刀，刺向自己的左手，一遍又一遍地刺，直到左手血肉模糊。「現在你休想從這裡得到任何能力了！」你歇斯底里地尖叫著。"
+  ],
+  dead: true,
+  deadTitle: "你劃掉了錯誤的名字。"
+};
+
+P["360"] = {
+  text: [
+    "他可能認為自己既強大又邪惡，但你相信他仍然是一個被惡魔控制的凡人，所以他的名字一直都是他本來的名字。你開始用力劃黑板上的「卡邁克爾」，刀刃劃過黑板的聲音讓你皺起眉頭，直到這個名字消失不見。",
+    "你轉過身，看著地上乾癟的人影——他還活著，但也快死了，你能聽到他喉嚨裡發出的臨死前的「咯咯」聲。",
+    "你注意到看台座位之間的狹窄樓梯。"
+  ],
+  choices: [
+    { label: "立刻離開演講廳", to: "394" },
+    { label: "用刀割下他的頭", to: "72" },
+    { label: "俯身看著他，直到他死去", to: "133" }
+  ]
+};
+
+P["72"] = {
+  text: [
+    "儘管即將要做的事很殘忍，但你感到一種真正的平靜——這意味著你離回家越來越近了。卡邁克爾還在地上喘息、咳嗽，你知道他快不行了，但你想確認他真的死了。",
+    "你用左手抓住他的頭髮，右手拿著刀，快速地劃過他的喉嚨。你一直割，直到他的頭被割下來。你舉起他的頭，盯著他毫無生氣的雙眼，然後把他的頭放在他的胸口上，走向看台座位之間的狹窄樓梯。"
+  ],
+  choices: [
+    { label: "走上樓梯", to: "394" }
+  ]
+};
+
+P["133"] = {
+  text: [
+    "卡邁克爾還在地上喘息、咳嗽，你知道他快不行了。你蹲在他身邊，身體前傾，臉離他只有幾英吋遠。你就這樣看著、等著，過了幾分鐘，他發出一聲長長的、顫抖的嘆息。",
+    "你感覺這口氣被吸入了自己的身體，這個想法讓你有些反感，但不知為何，又覺得理所當然。卡邁克爾一動不動了，他的生命結束了。",
+    "你記住了這口氣的特徵——「臨死前的气息」，以及它的另一個名字：CHEYNE STOKES（潮式呼吸）。你站起身，走向看台座位之間的狹窄樓梯。"
+  ],
+  choices: [
+    { label: "走上樓梯", to: "394" }
+  ],
+  onEnter: {
+    addClue: ["CHEYNE STOKES＝臨死前的气息"],
+    flag: { breath: true }
+  }
+};
+
+P["394"] = {
+  text: [
+    "沿著陡峭狹窄的樓梯往上走時，你注意到左手邊的教堂長椅底下有樣東西。儘管你很想把卡邁克爾乾癟的屍體拋在身後，但好奇心還是佔了上風。你蹲下來，伸手在長椅底下摸索，抓住一個感覺沉甸甸的盒子，把它拉了出來。",
+    "盒子裡裝著東西，但上了鎖。鎖孔旁刻著數字「21」。"
+  ],
+  choices: [
+    { label: "用黃銅鑰匙 21 打開盒子", to: "21", cond: { item: "黃銅鑰匙21" } },
+    { label: "沒有鑰匙，放下盒子離開", to: "147", cond: { noItem: "黃銅鑰匙21" } }
+  ]
+};
+
+P["21"] = {
+  text: [
+    "小鑰匙順利插進鎖孔，搭扣「叮」的一聲彈開了。你打開蓋子，凝視著盒子內部。",
+    "盒子裡鋪著天鵝絨，中央放著一只精緻的銀聖杯。杯身冰涼，內壁刻著細小的符文。你把它拿出來，放進包裡。這一定是最終儀式要用的容器。",
+    "你走下樓梯，離開演講廳。"
+  ],
+  choices: [
+    { label: "離開演講廳", to: "147" }
+  ],
+  onEnter: { addItem: ["銀聖杯"] }
+};
+
+P["147"] = {
+  text: [
+    "你推開橡木鑲板門，走進一條極其明亮的走廊。有那麼幾秒，你動彈不得，只能伸手扶著牆，等眼睛適應光線。最後，你看清了，這是一條短短的走廊，兩側是玻璃，陽光照射進來。透過玻璃，你能看到草坪、灌木和成年樹木。",
+    "走廊盡頭是一個岔路口，你看到一個人影從右向左快速閃過。你驚呼一聲，本能地想喊出來，但隨即想起這裡的人不一定是朋友。不過，那個穿藍色手術服的人影看起來很眼熟……",
+    "你加快腳步，到達 T 字形岔路口時向左看，卻空無一人。"
+  ],
+  choices: [
+    { label: "左轉", to: "304" },
+    { label: "右轉", to: "237" }
+  ]
+};
+
+P["237"] = {
+  text: [
+    "你很快就來到一扇門前，標牌上寫著「天竺葵科室」，還畫著一朵簡單的五瓣紫色花。標牌很可愛，但沒告訴你裡面是什麼。"
+  ],
+  choices: [
+    { label: "進去看看", to: "258" },
+    { label: "轉身往回走", to: "304" }
+  ]
+};
+
+P["258"] = {
+  text: [
+    "你走進科室，立刻僵在原地。眼睛努力適應黑暗，三十秒後，你明白這裡為什麼這麼暗了——成千上萬張紙貼滿了牆壁、天花板和門，所有窗戶都被紙封住了，擋住了光線。",
+    "所有紙上都寫滿了密密麻麻的字，但你一個都不認識。有時候，你會從眼角的餘光看到零星的句子片段：「當真菌遷移時」「諂媚的傾向」「看似完全被吞噬卻」，但當你轉頭仔細看時，這些字又變成了陌生的文字。",
+    "空氣裡瀰漫著發霉、積灰的氣味，讓人感到壓抑。但在科室的盡頭，你看到一個空的嬰兒床，你意識到自己在哪裡了——產科病房。",
+    "你在右手邊發現了一扇大部分被遮住的門，費了點勁才扯掉粘在門上的紙，露出標牌：產房。"
+  ],
+  choices: [
+    { label: "進入產房", to: "372" },
+    { label: "繼續沿走廊走", to: "119" }
+  ]
+};
+
+P["372"] = {
+  text: [
+    "你花了點時間才扯掉粘在門上的紙，把門打開。儘管牆上貼滿了字，但還是有光線透進來，意味著你能更清楚地看到眼前的恐怖景象——牆上濺滿了血跡，地板上積著一灘灘血。看起來有人試圖清理過，但只是把大量的血抹得到處都是。",
+    "空氣中有昆蟲輕微的嗡嗡聲，但看不到它們在哪裡。房間右手邊的簾子圍著一個區域，你猜那裡有一張床；對面有一扇半開的門，門旁邊靠著一把丟棄的拖把。"
+  ],
+  choices: [
+    { label: "拉開右手邊的簾子", to: "252" },
+    { label: "左轉，走向那扇半開的門", to: "53" }
+  ]
+};
+
+P["252"] = {
+  text: [
+    "經歷了這麼多，你已經做好了最壞的打算，而眼前的景象也確實沒讓你失望。你拉開窗簾，看到床上躺著一具腐爛的屍體，雙腿被架在產鉗上，腹部被切開。屍體呈現出灰色和斑駁的顏色，腹腔裡爬滿了蒼蠅，密密麻麻的。",
+    "儘管有這麼多蒼蠅在「享用」屍體，腹腔看起來卻異常空虛。你不知道孩子出生後發生了什麼，但很確定子宮也被拿走了。",
+    "她的眼睛渾濁，嘴巴大張著，但你還是握住她冰冷的手，問道：「你能幫我嗎？」停頓了很久，她慢慢眨了眨眼睛，看著你。",
+    "「我是格蕾特爾，但很長一段時間裡，我只是 10 號。在那個可怕的日子裡，我失去了三樣東西。我希望能找回我的孩子、我的子宮和我的能力，就像找回我的名字一樣，但這永遠不可能了。」"
+  ],
+  choices: [
+    { label: "「你的子宮賦予了你什麼能力？」", to: "349" },
+    { label: "「我能幫你找到你的孩子嗎？」", to: "100" }
+  ]
+};
+
+P["349"] = {
+  text: [
+    "「就像卡邁克爾一樣！」她大喊著，用力捶打病床。蒼蠅被這個動靜驚擾，嗡嗡地圍著你的頭飛。",
+    "「你們這些人只關心能力！要麼害怕，就殺死我們；要麼想要，就殺死我們。不會再這樣了！」",
+    "你試圖解釋，讓她相信你和他們不一樣，你想幫忙，你只想回家，但蒼蠅無處不在，嗡嗡地鑽進你的耳朵，擋住你的視線，飛進你的嘴裡。你拼命拍打，轉著圈，在這片混亂中，沒有注意到繩子從你的手腕、膝蓋和頭上伸出來。",
+    "蒼蠅很快又落回屍體上，隨後你意識到自己的四肢變得異常沉重。你試圖轉身，頭卻只能僵硬地、搖搖晃晃地動。但你還是瞥見了——飛快地瞥了一眼你光滑的木頭胳膊。",
+    "惹惱「木偶大師」格蕾特爾是個不明智的舉動，從現在起，她會把你當作最新的木偶，牢牢地控制在手裡。"
+  ],
+  dead: true,
+  deadTitle: "你冒犯了木偶大師。"
+};
+
+P["100"] = {
+  text: [
+    "「你很善良，」她回答道，「但那孩子早就不在了，而且它也不是你所理解的『孩子』。」你看起来很困惑，但不敢問她是什麼意思。",
+    "她似乎察覺到了你的不安，拍了拍你的手。「我是『木偶大師』，」她說道，「我能用我的木偶控制人，可以說，我能牽動他們的『弦』。我當時正試圖控制卡邁克爾那個怪物，但他在木偶準備好之前就把它扯壞了。然後他奪走了我的能力，讓我再也無法嘗試。你殺了他？」你點了點頭。",
+    "「你也需要摧毀耶洗別，你知道嗎？」你又點了點頭。「你需要進入她的密室。當你找到藥房時，去查看鴉片酊。」",
+    "說完，她痛苦地咳嗽起來，震動了腹部的「內容物」。一團憤怒的黑色蟲子湧了上來，在你面前嗡嗡作響。等它們落回去繼續「享用」時，格蕾特爾已經不見了。"
+  ],
+  choices: [
+    { label: "離開產房，繼續走進科室", to: "119" },
+    { label: "去查看那扇半開的門", to: "53" }
+  ],
+  onEnter: { addClue: ["耶洗別密室 → 藥房查看鴉片酊"] }
+};
+
+P["53"] = {
+  text: [
+    "你推開門，這個房間又小又暗，角落裡漏水的水龍頭傳來「滴答」聲。遠處的牆上有一扇小窗戶，但鐵柵欄和灰塵擋住了所有陽光。一把結實的木椅正對著你，椅子上繫著好幾條皮帶。椅子後面有一個高高的木柵欄，柵欄後面有一架梯子和兩個水桶。所謂的「治療」，實際上是折磨。",
+    "儘管感覺有些可怕，但你實在太累了，決定坐在椅子上休息一會兒，恢復體力。你不確定自己是不是睡著了，但突然，你猛地坐直身體，確定自己聽到身後傳來聲音，來自木柵欄後面。"
+  ],
+  choices: [
+    { label: "站在椅子上，從柵欄上方往裡看", to: "193" },
+    { label: "假裝還在睡覺", to: "283" }
+  ]
+};
+
+P["193"] = {
+  text: [
+    "你踮著腳尖站在椅子扶手上，努力向上爬。一點一點地，你終於能越過柵欄看到裡面了。",
+    "一張臉正盯著你。你歇斯底里地尖叫起來，鬆開手，摔在地上，扭傷了腳踝。",
+    "儘管你彎腰揉著腫脹的腳踝，還是能聽到那個東西繞到你身邊的腳步聲。你帶著恐懼轉過身，看到了這個「新來者」——她看起來很嚇人，臉又紫又腫，粗厚的舌頭從嘴裡伸出來，脖子看起來又長又腫，滿是瘀傷。",
+    "「很難看，是吧？」她說道，「1612 年那會兒，我們只有『短吊』這種處決方式。我花了 11 分鐘才窒息而死，懸在那裡，看著下面那些人嘲笑我。我真希望自己是個女巫，能詛咒他們所有人，但我不是。」",
+    "「我叫愛麗絲。」"
+  ],
+  choices: [
+    { label: "「卡邁克爾為什麼想要我？」", to: "5" },
+    { label: "「阿薩邁刀在哪裡？」", to: "77" }
+  ]
+};
+
+P["5"] = {
+  text: [
+    "她疑惑地看著你，還帶著一絲不耐煩。",
+    "「我怎麼會知道？我剛跟你說過，我不是女巫！都過去 400 多年了，人們還是覺得我是女巫！」說完，她生氣地跺了跺腳，走出了門。",
+    "你已經受夠了這個房間裡潮濕的臭味，於是也一瘸一拐地走了出去。"
+  ],
+  choices: [
+    { label: "離開房間，回到走廊", to: "368" }
+  ]
+};
+
+P["77"] = {
+  text: [
+    "你從襪子裡掏出那張羊皮紙，又讀了一遍。你之前以為「彭德爾」是個男人，在找他的妻子，但不是！這指的是彭德爾山，所以這肯定是蘭開夏郡女巫之一。",
+    "「請允許我自我介紹，」她禮貌地說道，「我叫愛麗絲，我可以告訴你，阿薩邁刀藏在鏡子裡。你需要足夠聰明才能拿到它，但拿單可以給你指引。向他請教，你就能拿到刀。」",
+    "說完，她微微點了點頭，離開了房間。你想跟著她，但從周圍的寂靜來看，她已經消失了。你已經受夠了這個房間裡潮濕的臭味，於是也一瘸一拐地走了出去。"
+  ],
+  choices: [
+    { label: "離開房間，回到走廊", to: "368" }
+  ],
+  onEnter: { addClue: ["阿薩邁刀藏在鏡子裡；拿單可指引"] }
+};
+
+P["283"] = {
+  text: [
+    "起初，你只聽到微弱的喘息聲，但很快就聽到左手邊傳來輕輕的腳步聲，水桶被踢到了一邊。你在椅子上一動不動，頭歪向一邊，保持緩慢平穩的呼吸。",
+    "沒有其他聲音了——不管那個東西是什麼，只是站在那裡看著你。隨後，你感覺到有個東西放在了你的腿上，接著是一聲「嘖嘖」聲，然後是快速遠去的腳步聲。",
+    "你坐起來，看到腿上放著一個小小的銅製坩堝。你大喊「嘿」「等等」，但那個東西已經不見了。你往坩堝裡看了看，發現裡面裝著乾的黃色花朵。",
+    "你把坩堝和裡面的東西放進包裡，離開這個潮濕的房間。"
+  ],
+  choices: [
+    { label: "離開房間，回到走廊", to: "368" }
+  ],
+  onEnter: { addItem: ["銅製坩堝"] }
+};
+
+P["368"] = {
+  text: [
+    "你沿著走廊走，經過許多開著的門，看到冰冷、壓抑的房間裡殘留著鐵製病床框架的痕跡，最後來到一個岔路口，一條走廊繼續直走，另一條朝右急轉彎。"
+  ],
+  choices: [
+    { label: "直走", to: "122" },
+    { label: "右轉", to: "236" }
+  ]
+};
+
+P["122"] = {
+  text: [
+    "你沿著走廊走，經過更多像牢房一樣的房間，最後到達一扇沉重的鋼門。你試著轉動門把手，門是鎖著的。",
+    "你現在覺得無聊，又被這裡的陰暗氛圍壓得喘不過氣，於是回到岔路口，這次選擇了左手邊的走廊。"
+  ],
+  choices: [
+    { label: "回到岔路口，走另一條路", to: "236" }
+  ]
+};
+
+P["236"] = {
+  text: [
+    "你終於走到了一扇門前——是出口！不過，左手邊還有一扇關著的門，你能聽到裡面傳來挪動的聲音。"
+  ],
+  choices: [
+    { label: "穿過出口門，離開這個像監獄一樣的病房", to: "227" },
+    { label: "看看左手邊那扇關著的門裡發生了什麼", to: "284" }
+  ]
+};
+
+P["284"] = {
+  text: [
+    "你轉動門把手，推開門。房間裡很暗，你等著眼睛適應黑暗。裡面傳來持續的挪動和摩擦聲，似乎裡面的東西沒發現你。",
+    "現在你看清楚了，這是一個軟墊牢房，裡面沒有家具，沒有窗戶，什麼都沒有——這種殘酷的懲罰是用來對付精神失常的人，完全無法幫助他們平靜下來。房間遠處的地板上躺著一具屍體，有人蹲在屍體旁邊。",
+    "「你好。」你喊道，那個人轉過身面對你。你嚇得血液都快凝固了——你清楚地看到這個老太婆的臉，她沒有牙齒的嘴巴上沾著發黑的血，正用手指撕咬屍體上的肉，吃了起来。她咆哮著，開始輕聲卻帶著威脅地念誦著什麼。"
+  ],
+  choices: [
+    { label: "攻擊她，阻止她完成咒語", to: "39" },
+    { label: "試著和她說話", to: "348" }
+  ]
+};
+
+P["39"] = {
+  text: [
+    "雖然你平時不是個暴力的人，但此刻卻感到一陣憤怒，決心要結束這一切。你想都沒想，雙手扼住了她瘦骨嶙峋的脖子，所有的怒火都集中在手指上，越掐越緊。",
+    "她睜大眼睛盯著你，眼神平靜，沒有牙齒的嘴臭烘烘地張著。她沒有反抗，也沒有掙扎，但你還是沒有鬆手，根本無法停止用力。最後，你意識到自己已經托不住她了——她變得像死人一樣重。",
+    "你鬆開手，對自己剛才的所作所為感到震驚。她的屍骨般的身體癱倒在地上。你一遍又一遍地喃喃自語：「我別無選擇。」但連你自己都不相信這句話。",
+    "你拖著無力的雙腿退回到走廊裡，坐在地上，一會兒責怪這個地獄般的地方把你逼到這種絕境，一會兒又厭惡這樣的自己。過了一會兒，你擦乾眼淚，站起身來。木已成舟，你必須繼續前進。"
+  ],
+  choices: [
+    { label: "離開精神科病房", to: "227" }
+  ]
+};
+
+P["348"] = {
+  text: [
+    "「請住手，」你大喊道，「我需要結束這一切，這樣才能回家！你能幫我嗎？」",
+    "老太婆停止了念誦和手勢，歪著頭看著你。「你知道需要摧毀誰嗎？」她問道，因為嘴巴受損，說話有些含糊不清。",
+    "「我想是羅伯特·卡邁克爾，但也總聽到耶洗別的名字，我很困惑。他們是不同的人，還是同一個人的兩個名字？」",
+    "老太婆笑了笑，露出牙齦。「這取決於你問誰。如果你問卡邁克爾，他會說自己就是耶洗別，說他拿走我的牙齒和我『復活死者』的能力後，就升入了惡魔的領域。」她笑著搖了搖頭，「但如果你問耶洗別，她會告訴你，卡邁克爾只是她的玩具。」",
+    "「所以我必須殺死耶洗別？」",
+    "老太婆朝你發出嘶嘶聲。「你這個傻瓜，惡魔是殺不死的！你必須『摧毀』它們，必須摧毀耶洗別。但也別忘記卡邁克爾，他可能只是個凡人，但凡人也能成為危險的野獸。」",
+    "她突然站直身體，比你想象的高得多、挺拔得多。「你想知道怎麼摧毀耶洗別嗎？那你必須證明自己有資格！」"
+  ],
+  choices: [
+    { label: "接受她的測試", to: "68" },
+    { label: "覺得已經了解夠多了，離開這個房間", to: "227" }
+  ]
+};
+
+P["68"] = {
+  text: [
+    "聽到你的話，這個老太婆興奮地笑了起來，看起來像個孩子。她不知道從哪裡拿出一個裝飾精美的小木箱子，扔在你面前的地上。她盤腿坐在地上，面對著你，箱子放在你們中間。她從口袋裡掏出三把鑰匙，扔在箱子旁邊。",
+    "「顯然，我是 1 號，但我永遠是埃里克托，沒人能奪走我的名字。這個箱子裡裝著你需要的答案，但需要把三把鑰匙按正確的順序插進去。你見過我的哪兩個姐妹？她們的能力被奪走時，被分配到了哪個數字？」",
+    "你仔細看了看鑰匙，發現鑰匙柄上刻著不同的數字：一把刻著 3，一把刻著 1，最後一把刻著 2。",
+    "「從左到右的正確順序是：松果體對應的數字，然後是舌頭對應的數字，最後是牙齒對應的數字。」她向後靠去，閉上了眼睛。"
+  ],
+  puzzle: {
+    prompt: "輸入三把鑰匙的正確順序（三位數）。",
+    hint: "松果體＝約翰娜＝2 號；舌頭＝3 號；牙齒＝埃里克托＝1 號。",
+    answer: ["231"],
+    success: "231",
+    fail: "15"
+  }
+};
+
+P["15"] = {
+  text: [
+    "你不耐煩地晃動鑰匙，但不知是鑰匙太舊生鏽了，還是你選錯了插入順序，鑰匙根本不管用。埃里克托厭惡地朝你啐了一口，帶血的唾液濺到你的臉上。",
+    "你猜這意味著你選的順序錯了。你開始懇求再試一次，但這個老太婆已經爬起身，帶著箱子走到屍體旁，再次蹲下來，繼續啃食屍體。",
+    "你搞砸了，只能離開這個房間。"
+  ],
+  choices: [
+    { label: "離開精神科病房", to: "227" }
+  ]
+};
+
+P["231"] = {
+  text: [
+    "你把最後一把鑰匙插進鎖孔，屏住呼吸。隨著一聲輕微的「咔嗒」聲，箱子蓋彈開了。老太婆拍手笑了起來，嘆了口氣。",
+    "箱子裡有一張紙，看起來像是從筆記本上撕下來的，字跡華麗。一開始，你以為這只是一份食譜，但讀著讀著，你意識到這遠不止是食譜——這是摧毀惡魔所需的配料清單。",
+    "你需要：全部放入銀杯中、執行者的畫像、木偶大師器官裡的血、臨死前的气息。如果你能讓它燃燒，冒出____顏色的煙霧，就能消滅惡魔……",
+    "「最後一個詞是什麼？是什麼顏色？」你揮舞著紙，問埃里克托，但她已經轉過身，繼續啃食屍體了。",
+    "箱子底部還有一個夾層。你打開夾層，裡面放著一隻小小的錫鈴，以及一枚由青金石拼接而成的蛇形護身符。你把這些東西連同配方紙一起放進包裡。"
+  ],
+  choices: [
+    { label: "離開精神科病房", to: "227" }
+  ],
+  onEnter: {
+    addItem: ["錫鈴", "青金石護身符"],
+    addClue: ["最終配方：銀杯＋執行者畫像＋木偶大師血＋臨死前气息＋黑色煙霧"]
+  }
+};
+
+P["227"] = {
+  text: [
+    "這扇門沒有鎖，你順利離開精神科病房。前方有一段短短的樓梯，爬到頂部後，你來到一條左右延伸的寬闊走廊。對面牆上的標牌顯示，左轉是老年病房，右轉是睡眠障礙實驗室。"
+  ],
+  choices: [
+    { label: "左轉，去老年病房", to: "25" },
+    { label: "右轉，去睡眠障礙實驗室", to: "382" }
+  ]
+};
+
+P["25"] = {
+  text: [
+    "能走進這條走廊，你感到一陣慶幸。走廊寬敞通風，拱形屋頂上有天窗，明媚的陽光曬在身上，驅散了精神病院的陰冷。你走近老年病房時，看到右邊有另一條走廊岔出。"
+  ],
+  choices: [
+    { label: "直走，進入老年病房", to: "355" },
+    { label: "右轉，走這條新出現的走廊", to: "333" }
+  ]
+};
+
+P["355"] = {
+  text: [
+    "你走向病房的雙開門，看到門上方花哨的標牌：「歡迎來到勿忘我病房」。嗯，給老年病房起這個名字似乎有點奇怪，但這裡看起來乾淨整潔，具有維多利亞時代的風格。",
+    "你經過幾個辦公室和儲藏室，很快走進病房的主要區域。房間中央有一張大桌子，把兩排病床分開。所有東西都擺放整齊，床單疊得有稜有角。",
+    "你能看到通往衛生間和病人日間活動室的標牌。"
+  ],
+  choices: [
+    { label: "去病床上睡覺", to: "329" },
+    { label: "去衛生間", to: "217" },
+    { label: "去日間活動室", to: "112" }
+  ]
+};
+
+P["329"] = {
+  text: [
+    "你的頭靠在柔軟的枕頭上，沉沉地睡去。醒來時，你不知道過了多久，但感覺精力奇蹟般地恢復了。你伸了個懶腰，坐起來，看到一個幽靈坐在你旁邊。它穿著破舊的灰色衣服，無聲地哭泣著。",
+    "發現你在看它，它停下了哭泣，儘管嘴巴還大張著。它伸出一隻灰色的手，似乎想要什麼。作為回應，它向後靠了靠，又開始無聲地哭泣。隨後，一雙看不見的手把你按回床上，枕頭被從你頭下抽走，蓋在你的臉上，讓你無法呼吸！",
+    "你把包朝它扔過去——拿走你想要的吧，你心想——讓你無比欣慰的是，枕頭被拿開了。幽靈還坐在那裡，你的包完好無損。它又伸出了手。",
+    "「你想要什麼？」你不耐煩地問道。它歪了歪頭，看起來很沮喪。「你是想讓我自己猜，還是讓我選一樣給你？」聽到「選一樣」，幽靈立刻精神起來，露出期待的表情，把手伸得更近了。"
+  ],
+  choices: [
+    { label: "從包裡選一樣東西給幽靈（若背包為空則直接離開）", to: "329give" }
+  ]
+};
+
+P["329give"] = {
+  text: [
+    "你從包裡挑了一樣東西，放在幽靈伸出的手上。幽靈露出感激的神情，隨後化作一縷灰煙消失了。你站起身，去探索病房的另一端。"
+  ],
+  choices: [
+    { label: "去衛生間", to: "217" },
+    { label: "去日間活動室", to: "112" }
+  ]
+};
+
+P["217"] = {
+  text: [
+    "你推開門，有那麼一秒，以為這裡什麼都沒有——只有一個舊錫製浴缸和一個木桶。但你往前走了幾步，看到浴缸裡裝滿了水，一個裸體的老太婆躺在水下。她的眼睛和嘴都大張著，你碰了碰水，因為冰冷而縮回了手。",
+    "突然，老太婆睜開眼睛盯著你，坐了起來。冰冷的水濺到你身上，她冰冷的手像鉗子一樣抓住了你的胳膊。",
+    "「你以為我淹死了？是嗎？」她問道。你拼命點頭，同時試圖掰開她的手指。「我沒有肺，怎麼可能淹死？」她鬆開你的胳膊，癱倒在浴缸邊緣。",
+    "「是卡邁克爾拿走了你的肺嗎？」你問道。老太婆嗤之以鼻，點了點頭。「他從你的肺裡得到了什麼能力？」",
+    "「我有漂浮的能力，他稱我為 9 號。記住，如果你要調製任何咒語或藥劑，盛放它們的杯子和配料同樣重要。通常每種咒語都有特定的容器，但一般來說，用銀器不會出錯。」"
+  ],
+  choices: [
+    { label: "去日間活動室", to: "112" },
+    { label: "回到病房外的走廊", to: "172" }
+  ],
+  onEnter: { addClue: ["9 號＝肺＝漂浮；咒語容器用銀器不會出錯"] }
+};
+
+P["112"] = {
+  text: [
+    "你推開門，幾乎被裡面的光線晃瞎了眼睛。牆壁被漆成了鮮豔的黃色。這個房間裡不止你一個人，儘管這裡稱不上「熱鬧」。一把椅子上坐著一個年輕的護士，她對面坐著三個老年男人。",
+    "你走向護士，但還沒等你問什麼，她就朝你搖了搖手指。「你只能和這幾位先生中的一位說話，只能選一個。他們分別是薩麥爾、拿單和丹尼爾。」",
+    "這三個人都沒什麼吸引力。薩麥爾正專注地用指頭搓著一小塊糞便；拿單穿著沾滿尿液的睡衣；丹尼爾的嘴角掛著一長串口水，一直滴到胸口。"
+  ],
+  choices: [
+    { label: "和薩麥爾說話", to: "84" },
+    { label: "和拿單說話", to: "240" },
+    { label: "和丹尼爾說話", to: "356" },
+    { label: "離開日間活動室", to: "315" }
+  ]
+};
+
+P["84"] = {
+  text: [
+    "你蹲在薩麥爾的椅子旁邊，密切注意著他的手——可別讓他把糞便抹到你身上！",
+    "「先生您好，」你心想禮貌或許能幫上忙，「您能告訴我些什么嗎？」老人的眼睛甚至沒有聚焦或轉動，但他微笑著喃喃說道：「一定要去理療室看看，你會從金妮那裡學到些東西。」",
+    "說完這句話，他的臉又變得毫無生氣。你站起身，離開日間活動室。"
+  ],
+  choices: [
+    { label: "離開日間活動室", to: "315" }
+  ],
+  onEnter: { addClue: ["去理療室找金妮"] }
+};
+
+P["240"] = {
+  text: [
+    "你蹲在拿單的椅子旁邊，幾乎要被氨氣味嗆暈過去。「先生您好，您能告訴我些什么嗎？」",
+    "拿單顫抖著指了指遠處的牆。你轉過身，只看到黃色的牆壁。你不確定這是什麼意思，轉過身時，發現他的頭已經垂到了胸口。你站起身準備離開，他卻喃喃說道：「是一種樹。」",
+    "你等著他繼續說，但他只說了這麼一句「至理名言」。你離開日間活動室。"
+  ],
+  choices: [
+    { label: "離開日間活動室", to: "315" }
+  ],
+  onEnter: { addClue: ["拿單說：是一種樹（阿薩邁刀提示）"] }
+};
+
+P["356"] = {
+  text: [
+    "你蹲在丹尼爾的椅子旁邊，看著那串懸在他嘴邊的口水隨著每一次沉重的呼吸晃動。「先生您好，您能告訴我些什么嗎？」",
+    "老人抬起頭，直直地看著你，同時把口水吸回嘴裡。這一幕很噁心，但你努力不表現出來。「哦，是的，你知道嗎……」他停頓了很久很久，最後終於繼續說道，「黃色有助於激發思維。」",
+    "說完，他的頭又垂了下去。你站起身，離開日間活動室。"
+  ],
+  choices: [
+    { label: "離開日間活動室", to: "315" }
+  ],
+  onEnter: { addClue: ["丹尼爾說：黃色有助於激發思維"] }
+};
+
+P["315"] = {
+  text: [
+    "你把那令人噁心的黃色拋在身後，思考接下來該做什麼。"
+  ],
+  choices: [
+    { label: "去衛生間調查", to: "217" },
+    { label: "走向病房出口", to: "172" }
+  ]
+};
+
+P["172"] = {
+  text: [
+    "你離開病房，注意到病房的名字是「勿忘我」。考慮到這似乎是老年病房，你心想，給病房起這個名字的人真是有夠病態的。",
+    "你沿著一條短走廊走，最後到達一個岔路口，左手邊有另一條走廊岔出。你可以走這條走廊，儘管不知道它通向哪裡，也可以繼續直走。"
+  ],
+  choices: [
+    { label: "走左手邊那條未知走廊", to: "333" },
+    { label: "繼續直走", to: "114" }
+  ]
+};
+
+P["333"] = {
+  text: [
+    "很快，走廊向右轉，又走了一會兒後，你左轉，來到一個大門廳。"
+  ],
+  choices: [
+    { label: "走進門廳", to: "108" }
+  ]
+};
+
+P["114"] = {
+  text: [
+    "你沿著這條走廊走，經過右手邊一段短短的樓梯。樓梯通向樓下，看起來像地牢一樣，你不喜歡那裡的樣子，於是繼續往前走，直到到達一扇門。門旁邊的小標牌上寫著「睡眠障礙實驗室」，但門上方華麗花哨的文字寫著「歡迎來到罌粟病房」。"
+  ],
+  choices: [
+    { label: "推開門進入罌粟病房", to: "223" }
+  ]
+};
+
+P["382"] = {
+  text: [
+    "能走進這條走廊，你感到一陣慶幸。走廊寬敞通風，拱形屋頂上有天窗，明媚的陽光曬在身上，驅散了精神病院的陰冷。",
+    "走了一會兒，你來到一扇門。門旁邊的小標牌上寫著「睡眠障礙實驗室」，但門上方華麗花哨的文字寫著「歡迎來到罌粟病房」。"
+  ],
+  choices: [
+    { label: "推開門進入罌粟病房", to: "223" }
+  ]
+};
+
+P["223"] = {
+  text: [
+    "你沿著中央走廊走，經過許多單人間。這很合理——如果要研究睡眠，就得讓人們能真正睡著。但現在這裡很安靜，你走到岔路口，需要做選擇——可以直走，也可以左轉。",
+    "就在你猶豫不決時，你注意到右手邊房間的床尾有個凸起，看起來像腿——這意味著你有了第三個選擇。"
+  ],
+  choices: [
+    { label: "直走", to: "155" },
+    { label: "左轉", to: "247" },
+    { label: "走進那個臥室", to: "297" }
+  ]
+};
+
+P["155"] = {
+  text: [
+    "你離開睡眠實驗室，沿著筆直的走廊走，直到到達另一扇門。這是理療科，不過它還有個名字叫「毛地黃廳」。你走進科室，發現自己身處一條長長的走廊，盡頭有一個游泳池。你能聞到氯的氣味，看到陽光在水面上反射出的波紋照在牆上。"
+  ],
+  choices: [
+    { label: "調查游泳池區域", to: "12" },
+    { label: "回到睡眠實驗室的岔路口，走另一條走廊", to: "247" }
+  ]
+};
+
+P["12"] = {
+  text: [
+    "這個水池像老式的維多利亞時代水療池，但很乾淨、寧靜，池水看起來也很誘人。你慢慢走近，突然聽到身後傳來一陣笑聲。你猛地轉身，看到一個綠皮膚的女人站在離你只有幾步遠的地方。她笑了——那笑容令人不快，你看到她嘴裡露出細小而鋒利的鯊魚般的牙齒。",
+    "「你是誰？」你問道，她卻不回答，只是笑著，突然佯裝向前撲來。你向後退，沒站穩，身體搖晃了一下，隨後重力將你拉倒，你「撲通」一聲掉進水裡。",
+    "你在水裡胡亂撲騰了幾秒，才意識到自己在淺水區，於是站起身來。就在你抓住池邊準備爬上去時，她把手按在你的頭頂，用力往下按。你掙扎著浮出水面，卻撞上了一層屏障——池水表面彷彿結冰了一樣。恐慌瞬間席捲了你，你用力撞擊屏障，但屏障堅不可摧。你的肺已經像要燃燒起來，你必須呼吸，卻無法呼吸。"
+  ],
+  dead: true,
+  deadTitle: "綠皮膚的女人把你按在水裡。"
+};
+
+P["247"] = {
+  text: [
+    "沒過多久，你離開睡眠實驗室，沿著走廊走。走廊先左轉，然後右轉，最後你來到一個門廳。"
+  ],
+  choices: [
+    { label: "走進門廳", to: "108" }
+  ]
+};
+
+P["297"] = {
+  text: [
+    "你本能地想熱情地打個招呼，但想起這裡絕對不是正常的醫院。床上的景象可能是你見過的最恐怖的畫面——床尾看起來還算正常，但床頭完全不是。病人的頭皮被割開，拉下來蓋住臉，頭骨被取走了，露出了大腦。無數個腦電圖電極直接插在灰質上。",
+    "但更恐怖的是，一隻貓若無其事地蹲在病人的胸口上，似乎在試圖啃食腦組織。"
+  ],
+  choices: [
+    { label: "拿起旁邊的東西朝貓扔過去", to: "59" },
+    { label: "試著把貓引開，這樣就能檢查這具屍體", to: "376" },
+    { label: "厭惡地離開房間", to: "126" }
+  ]
+};
+
+P["376"] = {
+  text: [
+    "你抓起旁邊一根腦電圖導線，在地上來回晃動。貓立刻警惕起來，擺出準備捕獵的姿勢，尾巴左右擺動。你慢慢移到房間的另一邊，把貓從病床邊引開。",
+    "隨後傳來一個聲音：「你要玩多久？還是說你真的要把導線接上，這樣我們才能記錄數據？別誤會，有個助手我很感激，但你總得做點工作吧！」",
+    "那隻貓現在蹲坐在地上，用毫不掩飾的鄙視眼神看著你。「真是笨得無可救藥！」貓說完，跳回病床，調整一個電極的位置。它短暫地回頭看了你一眼，大喊道：「出去！」",
+    "你照做了。"
+  ],
+  choices: [
+    { label: "離開房間", to: "126" }
+  ]
+};
+
+P["59"] = {
+  text: [
+    "最近的东西是一個空罐子。你一把抓起罐子，舉起胳膊。",
+    "「你到底想幹什麼？」一個傲慢的聲音問道。你僵在原地，胳膊還舉著。「我想幹什麼？你在幹什麼？真噁心！」",
+    "「噁心？調整電極的位置很噁心嗎？怎麼了？就因為我用嘴？我是隻貓！不然我該怎麼移動它？你這個白痴！」",
+    "你慢慢放下胳膊，怒視著這隻貓。一陣尷尬的沉默後，你把罐子放回床頭櫃上，問道：「你是誰？那是誰？」",
+    "「我叫沙彭蒂耶，那個，正如你無禮地看到的，是我的病人。我本職是化學家，但在這個地方待著會無聊到發瘋，所以我決定研究一下神經學。太有趣了！」",
+    "「你知道卡邁克爾或耶洗別的事嗎？」沙彭蒂耶翻了個白眼，猛地甩了甩尾巴。「我確實知道耶洗別有個密室，裡面藏著一些需要妥善保管的東西。不過我不知道密室在哪裡——不然也不會叫『密室』了，對吧？不過我很了解這個地方。你知道，貓可以到處遊蕩。你打算傷害卡邁克爾和耶洗別嗎？」"
+  ],
+  choices: [
+    { label: "「是的，我要殺了他們。」", to: "309" },
+    { label: "「不，我只想回家。」", to: "96" }
+  ]
+};
+
+P["96"] = {
+  text: [
+    "沙彭蒂耶向上點了點頭，然後用爪子擦了擦臉頰。「那我祝你好運。我已經把我知道的都告訴你了，不能再幫你了。如果你離開時能把門關上，我會很感激。」",
+    "它繼續梳理毛髮，顯然表示對話已經結束。你離開房間，按照它的要求關上了門。"
+  ],
+  choices: [
+    { label: "回到走廊", to: "126" }
+  ]
+};
+
+P["309"] = {
+  text: [
+    "「早就該這樣了！」沙彭蒂耶說道，它站在病人的胸口上，全身抖了抖，然後輕鬆地跳到地上。它繞著你的腿靈活地走了個「8」字，然後抬頭看著你。「我可以幫你，不是幫你殺人，雖然我撓人很疼，但我確實知道一些關於這個地方的事。」",
+    "你們倆走向門口，把病床上可憐的病人留在那裡。「不管他了嗎？」你問道。沙彭蒂耶用看白痴的眼神看著你。「他死了，不會在意我走不走的。」",
+    "你帶著滿臉困惑，跟著它走了出去。"
+  ],
+  choices: [
+    { label: "回到走廊", to: "126" }
+  ]
+};
+
+P["126"] = {
+  text: [
+    "你回到走廊，權衡著下一步該怎麼做。你可以從臥室門出發，沿著走廊直走，也可以右轉。"
+  ],
+  choices: [
+    { label: "沿走廊直走", to: "247" },
+    { label: "右轉", to: "155" }
+  ]
+};
+
+P["304"] = {
+  text: [
+    "你沿著走廊走，來到一扇沉重的門前——你到達放射科了。你走進去，經過那些熟悉的標牌——核醫學、CT 掃描、核磁共振——它們和維多利亞時代的建築與家具放在一起，顯得奇怪。",
+    "你來到一個岔路口，右轉能離開放射科，朝兒科病房走去；或者你可以直走，去放射科的其他區域。"
+  ],
+  choices: [
+    { label: "右轉，朝兒科病房走去", to: "115" },
+    { label: "直走，去放射科其他區域", to: "204" }
+  ]
+};
+
+P["204"] = {
+  text: [
+    "你繼續沿著走廊走，聞到了花香——很多很多花的香味！這種情況可能發生在病房，但絕不會發生在放射科。你環顧四周，卻找不到香味的來源。",
+    "左手邊有一些椅子和報紙，是一個很小的候診區，只有一股霉味。右手邊是一扇關著的門，上方有一盞紅燈——紅燈亮著通常是警告「危險！正在進行 X 光檢查」。"
+  ],
+  choices: [
+    { label: "在候診區休息一下", to: "341" },
+    { label: "看看是誰在做 X 光檢查", to: "75" },
+    { label: "直接直走，離開放射科", to: "208" }
+  ]
+};
+
+P["75"] = {
+  text: [
+    "你猶豫地打開門，滿心以為會聽到警報聲和喊叫聲，結果卻只聽到一片寂靜，還有濃郁得讓人窒息的花香。房間裡有一些機器，牆上掛著鉛衣，但厚厚的丁香花覆蓋了地板，還不知怎麼地爬上了牆壁、蓋住了家具。",
+    "突然，花瓣微微動了一下，隨後一個女人坐了起來。花瓣從她身上掉落，她環顧四周，儘管你能看到她沒有眼睛——眼瞼凹陷下去，眼窩深處一片漆黑。",
+    "「我這裡。」你說道，想幫上點忙。她溫柔地笑了笑。「我知道。我能『看見』東西，能預知未來。我曾經是 11 號，但因為你打敗了那個暴君，我的名字恢復了。我叫瑪格達。」",
+    "「你知道我未來可能會去哪裡嗎？」你問道。她又笑了笑。「你有很多選擇，我無法預測你的自由意志會帶你走向何方。」",
+    "你的目光在房間裡掃視，注意到角落裡的文件櫃頂上有一朵紅色的花——在一片丁香花中，只有這一朵孤零零的紅色花朵。「看來你注意到這朵海綠了？把它拿走吧。」"
+  ],
+  choices: [
+    { label: "穿過丁香花，去拿那朵紅花", to: "142" },
+    { label: "不拿了，直接離開", to: "208" }
+  ]
+};
+
+P["142"] = {
+  text: [
+    "你費力地穿過花叢，然後輕輕摘下那朵海綠。你小心翼翼地拿著花回到她身邊，她毫不猶豫地接過花，把它別在你耳朵上方的頭髮裡。",
+    "「海綠總能辨別真相，如果你想有機會抵抗『謊言惡魔』，就需要真相。當你需要判斷誰在說真話時，就把當前段落的編號除以 2。」",
+    "你感謝女巫的善意，看著她重新躺回鋪滿丁香花的「床」上。你離開了房間。"
+  ],
+  choices: [
+    { label: "離開放射科", to: "208" }
+  ],
+  onEnter: { addItem: ["海綠花"] }
+};
+
+P["341"] = {
+  text: [
+    "你坐下來，嘆了口氣，身體裡的緊張感漸漸消失。你環顧四周，目光落在一份舊報紙上，日期是 1888 年 11 月 9 日，報紙上醒目地印著一個填字遊戲。你仔細看了看還沒填完的最後一個線索：10 Across，5 個字母，「器官上界限清晰的部分」。",
+    "嗯，____ / O / ____ / E / S"
+  ],
+  choices: [
+    { label: "Nodes（結節）", to: "353" },
+    { label: "Lobes（葉）", to: "241" },
+    { label: "Pores（毛孔）", to: "91" }
+  ]
+};
+
+P["353"] = {
+  text: [
+    "你從手術服口袋裡掏出那支可靠的圓珠筆，潦草地補上了缺失的字母「N」和「D」。你翻頁時，一則廣告吸引了你的目光——上面是一個維多利亞時代的男人，戴著高頂禮帽，留著誇張的八字鬍，但他的整個身體是一根胡蘿蔔。",
+    "你對這荒誕的畫面挑了挑眉。報紙的其他部分全是廣告、訃告和當地新聞。你嘆了口氣，放下報紙，報紙立刻被金色的火焰吞噬。你驚呼一聲，跳起身，遠離燃燒的報紙。很快，只剩下黑色的紙灰。"
+  ],
+  choices: [
+    { label: "沿原路返回", to: "17" },
+    { label: "朝相反方向走，離開放射科", to: "208" }
+  ]
+};
+
+P["241"] = {
+  text: [
+    "你從手術服口袋裡掏出圓珠筆，潦草地補上了缺失的字母「L」和「B」。你翻頁時，一則廣告吸引了你的目光——一個維多利亞時代的男人，整個身體是一根胡蘿蔔。",
+    "你正要放下報紙，畫中的胡蘿蔔人卻動了起來，雙手叉腰喊道：「你聾了嗎？」你甚至還環顧了一下四周，隨後才意識到他在跟你說話。",
+    "「恭喜你解開了謎題。這裡發生了許多怪事。如果你需要了解某些信息——比如如何破解密碼——只要把自己泡在水裡就行了。」",
+    "「我要淹死自己嗎？」「天啊，你是不是失去理智了？我說的是『泡在水裡』，不是『淹死』，而且要全身泡進去。」",
+    "報紙立刻被金色的火焰吞噬。你跳起身，遠離燃燒的報紙。"
+  ],
+  choices: [
+    { label: "沿原路返回", to: "17" },
+    { label: "朝相反方向走，離開放射科", to: "208" }
+  ],
+  onEnter: { addClue: ["破解密碼：把自己全身泡在水裡"] }
+};
+
+P["91"] = {
+  text: [
+    "你從手術服口袋裡掏出圓珠筆，潦草地補上了缺失的字母「P」和「R」。你翻頁時，一則廣告吸引了你的目光——一個維多利亞時代的男人，整個身體是一根胡蘿蔔。",
+    "你對這荒誕的畫面挑了挑眉。報紙的其他部分全是廣告、訃告和當地新聞。你嘆了口氣，放下報紙，報紙立刻被金色的火焰吞噬。"
+  ],
+  choices: [
+    { label: "沿原路返回", to: "17" },
+    { label: "朝相反方向走，離開放射科", to: "208" }
+  ]
+};
+
+P["17"] = {
+  text: [
+    "你走到放射科的岔路口時，又看到了那個穿藍色手術服的人影。人影從你右邊的一扇門裡衝出來，沿著走廊快速朝兒科病房跑去。你大喊一聲，追了上去，但等你趕到時，人影已經不見了。",
+    "你雙手叉腰，站在原地，感到一陣沮喪。這時，你從前方出口門的窗戶裡看到了自己的倒影——那個雙手叉腰、穿著藍色手術服的人，竟然是你自己！",
+    "你倒吸一口涼氣，簡直不敢相信。你努力回想那個人的臉，卻發現根本沒看清。"
+  ],
+  choices: [
+    { label: "追查那個人影，沿左邊走廊朝兒科病房走", to: "115" },
+    { label: "直走，沿走廊返回", to: "354" }
+  ],
+  onEnter: { addClue: ["CLONE：藍色手術服的人影是你自己"] }
+};
+
+P["354"] = {
+  text: [
+    "你推開門，離開放射科。走廊看起來沒有早些時候那麼亮了，天空中烏雲密佈。你悲觀地想，這可能不是好兆頭。",
+    "你繼續走，經過右手邊的玻璃走廊，很快來到另一扇門前。標牌上寫著「天竺葵科室」，還畫著一朵簡單的五瓣紫色花。"
+  ],
+  choices: [
+    { label: "進去看看", to: "258" }
+  ]
+};
+
+P["208"] = {
+  text: [
+    "你打開門準備離開，但前方的走廊一片漆黑，連放射科的光都無法穿透這極致的黑暗。你緊張地咽了口唾沫，開始後悔選擇這條路，但還是咬緊牙關往前走。",
+    "門在你身後關上，黑暗徹底籠罩了你。你把手舉在眼前，卻什麼都看不見。恐慌迅速上升，你伸手去摸牆——任何能觸摸到的實體都能讓你安心，但你摸到的東西卻完全無法讓你安心。那東西粗糙、冰冷刺骨，似乎覆蓋著苔蘚或黴菌。",
+    "你只走了幾步。"
+  ],
+  choices: [
+    { label: "改變主意，回到放射科", to: "43" },
+    { label: "既然走了這麼遠，就堅持到底", to: "352" }
+  ]
+};
+
+P["43"] = {
+  text: [
+    "你以為自己轉了 180 度，然後伸著胳膊踉蹌著向前走，但急切的手指只摸到了冰冷的空氣。恐慌幾乎要將你吞噬，就在這時，你終於碰到了一個堅硬的東西，一個平坦垂直的物體。求求你，一定要是門。",
+    "當你終於找到門把手，走進放射科的燈光下時，從未感到如此慶幸過。"
+  ],
+  choices: [
+    { label: "回到放射科岔路口", to: "304" }
+  ]
+};
+
+P["352"] = {
+  text: [
+    "你慢慢地走，一邊摸索一邊前進，測試每一步，以防腳下的地板突然消失。這花了很長時間，儘管實際上你可能沒走多遠。",
+    "這時，你開始聽到輕柔的嗡嗡聲，看到左邊有一道詭異的綠光。"
+  ],
+  choices: [
+    { label: "調查那道綠光和嗡嗡聲", to: "64" },
+    { label: "繼續往前走", to: "261" }
+  ]
+};
+
+P["64"] = {
+  text: [
+    "你朝著微弱的綠光走去，意識到自己穿過了洞穴牆上的一道拱門。嗡嗡聲越來越響，你的眼睛慢慢適應了昏暗的光線。你周圍全是冷藏櫃，所有冷藏櫃都亮著綠色的 LED 燈，顯示著溫度，但其中一個冷藏櫃的燈在閃爍紅光。",
+    "「是我媽媽派你來的嗎？」一個溫柔的聲音從房間的一側傳來，你嚇了一跳，轉身面對聲音的來源。",
+    "「誰在那裡？」「過來點，我們好說話。」"
+  ],
+  choices: [
+    { label: "覺得這可能是陷阱，離開回到走廊", to: "270" },
+    { label: "按對方說的，走上前", to: "28" }
+  ]
+};
+
+P["28"] = {
+  text: [
+    "你慢慢朝聲音傳來的方向走去，能更清楚地看到那些冷藏櫃了，同時意識到裡面裝滿了輸血袋——你竟然在血庫！",
+    "你剛反應過來，就感覺到有東西在動，然後看到了她——她坐在一把普通的木椅上，椅子只有一條腿。是「她」，不是椅子只有一條腿！",
+    "「我叫恩普薩。」她一邊說，一邊優雅地擦去嘴角的血跡。你臉上露出的厭惡表情根本藏不住——顯然她剛才在喝血。恩普薩見狀說道：「好吧，如果我直接從別人脖子上吸血，你肯定會覺得我是怪物。」",
+    "「我很了解這個地方和這裡發生的事，你想知道些什么？」"
+  ],
+  choices: [
+    { label: "「耶洗別是怎麼控制卡邁克爾的？」", to: "393" },
+    { label: "「我其實是個有超能力的女巫嗎？」", to: "129" }
+  ]
+};
+
+P["393"] = {
+  text: [
+    "恩普薩興奮地拍了拍手，然後把腿盤到身子底下，身體前傾。",
+    "「好吧，這一切都要從卡邁克爾的母親說起。她是個殘忍、控制欲極強的女人，總是貶低他、羞辱他、虐待他。難怪他長大後憎恨所有女人，想讓她們都受苦。他本以為成為醫生後就能贏得尊重，但根本不是這樣。他總覺得護士和助產士在糾正他，或者指責他做得不對。從那時起，他就開始殺人——起初只是為了發洩這些不滿，但當他妻子無法懷孕時，他覺得自己受到了嘲笑。」",
+    "「耶洗別一直在觀察這一切，她就喜歡這種瘋狂的人，一直在等待時機。她沒等多久——卡邁克爾當時正在瘋狂殺戮，完全失控。他以為這樣能讓自己變得強大，但事實恰恰相反。他失去了控制，所以耶洗別趁機控制了他，從那以後，他就一直受耶洗別支配。」",
+    "恩普薩向後靠了靠，盯著自己隨意搭在腿上的手，「這是個悲傷的故事，但或許你能給它一個圓滿的結局。」"
+  ],
+  choices: [
+    { label: "立刻離開血庫", to: "255" },
+    { label: "查看冷藏櫃", to: "303" }
+  ],
+  onEnter: { addClue: ["耶洗別控制了卡邁克爾；卡邁克爾只是她的玩具"] }
+};
+
+P["129"] = {
+  text: [
+    "恩普薩嚴肅地點了點頭，然後向後靠了靠，對你笑了笑。你心想，這對她來說難道只是個玩笑嗎？",
+    "「這個問題沒有答案。有些人只有在需要的時候才會發現自己的能力。人們希望知道自己的『命運』，因為這會讓他們感到安全，但真正的力量，是即使在認為自己一無所有、只能依靠自己時，仍然相信自己。」",
+    "恩普薩故作高深地微微低下頭。真是的，她就只有這些嗎？空洞的人生哲理！你想要求她給出更多答案，但最後還是決定算了。"
+  ],
+  choices: [
+    { label: "立刻離開", to: "255" },
+    { label: "查看冷藏櫃", to: "303" }
+  ]
+};
+
+P["303"] = {
+  text: [
+    "你偷偷地回頭看了看恩普薩有沒有在看你，然後溜到那扇紅燈閃爍的冷藏櫃前。你不確定出了什麼問題，但還是打開了櫃門。",
+    "冷藏櫃裡的寒氣和洞穴裡冰冷的空氣沒什麼區別，但你立刻發現，裡面不只有血袋——一個厚厚的奶油色蠟燭放在其中一個架子上。",
+    "你把蠟燭拿走，放進包裡。"
+  ],
+  choices: [
+    { label: "離開血庫", to: "270" }
+  ],
+  onEnter: { addItem: ["蠟燭"] }
+};
+
+P["270"] = {
+  text: [
+    "不知怎麼的，沒有綠光後，你的視力反而更差了，但你還是穿過拱門，回到之前走的路上。走了沒多久，前方被實心的石頭擋住了，你不得不右轉。你幾乎一直用手貼著牆，慢慢往前走。"
+  ],
+  choices: [
+    { label: "繼續往前走", to: "373" }
+  ]
+};
+
+P["255"] = {
+  text: [
+    "儘管聽起來很奇怪，但回到這條漆黑的洞穴狀走廊，你竟然感到一絲慶幸。不過，適應了沒有綠光的環境花了一點時間，隨後你穿過拱門，回到之前走的路上。走了沒多久，前方被實心的石頭擋住了，你不得不右轉。"
+  ],
+  choices: [
+    { label: "繼續往前走", to: "373" }
+  ]
+};
+
+P["261"] = {
+  text: [
+    "突然，你的手碰到了正前方的牆。你順著牆摸索，意識到自己走到了一個角落，無法左轉，所以——只能右轉！"
+  ],
+  choices: [
+    { label: "右轉，繼續往前走", to: "373" }
+  ]
+};
+
+P["373"] = {
+  text: [
+    "你拖著腳步，緩慢但穩步地往前走，隨後聽到了聲音。一開始，你以為是風吹過，希望這意味著離出口不遠了，但很快就能分辨出那是翅膀輕輕拍打和爪子偶爾抓撓的聲音。",
+    "你咽了口唾沫，在黑暗中徒勞地抬頭看，想知道：「上面是什麼？」如果你有蠟燭，可以點燃它看看，但火焰也可能驚擾並喚醒上面的東西。"
+  ],
+  choices: [
+    { label: "點燃蠟燭（需要蠟燭）", to: "88", cond: { item: "蠟燭" } },
+    { label: "在黑暗中悄悄走", to: "317" }
+  ]
+};
+
+P["88"] = {
+  text: [
+    "你從包裡拿出蠟燭，然後意識到沒有辦法點燃它。但或許有辦法生火——你之前有沒有聽說過，如果遇到這種情況，可以召喚某個女神？",
+    "現在正是遵循這個建議的時候。你會召喚誰？"
+  ],
+  choices: [
+    { label: "安菲特里忒（海洋女神）", to: "111" },
+    { label: "蓋亞（大地女神）", to: "275" },
+    { label: "赫斯提亞（灶神）", to: "221" }
+  ]
+};
+
+P["111"] = {
+  text: [
+    "你把蠟燭高高舉過頭頂，聽到上方的聲音越來越躁動，感到一陣恐慌，小聲念出「安菲特里忒」的名字。什麼都沒發生。你又念了一遍，聲音大了一點，但還是不敢太大聲。還是什麼都沒發生。",
+    "真是白費功夫！你繼續往前走，希望上方那個動靜的來源待在原地別動。"
+  ],
+  choices: [
+    { label: "繼續往前走", to: "317" }
+  ]
+};
+
+P["275"] = {
+  text: [
+    "你把蠟燭高高舉過頭頂，小聲念出「蓋亞」的名字。什麼都沒發生。你又念了一遍，聲音大了一點。還是什麼都沒發生。",
+    "真是白費功夫！你繼續往前走。"
+  ],
+  choices: [
+    { label: "繼續往前走", to: "317" }
+  ]
+};
+
+P["221"] = {
+  text: [
+    "你把蠟燭高高舉過頭頂，小聲念出「赫斯提亞」的名字。什麼都沒發生。你又念了一遍，聲音大了一點。終於，燭芯上出現了一點微弱的火苗。火苗慢慢變大、變旺，在洞穴裡投下異常明亮的光。",
+    "你抬頭一看，下巴都要掉下來了——洞穴頂部倒掛著一排排大型鳥類，它們有著灰色的羽毛和巨大、鋒利的喙，喙上似乎還沾著血。但突然，它們安靜了下來，儘管有幾隻還在不耐煩地啄旁邊的同伴，但大多數都把頭埋進翅膀裡睡著了。",
+    "你意識到蠟燭散發出一種氣味——檀香。香氣上升，圍繞著你，飄向那些猛禽——這對鳥類來說就像麻醉劑。你趁機加快腳步離開這裡，藉著燭光，你看到了前方的出口，快速走了過去。"
+  ],
+  choices: [
+    { label: "走出洞穴", to: "389" }
+  ]
+};
+
+P["317"] = {
+  text: [
+    "你慢慢地、小心翼翼地往前走，每一步都走得很輕，但上方的聲音越來越大，越來越嚇人。緊張得幾乎無法呼吸時，突然傳來一陣可怕的巨響，洞穴裡充滿了成千上萬隻翅膀拍打空氣的聲音。",
+    "你急忙向前跑，想躲開它們，卻立刻被一片羽毛包圍，巨大的鳥喙狠狠地啄著你。你跪倒在地，努力護住臉和眼睛。就在你覺得痛苦永無止境時，一切突然停止了。"
+  ],
+  choices: [
+    { label: "繼續往前走", to: "49" }
+  ]
+};
+
+P["49"] = {
+  text: [
+    "你站起身，每動一下都疼得皺眉。全身都像受了傷，但你还是堅持著，希望能走到這個黑山洞的盡頭。感覺像是過了一輩子，但實際上只過了 5 分鐘，你伸出的手指就碰到了一扇木門的木質表面。",
+    "你找到出口了。"
+  ],
+  choices: [
+    { label: "走出木門", to: "203" }
+  ]
+};
+
+P["203"] = {
+  text: [
+    "你走出黑暗，進入一條狹窄、冰冷的混凝土走廊。熒光燈閃爍著，但足夠讓你看到自己渾身的傷口——不只是瘀傷，還有深深的傷口，現在還在流血。他們想要你的血！他們在吸你的血！",
+    "你感到頭暈，癱倒在地上，想知道他們到底吸走了你多少血。你閉上眼睛，告訴自己只需要小睡一會兒，恢復體力就會好起來，但內心深處你知道真相——震驚和寒冷的雙重作用下，你再也不會醒來了。"
+  ],
+  dead: true,
+  deadTitle: "你失血過多，在洞穴外倒下了。"
+};
+
+P["389"] = {
+  text: [
+    "你走出黑暗，進入一條狹窄、冰冷的混凝土走廊。熒光燈閃爍著，但足夠讓你看到走廊延伸出很長一段距離，沒有門，也沒有岔路，只有盡頭有一個急轉彎，朝右拐。",
+    "你快步慢跑著前進，時不時回頭看，擔心有什麼東西從洞穴裡跟出來，但除了燈管的電流聲，周圍一片寂靜。你轉過拐角，正前方有一扇門。走向門時，你感覺到腳下的地板微微下陷，趕緊跳到一邊，生怕地面塌陷，但仔細一看，發現那其實是一扇活板門。"
+  ],
+  choices: [
+    { label: "走向正前方的門", to: "167" },
+    { label: "穿過活板門", to: "324" }
+  ]
+};
+
+P["167"] = {
+  text: [
+    "門完全打開了，露出一個老式的藥房——四面牆中有三面牆都立著橡木架子，上面擺滿了裝酊劑的棕色玻璃瓶，架子下方有數百個小木抽屜，裡面存放著各種各樣的粉末。房間中央的操作台上放著精密的天平秤和研缽。",
+    "你站在那裡，驚呆了，不知道下一步該做什麼，但還沒等你有所行動，就感覺到房間裡還有另一個「存在」。你滿懷恐懼地轉過身，面對它。"
+  ],
+  choices: [
+    { label: "面對那個存在", to: "249" }
+  ]
+};
+
+P["249"] = {
+  text: [
+    "你甚至還沒看到它，就已經知道——耶洗別來了。惡魔站在你面前，在粗壯的蛇身上微微左右搖晃。蛇鱗是暗灰褐色的，但邊緣泛著琥珀色的光澤。它的軀幹和頭是骷髏形狀的，乾枯堅韌的皮膚緊緊貼在骨頭外面。眼窩是巨大的黑洞，嘴裡長著鋒利的蛇牙。",
+    "一個聲音在你腦海裡響起，儘管你沒看到耶洗別動嘴。你幾乎被恐懼凍僵，聽著惡魔帶著自信和輕蔑的笑聲，審視著你。你有幾秒鐘的時間可以逃跑或反抗，但你做不到——你沒有摧毀她所需的全部東西，你搞砸了。",
+    "耶洗別意識到了這一點，笑了起來，嘴巴越張越大，最後下巴脫臼，用嘴咬住了你的頭。你僵在原地，什麼都做不了，只能等著被她一口一口地吞下去。"
+  ],
+  dead: true,
+  deadTitle: "你還沒有準備好就面對耶洗別。"
+};
+
+P["324"] = {
+  text: [
+    "打開活板門後，你看到一架搖搖晃晃的梯子，通向一個發霉的房間。一道深色的厚簾子遮住了一道拱門，這似乎是唯一的出口。你小心翼翼地拉開簾子，看到裡面的景象，驚呆了。",
+    "這是一個溫暖、華麗的房間。牆壁是深靛藍色的，椅子、沙發和地毯也是同樣的顏色。這是一個書房，中央放著一張巨大的橡木書桌，桌後坐著一個圓臉、活潑的女巫。她的臉通紅，可能是因為壁爐裡劈啪作響的火焰，也可能是因為桌上那杯喝了一半的葡萄酒。",
+    "「歡迎！」她高興地笑著，張開雙臂喊道，然後示意你坐在最近的椅子上。「你離危險太近了，我不敢相信你還沒感覺到。錯誤的決定，錯誤的路線，你在一步步靠近，幾乎要落入她的手掌心。」",
+    "「不過，幸好你遇到了我。我坐在這裡，寫下我所有的知識，希望能拯救我們所有人，現在是時候學以致用了。你沒碰巧看到我的《影之書》吧？」"
+  ],
+  choices: [
+    { label: "「看到了，我帶來了。」", to: "342", cond: { item: "影之書" } },
+    { label: "「沒看到。」", to: "181" }
+  ]
+};
+
+P["181"] = {
+  text: [
+    "不管你是真的沒有那本書，還是只是不想冒險失去它，那個圓臉女巫都遺憾地搖了搖頭，告訴你她幫不了你。",
+    "你爬上搖搖晃晃的梯子時，聽到她喊道：「祝你好運！」但她的聲音裡充滿了懷疑和絕望。你回到混凝土走廊後，走向正前方的門。"
+  ],
+  choices: [
+    { label: "走向正前方的門", to: "167" }
+  ]
+};
+
+P["342"] = {
+  text: [
+    "你從包裡掏出那本厚重的書，遞給女巫。她雙手合十，發出一聲嗚咽，伸手去拿那本深紅色的書，書在她手裡又開始興奮地震動起來，似乎很高興回到主人身邊。她把書抱在胸前，然後含淚對你笑了笑：「謝謝你。」",
+    "她把書放在桌上，站起來，快步走到遠處的牆邊，低聲念了些你聽不懂的話，然後招手讓你過去。",
+    "「你必須走這條通道，這是唯一能活下來的路，我能幫你的只有這些了。」她果斷地推了你的後背一把，你踉蹌著向前撲去，以為會撞到牆上，疼得瘀青。",
+    "但牆上什麼都沒有了，你走進一條圓形的靛藍色隧道——幾乎像走進了一條巨大的血管。你別無選擇，只能沿著這條蜿蜒的隧道走下去。"
+  ],
+  choices: [
+    { label: "沿隧道往前走", to: "156" }
+  ]
+};
+
+P["156"] = {
+  text: [
+    "你在隧道裡走了很久，隧道蜿蜒曲折，不知道通向哪裡。最後，你走到了盡頭，就在幽閉恐懼症快要發作時，你抬頭看到了另一扇活板門。你跳起來，抓住門把手，把它拉下來。",
+    "你嘗試了三次，終於爬了上去，欣慰地逃出隧道。你懷疑地環顧四周，想知道女巫把你送到了哪裡。這裡很暗，你立刻明白了原因——成千上萬張紙貼滿了牆壁、天花板和門，所有窗戶都被紙封住了，擋住了光線。",
+    "空氣裡瀰漫著發霉、積灰的氣味，但在科室的盡頭，你看到一個空的嬰兒床，你意識到自己在哪裡了——產科病房。"
+  ],
+  choices: [
+    { label: "沿走廊繼續走", to: "119" }
+  ]
+};
+
+P["119"] = {
+  text: [
+    "你繼續沿著走廊走，這條走廊感覺像一條隧道，牆壁上貼滿了紙，到處都是文字。走廊盡頭有一扇門，你不知道門後是什麼，但能聽到微弱的狗叫聲。除此之外，走廊還能左轉。"
+  ],
+  choices: [
+    { label: "穿過那扇門（狗叫聲來源）", to: "228" },
+    { label: "沿走廊左轉", to: "301" }
+  ]
+};
+
+P["228"] = {
+  text: [
+    "你走出走廊，來到一個有圍牆的花園露台。儘管有狗叫聲，這裡卻很寧靜——樹木在微風中輕輕搖曳，在石板地上投下斑駁的影子。",
+    "右邊拐角處是狗叫聲傳來的方向。左邊有一個平靜的噴泉和一堆正在燃燒的營火，如果你有一個小坩堝，可以派上用場。"
+  ],
+  choices: [
+    { label: "面對那些狗", to: "191" },
+    { label: "走向噴泉和營火（需要銅製坩堝）", to: "293", cond: { item: "銅製坩堝" } }
+  ]
+};
+
+P["191"] = {
+  text: [
+    "你小心翼翼地走近拐角——狗叫聲聽起來確實很兇。"
+  ],
+  choices: [
+    { label: "繼續前進（你戴著月長石戒指）", to: "335", cond: { item: "月長石戒指" } },
+    { label: "繼續前進（你沒有月長石戒指）", to: "44", cond: { noItem: "月長石戒指" } }
+  ]
+};
+
+P["335"] = {
+  text: [
+    "你走進草地，空氣中茉莉的清香很誘人。你抬起頭，對著太陽，看到暴風雨雲很快散去了。這裡確實很美，但隨後你注意到了那些墓碑，在一棵樹下聚集著幾座墓碑。",
+    "你還看到一個女人坐在草地上，背靠著多節的樹幹，朝你招手。她看起來很和善，但這個地方，「和善」能說明什麼呢？而且那些狗現在可怕地安靜下來。"
+  ],
+  choices: [
+    { label: "走過去，坐在女人旁邊", to: "29" },
+    { label: "覺得這是個陷阱，迅速離開，回到走廊", to: "301" }
+  ]
+};
+
+P["44"] = {
+  text: [
+    "你轉身走進草地，空氣中茉莉的清香很誘人，但暴風雨似乎越來越近了——天空中布滿了深色的烏雲。而且，那些狗現在不叫了。這是好兆頭嗎……？",
+    "你注意到了那些墓碑，在一棵古老多節的紫杉樹下，聚集著幾座墓碑。你還看到一棵樹下有一塊單獨的石碑，撥開上面的苔蘚，你讀到：「此處長眠者，姓名無人知曉。唯有烏鴉為其哀悼。當心玫瑰中的謊言。」",
+    "你打了個寒顫，站起身來。"
+  ],
+  choices: [
+    { label: "離開花園，回到走廊", to: "301" }
+  ]
+};
+
+P["29"] = {
+  text: [
+    "你在她身邊的草地上坐下，她握住你的手。她溫柔地微笑著，端詳著你的手掌。你突然恐慌起來，以為她會像卡邁克爾那樣砍掉你的手，但還沒等你跳起來，她就鬆開了手，向後靠去，看著你。",
+    "「看到你毫髮無損，我很高興。你能活到現在，已經做得很好了。我對你抱有希望，不過你的戰鬥還沒結束。我的狗嚇到你了嗎？每次我來，它們都這麼興奮。」",
+    "「你是誰？」「我是赫卡忒。你戴著我的戒指，我會照顧我的『孩子』們。」",
+    "話題突然轉變，讓你有些困惑，但隨後你意識到，她指的是那些墓碑——這裡埋葬的是新生兒和死胎。",
+    "「耶洗別不會輕易放你走的，她還會再試一次迷惑你，但我會給你一樣東西。」她遞給你一張折疊起來的小紙片，你正要展開，她卻突然驚呼一聲，抓住了你的手。",
+    "「你手裡拿的是一種粉末，叫烏頭。也被稱為『卡邁克爾的舟形烏頭』。」",
+    "「這是毒藥嗎？」你問道，小心翼翼地把紙包放進衣袋。赫卡忒點了點頭：「是毒藥，但只對她派來的人偶有效。要小心假朋友，這對惡魔沒用。」",
+    "說完，她閉上眼睛，向後靠去，慢慢與樹融為一體。你回到醫院裡。"
+  ],
+  choices: [
+    { label: "沿走廊繼續往前走", to: "301" }
+  ],
+  onEnter: { addItem: ["烏頭粉末"], addClue: ["烏頭＝卡邁克爾的舟形烏頭，只對耶洗別的人偶有效"] }
+};
+
+P["293"] = {
+  text: [
+    "你往花朵上倒了些噴泉裡的清水，然後把小小的銅製坩堝放在火上。坩堝很快就熱了起來，裡面的東西煮了幾分鐘。現在你要怎麼處理這鍋混合物？"
+  ],
+  choices: [
+    { label: "用來做熱敷", to: "298" },
+    { label: "當成茶喝掉", to: "251" }
+  ]
+};
+
+P["298"] = {
+  text: [
+    "你把混合物做成熱敷包，敷在脖子上。溫暖的感覺讓你緊繃的肌肉放鬆下來，甘菊的香氣也讓你感到平靜。15 分鐘後，你感覺恢復了體力，可以繼續前進了。",
+    "你意識到狗叫聲已經停了，花園裡似乎沒有其他東西了，於是回到醫院裡。"
+  ],
+  choices: [
+    { label: "沿走廊繼續往前走", to: "301" }
+  ]
+};
+
+P["251"] = {
+  text: [
+    "你喝了甘菊茶，溫暖的茶水和草藥讓你感到平靜。喝完後，你意識到狗叫聲已經停了。",
+    "花園裡似乎沒有其他東西了，你回到醫院裡。"
+  ],
+  choices: [
+    { label: "沿走廊繼續往前走", to: "301" }
+  ]
+};
+
+P["301"] = {
+  text: [
+    "這條貼滿紙的走廊讓人感覺越來越壓抑，所以看到前方的出口門時，你鬆了口氣。但左手邊還有一扇門，透過紙的縫隙，你能看到裡面有水光反射——是分娩池！",
+    "你走進房間，這裡的牆壁、天花板和地板覆蓋著同一種藍綠色，池子里升起的濕氣讓空氣變得非常悶熱。房間一側放著幾個不鏽鋼推車，除此之外空無一人。你走到池邊，把手指伸進水裡——水是溫的，看起來很乾淨。"
+  ],
+  choices: [
+    { label: "不顧一切，脫掉衣服跳進池子裡", to: "131" },
+    { label: "待在乾燥的地面上，洗把臉", to: "24" },
+    { label: "直接離開房間", to: "171" }
+  ]
+};
+
+P["131"] = {
+  text: [
+    "你沉入水中，溫暖的水包裹著你，你愜意地笑了。你向後仰著頭，讓頭髮浸濕，感覺無比美妙，幾乎就像回到了子宮裡。"
+  ],
+  choices: [
+    { label: "就這樣在池子裡再放鬆幾分鐘", to: "340" },
+    { label: "完全潛入水中", to: "272" }
+  ]
+};
+
+P["340"] = {
+  text: [
+    "水很舒緩，你在水裡輕輕漂浮著，漸漸睡著了。有時候，你覺得聽到有聲音在試圖吸引你的注意力，但集中注意力聽時，又什麼都沒有了。",
+    "在水裡泡了半小時後，你不情願地站起來，把濕衣服重新套在身上。這很值得——你需要這樣的休息時間恢復體力。",
+    "你微微發抖，離開房間。"
+  ],
+  choices: [
+    { label: "朝出口走去", to: "171" }
+  ]
+};
+
+P["272"] = {
+  text: [
+    "你深吸一口氣，閉上眼睛，沉入水中。你能聽到血液在耳朵裡「砰砰」地流動，睜開眼睛，看到正上方有一張臉。你驚慌地掙扎，抓著池邊想爬上去，但有兩隻手按在你的肩膀上。",
+    "那張臉低頭看著你——蒼白的皮膚，全黑的眼睛，帶著好奇的表情打量著你。隨後，那張臉也沉入水中，你的肺部快要爆炸了，視線開始出現光斑。",
+    "那張臉離你只有幾英吋遠，然後開口說道：「倒著讀能幫到護士，把字母反過來讀。」",
+    "隨後「嘩啦」一聲，那張臉和按在你肩膀上的手都消失了。你掙扎著浮出水面，趴在池邊，咳嗽著，吐著水。",
+    "你得到了寶貴的信息——當你發現需要破解的銘文時，只要把字母表倒過來（A=Z，B=Y，C=X，以此類推）就行了。"
+  ],
+  choices: [
+    { label: "離開房間，朝出口走去", to: "171" }
+  ],
+  onEnter: { addClue: ["鏡文密碼：字母表倒轉（A=Z, B=Y…）"] }
+};
+
+P["24"] = {
+  text: [
+    "你雙手捧起水，正要往臉上潑，突然有什麼東西讓你睜開了眼睛。你尖叫著把水潑了出去——水池裡滿是數百萬隻小蜈蚣。",
+    "你拼命在褲子上擦手，向後退去。剛才你差點就把這些蜈蚣擦到皮膚上、揉進眼睛裡了……一想到这里，你就一陣噁心。",
+    "你拖著顫抖的雙腿離開這個房間，朝出口走去。"
+  ],
+  choices: [
+    { label: "朝出口走去", to: "171" }
+  ]
+};
+
+P["171"] = {
+  text: [
+    "你離開產科病房，走進另一條黑暗的走廊——又一條隧道，但這條隧道被厚厚的常春藤覆蓋著。你的腳陷進藤蔓之間，不禁想到這些藤蔓會不會纏住你的腳踝。再往前走一點，走廊有一個急轉彎，朝左拐，但右手邊還有一扇門，標牌上寫著「新生兒重症監護室」。"
+  ],
+  choices: [
+    { label: "沿走廊左轉", to: "7" },
+    { label: "進入新生兒重症監護室", to: "399" }
+  ]
+};
+
+P["7"] = {
+  text: [
+    "常春藤隧道的盡頭有一扇門，門上畫著五瓣藍色的花。你撥開幾縷常春藤，露出一塊標牌：「歡迎來到長春花病房——兒科」。你嘗試開門，門卻紋絲不動——是鎖著的嗎？",
+    "你正準備轉身往回走，枝葉突然晃動，露出鎖孔裡插著的一把大鐵鑰匙。你轉動鑰匙，推開門走進一個溫暖的走廊，走廊牆壁刷著淺粉色，一直延伸到盡頭的另一扇門。",
+    "走廊兩側都有門，中途還向右分出一條岔路。病房裡很安靜，只有持續的穿堂風呼嘯而過，但很快你聽到遠處傳來腳步聲，似乎有人正從對面的入口朝病房走來。"
+  ],
+  choices: [
+    { label: "站穩不動，看看來的人是誰", to: "346" },
+    { label: "覺得還是躲起來更明智", to: "161" }
+  ]
+};
+
+P["399"] = {
+  text: [
+    "儘管這個大房間裡沒有植物，但祖母綠色的牆壁讓你感覺彷彿走進了茂密的森林。房間牆邊擺放著保溫箱，但監護儀和各種設備都沒有通電，一片寂靜。",
+    "你小心翼翼地往前走，看到最近的嬰兒床裡躺著一個小小的身影，不禁向後退了退。你走近一些，既鬆了口氣又有些憤怒地意識到，那根本不是真寶寶，只是個娃娃。",
+    "除了保溫箱，這裡沒什麼其他東西，但左手邊還有一扇門。"
+  ],
+  choices: [
+    { label: "離開這裡，回到爬滿常春藤的走廊", to: "7" },
+    { label: "看看另一扇門後是什麼", to: "211" },
+    { label: "好奇所有保溫箱裡是不是都放著娃娃", to: "128" }
+  ]
+};
+
+P["211"] = {
+  text: [
+    "一開始你以為門是鎖著的，但門有點鬆動，你再用力拉了拉，終於把門打開了。一股冷空氣撲面而來，讓你喘不過氣。藉著遠處幾盞閃爍的熒光燈，你看到這扇門通向一條又直又窄、沒有窗戶的混凝土走廊，而且走廊正在緩緩向下傾斜。",
+    "你穿著單薄的手術服，忍不住打了個寒顫。"
+  ],
+  choices: [
+    { label: "走進這條走廊，看看它通向哪裡", to: "310" },
+    { label: "回到爬滿常春藤的走廊", to: "7" }
+  ]
+};
+
+P["128"] = {
+  text: [
+    "到目前為止，每個嬰兒床裡都有一個娃娃。這些娃娃是老式的硬塑料材質，梳著保姆式的髮型。有些娃娃的胳膊上貼著現代的靜脈留置針，有些的嘴上繫著管子，實在令人不安。",
+    "你走到最後一個保溫箱前，突然停住了——這個保溫箱裡沒有娃娃，也沒有任何醫療設備，只有一個金色的酒杯放在薄薄的床墊上。",
+    "你打開保溫箱的側門，把酒杯拿了出來。它很漂亮，做工精緻。"
+  ],
+  choices: [
+    { label: "離開這裡，回到爬滿常春藤的走廊", to: "7" },
+    { label: "走向另一扇門", to: "211" }
+  ],
+  onEnter: { addItem: ["金酒杯"] }
+};
+
+P["310"] = {
+  text: [
+    "這看起來像是某種維修隧道，頭頂上有各種 PVC 管和包著鋁箔的管道。你沿著傾斜的通道繼續走，緊緊地抱著自己，徒勞地想保暖。走廊隨後左轉，似乎也開始向上傾斜。",
+    "遠處能看到更亮的光，你來到一個岔路口。左手邊的走廊通向另一個科室——你看不到標牌，但入口處散落著藍色的花朵；直走的話，通道會通向一扇普通的白色門，門上印著「健康女神之碗」的圖案——一條蛇纏繞著一個聖杯。"
+  ],
+  choices: [
+    { label: "走進白色門（健康女神之碗）", to: "36" },
+    { label: "走左手邊散落藍花的走廊", to: "50" }
+  ]
+};
+
+P["50"] = {
+  text: [
+    "走了一小段路後，你到達門口，離開病房時，跨過了散落在地上的藍色花朵。前方不遠處就是一個 T 字形岔路口，但你走到那裡時發現，右邊的走廊是一條狹窄、冰冷的混凝土隧道，似乎還在向下傾斜，看起來非常不吸引人。",
+    "看向左邊，走廊一直延伸到一扇普通的白色門前，門上印著「健康女神之碗」的圖案——一條蛇纏繞著一個聖杯。"
+  ],
+  choices: [
+    { label: "走向白色門（藥房）", to: "36" },
+    { label: "走右邊那條向下傾斜的隧道", to: "310" }
+  ]
+};
+
+P["36"] = {
+  text: [
+    "你推開門走進藥房。房間四面牆中有三面牆都立著橡木架子，上面擺滿了裝酊劑的棕色玻璃瓶，架子下方有數百個小木抽屜，裡面存放著各種各樣的粉末。房間中央的操作台上放著精密的天平秤和研缽。",
+    "你從「蛇纏聖杯」的標誌就認出這是藥房，但它和你見過的任何藥房都不一樣。"
+  ],
+  choices: [
+    { label: "查看安眠藥和乙醚", to: "263" },
+    { label: "查看鴉片和止痛藥", to: "20" },
+    { label: "查看致幻劑", to: "118" }
+  ]
+};
+
+P["263"] = {
+  text: [
+    "你猶豫地看著那些瓶子——乙醚和氯仿——希望裡面的蒸汽沒有洩漏出來，突然想到一個問題：耶洗別的密室會不會就在附近？",
+    "你剛想到這個可能性，貨架就在你眼前晃動、滑動起來。你試圖抓住什麼東西防止摔倒，但沒用，等你摔到地上時，已經完全失去了意識。",
+    "你永遠不會知道之後發生了什麼，也不會知道自己怎麼回到了起點，但或許下次，你不會再犯同樣的錯誤了。"
+  ],
+  choices: [
+    { label: "回到第 1 段", to: "1" }
+  ]
+};
+
+P["118"] = {
+  text: [
+    "你猶豫地看著那些瓶子——有麥斯卡林、乾蘑菇和苦艾酒——有點想嘗一口那綠色的液體，突然想到一個問題：耶洗別的密室會不會就在附近？",
+    "你剛想到這個可能性，貨架就在你眼前晃動、滑動起來。你試圖抓住什麼東西防止摔倒，但沒用，等你摔到地上時，已經完全失去了意識。",
+    "你永遠不會知道之後發生了什麼，也不會知道自己怎麼回到了起點。"
+  ],
+  choices: [
+    { label: "回到第 1 段", to: "1" }
+  ]
+};
+
+P["20"] = {
+  text: [
+    "你猶豫地看著那些瓶子——鴉片酊、鴉片酏劑和嗎啡酊——正考慮要不要聞一聞，突然想到一個問題：耶洗別的密室會不會就在附近？",
+    "如果你知道如何尋找，現在就可以行動。"
+  ],
+  choices: [
+    { label: "移開最大的那瓶鴉片酊，檢查後面的嵌板", to: "200" },
+    { label: "放棄，回去查看致幻劑", to: "118" },
+    { label: "放棄，回去查看安眠藥", to: "263" }
+  ]
+};
+
+P["200"] = {
+  text: [
+    "你把最大的那瓶鴉片酊挪到一邊，用指尖按壓後面的嵌板。整面貨架牆像一扇巨大的門一樣，繞著樞軸「嘎吱嘎吱」地轉了過去。",
+    "牆後是一條用紅木鑲板裝飾的走廊，牆上每隔一段距離就有一盞閃爍的煤氣燈照明。走廊盡頭有一扇門，門上從地板到天花板都刻著複雜的花紋，門中間刻著兩行字：",
+    "ZM ZGIRFN LI ZM VKRGZKS",
+    "TZRM ZXXVHH GSILFTS GSV ULFIGS KZIZTIZKS",
+    "你想起那個倒著讀的提示——把字母表反過來（A=Z, B=Y, C=X…）。"
+  ],
+  puzzle: {
+    prompt: "輸入解碼後的句子（英文，可含空格）。",
+    hint: "Atbash 密碼：A↔Z, B↔Y, C↔X… 第一行解出「AN ATRIUM OR AN EPITAPH」，第二行是「GAIN ACCESS THROUGH THE FOURTH PARAGRAPH」。",
+    answer: ["AN ATRIUM OR AN EPITAPH"],
+    success: "4",
+    fail: "200f"
+  }
+};
+
+P["200f"] = {
+  text: [
+    "你輸入了錯誤的句子，門上的花紋閃了一下，又歸於沉寂。你只能徒勞地搖晃門把手，最後意識到自己無法進入耶洗別的密室。",
+    "你能走到這一步已經很厲害了，但還不足以結束這場噩夢。"
+  ],
+  choices: [
+    { label: "回到藥房，重新嘗試", to: "200" },
+    { label: "離開藥房", to: "36" }
+  ]
+};
+
+P["4"] = {
+  text: [
+    "你大聲念出那句話：「心房或墓志銘，穿過第四段即可進入。」一聲輕微的「咔嗒」聲打破了寂靜，你嘗試轉動門把手，門竟然開了。",
+    "你走進一個金色的房間，這濃郁的金色既華麗又有些俗氣，房間裡只有無數支蠟燭照明。對面的牆上掛著一幅油畫——畫中是一位穿著白大褂的女人。你的左邊有一張桌子，上面放著一個解剖盤，而且盤子裡並非空無一物！",
+    "你慢慢走近，認出盤子裡的器官是子宮。身後的門突然關上，你轉身查看是否被鎖在裡面時，卻看到門上釘著一顆心臟，心臟下方用鮮血潦草地寫著數字「6」。",
+    "一個聲音在召喚你。你朝著聲音傳來的方向望去，看到油畫裡的女人扶了扶眼鏡，瞇著眼睛打量你。",
+    "「就是你，過來。你知道，我們沒那麼多時間。」你走到油畫前。「數字 6 對應的是伊麗莎白，她是個令人敬畏的女巫，擁有強大的咒語編織能力。但如果你想調製自己的藥劑來消滅惡魔，就必須在這裡進行。面對她之前，你必須做好準備。首先，你得選一個容器來混合這些成分。」",
+    "說完，油畫裡的女人就一動不動了——現在只能靠你自己。你翻看包裡收集到的所有物品。"
+  ],
+  choices: [
+    { label: "選擇木碗", to: "150" },
+    { label: "選擇金酒杯", to: "379" },
+    { label: "選擇銀聖杯", to: "229" }
+  ]
+};
+
+P["150"] = {
+  text: [
+    "你把木碗放在桌子上，深吸一口氣。你把照片揉成一團，塞進碗裡。接下來，你要往裡面加些血。"
+  ],
+  choices: [
+    { label: "擠壓心臟取血", to: "82" },
+    { label: "擠壓子宮取血", to: "320" }
+  ]
+};
+
+P["379"] = {
+  text: [
+    "你把金酒杯放在桌子上，深吸一口氣。你把照片揉成一團，塞進酒杯裡。接下來，你要往裡面加些血。"
+  ],
+  choices: [
+    { label: "擠壓心臟取血", to: "82" },
+    { label: "擠壓子宮取血", to: "320" }
+  ]
+};
+
+P["82"] = {
+  text: [
+    "你甚至還沒反應過來，就知道事情搞砸了。你能明顯感覺到氣氛的變化。",
+    "不過，你永遠不會知道，你本該用銀聖杯，而且必須用「木偶大師」的血——這意味著你本該取出那個子宮裡的血。",
+    "你永遠不會知道這些了，因為一根極細的金屬線突然橫掃過房間，割斷了你的脖子。幾秒鐘內，你的頭還帶著震驚的表情留在原地，隨後就滾落到地板上。"
+  ],
+  dead: true,
+  deadTitle: "你選錯了容器或血液來源。"
+};
+
+P["320"] = {
+  text: [
+    "你選擇了子宮取血。但你手裡拿著的是木碗或金酒杯——容器不對。",
+    "你離開金色的房間，沿著鑲板走廊回到藥房。你拿著調好的奇怪藥劑，小心翼翼地把它放在藥房的操作台上。現在沒有回頭路了，是時候面對耶洗別了。",
+    "然而，當耶洗別出現時，她只是冷笑著看著你手中的容器。「你以為隨便什麼杯子都行嗎？」"
+  ],
+  choices: [
+    { label: "繼續面對耶洗別", to: "249" }
+  ]
+};
+
+P["229"] = {
+  text: [
+    "你把銀聖杯放在桌子上，深吸一口氣。這一切真的在發生。如果能做好，你或許就能回去了。",
+    "一滴汗水順著你的太陽穴流下，你從包裡掏出照片。你不知道自己的照片怎麼會出現在停屍房，但這一定有什麼意義——畢竟，你是「執行者」。你停頓了一下，看著照片裡熟睡的自己，那時的你还不知道即將面臨的危險，然後果斷地把照片揉成一團，塞進聖杯裡。",
+    "接下來，你要往裡面加些血。如果你知道這個咒語的配方，就該知道該從哪個器官取血。"
+  ],
+  choices: [
+    { label: "擠壓心臟取血", to: "82" },
+    { label: "擠壓子宮取血", to: "165" }
+  ]
+};
+
+P["165"] = {
+  text: [
+    "你離開金色的房間，沿著鑲板走廊回到藥房。你拿著調好的奇怪藥劑，小心翼翼地把它放在藥房的操作台上。現在沒有回頭路了，是時候面對耶洗別了。",
+    "你從包裡拿出那隻小小的錫鈴，搖了搖。鈴聲清脆，在藥房裡迴盪。"
+  ],
+  choices: [
+    { label: "搖響錫鈴，召喚耶洗別", to: "92", cond: { item: "錫鈴" } },
+    { label: "沒有錫鈴，試著直接喊出耶洗別的名字", to: "51", cond: { noItem: "錫鈴" } }
+  ]
+};
+
+P["51"] = {
+  text: [
+    "你努力壓制住不斷上升的恐慌，拼命想辦法召喚耶洗別。你喊出她的名字，沒有反應。你開始拉開抽屜，還是沒有反應。你把包裡的東西都倒在地上，就在你翻找線索時，聽到了藥房門打開的聲音。",
+    "你抬頭看去，呼吸急促，感到極度恐懼——是那個刺客，還穿著黑色的衣服，手裡還拿著刀，顯然還是打算殺了你。他朝你邁出一步。",
+    "你沒有召喚耶洗別的方法，也沒有準備好面對她。刺客的刀落下，你的旅程到此結束。"
+  ],
+  dead: true,
+  deadTitle: "你缺少召喚耶洗別的方法。"
+};
+
+P["92"] = {
+  text: [
+    "你搖了搖那隻小小的錫鈴，它清脆的叮噹聲在藥房裡幾乎聽不見。你覺得有點傻，把鈴鐺放在操作台上，發出「叮」的一聲輕響。",
+    "但就在這時，你感覺到氣氛發生了變化，轉過身去面對這個「存在」。",
+    "耶洗別來了。"
+  ],
+  choices: [
+    { label: "面對耶洗別", to: "152" }
+  ]
+};
+
+P["152"] = {
+  text: [
+    "你低下頭，靠近容器，閉上眼睛，張開嘴，祈禱一切順利。隨著一聲悠長低沉的呻吟，卡邁克爾「臨死前的气息」緩緩飄出，像一團濃霧，籠罩在其他配料上方。",
+    "有那麼一秒，什麼都沒發生，隨後——火花一閃，一團灼熱濃密的火焰燃起。你全神貫注，努力讓火焰冒出你想要的顏色的煙霧。",
+    "你想要什麼顏色的煙霧？"
+  ],
+  choices: [
+    { label: "白色", to: "143" },
+    { label: "黑色", to: "232" }
+  ],
+  onEnter: { flag: { finalReady: true } }
+};
+
+P["143"] = {
+  text: [
+    "純白的煙霧盤旋著升向天花板，你和耶洗別都震驚地看著，一言不發。隨後，你又聽到了那種嘲諷的笑聲。惡魔咧嘴笑了起來，用細長的舌頭舔了舔其中一顆尖牙，你意識到自己做出了錯誤的選擇。",
+    "你開始感到身體裡有一種奇怪的感覺，耶洗別開始控制你了。「錯誤的選擇？哦，親愛的，你犯的錯可不止一個！」她咯咯地笑著，用尾巴一掃，把你手裡的容器打翻在地。",
+    "你努力過了，但還是失敗了。那種奇怪的感覺蔓延到全身——幾乎就像有人在給你穿新衣服，把自己塞進你身體的每一個角落。最後，她完全控制了你。"
+  ],
+  dead: true,
+  deadTitle: "白色煙霧是錯誤的顏色。"
+};
+
+P["232"] = {
+  text: [
+    "漆黑的煙霧盤旋著升向天花板，你和耶洗別都震驚地看著，一言不發，彷彿過了很久。你開始懷疑哪裡出了錯，這時房間裡響起一陣尖銳的嗡嗡聲。",
+    "耶洗別的臉開始扭曲，嘴巴越張越大，她伸出爪子，抓撓著臉上乾枯的肌肉。你抱著冒煙的聖杯向後退，突然，惡魔蜷縮起來。",
+    "你震驚地看著耶洗別開始啃食自己的尾巴，身體盤成一團，一口接一口地啃，嘴巴隨著每一次吞咽越張越大。你只能呆呆地看著惡魔一點點把自己啃得消失，當最後一口被吞下時，火焰熄滅了。",
+    "寂靜。徹底的寂靜。",
+    "然後，你感到一陣眩暈。"
+  ],
+  choices: [
+    { label: "睜開眼睛", to: "400" }
+  ]
+};
+
+P["400"] = {
+  text: [
+    "你猛地驚醒，起初被黑暗弄得暈頭轉向。你在哪兒？心跳得飛快，你漫無目的地摸索著，試圖弄清自己的位置。你正躺在幾張實用卻略帶黏膩的人造皮革椅子上。哦，對了。",
+    "眼睛逐漸適應了昏暗後，你終於能看清這個小休息室的家具，不由得鬆了口氣。你睡了多久？等等，這一幕你是不是經歷過？",
+    "你在黑暗中摸索著打開門，昏暗閃爍的燈光照亮了熟悉的走廊。你小心翼翼地走向另一個休息室，這次沒有聽到滴水聲。你試探地往房間裡瞥了一眼，一聲尖叫劃破了寂靜。你僵在原地，隨後聽到了……笑聲？",
+    "你朝著聲音望去，看到南希捂著胸口，卻在歇斯底里地笑。她喘著氣，斷斷續續地說道：「我肯定是打盹睡著了，你嚇死我了。」",
+    "你滿腦子只有一個念頭：她還活著。之前發生的一切——卡邁克爾、耶洗別——難道只是一場妄想出來的噩夢？",
+    "南希還在滔滔不絕地說著什麼，似乎沒太注意到你的異常。「不過，」她說，「我感覺不太舒服，喉嚨疼得厲害，好像吞了什麼鋒利的東西。」",
+    "隨後她看向你。「你到底怎麼了？」",
+    "你不知道她在說什麼，疑惑地回看著她。南希指了指你的手術服，你低頭一看，發現上面覆蓋著一層薄薄的黑色煤煙。你愣了幾秒，然後衝向衛生間。",
+    "你聽到南希在身後問你還好嗎，但你只能盯著鏡子——背上那個黑色的螺旋形烙印還在，雖然已經不再新鮮刺痛，卻像是已經存在了好幾年。",
+    "你不知道自己在那裡站了多久，努力想弄明白這一切，但最後實在無能為力，只能聳聳肩，接受這一切都是真實發生過的事實。",
+    "你用還算完好的雙手擦了擦身上的煤煙，含淚微笑著告訴自己——你回家了！"
+  ],
+  win: true,
+  winTitle: "你摧毀了耶洗別，逃出了夜班。"
+};
+
+/* ---------- 遊戲邏輯 ---------- */
+
+const $ = id => document.getElementById(id);
+
+function normalize(str){
+  return String(str).toUpperCase().replace(/[^A-Z0-9]/g,'');
+}
+
+function hasItem(name){ return S.inv.includes(name); }
+function hasClue(name){ return S.clues.includes(name); }
+
+function condOk(cond){
+  if(!cond) return true;
+  if(cond.item && !hasItem(cond.item)) return false;
+  if(cond.noItem && hasItem(cond.noItem)) return false;
+  if(cond.clue && !hasClue(cond.clue)) return false;
+  if(cond.flag && !S.flags[cond.flag]) return false;
+  if(cond.noFlag && S.flags[cond.noFlag]) return false;
+  return true;
+}
+
+function reqText(cond){
+  if(!cond) return '';
+  if(cond.item) return '需要：' + cond.item;
+  if(cond.noItem) return '需要：沒有' + cond.noItem;
+  if(cond.clue) return '需要線索：' + cond.clue;
+  if(cond.flag) return '需要狀態：' + cond.flag;
+  return '';
+}
+
+function applyOnEnter(p){
+  if(!p || !p.onEnter) return;
+  const e = p.onEnter;
+  if(e.addItem){
+    e.addItem.forEach(it=>{
+      if(!S.inv.includes(it)){ S.inv.push(it); toast('獲得物品：' + it); }
+    });
+  }
+  if(e.addClue){
+    e.addClue.forEach(c=>{
+      if(!S.clues.includes(c)){ S.clues.push(c); toast('記錄線索：' + c); }
+    });
+  }
+  if(e.flag){
+    Object.keys(e.flag).forEach(k=>{ S.flags[k] = e.flag[k]; });
+  }
+}
+
+function goTo(id){
+  id = String(id);
+  if(!P[id]){
+    S.missingId = id;
+    S.mode = 'missing';
+    render();
+    return;
+  }
+  S.history.push(S.cur);
+  if(S.history.length > 200) S.history.shift();
+  S.cur = id;
+  if(!S.visited.includes(id)) S.visited.push(id);
+  const p = P[id];
+  applyOnEnter(p);
+  if(p.dead) S.mode = 'dead';
+  else if(p.win) S.mode = 'win';
+  else S.mode = 'story';
+  render();
+  autoSave();
+}
+
+function restart(){
+  S.cur = '1';
+  S.inv = [];
+  S.clues = [];
+  S.flags = {};
+  S.visited = ['1'];
+  S.history = [];
+  S.mode = 'story';
+  applyOnEnter(P['1']);
+  render();
+  autoSave();
+}
+
+function render(){
+  const p = S.cur ? P[S.cur] : null;
+  $('passageNum').textContent = S.cur ? ('段落 ' + S.cur) : '';
+  const storyEl = $('storyText');
+  const choicesEl = $('choicesArea');
+  const endEl = $('endArea');
+  storyEl.innerHTML = '';
+  choicesEl.innerHTML = '';
+  endEl.innerHTML = '';
+
+  renderSide();
+
+  if(S.mode === 'missing'){
+    storyEl.innerHTML = `<p>此分支（第 ${S.missingId} 段）在精簡版中未收錄。</p>
+      <p style="color:#8a97a8;font-size:13px">你可以返回上一段繼續冒險。</p>`;
+    const btn = document.createElement('button');
+    btn.className = 'choiceBtn';
+    btn.textContent = '返回上一段';
+    btn.onclick = () => {
+      const prev = S.history.pop();
+      if(prev){ S.cur = prev; S.mode = P[prev].dead ? 'dead' : (P[prev].win ? 'win' : 'story'); render(); }
+      else restart();
+    };
+    choicesEl.appendChild(btn);
+    return;
+  }
+
+  if(!p) return;
+
+  // 文字
+  (p.text || []).forEach(t=>{
+    const el = document.createElement('p');
+    el.textContent = t;
+    storyEl.appendChild(el);
+  });
+
+  // 死亡 / 勝利
+  if(p.dead){
+    const card = document.createElement('div');
+    card.className = 'endCard dead';
+    card.innerHTML = `<h2>☠ 你死了</h2><p>${p.deadTitle || '你的夜班到此結束。'}</p>`;
+    const btn = document.createElement('button');
+    btn.className = 'choiceBtn';
+    btn.textContent = '從頭開始';
+    btn.onclick = restart;
+    card.appendChild(btn);
+    endEl.appendChild(card);
+    return;
+  }
+  if(p.win){
+    const card = document.createElement('div');
+    card.className = 'endCard win';
+    card.innerHTML = `<h2>✔ 你逃出生天</h2><p>${p.winTitle || '你活了下來。'}</p>`;
+    const btn = document.createElement('button');
+    btn.className = 'choiceBtn';
+    btn.textContent = '再玩一次';
+    btn.onclick = restart;
+    card.appendChild(btn);
+    endEl.appendChild(card);
+    return;
+  }
+
+  // 謎題
+  if(p.puzzle){
+    const box = document.createElement('div');
+    box.className = 'puzzleBox';
+    const title = document.createElement('div');
+    title.className = 'pTitle';
+    title.textContent = p.puzzle.prompt;
+    box.appendChild(title);
+
+    const row = document.createElement('div');
+    row.className = 'puzzleRow';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = '輸入答案…';
+    input.autocomplete = 'off';
+    const submit = document.createElement('button');
+    submit.textContent = '確認';
+    submit.disabled = true;
+    input.addEventListener('input', ()=>{ submit.disabled = input.value.trim().length === 0; });
+    input.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && !submit.disabled) submit.click(); });
+    submit.onclick = ()=>{
+      const val = normalize(input.value);
+      const ok = (p.puzzle.answer || []).some(a => normalize(a) === val);
+      if(ok) goTo(p.puzzle.success);
+      else goTo(p.puzzle.fail);
+    };
+    row.appendChild(input);
+    row.appendChild(submit);
+    box.appendChild(row);
+
+    if(p.puzzle.hint){
+      const hint = document.createElement('div');
+      hint.className = 'pHint';
+      hint.textContent = '提示：' + p.puzzle.hint;
+      box.appendChild(hint);
+    }
+    choicesEl.appendChild(box);
+    setTimeout(()=>input.focus(), 50);
+    return;
+  }
+
+  // 選項
+  if(p.choices && p.choices.length){
+    const list = p.choices.filter(c => condOk(c.cond));
+    if(list.length === 0){
+      const btn = document.createElement('button');
+      btn.className = 'choiceBtn';
+      btn.textContent = '返回上一段';
+      btn.onclick = ()=>{
+        const prev = S.history.pop();
+        if(prev){ S.cur = prev; S.mode = P[prev].dead ? 'dead' : (P[prev].win ? 'win' : 'story'); render(); }
+      };
+      choicesEl.appendChild(btn);
+      return;
+    }
+    list.forEach(c=>{
+      const btn = document.createElement('button');
+      btn.className = 'choiceBtn';
+      btn.textContent = c.label;
+      const req = reqText(c.cond);
+      if(req){
+        const span = document.createElement('span');
+        span.className = 'req';
+        span.textContent = req;
+        btn.appendChild(span);
+      }
+      btn.onclick = ()=> goTo(c.to);
+      choicesEl.appendChild(btn);
+    });
+  }
+}
+
+function renderSide(){
+  // 背包
+  const invRow = $('invRow');
+  invRow.innerHTML = '';
+  $('invCount').textContent = S.inv.length;
+  $('invEmpty').style.display = S.inv.length ? 'none' : 'block';
+  S.inv.forEach(name=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = svgIcon(name) + `<div class="label">${name}</div>`;
+    card.title = name;
+    invRow.appendChild(card);
+  });
+  // 線索
+  const clueRow = $('clueRow');
+  clueRow.innerHTML = '';
+  $('clueCount').textContent = S.clues.length;
+  $('clueEmpty').style.display = S.clues.length ? 'none' : 'block';
+  S.clues.forEach(name=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = svgIcon('顏色力量') + `<div class="label">${name}</div>`;
+    card.title = name;
+    clueRow.appendChild(card);
+  });
+}
+
+/* ---------- 存讀檔 ---------- */
+function autoSave(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){}
+}
+function saveGame(){
+  autoSave();
+  toast('已存檔');
+}
+function loadGame(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw){ toast('沒有找到存檔'); return; }
+    const data = JSON.parse(raw);
+    Object.assign(S, data);
+    if(!S.cur) S.cur = '1';
+    const p = P[S.cur];
+    S.mode = p ? (p.dead ? 'dead' : (p.win ? 'win' : 'story')) : 'story';
+    render();
+    toast('已讀取存檔');
+  }catch(e){ toast('讀檔失敗'); }
+}
+
+/* ---------- Toast ---------- */
+let toastTimer = null;
+function toast(msg){
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 1800);
+}
+
+/* ---------- 彈窗 ---------- */
+function openModal(html){
+  $('modalBox').innerHTML = html;
+  $('modal').classList.remove('hidden');
+}
+function closeModal(){ $('modal').classList.add('hidden'); }
+
+$('btnHelp').onclick = ()=>{
+  openModal(`
+    <h2>遊戲說明 ─ 夜班</h2>
+    <p>這是一款單人互動小說。你是醫院手術室的一名夜班工作人員，醒來後發現同事被殺，自己正被一名兇手追捕。你必須靠智慧、記憶與找到的線索活下來。</p>
+    <h3>操作方式</h3>
+    <ul>
+      <li>閱讀段落文字，點擊選項前進。</li>
+      <li>某些段落是謎題：在輸入框輸入答案後按「確認」。</li>
+      <li>某些選項需要持有特定物品或線索才會出現。</li>
+      <li>背包與線索會顯示在右側（窄螢幕在下方），可水平捲動。</li>
+      <li>錯誤的選擇可能導致死亡；死亡後可從頭開始或讀檔。</li>
+      <li>遊戲會在每次跳段時自動存檔；也可手動「存檔 / 讀檔」。</li>
+    </ul>
+    <h3>重要提示</h3>
+    <ul>
+      <li>把所有找到的線索記下來。</li>
+      <li>某些物品是陷阱，某些物品是保命關鍵。</li>
+      <li>不是所有看起來友善的東西都是朋友。</li>
+      <li>最終儀式需要：正確的容器、正確的血液、正確的煙霧顏色，以及正確的護身符。</li>
+    </ul>
+    <h3>已知謎題提示</h3>
+    <ul>
+      <li>第 1 段：前 4 個質數。</li>
+      <li>鏡子謎語：一種樹，汁液可鎮痛。</li>
+      <li>三位數密碼：十位比個位大 5，百位比十位小 8。</li>
+      <li>三把鑰匙：松果體、舌頭、牙齒對應的編號。</li>
+      <li>鏡文：把字母表倒過來讀。</li>
+    </ul>
+    <div class="closeRow"><button onclick="closeModal()">關閉</button></div>
+  `);
+};
+
+$('btnBook').onclick = ()=>{
+  openModal(`
+    <h2>《影之書》─ 顏色的力量</h2>
+    <p>你在冒險中翻閱過這本書的「顏色的力量」章節。</p>
+    <table class="mini">
+      <tr><th>顏色</th><th>力量</th></tr>
+      <tr><td><span class="colorDot" style="background:#3a7bd5"></span>藍色</td><td>寧靜、夢境、水</td></tr>
+      <tr><td><span class="colorDot" style="background:#c0392b"></span>紅色</td><td>激情、勇氣、火</td></tr>
+      <tr><td><span class="colorDot" style="background:#e07030"></span>橙色</td><td>能量、活力、支配</td></tr>
+      <tr><td><span class="colorDot" style="background:#e0b25a"></span>黃色</td><td>思維清晰、刺激、空氣</td></tr>
+      <tr><td><span class="colorDot" style="background:#e08ab0"></span>粉色</td><td>愛、家庭、同情</td></tr>
+      <tr><td><span class="colorDot" style="background:#b08ad0"></span>淡紫色</td><td>通靈能力、占卜</td></tr>
+      <tr><td><span class="colorDot" style="background:#4a5ac0"></span>靛藍色</td><td>直覺、神秘智慧、治癒</td></tr>
+      <tr><td><span class="colorDot" style="background:#3fa66b"></span>綠色</td><td>生育、成長、自然</td></tr>
+      <tr><td><span class="colorDot" style="background:#8a5a2b"></span>棕色</td><td>動物、家庭、大地</td></tr>
+      <tr><td><span class="colorDot" style="background:#eee"></span>白色</td><td>淨化、和平、正義</td></tr>
+      <tr><td><span class="colorDot" style="background:#111"></span>黑色</td><td>驅散負面能量、驅逐邪惡</td></tr>
+      <tr><td><span class="colorDot" style="background:#cdd7e2"></span>銀色</td><td>女神、月亮、平衡</td></tr>
+      <tr><td><span class="colorDot" style="background:#d4af37"></span>金色</td><td>財富、權力、太陽</td></tr>
+    </table>
+    <div class="closeRow"><button onclick="closeModal()">關閉</button></div>
+  `);
+};
+
+$('btnSave').onclick = saveGame;
+$('btnLoad').onclick = loadGame;
+$('btnRestart').onclick = ()=>{
+  if(confirm('確定要重新開始嗎？目前的進度將被覆蓋。')) restart();
+};
+$('modal').addEventListener('click', (e)=>{ if(e.target.id === 'modal') closeModal(); });
+
+/* ---------- 初始化 ---------- */
+(function init(){
+  const raw = localStorage.getItem(SAVE_KEY);
+  if(raw){
+    try{
+      const data = JSON.parse(raw);
+      if(data && data.cur && P[data.cur]){
+        Object.assign(S, data);
+        const p = P[S.cur];
+        S.mode = p.dead ? 'dead' : (p.win ? 'win' : 'story');
+        render();
+        toast('已載入上次進度');
+        return;
+      }
+    }catch(e){}
+  }
+  restart();
+})();
+</script>
+</body>
+</html>

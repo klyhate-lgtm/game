@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>時間機器9：西部狂野騎士</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #e67e22;
+            --bg-color: #f5f6fa;
+            --text-color: #333;
+            --card-bg: #fff;
+            --border-radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* 頂部導航與狀態列 */
+        header {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary { background-color: var(--secondary-color); color: white; }
+        .btn-secondary { background-color: #7f8c8d; color: white; }
+        .btn-danger { background-color: #e74c3c; color: white; }
+
+        /* 遊戲主要區域 */
+        #game-container {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 場景視覺 (SVG) */
+        #scene-visual {
+            width: 100%;
+            height: 300px;
+            background: #87CEEB;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .scene-svg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* 文字內容區 */
+        #story-content {
+            padding: 30px;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        #story-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+
+        /* 選擇區域 (水平捲動) */
+        #choices-container {
+            display: flex;
+            overflow-x: auto;
+            padding: 20px;
+            gap: 15px;
+            background: #ecf0f1;
+            border-top: 1px solid #bdc3c7;
+            scroll-behavior: smooth;
+        }
+
+        /* 隱藏滾動條但保留功能 */
+        #choices-container::-webkit-scrollbar { height: 8px; }
+        #choices-container::-webkit-scrollbar-track { background: #dfe6e9; border-radius: 4px; }
+        #choices-container::-webkit-scrollbar-thumb { background: #b2bec3; border-radius: 4px; }
+
+        .choice-card {
+            min-width: 250px;
+            background: white;
+            border: 2px solid var(--primary-color);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .choice-card:hover {
+            background: #f1f2f6;
+            border-color: var(--secondary-color);
+            transform: scale(1.02);
+        }
+
+        .choice-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .choice-desc {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        /* 物品/線索面板 */
+        #inventory-panel {
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 20px;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        #inventory-panel h3 {
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 5px;
+            display: inline-block;
+        }
+
+        #inventory-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .clue-badge {
+            background: #ffeaa7;
+            color: #d63031;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border: 1px solid #fdcb6e;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 彈窗設計 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-content h2 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .modal-content ul {
+            margin-left: 20px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px; right: 15px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+
+        /* 動畫 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+
+        /* 響應式 */
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 15px; text-align: center; }
+            #scene-visual { height: 200px; }
+            .choice-card { min-width: 200px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部導航 -->
+    <header>
+        <h1>🕰️ 時間機器 9：西部狂野騎士</h1>
+        <div class="controls">
+            <button class="btn-secondary" onclick="toggleModal('rules-modal')">📖 遊戲說明</button>
+            <button class="btn-secondary" onclick="toggleModal('save-modal')">💾 存檔/讀檔</button>
+            <button class="btn-danger" onclick="resetGame()">🔄 重新開始</button>
+        </div>
+    </header>
+
+    <!-- 遊戲主區域 -->
+    <div id="game-container">
+        <div id="scene-visual">
+            <!-- SVG 場景由 JS 動態生成 -->
+        </div>
+        <div id="story-content">
+            <div id="story-text" class="fade-in">載入中...</div>
+            <div style="text-align: right;">
+                <button id="continue-btn" class="btn-primary" style="display:none;" onclick="advanceState()">繼續 ➔</button>
+            </div>
+        </div>
+        <div id="choices-container">
+            <!-- 選項卡片由 JS 動態生成 -->
+        </div>
+    </div>
+
+    <!-- 線索面板 -->
+    <div id="inventory-panel">
+        <h3>📜 調查線索</h3>
+        <div id="inventory-list">
+            <span style="color:#999; font-style:italic;">目前尚未發現任何線索...</span>
+        </div>
+    </div>
+
+    <!-- 彈窗：遊戲說明 -->
+    <div id="rules-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="toggleModal('rules-modal')">✖</button>
+            <h2>📖 遊戲說明與守則</h2>
+            <p><strong>你的任務：</strong>回到 1860 年代的美國西部，調查小馬快遞（Pony Express）為何在短短 18 個月內突然停運。你將扮演一位時間旅行者，體驗這段歷史。</p>
+            <br>
+            <p><strong>時間旅行者守則：</strong></p>
+            <ul>
+                <li>絕對不能殺死任何人或動物。</li>
+                <li>不能改變歷史，不能把未來的物品留在過去。</li>
+                <li>跳躍時空時不能帶走任何人。</li>
+                <li>必須遵從時間機器的指示與提供的選項。</li>
+            </ul>
+            <p><strong>遊戲方式：</strong>閱讀故事，點擊底部的選項卡片做出決定。你的選擇將決定你能否找到真相。請多加利用「調查線索」面板。</p>
+            <button class="btn-primary" onclick="toggleModal('rules-modal')" style="width:100%;">我準備好了</button>
+        </div>
+    </div>
+
+    <!-- 彈窗：存檔 -->
+    <div id="save-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="toggleModal('save-modal')">✖</button>
+            <h2>💾 存檔與讀檔</h2>
+            <p>遊戲進度會自動保存在瀏覽器中。</p>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn-primary" onclick="saveGame()" style="flex:1;">手動存檔</button>
+                <button class="btn-secondary" onclick="loadGame()" style="flex:1;">讀取存檔</button>
+            </div>
+            <div style="margin-top:20px; padding:15px; background:#f1f2f6; border-radius:8px;">
+                <h3>🗺️ 進度紀錄</h3>
+                <p id="progress-log" style="font-size:0.9rem; margin-top:10px; max-height:100px; overflow-y:auto;">- 尚未開始 -</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 資料定義：遊戲節點 (State Machine Data)
+        // ==========================================
+        const gameData = {
+            "start": {
+                text: "你獨自一人身處沙漠之中。水壺已經空了，口乾舌燥。遠方揚起一陣沙塵，伴隨著馬蹄聲與金屬碰撞的聲響。一輛驛站馬車出現在你眼前。",
+                visual: "desert",
+                options: [
+                    { text: "攔下馬車", next: "stagecoach", addClue: null }
+                ]
+            },
+            "stagecoach": {
+                text: "馬車伕和持槍警衛懷疑地看著你。你解釋自己不是強盜，只是想打聽「小馬快遞」的消息。車上的記者魯弗斯·海恩斯讓你上車。馬車顛簸地前進，不久後車輪斷了。在等待修車時，海恩斯告訴你，威廉·H·羅素正計畫用中央路線取代巴特菲爾德驛站。",
+                visual: "stagecoach",
+                options: [
+                    { text: "跳躍到德州艾爾帕索的巴特菲爾德辦公室", next: "el_paso", addClue: "羅素計畫開闢中央路線" },
+                    { text: "留在馬車上前往下一站", next: "waystation", addClue: "巴特菲爾德與羅素是競爭對手" }
+                ]
+            },
+            "waystation": {
+                text: "你抵達了霍金斯驛站。老闆娘科拉熱情地招待你。你留下來幫忙照顧馬匹，並打聽到了更多關於羅素與電報的傳聞。但你也發現，巴特菲爾德的南方路線因為內戰而岌岌可危。",
+                visual: "waystation",
+                options: [
+                    { text: "跳躍到華盛頓特區，尋找羅素", next: "washington_1860", addClue: "內戰切斷了南方路線" },
+                    { text: "跳躍到懷俄明州拉勒米堡", next: "fort_laramie", addClue: "羅素正面臨財務危機" }
+                ]
+            },
+            "el_paso": {
+                text: "你來到巴特菲爾德驛站辦公室。當你詢問小馬快遞時，經理以為你是羅素派來的間諜，憤怒地朝你撲來。你必須趕快逃離這裡！",
+                visual: "office",
+                options: [
+                    { text: "跳躍時空逃跑", next: "washington_1860", addClue: "巴特菲爾德高層對羅素充滿敵意" }
+                ]
+            },
+            "washington_1860": {
+                text: "你來到 1860 年 1 月的華盛頓特區。記者海恩斯正在採訪羅素。羅素宣布小馬快遞將在 4 月 3 日開始營運，並承諾 10 天內將郵件送達加州。但當被問及資金時，羅素卻生氣地離開了。",
+                visual: "washington",
+                options: [
+                    { text: "跳躍到 1860 年 4 月 3 日的聖約瑟夫", next: "st_joseph", addClue: "羅素資金嚴重不足" },
+                    { text: "跳躍到懷俄明州拉勒米堡", next: "fort_laramie", addClue: "小馬快遞正式啟動" }
+                ]
+            },
+            "st_joseph": {
+                text: "今天是 1860 年 4 月 3 日，小馬快遞首發日！全城歡慶。你再次遇到海恩斯。他告訴你，羅素計畫在證明路線可行後，透過運送貨物和乘客來壟斷市場，這將徹底擊敗巴特菲爾德。",
+                visual: "celebration",
+                options: [
+                    { text: "跳躍到內華達山脈", next: "sierra", addClue: "小馬快遞是羅素的商業賭注" },
+                    { text: "前往懷俄明州", next: "fort_laramie", addClue: "首發日盛況空前" }
+                ]
+            },
+            "sierra": {
+                text: "你在內華達山脈遭遇了暴風雪。你幾乎凍死，幸好被老驛站長救起。他告訴你，真正威脅小馬快遞的不是天氣，而是懷俄明州的蘇族印地安人。此外，波士頓·厄普森等騎手正在冒死送信。",
+                visual: "sierra",
+                options: [
+                    { text: "跳躍到懷俄明州", next: "fort_laramie", addClue: "印地安人與暴風雪是重大阻礙" },
+                    { text: "留在原地等待波士頓·厄普森", next: "boston", addClue: "騎手們非常勇敢" }
+                ]
+            },
+            "boston": {
+                text: "波士頓·厄普森抵達驛站。他告訴你，加州有很多人想當騎手，但懷俄明州急需人手。他喝了口熱咖啡，再度衝入暴風雪中。你決定跟隨他的腳步前往懷俄明州。",
+                visual: "snow",
+                options: [
+                    { text: "跳躍到懷俄明州", next: "fort_laramie", addClue: "懷俄明州急需騎手" }
+                ]
+            },
+            "fort_laramie": {
+                text: "你來到拉勒米堡。史林·巴克斯特正在招募騎手，準備運送林肯總統的就職演說。這是一場創紀錄的奔跑，旨在向加州證明聯邦的實力，防止加州加入南方邦聯。",
+                visual: "fort",
+                options: [
+                    { text: "與史林一起騎馬送信", next: "ride", addClue: "小馬快遞被用於政治宣傳" },
+                    { text: "跳躍到華盛頓特區看林肯就職", next: "lincoln", addClue: "內戰一觸即發" }
+                ]
+            },
+            "ride": {
+                text: "你接過裝有林肯演說的郵包，在懷俄明的高原上奔馳。你遇到了蘇族獵人，但靠著友善的態度化險為夷。你成功將郵包交給了下一棒騎手。這是一次偉大的紀錄奔跑。",
+                visual: "riding",
+                options: [
+                    { text: "跳躍到 1861 年的華盛頓特區", next: "lincoln", addClue: "小馬快遞成功完成任務" }
+                ]
+            },
+            "lincoln": {
+                text: "1861 年 3 月，林肯宣誓就職。你聽到羅素向參議員們吹噓小馬快遞，但參議員們指出羅素已經破產了。羅素孤注一擲，希望透過小馬快遞的成功來獲得政府合約。",
+                visual: "lincoln",
+                options: [
+                    { text: "跳躍到 1861 年 10 月的猶他州", next: "telegraph", addClue: "羅素破產，孤注一擲" }
+                ]
+            },
+            "telegraph": {
+                text: "1861 年 10 月 24 日，鹽湖城。工人們架起了最後一根電報桿，連接了東西海岸。橫貫大陸電報正式開通！第一封電報從舊金山發往華盛頓。這項新技術將徹底改變通訊方式。",
+                visual: "telegraph",
+                options: [
+                    { text: "前往霍金斯驛站查看現況", next: "ending", addClue: "電報線連接了東西海岸" }
+                ]
+            },
+            "ending": {
+                text: "你回到了霍金斯驛站。科拉告訴你，現在郵件由驛站馬車運送，而緊急消息則透過電報傳遞。「沒有人能騎馬跑贏電報，」她說，「這就是小馬快遞關閉的原因。」你終於找到了答案。小馬快遞完成了它的歷史使命，被更先進的科技取代了。",
+                visual: "ending",
+                options: [],
+                isWin: true
+            }
+        };
+
+        // ==========================================
+        // 2. 狀態機與遊戲邏輯
+        // ==========================================
+        let gameState = {
+            currentNode: "start",
+            clues: [],
+            phase: "START", // START, READING, CHOOSING, WIN, GAMEOVER
+            history: []
+        };
+
+        // 初始化
+        function initGame() {
+            const saved = localStorage.getItem("timeMachineSave");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (confirm("發現上次的存檔進度，是否繼續遊戲？")) {
+                    gameState = parsed;
+                } else {
+                    resetGame();
+                    return;
+                }
+            } else {
+                showRules();
+            }
+            renderNode(gameState.currentNode);
+        }
+
+        // 顯示規則
+        function showRules() {
+            toggleModal('rules-modal');
+        }
+
+        // 切換彈窗
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('active');
+            if (id === 'save-modal' && modal.classList.contains('active')) {
+                updateProgressLog();
+            }
+        }
+
+        // 渲染節點
+        function renderNode(nodeId) {
+            const node = gameData[nodeId];
+            if (!node) return;
+
+            gameState.currentNode = nodeId;
+            gameState.phase = "READING";
+            
+            // 更新文字
+            const storyText = document.getElementById("story-text");
+            storyText.innerHTML = node.text;
+            storyText.classList.remove("fade-in");
+            void storyText.offsetWidth; // 觸發重繪
+            storyText.classList.add("fade-in");
+
+            // 更新視覺
+            renderVisual(node.visual);
+
+            // 更新線索
+            if (node.addClue && !gameState.clues.includes(node.addClue)) {
+                gameState.clues.push(node.addClue);
+            }
+            updateInventory();
+
+            // 處理選項
+            const choicesContainer = document.getElementById("choices-container");
+            const continueBtn = document.getElementById("continue-btn");
+            
+            choicesContainer.innerHTML = "";
+            
+            if (node.options.length > 0) {
+                // 有選項，隱藏繼續按鈕，顯示選項卡片
+                continueBtn.style.display = "none";
+                node.options.forEach((opt, index) => {
+                    const card = document.createElement("div");
+                    card.className = "choice-card fade-in";
+                    card.style.animationDelay = `${index * 0.1}s`;
+                    card.innerHTML = `
+                        <div class="choice-title">${opt.text}</div>
+                        <div class="choice-desc">點擊做出選擇</div>
+                    `;
+                    card.onclick = () => makeChoice(opt);
+                    choicesContainer.appendChild(card);
+                });
+            } else {
+                // 沒有選項，顯示繼續或結算按鈕
+                if (node.isWin) {
+                    gameState.phase = "WIN";
+                    continueBtn.style.display = "inline-block";
+                    continueBtn.textContent = "🏆 任務完成！查看結果";
+                    continueBtn.onclick = () => {
+                        alert("恭喜你！你成功揭開了小馬快遞消失的真相：電報的發明取代了傳統的騎馬送信。");
+                        resetGame();
+                    };
+                } else {
+                    // 理論上不會走到這，但防呆
+                    continueBtn.style.display = "none";
+                }
+            }
+
+            // 自動存檔
+            saveGame(true);
+        }
+
+        // 做出選擇
+        function makeChoice(option) {
+            if (gameState.phase !== "READING") return; // 狀態機防護
+            
+            gameState.history.push(gameState.currentNode);
+            gameState.phase = "CHOOSING";
+            
+            // 延遲一下再跳轉，讓玩家有反饋感
+            setTimeout(() => {
+                renderNode(option.next);
+            }, 300);
+        }
+
+        // 更新物品/線索面板
+        function updateInventory() {
+            const list = document.getElementById("inventory-list");
+            if (gameState.clues.length === 0) {
+                list.innerHTML = '<span style="color:#999; font-style:italic;">目前尚未發現任何線索...</span>';
+            } else {
+                list.innerHTML = "";
+                gameState.clues.forEach(clue => {
+                    const badge = document.createElement("span");
+                    badge.className = "clue-badge fade-in";
+                    badge.textContent = "📌 " + clue;
+                    list.appendChild(badge);
+                });
+            }
+        }
+
+        // 更新進度紀錄
+        function updateProgressLog() {
+            const log = document.getElementById("progress-log");
+            if (gameState.history.length === 0 && gameState.currentNode === "start") {
+                log.innerHTML = "- 尚未開始 -";
+            } else {
+                let text = `當前位置：${gameData[gameState.currentNode].text.substring(0, 15)}...<br>`;
+                text += `已發現線索：${gameState.clues.length} 個`;
+                log.innerHTML = text;
+            }
+        }
+
+        // 重置遊戲
+        function resetGame() {
+            localStorage.removeItem("timeMachineSave");
+            gameState = {
+                currentNode: "start",
+                clues: [],
+                phase: "START",
+                history: []
+            };
+            document.getElementById("choices-container").innerHTML = "";
+            renderNode("start");
+        }
+
+        // 存檔
+        function saveGame(silent = false) {
+            localStorage.setItem("timeMachineSave", JSON.stringify(gameState));
+            if (!silent) {
+                alert("遊戲已成功存檔！");
+                toggleModal('save-modal');
+            }
+        }
+
+        // 讀檔
+        function loadGame() {
+            const saved = localStorage.getItem("timeMachineSave");
+            if (saved) {
+                gameState = JSON.parse(saved);
+                renderNode(gameState.currentNode);
+                alert("存檔讀取成功！");
+                toggleModal('save-modal');
+            } else {
+                alert("沒有找到存檔！");
+            }
+        }
+
+        // ==========================================
+        // 3. CSS/SVG 視覺生成引擎
+        // ==========================================
+        function renderVisual(type) {
+            const container = document.getElementById("scene-visual");
+            let svgContent = "";
+
+            switch(type) {
+                case "desert":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <defs>
+                                <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#f39c12" />
+                                    <stop offset="100%" stop-color="#f1c40f" />
+                                </linearGradient>
+                            </defs>
+                            <rect width="800" height="300" fill="url(#skyGrad)" />
+                            <path d="M0,200 Q200,150 400,220 T800,180 L800,300 L0,300 Z" fill="#d35400" opacity="0.6"/>
+                            <path d="M0,250 Q300,200 600,260 T800,230 L800,300 L0,300 Z" fill="#e67e22" />
+                            <circle cx="650" cy="80" r="40" fill="#fff" opacity="0.8"/>
+                            <circle cx="650" cy="80" r="45" fill="none" stroke="#fff" stroke-width="2" opacity="0.4"/>
+                        </svg>
+                    `;
+                    break;
+                case "stagecoach":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <rect width="800" height="300" fill="#87CEEB" />
+                            <path d="M0,200 Q400,180 800,220 L800,300 L0,300 Z" fill="#c2b280" />
+                            <rect x="300" y="120" width="200" height="80" fill="#8B4513" rx="5" />
+                            <rect x="320" y="100" width="160" height="20" fill="#A0522D" />
+                            <circle cx="330" cy="200" r="25" fill="#333" />
+                            <circle cx="470" cy="200" r="25" fill="#333" />
+                            <circle cx="330" cy="200" r="5" fill="#fff" />
+                            <circle cx="470" cy="200" r="5" fill="#fff" />
+                            <circle cx="200" cy="210" r="20" fill="#333" />
+                            <circle cx="580" cy="210" r="20" fill="#333" />
+                            <path d="M250,190 L300,190 L310,160 L240,160 Z" fill="#654321"/>
+                        </svg>
+                    `;
+                    break;
+                case "waystation":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <rect width="800" height="300" fill="#fdcb6e" />
+                            <path d="M0,220 Q400,200 800,240 L800,300 L0,300 Z" fill="#e1b12c" />
+                            <rect x="350" y="150" width="100" height="80" fill="#d35400" />
+                            <polygon points="330,150 400,110 470,150" fill="#c0392b" />
+                            <rect x="380" y="180" width="20" height="40" fill="#f1c40f" />
+                            <rect x="420" y="180" width="20" height="40" fill="#f1c40f" />
+                            <circle cx="410" cy="100" r="15" fill="#fff" opacity="0.6"/>
+                        </svg>
+                    `;
+                    break;
+                case "office":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <rect width="800" height="300" fill="#f5f6fa" />
+                            <rect x="150" y="50" width="500" height="250" fill="#bdc3c7" />
+                            <rect x="200" y="100" width="150" height="100" fill="#ecf0f1" />
+                            <rect x="450" y="100" width="150" height="100" fill="#ecf0f1" />
+                            <line x1="400" y1="50" x2="400" y2="300" stroke="#2c3e50" stroke-width="4" />
+                            <line x1="200" y1="100" x2="650" y2="100" stroke="#2c3e50" stroke-width="4" />
+                        </svg>
+                    `;
+                    break;
+                case "washington":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <rect width="800" height="300" fill="#dfe6e9" />
+                            <path d="M0,250 L800,250 L800,300 L0,300 Z" fill="#b2bec3" />
+                            <rect x="300" y="120" width="200" height="130" fill="#ecf0f1" />
+                            <polygon points="300,120 400,50 500,120" fill="#2c3e50" />
+                            <rect x="380" y="180" width="40" height="70" fill="#e67e22" />
+                            <rect x="320" y="150" width="20" height="30" fill="#3498db" />
+                            <rect x="460" y="150" width="20" height="30" fill="#3498db" />
+                        </svg>
+                    `;
+                    break;
+                case "celebration":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <rect width="800" height="300" fill="#74b9ff" />
+                            <path d="M0,200 Q400,180 800,220 L800,300 L0,300 Z" fill="#b2bec3" />
+                            <rect x="200" y="150" width="400" height="80" fill="#d35400" rx="10"/>
+                            <circle cx="300" cy="100" r="10" fill="#f1c40f"/>
+                            <circle cx="500" cy="80" r="10" fill="#e74c3c"/>
+                            <circle cx="400" cy="120" r="10" fill="#2ecc71"/>
+                            <path d="M350,200 L400,160 L450,200" fill="#fdcb6e"/>
+                        </svg>
+                    `;
+                    break;
+                case "sierra":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <rect width="800" height="300" fill="#b2bec3" />
+                            <path d="M0,150 L200,50 L400,180 L600,40 L800,160 L800,300 L0,300 Z" fill="#ecf0f1" />
+                            <path d="M0,200 L300,100 L500,200 L700,120 L800,200 L800,300 L0,300 Z" fill="#dfe6e9" />
+                            <circle cx="400" cy="80" r="5" fill="#fff" />
+                            <circle cx="450" cy="100" r="3" fill="#fff" />
+                            <circle cx="350" cy="110" r="4" fill="#fff" />
+                        </svg>
+                    `;
+                    break;
+                case "snow":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <rect width="800" height="300" fill="#636e72" />
+                            <path d="M0,250 Q400,220 800,260 L800,300 L0,300 Z" fill="#fff" />
+                            <rect x="300" y="180" width="80" height="70" fill="#8B4513" />
+                            <polygon points="280,180 340,140 400,180" fill="#fff" />
+                            <circle cx="200" cy="100" r="3" fill="#fff" />
+                            <circle cx="500" cy="120" r="4" fill="#fff" />
+                            <circle cx="600" cy="80" r="2" fill="#fff" />
+                        </svg>
+                    `;
+                    break;
+                case "fort":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <rect width="800" height="300" fill="#a4b0be" />
+                            <path d="M0,220 Q400,200 800,240 L800,300 L0,300 Z" fill="#747d8c" />
+                            <rect x="200" y="150" width="400" height="80" fill="#2f3542" />
+                            <rect x="250" y="100" width="30" height="50" fill="#2f3542" />
+                            <rect x="350" y="100" width="30" height="50" fill="#2f3542" />
+                            <rect x="450" y="100" width="30" height="50" fill="#2f3542" />
+                            <rect x="550" y="100" width="30" height="50" fill="#2f3542" />
+                            <line x1="400" y1="50" x2="400" y2="150" stroke="#7f8c8d" stroke-width="3" />
+                            <polygon points="400,50 450,60 400,70" fill="#e74c3c" />
+                        </svg>
+                    `;
+                    break;
+                case "riding":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <rect width="800" height="300" fill="#f39c12" />
+                            <path d="M0,220 Q400,180 800,240 L800,300 L0,300 Z" fill="#d35400" />
+                            <ellipse cx="400" cy="210" rx="40" ry="15" fill="#333"/>
+                            <path d="M380,200 L370,180 L390,200 Z" fill="#333"/>
+                            <circle cx="400" cy="170" r="10" fill="#c0392b"/>
+                            <path d="M390,175 L380,190 L390,210" fill="none" stroke="#c0392b" stroke-width="3"/>
+                            <path d="M410,175 L420,190 L410,210" fill="none" stroke="#c0392b" stroke-width="3"/>
+                        </svg>
+                    `;
+                    break;
+                case "lincoln":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <rect width="800" height="300" fill="#dfe6e9" />
+                            <path d="M0,250 L800,250 L800,300 L0,300 Z" fill="#b2bec3" />
+                            <rect x="250" y="100" width="300" height="150" fill="#ecf0f1" />
+                            <polygon points="200,100 400,20 600,100" fill="#2c3e50" />
+                            <rect x="350" y="180" width="100" height="70" fill="#34495e" />
+                            <circle cx="400" cy="160" r="15" fill="#f1c40f" />
+                        </svg>
+                    `;
+                    break;
+                case "telegraph":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <rect width="800" height="300" fill="#81ecec" />
+                            <path d="M0,250 Q400,230 800,260 L800,300 L0,300 Z" fill="#55efc4" />
+                            <line x1="100" y1="80" x2="100" y2="250" stroke="#2d3436" stroke-width="6" />
+                            <line x1="300" y1="60" x2="300" y2="250" stroke="#2d3436" stroke-width="6" />
+                            <line x1="500" y1="90" x2="500" y2="250" stroke="#2d3436" stroke-width="6" />
+                            <line x1="700" y1="70" x2="700" y2="250" stroke="#2d3436" stroke-width="6" />
+                            <path d="M100,80 Q200,90 300,60 Q400,80 500,90 Q600,70 700,70" fill="none" stroke="#2d3436" stroke-width="3" />
+                        </svg>
+                    `;
+                    break;
+                case "ending":
+                    svgContent = `
+                        <svg class="scene-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice">
+                            <rect width="800" height="300" fill="#fdcb6e" />
+                            <path d="M0,220 Q400,200 800,240 L800,300 L0,300 Z" fill="#e1b12c" />
+                            <rect x="350" y="150" width="100" height="80" fill="#d35400" />
+                            <polygon points="330,150 400,110 470,150" fill="#c0392b" />
+                            <line x1="450" y1="50" x2="450" y2="150" stroke="#2d3436" stroke-width="4" />
+                            <line x1="460" y1="80" x2="460" y2="150" stroke="#2d3436" stroke-width="4" />
+                            <path d="M450,50 Q460,60 460,80" fill="none" stroke="#2d3436" stroke-width="2" />
+                        </svg>
+                    `;
+                    break;
+                default:
+                    svgContent = `<div style="color:white; font-size:2rem;">🏜️</div>`;
+            }
+            container.innerHTML = svgContent;
+        }
+
+        // 頁面載入時初始化
+        window.onload = initGame;
+    </script>
+</body>
+</html>

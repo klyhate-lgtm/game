@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>時間機器3：武士之劍 - 文字冒險</title>
+  <style>
+    :root {
+      --bg-color: #121212;
+      --panel-bg: #1e1e1e;
+      --text-color: #e0e0e0;
+      --accent-color: #d35400;
+      --accent-hover: #e67e22;
+      --btn-bg: #2c3e50;
+      --btn-hover: #34495e;
+      --success-color: #27ae60;
+      --danger-color: #c0392b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      background-image: radial-gradient(circle at center, #1e1e1e 0%, #0a0a0a 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background-color: var(--panel-bg);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      border-bottom: 2px solid var(--accent-color);
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      color: var(--accent-color);
+      text-shadow: 0 0 10px rgba(211, 84, 0, 0.3);
+    }
+
+    .header-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .header-btn {
+      background-color: var(--btn-bg);
+      color: var(--text-color);
+      border: 1px solid #555;
+      padding: 8px 15px;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .header-btn:hover {
+      background-color: var(--btn-hover);
+      border-color: var(--accent-color);
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      flex: 1;
+      width: 100%;
+    }
+
+    .sidebar {
+      background-color: var(--panel-bg);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      border: 1px solid #333;
+      height: fit-content;
+    }
+
+    .sidebar h2 {
+      font-size: 1.2rem;
+      color: var(--accent-color);
+      border-bottom: 1px solid #333;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+
+    .sidebar h3 {
+      font-size: 1rem;
+      color: #3498db;
+      margin-bottom: 10px;
+    }
+
+    .sidebar ul {
+      list-style-type: none;
+      margin-bottom: 20px;
+    }
+
+    .sidebar li {
+      background-color: var(--btn-bg);
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      border-left: 3px solid var(--accent-color);
+    }
+
+    .main-content {
+      background-color: var(--panel-bg);
+      border-radius: 10px;
+      padding: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      border: 1px solid #333;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #node-title {
+      font-size: 1.5rem;
+      color: var(--accent-color);
+      margin-bottom: 20px;
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+    }
+
+    #node-text {
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+      white-space: pre-wrap;
+      flex-grow: 1;
+    }
+
+    #choices {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+    }
+
+    .choice-btn {
+      background-color: var(--btn-bg);
+      color: var(--text-color);
+      border: 1px solid #444;
+      padding: 15px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      text-align: left;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+      min-width: 250px;
+    }
+
+    .choice-btn:hover {
+      background-color: var(--btn-hover);
+      border-color: var(--accent-color);
+      transform: translateX(5px);
+    }
+
+    .choice-btn:active {
+      transform: scale(0.98);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background-color: var(--panel-bg);
+      padding: 30px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 600px;
+      border: 2px solid var(--accent-color);
+      box-shadow: 0 0 20px rgba(211, 84, 0, 0.2);
+      position: relative;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .close {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover {
+      color: white;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--success-color);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      z-index: 1000;
+      animation: fadeInOut 2s ease-in-out;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translate(-50%, 20px); }
+      15% { opacity: 1; transform: translate(-50%, 0); }
+      85% { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(-50%, -20px); }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+      header {
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>時間機器3：武士之劍</h1>
+    <div class="header-controls">
+      <button class="header-btn" onclick="toggleHelp()">遊戲說明</button>
+      <button class="header-btn" onclick="saveGame()">保存進度</button>
+      <button class="header-btn" onclick="loadGame()">讀取進度</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar">
+      <h2>狀態面板</h2>
+      <div id="inventory">
+        <h3>攜帶物品</h3>
+        <ul id="inventory-list"><li>空無一物</li></ul>
+      </div>
+      <div id="history">
+        <h3>冒險日誌</h3>
+        <ul id="history-list"></ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <h2 id="node-title">載入中...</h2>
+      <p id="node-text"></p>
+      <div id="choices"></div>
+    </main>
+  </div>
+
+  <!-- 說明彈窗 -->
+  <div id="help-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="toggleHelp()">&times;</span>
+      <h2>遊戲說明</h2>
+      <p>這是一款單人互動式文字冒險遊戲，改編自經典遊戲書《時間機器3：武士之劍》。</p>
+      <p><strong>任務目標：</strong>穿越時空回到日本戰國時代，尋找傳奇武士宮本武藏，並帶回他的佩劍。</p>
+      <p><strong>玩法：</strong>閱讀故事發展，並在每個節點做出選擇。你的選擇將決定你的命運。請注意，有些物品會在關鍵時刻發揮作用（例如火柴能驅趕忍者）。</p>
+      <p><strong>武士之道：</strong>武士非常看重榮譽。試圖偷竊、不當索取或不榮譽的行為，可能會導致任務失敗，甚至失去性命。</p>
+      <p>遊戲會自動記錄你的冒險軌跡，並可隨時保存或讀取進度。</p>
+    </div>
+  </div>
+
+  <script>
+    // 遊戲資料結構
+    const gameData = {
+      start: {
+        title: "任務開始",
+        text: "你站在一間小村莊的中央。你的任務是回到日本戰國時代，帶回歷史上最著名的武士——宮本武藏的佩劍。\n\n你身上只帶了一個小袋子。請選擇一樣物品隨身攜帶：",
+        choices: [
+          { text: "🔥 火柴", next: "movie_set", item: "matches" },
+          { text: "🪮 梳子", next: "movie_set", item: "comb" },
+          { text: "🍬 軟糖豆", next: "movie_set", item: "jelly" }
+        ]
+      },
+      movie_set: {
+        title: "電影佈景",
+        text: "你發現自己身處在一個電影佈景中，正在拍攝宮本武藏的電影。你得知兩個重要資訊：武藏曾參與1600年的關原之戰，以及一位名叫兼光的刀匠可能鑄造過他的劍。",
+        choices: [
+          { text: "跳轉到 1600 年的關原之戰", next: "sekigahara" }
+        ]
+      },
+      sekigahara: {
+        title: "關原之戰（1600年）",
+        text: "戰場上廝殺慘烈。你發現一位受傷的年輕武士，他自稱竹藏（武藏年輕時的名字）。同時，你聽到敵軍騎兵逼近的聲音。",
+        choices: [
+          { text: "留下並詢問竹藏", next: "forest" },
+          { text: "跳轉到 15 年後", next: "forge" }
+        ]
+      },
+      forest: {
+        title: "森林中的躲藏",
+        text: "你將竹藏扶到樹後躲藏。他因傷重而神智不清，甚至一度把你當成敵人攻擊。你爬上一棵樹躲避，直到騎兵離去。你意識到此時的武藏還沒有屬於自己的劍。",
+        choices: [
+          { text: "跳轉到兼光的鍛刀鋪", next: "forge" }
+        ]
+      },
+      forge: {
+        title: "兼光的鍛刀鋪（1603年）",
+        text: "你來到兼光的鍛刀鋪，卻被學徒兵衛阻攔。他拿著木棍想驅趕你。你利用靈活的身手繞過他，進入了鍛刀鋪。你在這裡見識到了鍛造武士刀的繁複工藝。",
+        choices: [
+          { text: "跳轉到 1615 年的大阪城", next: "osaka" },
+          { text: "跳回海岸", next: "coast" }
+        ]
+      },
+      osaka: {
+        title: "大阪城（1615年）",
+        text: "大阪城正爆發激烈的戰鬥。你看到武藏（人稱劍聖）率領軍隊攻打城堡。你必須做出選擇，以確保自身安全並接近武藏。",
+        choices: [
+          { text: "加入劍聖的軍隊", next: "osaka_battle" },
+          { text: "告訴守衛讓你進去", next: "osaka_castle" }
+        ]
+      },
+      osaka_battle: {
+        title: "大阪城外的戰鬥",
+        text: "你加入武藏的陣營，並在混亂中幫助了一位跌倒的旗手。這個舉動引起了武藏的注意，他對你點了點頭。戰鬥還在繼續，你必須尋找時機脫身。",
+        choices: [
+          { text: "跳轉到 1634 年的小倉學校", next: "school" }
+        ]
+      },
+      osaka_castle: {
+        title: "大阪城內",
+        text: "守衛讓你進入了城堡。但武藏率軍攻破了防線，他看到你並把你當成了敵人，揮舞著雙劍朝你衝來！你趕緊轉身逃跑。",
+        choices: [
+          { text: "跳轉到 1634 年的小倉學校", next: "school" }
+        ]
+      },
+      coast: {
+        title: "日本海岸（1281年）",
+        text: "你被傳送到了蒙古入侵時期的日本海岸。你被蒙古士兵俘虜，關在船上。幸運的是，一場被稱為「神風」的颱風摧毀了蒙古艦隊，你趁機逃脫。",
+        choices: [
+          { text: "跳回兼光的鍛刀鋪", next: "forge" }
+        ]
+      },
+      school: {
+        title: "小倉學校（1634年）",
+        text: "你在九州島的小倉找到了武藏創立的學校。你在這裡學習了「水之道」——武士應該像水一樣靈活應變。你對武藏的思想有了更深的了解。",
+        choices: [
+          { text: "跳轉到 1605 年的寶藏寺", next: "hozoin" }
+        ]
+      },
+      hozoin: {
+        title: "寶藏寺（1605年）",
+        text: "你在寶藏寺觀看僧侶們練習武術。一位僧人遞給你一根長棍，要求你下場比試。對手揮舞長棍朝你打來！",
+        choices: [
+          { text: "扔掉棍子逃跑", next: "hozoin_fail" },
+          { text: "站著戰鬥（利用柱子反光）", next: "hozoin_win" }
+        ]
+      },
+      hozoin_fail: {
+        title: "逃跑的後果",
+        text: "你轉身逃跑，引來了眾人的嘲笑。你跑到寺廟外，甚至被門口的武藏看到了你懦弱的表現。你羞愧地躲進灌木叢中，決定跳轉時空。",
+        choices: [
+          { text: "跳轉到海岸", next: "coast" }
+        ]
+      },
+      hozoin_win: {
+        title: "光榮的勝利",
+        text: "你巧妙地利用陽光照耀在柱子上的反光，讓對手睜不開眼，並趁機擊中他的小腿。你贏得了比試，甚至得到了武藏的讚賞。雖然你最後被對手偷襲打暈，但當你醒來時，你已經在寺廟裡了。",
+        choices: [
+          { text: "前往京都", next: "kyoto" }
+        ]
+      },
+      kyoto: {
+        title: "京都（1605年）",
+        text: "你來到京都，在旅館打工。你無意間聽到武士金十計畫在比賽前用毒酒暗算武藏。同時，一位大名（諸侯）邀請你搭便車。",
+        choices: [
+          { text: "警告武藏", next: "warn" },
+          { text: "保持沉默", next: "silent" },
+          { text: "跟隨大名前往他的宅邸", next: "daimyo" }
+        ]
+      },
+      warn: {
+        title: "警告武藏",
+        text: "你潛入武藏居住的旅館，警告他關於毒酒的事。武藏非常感謝你，並表示會在比賽中見面。",
+        choices: [
+          { text: "前往劍道比賽", next: "kendo" }
+        ]
+      },
+      silent: {
+        title: "保持沉默",
+        text: "你決定不插手。比賽中武藏依然輕鬆獲勝，但當你跟隨他時，他對你的動機產生了懷疑，並趕走了你。",
+        choices: [
+          { text: "跳轉到 1870 年的江戶", next: "edo_1870" }
+        ]
+      },
+      daimyo: {
+        title: "大名的宅邸",
+        text: "你在大名的宅邸裡參觀了他收藏的武器，其中一把正是兼光為武藏打造的刀。半夜，你發現一名身穿黑衣的忍者偷走了這把刀。",
+        choices: [
+          { text: "追趕小偷", next: "ninja" },
+          { text: "叫醒大名和他的武士", next: "wake" }
+        ]
+      },
+      wake: {
+        title: "叫醒宅邸",
+        text: "你大聲呼救，卻被大名懷疑是內應。你被迫跳出窗外逃跑，並在森林中摔傷了頭。",
+        choices: [
+          { text: "跳到安全的地方（寶藏寺）", next: "hozoin" },
+          { text: "繼續尋找小偷", next: "ninja" }
+        ]
+      },
+      ninja: {
+        title: "女忍者",
+        text: "你追上了小偷，卻發現自己陷入了十幾名忍者的包圍。為首的是一名女忍者。她命令手下將你帶去「虎穴」。",
+        choices: [
+          { text: "使用火柴", next: "matches", reqItem: "matches" },
+          { text: "沒有火柴，只能被扔進虎穴", next: "tiger_pit", reqItem: "no_matches" }
+        ]
+      },
+      matches: {
+        title: "火柴的妙用",
+        text: "你掏出火柴，點燃後在忍者面前揮舞。忍者們以為你是會噴火的妖怪，嚇得四散奔逃。你趁機逃脫，跳轉時空。",
+        choices: [
+          { text: "跳回京都", next: "kendo" }
+        ]
+      },
+      tiger_pit: {
+        title: "虎穴逃生",
+        text: "你被扔進了虎穴，裡面有一隻飢餓的老虎。幸運的是，一朵雲遮住了月亮，你在黑暗中摸索，最終趁機跳轉時空逃生。",
+        choices: [
+          { text: "跳回京都", next: "kendo" }
+        ]
+      },
+      kendo: {
+        title: "劍道比賽",
+        text: "武藏在比賽中識破了金十的毒酒詭計，輕鬆獲勝。賽後你跟隨武藏，他允許你與他同行一段路。",
+        choices: [
+          { text: "去修劍鋪偷劍", next: "polisher" },
+          { text: "繼續與武藏同行", next: "travel" }
+        ]
+      },
+      polisher: {
+        title: "修劍鋪",
+        text: "你試圖在修劍鋪偷走武藏的劍，卻被修劍匠發現。他在黑暗中揮舞著刀，你只好倉皇跳轉時空。",
+        choices: [
+          { text: "跳轉到 1870 年的江戶", next: "edo_1870" }
+        ]
+      },
+      travel: {
+        title: "遭遇伏擊",
+        text: "在與武藏同行的路上，你們遭到了金十和六名手下的伏擊。武藏雖然武功高強，但敵人實在太多。",
+        choices: [
+          { text: "留下來與武藏併肩作戰", next: "save" },
+          { text: "跳到十年後", next: "edo_1870" }
+        ]
+      },
+      save: {
+        title: "拯救武藏",
+        text: "你勇敢地加入了戰鬥，並在關鍵時刻擊落了金十的武器，救了武藏一命。武藏對你表示感謝，並問你想要什麼回報。",
+        choices: [
+          { text: "要求他將佩劍送給你", next: "ask_sword" },
+          { text: "保持沉默，表示這是武士該做的", next: "keep_quiet" }
+        ]
+      },
+      ask_sword: {
+        title: "貪婪的後果",
+        text: "你向武藏索要他的佩劍。武藏聽後勃然大怒，認為你根本不懂武士之道。他拂袖而去，留下你獨自一人。",
+        choices: [
+          { text: "跳轉到 1870 年的江戶", next: "edo_1870" }
+        ]
+      },
+      keep_quiet: {
+        title: "武士的承諾",
+        text: "你拒絕了回報，表示這只是舉手之勞。武藏讚賞你的品格，並承諾：「總有一天，當我不再需要它的時候，它會屬於你。」",
+        choices: [
+          { text: "跳轉到 1870 年的江戶", next: "edo_1870" }
+        ]
+      },
+      edo_1870: {
+        title: "江戶（1870年）",
+        text: "你來到明治維新後的江戶（現已改名為東京）。你在圖書館裡找到了武藏晚年寫的《五輪書》。你從書中領悟到，武士只有在死後，才不再需要他的劍。",
+        choices: [
+          { text: "跳轉到 1645 年的九州", next: "kyushu" }
+        ]
+      },
+      kyushu: {
+        title: "九州（1645年）",
+        text: "你在九州的一個洞穴裡找到了年邁的武藏。他正處於彌留之際。他告訴你，他已經完成了此生想做的所有事情。不久後，他閉上了眼睛。",
+        choices: [
+          { text: "趁機拿走他的一把劍", next: "death" },
+          { text: "轉身離開，讓他安息", next: "win" }
+        ]
+      },
+      death: {
+        title: "考驗失敗",
+        text: "當你伸手去拿劍時，武藏突然睜開眼睛，拔出短劍刺向了你。「再見了，小偷！」你眼前的畫面逐漸模糊……",
+        choices: [
+          { text: "重新開始任務", next: "start" }
+        ]
+      },
+      win: {
+        title: "任務完成！",
+        text: "你決定不拿劍，轉身離開。這時，武藏的聲音在你身後響起：「等等。」他並沒有死，這是最後的考驗！\n\n他讚賞你的榮譽感，並讓你挑選一把劍作為禮物。你選擇了那把木劍，因為那是他晚年最常用的武器。\n\n武藏真正地離開了人世。你帶著木劍回到了自己的時代，任務圓滿完成！",
+        choices: [
+          { text: "重新開始", next: "start" }
+        ]
+      }
+    };
+
+    // 遊戲狀態機
+    let state = {
+      currentId: 'start',
+      inventory: [],
+      history: []
+    };
+
+    // 渲染介面
+    function render() {
+      const node = gameData[state.currentId];
+      if (!node) {
+        state.currentId = 'start';
+        render();
+        return;
+      }
+
+      document.getElementById('node-title').textContent = node.title;
+      document.getElementById('node-text').textContent = node.text;
+
+      const choicesContainer = document.getElementById('choices');
+      choicesContainer.innerHTML = '';
+
+      node.choices.forEach(choice => {
+        // 處理物品需求邏輯
+        if (choice.reqItem) {
+          if (choice.reqItem === 'matches' && !state.inventory.includes('matches')) return;
+          if (choice.reqItem === 'no_matches' && state.inventory.includes('matches')) return;
+        }
+
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = choice.text;
+        btn.onclick = () => makeChoice(choice);
+        choicesContainer.appendChild(btn);
+      });
+
+      updateSidebar();
+    }
+
+    // 更新側邊欄（物品與日誌）
+    function updateSidebar() {
+      // 更新物品
+      const invList = document.getElementById('inventory-list');
+      invList.innerHTML = '';
+      if (state.inventory.length === 0) {
+        invList.innerHTML = '<li>空無一物</li>';
+      } else {
+        state.inventory.forEach(item => {
+          let itemName = item;
+          if (item === 'matches') itemName = '🔥 火柴';
+          if (item === 'comb') itemName = '🪮 梳子';
+          if (item === 'jelly') itemName = '🍬 軟糖豆';
+          const li = document.createElement('li');
+          li.textContent = itemName;
+          invList.appendChild(li);
+        });
+      }
+
+      // 更新日誌（顯示最近10條）
+      const histList = document.getElementById('history-list');
+      histList.innerHTML = '';
+      const recentHistory = state.history.slice(-10);
+      recentHistory.forEach((histId, index) => {
+        const li = document.createElement('li');
+        const node = gameData[histId];
+        // 計算真實的步數（從總長度減去最近顯示的數量再加上索引）
+        const stepNumber = state.history.length - recentHistory.length + index + 1;
+        li.textContent = `${stepNumber}. ${node ? node.title : histId}`;
+        histList.appendChild(li);
+      });
+    }
+
+    // 處理選擇
+    function makeChoice(choice) {
+      if (choice.item) {
+        state.inventory.push(choice.item);
+      }
+      
+      if (choice.next === 'start') {
+        // 重置遊戲
+        state = {
+          currentId: 'start',
+          inventory: [],
+          history: []
+        };
+      } else {
+        state.history.push(state.currentId);
+        state.currentId = choice.next;
+      }
+      
+      render();
+      autoSave();
+    }
+
+    // 彈窗控制
+    function toggleHelp() {
+      const modal = document.getElementById('help-modal');
+      modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    // 存檔功能
+    function saveGame() {
+      localStorage.setItem('timeMachineSave', JSON.stringify(state));
+      showToast('遊戲已保存！');
+    }
+
+    function loadGame() {
+      const saved = localStorage.getItem('timeMachineSave') || localStorage.getItem('timeMachineAutoSave');
+      if (saved) {
+        state = JSON.parse(saved);
+        render();
+        showToast('遊戲已讀取！');
+      } else {
+        showToast('沒有找到存檔。');
+      }
+    }
+
+    function autoSave() {
+      localStorage.setItem('timeMachineAutoSave', JSON.stringify(state));
+    }
+
+    // 提示動畫
+    function showToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2000);
+    }
+
+    // 初始化
+    window.onload = () => {
+      render();
+    };
+  </script>
+</body>
+</html>

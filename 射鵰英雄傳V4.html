@@ -1,0 +1,2682 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>射鵰英雄傳·俠影闖關（桌遊隨機探索版）</title>
+<style>
+:root{
+  --bg:#14100e; --panel:#1f1a16; --panel2:#2a221c; --border:#3a2f26;
+  --gold:#c9a227; --gold-l:#e0b93a; --text:#e8e0d5; --dim:#9a8f80;
+  --hp:#c0392b; --mp:#2980b9; --sta:#27ae60; --rage:#e67e22; --blood:#8b3a3a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:radial-gradient(circle at 50% -20%,#2a201a 0%,#14100e 70%);
+  color:var(--text); font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+  display:flex; flex-direction:column; height:100vh; overflow:hidden;
+}
+header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 16px; background:#111; border-bottom:2px solid var(--gold);
+  flex-shrink:0; gap:10px; flex-wrap:wrap;
+}
+header h1{font-size:16px; color:var(--gold); letter-spacing:2px;}
+.header-btns{display:flex; gap:6px; flex-wrap:wrap;}
+.btn{
+  background:var(--panel2); color:var(--gold); border:1px solid var(--gold);
+  padding:6px 12px; border-radius:6px; cursor:pointer; font-family:inherit;
+  font-size:13px; transition:.15s; user-select:none;
+}
+.btn:hover:not(:disabled){background:var(--gold); color:#111;}
+.btn:disabled{opacity:.35; cursor:not-allowed; border-color:#555; color:#555;}
+.btn.blood{border-color:var(--blood); color:var(--blood);}
+.btn.blood:hover:not(:disabled){background:var(--blood); color:#fff;}
+
+#game{display:flex; flex:1; overflow:hidden; padding:10px; gap:10px; min-height:0;}
+
+.sidebar{
+  width:260px; flex-shrink:0; background:var(--panel); border:1px solid var(--border);
+  border-radius:8px; padding:12px; display:flex; flex-direction:column;
+  gap:10px; overflow-y:auto;
+}
+.panel-title{
+  font-size:13px; color:var(--gold); border-bottom:1px solid var(--border);
+  padding-bottom:5px; margin-bottom:4px; letter-spacing:1px;
+}
+.stat-row{display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px;}
+.stat-bar{background:#0d0a08; height:12px; border-radius:6px; border:1px solid var(--border); overflow:hidden; margin-bottom:6px;}
+.stat-fill{height:100%; transition:width .3s;}
+.hp-fill{background:linear-gradient(90deg,#8e2b20,#c0392b);}
+.mp-fill{background:linear-gradient(90deg,#1e5f8a,#2980b9);}
+.sta-fill{background:linear-gradient(90deg,#1e7a45,#27ae60);}
+.rage-fill{background:linear-gradient(90deg,#9a4a12,#e67e22);}
+.attr-grid{display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; font-size:12.5px;}
+.attr-grid span{color:var(--dim);}
+.attr-grid b{color:var(--gold-l);}
+.equip-info{font-size:12px; color:var(--dim);}
+.equip-info b{color:var(--text);}
+.equip-bonus{font-size:10.5px; color:var(--gold-l); margin-top:2px;}
+
+.main-area{flex:1; display:flex; flex-direction:column; gap:10px; overflow:hidden; min-width:0;}
+
+#map-board{
+  flex:1; background:#1a1512; border:1px solid var(--border); border-radius:8px;
+  overflow-x:auto; overflow-y:hidden; display:flex; align-items:center;
+  padding:16px; gap:10px; min-height:180px;
+}
+#map-board[hidden]{display:none;}
+#map-board::-webkit-scrollbar{height:8px;}
+#map-board::-webkit-scrollbar-thumb{background:#3a2f26; border-radius:4px;}
+.map-node{
+  min-width:110px; height:140px; flex-shrink:0; border:2px solid #4a3b2e;
+  border-radius:8px; display:flex; flex-direction:column; justify-content:center;
+  align-items:center; background:linear-gradient(180deg,#241d18,#1a1410);
+  position:relative; transition:.3s; color:var(--dim);
+}
+.map-node.active{border-color:var(--gold); box-shadow:0 0 15px rgba(201,162,39,.4); background:#2a2216; color:var(--gold);}
+.map-node.visited{opacity:.65; border-color:#2e6b5a; color:#6fb3a0;}
+.map-node .mname{position:absolute; top:10px; font-size:12px; font-weight:700; color:inherit; letter-spacing:1px; padding:0 6px; text-align:center;}
+.map-node .micon{font-size:30px;}
+.map-node .token{
+  position:absolute; bottom:6px; width:26px; height:26px; border-radius:50%;
+  background:radial-gradient(circle,#e0b93a,#8a6d14); color:#1a1410;
+  display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px;
+  animation:bounce 1s infinite alternate;
+}
+@keyframes bounce{from{transform:translateY(0);}to{transform:translateY(-4px);}}
+.path-arrow{font-size:18px; color:#5a4a3a; flex-shrink:0;}
+
+#story-board{
+  flex:1; background:#1a1512; border:1px solid var(--border); border-radius:8px;
+  display:flex; flex-direction:column; padding:20px; position:relative; overflow:hidden;
+  background-size: cover; background-position: center; transition: background 0.5s;
+}
+#story-board[hidden]{display:none;}
+.story-bg-overlay {
+  position:absolute; inset:0;
+  background: linear-gradient(to bottom, rgba(20,16,14,0.2) 0%, rgba(20,16,14,0.9) 85%);
+  z-index:1;
+}
+.story-content {
+  position:relative; z-index:2; flex:1; display:flex; flex-direction:column;
+  justify-content: flex-end; max-width: 800px; margin: 0 auto; width: 100%;
+}
+.speaker-name { font-size: 16px; color: var(--gold); font-weight: bold; margin-bottom: 8px; text-shadow: 0 0 5px #000; }
+.story-text {
+  font-size: 16px; line-height: 1.8; color: var(--text);
+  background: rgba(0,0,0,0.65); padding: 20px; border-radius: 10px;
+  border: 1px solid rgba(201,162,39,0.3); min-height: 140px;
+  text-shadow: 0 0 3px #000; letter-spacing: 1px;
+  cursor: pointer;
+}
+.story-hint{
+  font-size:11px; color:var(--dim); text-align:right; margin-top:6px; opacity:.7;
+}
+#story-extra{ margin-top:10px; }
+
+#combat-board{
+  flex:1; display:flex; justify-content:space-around; align-items:center;
+  background:rgba(0,0,0,.5); border:1px solid var(--blood); border-radius:8px;
+  padding:20px; min-height:180px; position:relative; flex-wrap:wrap; gap:10px;
+}
+#combat-board[hidden]{display:none;}
+.combatant{display:flex; flex-direction:column; align-items:center; gap:8px; font-size:13px; position:relative;}
+.avatar{
+  width:100px; height:100px; border-radius:50%; border:3px solid var(--gold);
+  background:#0d0a08; display:flex; align-items:center; justify-content:center; overflow:hidden;
+  transition: filter 0.1s;
+}
+.avatar.enemy{border-color:var(--blood);}
+.avatar svg{width:80%; height:80%;}
+.hp-mini{width:140px; background:#0d0a08; height:12px; border-radius:6px; border:1px solid var(--border); overflow:hidden;}
+.hp-mini > div{height:100%; background:linear-gradient(90deg,#8e2b20,#c0392b); transition:width .3s;}
+.enemy-status{color:#e8a0a0; font-size:11.5px;}
+.player-status{color:#7fb8d4; font-size:11.5px;}
+.enemy-attrs{font-size:11px; color:var(--dim); margin-top:2px; letter-spacing:.5px;}
+.elem-tag{display:inline-block; padding:1px 8px; border-radius:4px; font-size:11px; font-weight:700;}
+.boss-passive-tag{
+  display:inline-block; margin-top:4px; padding:2px 8px; border-radius:4px;
+  background:rgba(139,58,58,.3); border:1px solid #8b3a3a; color:#e8a0a0;
+  font-size:10.5px; font-weight:700;
+}
+
+.huangrong-support{
+  position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.7);
+  padding:6px 16px; border-radius:20px; border:1px solid #d4a05a;
+  font-size:12px; color:#d4a05a; z-index:10;
+}
+.huangrong-icon{
+  width:24px; height:24px; border-radius:50%; background:#d4a05a;
+  display:flex; align-items:center; justify-content:center; color:#1a1410; font-weight:bold;
+}
+
+#card-tray{background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:8px 10px; flex-shrink:0;}
+#card-tray[hidden]{display:none;}
+#card-tray .tray-title{font-size:12px; color:var(--dim); margin-bottom:6px; letter-spacing:1px;}
+.cards-scroll{ display:flex; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; align-items:center; gap:12px; padding:8px 4px; min-height:196px; }
+.cards-scroll::-webkit-scrollbar{height:8px;}
+.cards-scroll::-webkit-scrollbar-thumb{background:#3a2f26; border-radius:4px;}
+
+.card{
+  width:132px; height:184px; flex:0 0 auto; position:relative;
+  border-radius:10px; background:linear-gradient(180deg,#241d18,#1a1410);
+  border:2px solid #4a3b2e; overflow:hidden; cursor:pointer;
+  transition:transform .15s, box-shadow .15s, border-color .15s; user-select:none;
+}
+.card:hover{transform:translateY(-4px) scale(1.03); box-shadow:0 0 14px rgba(201,162,39,.5); border-color:var(--gold);}
+.card.disabled{opacity:.4; filter:grayscale(.7); cursor:not-allowed;}
+.card.disabled:hover{transform:none; box-shadow:none; border-color:#4a3b2e;}
+.card-art{height:116px; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at 50% 40%,#2e241c 0%,#171210 90%);}
+.card-art svg{width:84px; height:84px;}
+.card-cost{position:absolute; top:6px; left:6px; width:26px; height:26px; border-radius:50%; background:radial-gradient(circle,#9a4a12,#4a2a08); color:#ffd9a8; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; border:1.5px solid #e67e22;}
+.card-type{position:absolute; top:8px; right:8px; font-size:10px; padding:2px 6px; border-radius:6px; background:rgba(0,0,0,.55); color:var(--dim);}
+.card-label{position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,.78); padding:7px 9px; backdrop-filter:blur(2px); border-top:1px solid rgba(201,162,39,.25);}
+.card-name{font-size:13px; font-weight:700; color:var(--gold); margin-bottom:2px;}
+.card-desc{font-size:10.5px; color:#cfc7ba; line-height:1.35;}
+
+#log-area{
+  flex-shrink:0; height:120px; overflow-y:auto; background:#0d0a08;
+  border:1px solid var(--border); border-radius:8px; padding:10px;
+  font-size:12.5px; line-height:1.55; color:var(--dim);
+}
+#log-area .log-item{padding-bottom:3px; border-bottom:1px dashed #2a221c; margin-bottom:3px;}
+.log-sys{color:#7fb8d4;}
+.log-combat{color:#e8a0a0;}
+.log-event{color:var(--gold-l);}
+.log-huangrong{color:#d4a05a; font-weight:bold;}
+
+#action-bar{
+  flex-shrink:0; background:var(--panel); border:1px solid var(--border);
+  border-radius:8px; padding:10px; display:flex; gap:10px;
+  justify-content:center; flex-wrap:wrap; min-height:54px; align-items:center;
+}
+#action-bar .hint{font-size:12px; color:var(--dim);}
+
+.modal{display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:100; justify-content:center; align-items:center; padding:16px;}
+.modal.active{display:flex;}
+.modal-content{background:var(--panel); padding:22px; border:2px solid var(--gold); border-radius:10px; max-width:760px; width:100%; max-height:82vh; overflow-y:auto; color:#cfc7ba; line-height:1.8; font-size:14px;}
+.modal-content h2{color:var(--gold); font-size:20px; margin-bottom:12px; letter-spacing:2px; text-align:center;}
+.modal-content h3{color:var(--gold-l); font-size:15px; margin:14px 0 6px;}
+.inv-grid{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;}
+.item-tag{background:#2a221c; padding:4px 10px; border-radius:5px; border:1px solid var(--border); font-size:12px; color:var(--text);}
+
+#modal-dice .modal-content{max-width:380px; text-align:center;}
+#modal-dice .dice{width:90px; height:90px; margin:18px auto; background:#f5efe0; border-radius:14px; display:flex; align-items:center; justify-content:center; color:#111; font-size:48px; font-weight:700; box-shadow:0 0 30px rgba(255,255,255,.4);}
+
+.rec-list{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:6px; margin-top:6px;}
+.rec-item{background:#0d0a08; border:1px solid var(--border); border-radius:5px; padding:5px 8px; font-size:12px;}
+.rec-item.done{opacity:.55; color:#6fb3a0;}
+.rec-item.cur{border-color:var(--gold); color:var(--gold);}
+
+.finale-title { text-align: center; font-size:32px; color:var(--gold); font-weight:bold; margin:30px 0; letter-spacing:6px; text-shadow:0 0 20px rgba(201,162,39,0.8); }
+.finale-text { text-align: center; font-size:16px; letter-spacing:2px; line-height:2.2; color:#e8e0d5; margin:20px 0; }
+.rating-box { text-align:center; margin:20px 0; }
+.rating-grade { font-size:64px; font-weight:900; color:var(--gold); text-shadow:0 0 20px rgba(201,162,39,0.8); line-height:1; }
+.rating-desc { font-size:14px; color:#cfc7ba; margin-top:10px; line-height:1.6; }
+
+#toast-container { position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+.toast {
+  background:#1f1a16; border:2px solid var(--gold); padding:12px 20px; border-radius:8px;
+  color:var(--gold); font-weight:bold; font-size:14px; box-shadow:0 4px 12px rgba(0,0,0,0.6);
+  display:flex; align-items:center; gap:10px;
+  animation: slideInRight 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+}
+@keyframes slideInRight { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+@keyframes fadeOut { to { opacity:0; transform: translateX(20px); } }
+
+@keyframes shake {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+.shake { animation: shake 0.4s; animation-iteration-count: 1; }
+
+@keyframes flashRed {
+  0% { filter: brightness(1) drop-shadow(0 0 0 red); }
+  50% { filter: brightness(1.5) drop-shadow(0 0 15px red); }
+  100% { filter: brightness(1) drop-shadow(0 0 0 red); }
+}
+.hit-flash { animation: flashRed 0.3s; }
+
+.dmg-float{
+  position:absolute; left:50%; top:30%; transform:translateX(-50%);
+  font-size:22px; font-weight:900; pointer-events:none;
+  text-shadow:0 0 6px #000, 0 0 10px #000;
+  animation:dmgFloat 1s ease-out forwards;
+}
+@keyframes dmgFloat{
+  0%{opacity:1; transform:translate(-50%,0);}
+  100%{opacity:0; transform:translate(-50%,-60px);}
+}
+
+.skill-upgrade-row {
+  display:flex; justify-content:space-between; align-items:center;
+  background:#0d0a08; padding:8px; border-radius:6px; margin-bottom:6px;
+  border:1px solid var(--border);
+}
+.skill-info b { color:var(--gold); }
+.skill-info span { font-size:11px; color:var(--dim); }
+.skill-lv { color:#6fb3a0; font-weight:bold; margin-left:6px; }
+
+textarea.save-code {
+  width:100%; height:80px; background:#0d0a08; color:#cfc7ba;
+  border:1px solid var(--border); border-radius:6px; padding:8px;
+  font-family:monospace; font-size:12px; margin-top:6px; resize:none;
+}
+
+/* 鐵匠鋪 UI */
+.smith-row {
+  display:flex; justify-content:space-between; align-items:center;
+  background:#0d0a08; padding:12px; border-radius:8px; margin-bottom:10px;
+  border:1px solid var(--border); flex-wrap:wrap; gap:10px;
+}
+.smith-info b { color:var(--gold); font-size:15px; }
+.smith-info span { font-size:12px; color:var(--dim); display:block; margin-top:4px;}
+.affix-tag {
+  display:inline-block; background:rgba(110, 180, 150, 0.2); color:#6fb3a0;
+  border:1px solid #6fb3a0; padding:2px 6px; border-radius:4px; font-size:11px; margin-right:4px; margin-top:4px;
+}
+
+/* =========================================================
+   手機端自適應
+   ========================================================= */
+@media screen and (max-width: 768px) {
+  #game {
+    flex-direction: column;
+    padding: 5px;
+    gap: 5px;
+  }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 180px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 8px;
+    gap: 8px;
+    align-items: center;
+    overflow-y: auto;
+  }
+  .sidebar > div { flex: 1 1 40%; min-width: 120px; }
+  .panel-title { display: none; }
+  .equip-info { font-size: 11px; }
+  
+  header { padding: 5px; justify-content: center; }
+  header h1 { font-size: 14px; width: 100%; text-align: center; margin-bottom: 5px; }
+  .header-btns { justify-content: center; }
+  .btn { padding: 8px; font-size: 14px; }
+  
+  #action-bar { padding: 5px; gap: 5px; }
+  .card { width: 110px; height: 160px; }
+  .card-art { height: 90px; }
+  .card-art svg { width: 60px; height: 60px; }
+  .card-name { font-size: 12px; }
+  .card-desc { font-size: 9px; }
+  
+  #combat-board { padding: 10px; gap: 5px; flex-direction: column; }
+  .avatar { width: 80px; height: 80px; }
+  .huangrong-support { bottom: 2px; padding: 4px 10px; font-size: 11px; }
+  .boss-preview { font-size: 11px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>射鵰英雄傳 · 俠影闖關（隨機探索版）</h1>
+  <div class="header-btns">
+    <button class="btn" onclick="showModal('rules')">遊戲說明</button>
+    <button class="btn" onclick="showModal('achievements')">成就</button>
+    <button class="btn" id="btn-difficulty" onclick="cycleDifficulty()">難度：普通</button>
+    <button class="btn" onclick="showModal('bag')">行囊與修煉</button>
+    <button class="btn" onclick="showSmith()">鐵匠鋪</button>
+    <button class="btn" onclick="showModal('record')">紀錄</button>
+    <button class="btn" id="btn-sound" onclick="toggleSound()">🔊 音效</button>
+    <button class="btn" id="btn-bgm" onclick="toggleBGM()">🎵 BGM</button>
+    <button class="btn" id="btn-save" onclick="showSaveModal('save')">存檔</button>
+    <button class="btn" onclick="showSaveModal('load')">讀檔</button>
+  </div>
+</header>
+
+<div id="game">
+  <aside class="sidebar">
+    <div class="panel-title">章節：<span id="ui-chapter">牛家村</span></div>
+    <div class="panel-title">郭靖 <span id="ui-train-points" style="font-size:11px; color:#6fb3a0; margin-left:10px;">修煉點：0</span></div>
+    <div>
+      <div class="stat-row"><span>生命</span><span id="ui-hp">50 / 50</span></div>
+      <div class="stat-bar"><div class="stat-fill hp-fill" id="ui-hp-bar" style="width:100%"></div></div>
+      <div class="stat-row"><span>元神</span><span id="ui-mp">5 / 5</span></div>
+      <div class="stat-bar"><div class="stat-fill mp-fill" id="ui-mp-bar" style="width:100%"></div></div>
+      <div class="stat-row"><span>體力</span><span id="ui-sta">15 / 15</span></div>
+      <div class="stat-bar"><div class="stat-fill sta-fill" id="ui-sta-bar" style="width:100%"></div></div>
+      <div class="stat-row"><span>怒氣</span><span id="ui-rage">0</span></div>
+      <div class="stat-bar"><div class="stat-fill rage-fill" id="ui-rage-bar" style="width:0%"></div></div>
+    </div>
+    <div class="attr-grid">
+      <span>武：<b id="ui-wu">8</b></span>
+      <span>靈：<b id="ui-ling">5</b></span>
+      <span>防：<b id="ui-fang">2</b></span>
+      <span>御：<b id="ui-yu">2</b></span>
+    </div>
+    <div class="equip-info">兵器：<b id="ui-weapon">短劍</b><div class="equip-bonus" id="ui-weapon-bonus"></div></div>
+    <div class="equip-info">護甲：<b id="ui-armor">無</b><div class="equip-bonus" id="ui-armor-bonus"></div></div>
+    <div class="equip-info">狀態：<b id="ui-status" style="color:var(--gold-l)">無</b></div>
+    <div class="equip-info">金錢：<b id="ui-gold">20</b> 兩</div>
+  </aside>
+
+  <main class="main-area">
+    <div id="map-board"></div>
+    <div id="story-board" hidden>
+      <div class="story-bg-overlay"></div>
+      <div class="story-content">
+        <div class="speaker-name" id="story-speaker">旁白</div>
+        <div class="story-text" id="story-text">……</div>
+        <div id="story-extra"></div>
+        <div class="story-hint">（點擊文字可跳過打字）</div>
+      </div>
+    </div>
+    <div id="combat-board" hidden></div>
+    <div id="card-tray" hidden>
+      <div class="tray-title">絕學招式（點擊施展，消耗怒氣）</div>
+      <div class="cards-scroll" id="cards-scroll"></div>
+    </div>
+    <div id="log-area"></div>
+    <div id="action-bar"></div>
+  </main>
+</div>
+
+<div class="modal" id="modal-rules">
+  <div class="modal-content">
+    <h2>遊戲說明</h2>
+    <h3>探索與五行</h3>
+    <p>每走一步消耗 1 點體力。擲骰遇敵、尋寶或奇遇。五行相剋：金剋木、木剋土、土剋水、水剋火、火剋金，技能剋制傷害 ×1.3，被剋 ×0.75。</p>
+    <h3>黃蓉助戰與 Boss 機制</h3>
+    <p>戰鬥中每 3 回合黃蓉會提供支援。Boss 擁有特殊被動（蓄力、反震、吸血等）。</p>
+    <h3>鐵匠鋪與詞條</h3>
+    <p>可花費金錢在「鐵匠鋪」強化裝備（提升基礎屬性）或洗練詞條（暴擊、吸血、反傷、閃避），打造你的專屬流派。</p>
+    <button class="btn" style="margin-top:16px; width:100%;" onclick="closeModal('rules')">開始</button>
+  </div>
+</div>
+
+<div class="modal" id="modal-achievements">
+  <div class="modal-content">
+    <h2>成就殿堂</h2>
+    <div id="achievement-list" class="rec-list" style="grid-template-columns: repeat(2, 1fr);"></div>
+    <button class="btn" style="margin-top:16px; width:100%;" onclick="closeModal('achievements')">關閉</button>
+  </div>
+</div>
+
+<div class="modal" id="modal-smith">
+  <div class="modal-content" style="max-width:560px;">
+    <h2>鐵匠鋪</h2>
+    <p style="text-align:center; color:var(--dim); font-size:12px; margin-bottom:12px;">金錢：<b id="smith-gold" style="color:var(--gold)">0</b> 兩</p>
+    <div id="smith-list"></div>
+    <button class="btn" style="margin-top:16px; width:100%;" onclick="closeModal('smith')">離開</button>
+  </div>
+</div>
+
+<div class="modal" id="modal-shop">
+  <div class="modal-content" style="max-width:520px;">
+    <h2>行腳商人</h2>
+    <p style="text-align:center; color:var(--dim); font-size:12px; margin-bottom:10px;">「客官，旅途勞頓，要帶些傷藥嗎？」</p>
+    <p style="text-align:center; margin-bottom:12px;">金錢：<b id="shop-gold" style="color:var(--gold)">0</b> 兩</p>
+    <div id="shop-list"></div>
+    <button class="btn" style="margin-top:16px; width:100%;" onclick="closeModal('shop')">離開</button>
+  </div>
+</div>
+
+<div class="modal" id="modal-saves">
+  <div class="modal-content" style="max-width:560px;">
+    <h2 id="save-modal-title">存檔</h2>
+    <div id="save-slots"></div>
+    <h3>存檔匯出 / 匯入</h3>
+    <p style="font-size:12px; color:var(--dim);">可將存檔代碼複製到其他設備或瀏覽器使用。</p>
+    <div style="display:flex; gap:8px; margin-top:6px;">
+      <button class="btn" onclick="exportSaveCode()" style="flex:1;">匯出存檔代碼</button>
+      <button class="btn" onclick="importSaveCode()" style="flex:1;">匯入存檔代碼</button>
+    </div>
+    <textarea class="save-code" id="save-code-area" placeholder="存檔代碼將顯示於此，或貼上代碼後點擊匯入..."></textarea>
+    <button class="btn" style="margin-top:16px; width:100%;" onclick="closeModal('saves')">關閉</button>
+  </div>
+</div>
+
+<div class="modal" id="modal-bag">
+  <div class="modal-content" style="max-width:560px;">
+    <h2>行囊與修煉</h2>
+    <h3>行囊</h3>
+    <div class="inv-grid" id="bag-list"></div>
+    <h3>裝備</h3>
+    <div id="bag-equip"></div>
+    <h3>已學招式 <span id="bag-train-points" style="font-size:13px; color:#6fb3a0;"></span></h3>
+    <div id="bag-skills"></div>
+    <button class="btn" style="margin-top:16px;" onclick="closeModal('bag')">關閉</button>
+  </div>
+</div>
+
+<div class="modal" id="modal-record">
+  <div class="modal-content">
+    <h2>紀錄面板</h2>
+    <div id="record-body"></div>
+    <button class="btn" style="margin-top:16px;" onclick="closeModal('record')">關閉</button>
+  </div>
+</div>
+
+<div class="modal" id="modal-dice">
+  <div class="modal-content">
+    <h2>探索判定</h2>
+    <p id="dice-desc">投擲骰子決定命運……</p>
+    <div class="dice" id="dice-face">?</div>
+    <button class="btn" id="btn-roll" style="min-width:140px;" onclick="rollExploreDice()">投擲骰子</button>
+  </div>
+</div>
+
+<div class="modal" id="modal-finale">
+  <div class="modal-content">
+    <div class="finale-title">全 書 完</div>
+    <div class="finale-text">
+      <p>華山之巔，歐陽鋒走火入魔，瘋癲而去。</p>
+      <p>數月之後，成吉思汗病重，臨終前仍喃喃念著：「英雄，英雄……」</p>
+      <p>郭靖與黃蓉看破世情，深知「俠之大者，為國為民」，攜手南下，共赴襄陽，誓死保衛大宋河山。</p>
+    </div>
+    <div id="finale-rating"></div>
+    <button class="btn" style="margin-top:20px; width:100%;" onclick="restartFromFinale()">再闖江湖</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+/* =========================================================
+   音效與 BGM 引擎 (Web Audio API)
+   ========================================================= */
+var audioCtx = null;
+var settings = { sound: true, bgm: false };
+var bgmInterval = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function playSound(type) {
+  if (!settings.sound) return;
+  initAudio();
+  if (!audioCtx) return;
+  
+  var osc = audioCtx.createOscillator();
+  var gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  var now = audioCtx.currentTime;
+  
+  if (type === 'click') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(400, now);
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc.start(now); osc.stop(now + 0.1);
+  } else if (type === 'hit') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, now);
+    osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.start(now); osc.stop(now + 0.15);
+  } else if (type === 'heal') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.linearRampToValueAtTime(800, now + 0.3);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.3);
+    osc.start(now); osc.stop(now + 0.3);
+  } else if (type === 'dice') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(600, now);
+    osc.frequency.setValueAtTime(800, now + 0.05);
+    osc.frequency.setValueAtTime(500, now + 0.1);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
+  } else if (type === 'win') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523.25, now); // C5
+    osc.frequency.setValueAtTime(659.25, now+0.1); // E5
+    osc.frequency.setValueAtTime(783.99, now+0.2); // G5
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.4);
+    osc.start(now); osc.stop(now + 0.4);
+  } else if (type === 'hurt') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.2);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
+  }
+}
+
+function playBGMNote() {
+  if (!settings.bgm || !audioCtx) return;
+  // 古風五聲音階 (C D E G A)
+  var notes = [261.63, 293.66, 329.63, 392.00, 440.00];
+  var freq = notes[Math.floor(Math.random() * notes.length)];
+  
+  var osc = audioCtx.createOscillator();
+  var gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.03, audioCtx.currentTime + 0.5);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.0);
+  
+  osc.start();
+  osc.stop(audioCtx.currentTime + 2.0);
+}
+
+function toggleSound() {
+  initAudio();
+  settings.sound = !settings.sound;
+  updateAudioBtns();
+  try { localStorage.setItem('shediao_sound', settings.sound); } catch(e){}
+}
+
+function toggleBGM() {
+  initAudio();
+  settings.bgm = !settings.bgm;
+  if (settings.bgm) {
+    playBGMNote();
+    if (bgmInterval) clearInterval(bgmInterval);
+    bgmInterval = setInterval(playBGMNote, 1500);
+  } else {
+    if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
+  }
+  updateAudioBtns();
+  try { localStorage.setItem('shediao_bgm', settings.bgm); } catch(e){}
+}
+
+function updateAudioBtns() {
+  var btnS = document.getElementById('btn-sound');
+  var btnB = document.getElementById('btn-bgm');
+  if (btnS) {
+    btnS.textContent = settings.sound ? '🔊 音效' : '🔇 音效';
+    btnS.style.opacity = settings.sound ? '1' : '0.5';
+  }
+  if (btnB) {
+    btnB.textContent = settings.bgm ? '🎵 BGM' : '🎵 BGM';
+    btnB.style.opacity = settings.bgm ? '1' : '0.5';
+  }
+}
+
+/* =========================================================
+   數據與平衡
+   ========================================================= */
+var BALANCE = {
+  canLoseBoss: { hp:{min:1.8,max:3.0}, atk:{min:0.8,max:1.1}, def:{min:1.0,max:1.4} },
+  normalBoss:  { hp:{min:1.2,max:1.8}, atk:{min:0.7,max:1.0}, def:{min:0.9,max:1.3} },
+  mob:         { hp:{min:0.35,max:0.65}, atk:{min:0.45,max:0.75}, def:{min:0.3,max:0.6} }
+};
+
+var DIFFICULTY = {
+  easy:   { name:'簡單', mult: 0.7,  color:'#6fb3a0' },
+  normal: { name:'普通', mult: 1.0,  color:'#c9a227' },
+  hard:   { name:'困難', mult: 1.4,  color:'#c97070' }
+};
+var currentDifficulty = 'normal';
+
+var NODE_COUNT = 9;
+
+var ITEMS = {
+  '金創藥':     { healPct: 0.30, healMin: 15, desc: '回復 30% 最大生命（至少 15）' },
+  '九花玉露丸': { healPct: 0.60, healMin: 30, desc: '回復 60% 最大生命（至少 30）' }
+};
+var HEAL_AFTER_MOB = 0.20;
+
+var SHOP_ITEMS = [
+  { name:'金創藥',     price:15 },
+  { name:'九花玉露丸', price:50 }
+];
+
+var EQUIPMENT = {
+  weapons: {
+    '短劍':    { wu:0, ling:0, fang:0, yu:0, desc:'初始兵器' },
+    '打狗棒':  { wu:3, ling:0, fang:0, yu:2, desc:'丐幫信物' },
+    '鐵砂掌套':{ wu:4, ling:0, fang:0, yu:-1, desc:'鐵掌幫所鑄' },
+    '屠龍刀':  { wu:7, ling:0, fang:0, yu:0, desc:'武林至尊' },
+    '倚天劍':  { wu:5, ling:3, fang:0, yu:2, desc:'倚天不出' }
+  },
+  armors: {
+    '軟猬甲':  { wu:0, ling:0, fang:3, yu:1, desc:'刀槍不入' },
+    '玄鐵護甲':{ wu:0, ling:1, fang:5, yu:2, desc:'堅不可摧' }
+  }
+};
+
+var AFFIXES = {
+  'crit':     { name:'暴擊', desc:'攻擊有 15% 機率造成 1.5 倍傷害' },
+  'lifesteal':{ name:'吸血', desc:'造成傷害時回復 10% 生命' },
+  'thorns':   { name:'反傷', desc:'受擊時反彈 15% 傷害給敵人' },
+  'dodge':    { name:'閃避', desc:'有 15% 機率完全閃避攻擊' }
+};
+
+var PHASE = { STORY:'STORY', EXPLORE:'EXPLORE', DICE:'DICE', COMBAT_PLAYER:'COMBAT_PLAYER', COMBAT_ENEMY:'COMBAT_ENEMY', GAMEOVER:'GAMEOVER', VICTORY:'VICTORY' };
+
+var ELEM_COLOR = { metal:'#d4a05a', wood:'#5d9c5d', water:'#4a8ab0', fire:'#d4574e', earth:'#a8863a' };
+var ELEM_BEATS = { metal:'wood', wood:'earth', earth:'water', water:'fire', fire:'metal' };
+var ELEM_NAME = { metal:'金', wood:'木', water:'水', fire:'火', earth:'土' };
+
+var SKILL_ELEM = {
+  yuenv: 'metal', xianglong:'fire', kongming:'earth', jiuyin:'water', dagou:'wood', tanzhi:'metal'
+};
+
+function elemMult(atkElem, defElem){
+  if(!atkElem || !defElem) return 1;
+  if(ELEM_BEATS[atkElem] === defElem) return 1.3;
+  if(ELEM_BEATS[defElem] === atkElem) return 0.75;
+  return 1;
+}
+
+var SKILLS = {
+  yuenv:      { name:'越女劍法', cost:2, kind:'attack', icon:'sword', color:'#7fb8d4', desc:'武+5' },
+  yuenv_pro:  { name:'越女劍法·精要', cost:2, kind:'attack', icon:'sword', color:'#b0d4f0', desc:'武+8' },
+  xianglong:  { name:'降龍十八掌', cost:4, kind:'attack', icon:'dragon', color:'#d4574e', desc:'武+12' },
+  xianglong_pro: { name:'降龍十八掌·亢龍有悔', cost:4, kind:'attack', icon:'dragon', color:'#ff8a80', desc:'武+18' },
+  kongming:   { name:'空明拳', cost:2, kind:'shield', icon:'shield', color:'#8fb996', desc:'護盾 10' },
+  jiuyin:     { name:'九陰真經', cost:4, kind:'heal', icon:'heal', color:'#e8a0a0', desc:'回復 30% 生命' },
+  dagou:      { name:'打狗棒法', cost:2, kind:'stun', icon:'staff', color:'#9a7b4f', desc:'定身 1 回合' },
+  tanzhi:     { name:'彈指神通', cost:3, kind:'spell', icon:'finger', color:'#d4a05a', desc:'靈+10' },
+  tanzhi_pro: { name:'彈指神通·精要', cost:3, kind:'spell', icon:'finger', color:'#ffd54f', desc:'靈+15' }
+};
+
+var ACHIEVEMENTS = [
+  { id:'first_clear', name:'初出茅廬', desc:'通過第一章', icon:'🌱', reward:'金錢 +20' },
+  { id:'master_clear', name:'大俠風範', desc:'通關全劇本', icon:'🏆', reward:'全屬性 +2' },
+  { id:'hard_clear', name:'天下無敵', desc:'以困難難度通關', icon:'🔥', reward:'修煉點 +10' },
+  { id:'no_heal_boss', name:'視死如歸', desc:'未使用藥品擊敗最終 BOSS', icon:'🛡️', reward:'防 +2' },
+  { id:'low_hp_kill', name:'絕境逢生', desc:'以 10% 以下生命擊敗 BOSS', icon:'💀', reward:'武 +2' },
+  { id:'merchant_friend', name:'奇遇連連', desc:'遇見行腳商人 3 次', icon:'🛒', reward:'金錢 +50' },
+  { id:'rich_man', name:'富甲一方', desc:'金錢達到 200 兩', icon:'💰', reward:'靈 +1' },
+  { id:'skill_master', name:'融會貫通', desc:'同時擁有 6 種以上武功', icon:'📜', reward:'修煉點 +3' },
+  { id:'long_fight', name:'持久戰', desc:'單場戰鬥超過 10 回合', icon:'⏳', reward:'生命上限 +20' },
+  { id:'crit_hit', name:'一擊必殺', desc:'單次攻擊造成 100 點以上傷害', icon:'💥', reward:'武 +1' }
+];
+
+var CHAPTERS = [
+  {
+    name:'牛家村·風雪驚變',
+    intro:{speaker:'旁白', text:'錢塘江浩浩江水，日日夜夜無窮無休地從臨安府牛家村邊繞過。風雪中，丘處機夜入牛家村，與郭嘯天、楊鐵心結交。然而金兵與官兵隨後而至，一場家破人亡的慘劇即將發生。'},
+    nodes:['牛家村口','村西樹林','小酒店','官兵搜捕','雪夜奔逃','追兵營地'],
+    boss:{name:'段天德', hp:50, wu:7, ling:2, fang:2, yu:1, element:'earth', gold:10, drop:'金創藥',canLose:true, passive:'call'},
+    bossPre:{speaker:'旁白', text:'郭楊二人被大軍圍困，段天德率兵殺來。郭嘯天力戰而死，楊鐵心重傷失蹤。'},
+    bossPost:{speaker:'旁白', text:'段天德雖然被擊退，但李萍已被擄往北方。郭靖的命運，從此改變。'},
+    eventPool: [
+      { type:'treasure', gold:5, item:'金創藥' },
+      { type:'trap', dmg:3, text:'遭遇流矢，生命 −3。' },
+      { type:'heal', text:'遇到好心農家，生命全滿。' },
+      { type:'combat', enemy:{name:'金兵斥候', hp:25, wu:4, ling:1, fang:1, yu:0, element:'metal', gold:3, drop:null} },
+      { type:'event', text:'巧遇樵夫指點樁法，防 +1。', apply:function(){p.fang+=1;} }
+    ]
+  },
+  {
+    name:'大漠風沙·黑山崖',
+    intro:{speaker:'旁白', text:'時光荏苒，郭靖在大漠中長大。江南七怪尋覓六年，終於找到郭靖，並傳授他越女劍法。這日，他們追殺段天德至懸崖，卻遇上了恐怖的「黑風雙煞」。', apply:function(){p.wu+=1; if(p.skills.indexOf('yuenv')===-1) p.skills.push('yuenv');}},
+    nodes:['蒙古草原','荒野','黑山崖','荒野','懸崖頂','荒野','荒野','夜戰荒山','追兵營地'],
+    boss:{name:'黑風雙煞', hp:70, wu:9, ling:6, fang:3, yu:2, element:'wood', gold:15, drop:'九花玉露丸',canLose:true},
+    bossPre:{speaker:'旁白', text:'梅超風與陳玄風以活人練功，江南七怪伏擊二人。激戰中，郭靖被陳玄風抓住。'},
+    bossPost:{speaker:'旁白', text:'郭靖危急中拔出短劍，誤打誤撞刺入陳玄風罩門，陳玄風當場斃命。梅超風雙目被打瞎，抱著丈夫屍體逃走。'},
+    eventPool: [
+      { type:'combat', enemy:{name:'草原惡狼', hp:25, wu:4, ling:0, fang:1, yu:0, element:'earth', gold:0, drop:null} },
+      { type:'combat', enemy:{name:'馬賊', hp:35, wu:5, ling:1, fang:2, yu:0, element:'earth', gold:4, drop:'金創藥'} },
+      { type:'treasure', gold:8, item:'九花玉露丸' },
+      { type:'trap', dmg:4, text:'遭遇沙暴，生命 −4。' },
+      { type:'event', text:'得馬鈺傳授全真內功，靈 +2、御 +1。', apply:function(){p.ling+=2; p.yu+=1;} },
+      { type:'event', text:'江南七怪指點越女劍法，武 +1。', apply:function(){p.wu+=1;} },
+      { type:'heal', text:'發現沙漠綠洲，生命全滿。' }
+    ]
+  },
+  {
+    name:'張家口·初遇江南',
+    intro:{speaker:'旁白', text:'郭靖南下中原，來到張家口。在酒樓上，他遇到了離家出走的黃蓉。郭靖解衣贈馬，兩人的緣分就此展開。'},
+    nodes:['張家口','長街','長街','長街','酒樓','長街','長街','比武招親','穆念慈營帳'],
+    boss:{name:'楊康', hp:60, wu:8, ling:4, fang:2, yu:1, element:'metal', gold:12, drop:'金創藥',canLose:true},
+    bossPre:{speaker:'旁白', text:'穆念慈比武招親，小楊王康調戲穆念慈，郭靖出手打抱不平。'},
+    bossPost:{speaker:'旁白', text:'郭靖與楊康激戰，黃蓉暗中相助，王處一現身解圍。郭靖與黃蓉結伴南下。'},
+    eventPool: [
+      { type:'combat', enemy:{name:'黃河四鬼', hp:40, wu:6, ling:2, fang:1, yu:0, element:'earth', gold:6, drop:'金創藥'} },
+      { type:'combat', enemy:{name:'市井潑皮', hp:20, wu:3, ling:0, fang:0, yu:0, element:'earth', gold:2, drop:null} },
+      { type:'treasure', gold:10, item:'金創藥' },
+      { type:'trap', dmg:3, text:'錢袋被偷，生命 −3。' },
+      { type:'event', text:'路遇黃蓉，獲贈防身之物。', apply:function(){ equipItem('armor','軟猬甲'); } },
+      { type:'event', text:'黃蓉偷了隻叫化雞與你分食，靈 +1、生命回復 20。', apply:function(){p.ling+=1; p.hp=Math.min(p.maxHp,p.hp+20);} },
+      { type:'heal', text:'客棧休息，生命全滿。' }
+    ]
+  },
+  {
+    name:'中都·趙王府',
+    intro:{speaker:'旁白', text:'郭靖與黃蓉來到中都，夜闖趙王府盜藥。在地洞中，他遇到了雙目失明的梅超風。'},
+    nodes:['中都城','趙王府','趙王府','趙王府','趙王府','趙王府','趙王府','地洞奇遇','王府後巷'],
+    boss:{name:'王府群雄', hp:80, wu:9, ling:6, fang:3, yu:2, element:'metal', gold:15, drop:'九花玉露丸', passive:'call'},
+    bossPre:{speaker:'旁白', text:'梅超風將郭靖當作馬騎，王府群雄圍攻而至。'},
+    bossPost:{speaker:'旁白', text:'郭靖憑著一股狠勁，竟與梅超風配合，打退了歐陽克等人，趁亂逃出王府。'},
+    eventPool: [
+      { type:'combat', enemy:{name:'王府侍衛', hp:35, wu:5, ling:2, fang:1, yu:0, element:'metal', gold:4, drop:null} },
+      { type:'combat', enemy:{name:'金兵精銳', hp:50, wu:7, ling:2, fang:2, yu:1, element:'metal', gold:8, drop:'金創藥'} },
+      { type:'treasure', gold:15, item:'九花玉露丸' },
+      { type:'trap', dmg:5, text:'觸動機關，生命 −5。' },
+      { type:'event', text:'地洞遇梅超風指點，防 +2、御 +1。', apply:function(){p.fang+=2; p.yu+=1;} },
+      { type:'heal', text:'暗處運功療傷，生命全滿。' }
+    ]
+  },
+  {
+    name:'太湖·歸雲莊',
+    intro:{speaker:'旁白', text:'郭靖與黃蓉在長江邊遇到了丐幫幫主洪七公。黃蓉以美食哄得洪七公傳授郭靖降龍十八掌。二人來到太湖歸雲莊，卻遇到尋仇的梅超風。', apply:function(){p.wu+=3; if(p.skills.indexOf('xianglong')===-1) p.skills.push('xianglong');}},
+    nodes:['太湖畔','歸雲莊','歸雲莊','歸雲莊','歸雲莊','歸雲莊','歸雲莊','奇門陣','大廳對決'],
+    boss:{name:'黃藥師', hp:240, wu:28, ling:24, fang:12, yu:10, element:'earth', gold:0, drop:null,canLose:true, passive:'elemental'},
+    bossPre:{speaker:'旁白', text:'黃藥師現身，遷怒郭靖，出手試招。'},
+    bossPost:{speaker:'旁白', text:'郭靖硬接黃藥師一掌，手腕脫臼卻不退縮。黃藥師看中他的品性，傳授他奇門五行之理。', apply:function(){ if(p.skills.indexOf('yuenv')>-1){ p.skills[p.skills.indexOf('yuenv')] = 'yuenv_pro'; } }},
+    eventPool: [
+      { type:'combat', enemy:{name:'太湖群盜', hp:45, wu:7, ling:3, fang:2, yu:1, element:'water', gold:8, drop:null} },
+      { type:'combat', enemy:{name:'歸雲莊莊丁', hp:40, wu:6, ling:2, fang:1, yu:0, element:'earth', gold:5, drop:'金創藥'} },
+      { type:'treasure', gold:20, item:'九花玉露丸' },
+      { type:'trap', dmg:6, text:'誤入奇門陣法受困，生命 −6。' },
+      { type:'event', text:'洪七公指點掌法要訣，武 +2。', apply:function(){p.wu+=2;} },
+      { type:'heal', text:'藥室療傷，生命全滿。' }
+    ]
+  },
+  {
+    name:'寶應救孤',
+    intro:{speaker:'旁白', text:'郭靖與黃蓉追查洪七公被下毒的線索來到寶應，黃蓉發現當舖掌櫃形跡可疑，於是決定夜探當舖。黃蓉在戰鬥中指點郭靖九陰真經的奧秘。', apply:function(){p.ling+=3; if(p.skills.indexOf('jiuyin')===-1) p.skills.push('jiuyin');}},
+    nodes:['寶應縣','當舖','劉氏宗祠','丐幫聚會'],
+    boss:{name:'歐陽克', hp:120, wu:11, ling:10, fang:16, yu:12, element:'metal', gold:0, drop:null,canLose:true},
+    bossPre:{speaker:'旁白', text:'關鍵時刻，郭靖與黃蓉現身。郭靖見狀立即出手，以剛從洪七公那裡學全的完整「降龍十八掌」正面迎戰歐陽克。'},
+    bossPost:{speaker:'旁白', text:'歐陽克雖然家傳武功精妙，但面對剛猛無儔的降龍十八掌，逐漸難以招架。最終，郭靖成功擊退歐陽克，不僅解了黎生之圍，更驚險地救下了程瑤迦。'},
+    eventPool: [
+      { type:'combat', enemy:{name:'蛇奴', hp:60, wu:9, ling:6, fang:3, yu:2, element:'earth', gold:0, drop:null} },
+      { type:'combat', enemy:{name:'歐陽克姬妾', hp:70, wu:10, ling:5, fang:4, yu:2, element:'metal', gold:15, drop:'金創藥'} },
+      { type:'treasure', gold:30, item:'九花玉露丸' },
+      { type:'trap', dmg:10, text:'遭蛇奴暗算，生命 −10。' },
+      { type:'event', text:'黃蓉指點九陰真經，靈 +3。', apply:function(){p.ling+=3;} },
+      { type:'heal', text:'客棧休整，生命全滿。' }
+    ]
+  },
+  {
+    name:'桃花島·三道試題',
+    intro:{speaker:'旁白', text:'郭靖與黃蓉前往桃花島。黃藥師出三題考驗郭靖與歐陽克。郭靖結識了老頑童周伯通，學到了空明拳與雙手互搏；黃藥師亦傳授他彈指神通。', apply:function(){p.yu+=3; if(p.skills.indexOf('kongming')===-1) p.skills.push('kongming'); if(p.skills.indexOf('tanzhi')===-1) p.skills.push('tanzhi');}},
+    nodes:['桃花島','密林','密林','試劍亭','三道試題','密林','密林','密林','試劍台'],
+    boss:{name:'歐陽克（三道試題）', hp:200, wu:26, ling:20, fang:10, yu:8, element:'metal', gold:0, drop:null,canLose:true},
+    bossPre:{speaker:'旁白', text:'黃藥師出三道試題：一考內功，二考背書，三考比武。郭靖前兩題憑藉全真內功與九陰真經的背誦涉險過關，第三題要與歐陽克分出高下。'},
+    bossPost:{speaker:'旁白', text:'郭靖以剛猛掌力險勝歐陽克，黃藥師雖嫌他愚鈍，卻也默許婚事。然而離島途中，歐陽鋒暗施毒手，一場海上浩劫即將展開……'},
+    eventPool: [
+      { type:'combat', enemy:{name:'歐陽克', hp:60, wu:9, ling:7, fang:3, yu:2, element:'water', gold:10, drop:null} },
+      { type:'combat', enemy:{name:'白駝山蛇奴', hp:50, wu:8, ling:4, fang:2, yu:1, element:'water', gold:8, drop:'金創藥'} },
+      { type:'treasure', gold:25, item:'九花玉露丸' },
+      { type:'trap', dmg:8, text:'踩中桃花島陷阱，生命 −8。' },
+      { type:'event', text:'周伯通傳授空明拳理，御 +2。', apply:function(){p.yu+=2;} },
+      { type:'event', text:'老頑童拉著你玩左右互搏，雖然一頭霧水但感覺變強了，武 +2、靈 +2。', apply:function(){p.wu+=2; p.ling+=2;} },
+      { type:'heal', text:'服食桃花島靈藥，生命全滿。' }
+    ]
+  },
+  {
+    name:'荒島·千鈞巨岩',
+    intro:{speaker:'旁白', text:'桃花島提親之後，郭靖、黃蓉與洪七公、歐陽鋒、歐陽克在海上遭遇沉船，眾人漂流至荒島。洪七公重傷垂危，將丐幫幫主之位、打狗棒與棒法盡數傳給黃蓉。', apply:function(){p.yu+=2; p.wu+=2; equipItem('weapon','打狗棒'); if(p.skills.indexOf('dagou')===-1) p.skills.push('dagou');}},
+    nodes:['沉船','荒島沙灘','巨岩','山洞','懸崖','荒島密林','巨岩','沙灘','離島'],
+    boss:{name:'歐陽鋒（荒島）', hp:260, wu:30, ling:26, fang:14, yu:11, element:'metal', gold:0, drop:null,canLose:true, passive:'charge'},
+    bossPre:{speaker:'旁白', text:'歐陽鋒發現歐陽克被巨石壓住，暴怒之下以洪七公性命相脅。郭靖與黃蓉必須在絕境中與西毒周旋。'},
+    bossPost:{speaker:'旁白', text:'黃蓉利用潮汐與絞盤救出歐陽克，眾人暫時脫困。洪七公將打狗棒法與幫主之位傳給黃蓉，二人乘木筏離島。'},
+    eventPool: [
+      { type:'combat', enemy:{name:'歐陽鋒', hp:80, wu:12, ling:8, fang:4, yu:3, element:'metal', gold:0, drop:null} },
+      { type:'treasure', gold:15, item:'九花玉露丸' },
+      { type:'trap', dmg:8, text:'荒島礁石割傷，生命 −8。' },
+      { type:'event', text:'黃蓉以潮汐之理戲弄歐陽克，郭靖旁觀領悟，靈 +2。', apply:function(){p.ling+=2;} },
+      { type:'heal', text:'黃蓉烤魚充飢，生命全滿。' }
+    ]
+  },
+  {
+    name:'大鬧禁宮·密室療傷',
+    intro:{speaker:'旁白', text:'洪七公念念不忘皇宮裡的鴛鴦五珍燴，郭靖、黃蓉陪他夜入臨安禁宮，卻撞上完顏洪烈、歐陽鋒、楊康等人。混戰中郭靖重傷，黃蓉將他拖入密室療傷。期間郭靖將九陰真經融會貫通。'},
+    nodes:['臨安城外','皇宮外牆','御花園','水簾洞','禁宮混戰','牛家村','密室','荒村野店','返回臨安'],
+    boss:{name:'歐陽鋒·楊康（禁宮）', hp:270, wu:31, ling:27, fang:15, yu:12, element:'metal', gold:0, drop:null,canLose:true, passive:'charge'},
+    bossPre:{speaker:'旁白', text:'禁宮中，完顏洪烈一方人多勢眾。郭靖為護《武穆遺書》奮力死戰，卻被楊康暗算、歐陽鋒重擊，命懸一線。'},
+    bossPost:{speaker:'旁白', text:'黃蓉拼死將郭靖救出，在密室中療傷七日七夜。其間楊康殺歐陽克，全真七子鬥黃藥師，梅超風替師擋掌而死。江南五怪死訊傳來，郭靖誤以為是黃藥師所為，悲痛之下獨自離開。黃蓉四處尋他不著，只得先趕往君山。'},
+    eventPool: [
+      { type:'combat', enemy:{name:'禁宮侍衛', hp:55, wu:9, ling:4, fang:3, yu:2, element:'metal', gold:8, drop:null} },
+      { type:'combat', enemy:{name:'楊康', hp:65, wu:10, ling:5, fang:4, yu:2, element:'metal', gold:10, drop:'金創藥'} },
+      { type:'treasure', gold:25, item:'九花玉露丸' },
+      { type:'trap', dmg:10, text:'禁宮機關發動，生命 −10。' },
+      { type:'event', text:'密室療傷期間參悟九陰真經，靈 +2、御 +2。', apply:function(){p.ling+=2; p.yu+=2;} },
+      { type:'heal', text:'黃蓉悉心照料，生命全滿。' }
+    ]
+  },
+  {
+    name:'君山·丐幫大會',
+    intro:{speaker:'旁白', text:'洪七公雖在荒島將幫主之位傳給黃蓉，但丐幫群豪並不知情。楊康盜走打狗棒，在岳州君山召開丐幫大會，假冒幫主。黃蓉與郭靖分別趕到，要在群雄面前揭穿陰謀，奪回幫主之位。'},
+    nodes:['赴君山途中','洞庭湖畔','君山腳下','丐幫外圍','大會場','君山後山','大會場','洞庭湖','離開君山'],
+    boss:{name:'楊康（假冒幫主）', hp:200, wu:24, ling:18, fang:12, yu:9, element:'metal', gold:0, drop:null,canLose:false, passive:'call'},
+    bossPre:{speaker:'旁白', text:'楊康手持打狗棒，以幫主自居，丐幫群雄被其蒙蔽。黃蓉手腳被縛，郭靖獨力難支，局勢危急萬分。'},
+    bossPost:{speaker:'旁白', text:'黃蓉以打狗棒法連敗丐幫長老，當眾揭穿楊康的陰謀，正式接任丐幫幫主。丐幫重歸靖蓉一方，兩人也暫時放下心結，共赴鐵掌峰尋找《武穆遺書》。'},
+    eventPool: [
+      { type:'combat', enemy:{name:'淨衣派長老', hp:60, wu:10, ling:6, fang:3, yu:2, element:'water', gold:6, drop:null} },
+      { type:'combat', enemy:{name:'楊康親信', hp:50, wu:8, ling:4, fang:2, yu:1, element:'metal', gold:5, drop:'金創藥'} },
+      { type:'treasure', gold:20, item:'九花玉露丸' },
+      { type:'trap', dmg:8, text:'中了淨衣派攝魂術，生命 −8。' },
+      { type:'event', text:'黃蓉演練打狗棒法，武 +2、御 +1。', apply:function(){p.wu+=2; p.yu+=1;} },
+      { type:'heal', text:'丐幫弟子送上酒食，生命全滿。' }
+    ]
+  },
+  {
+    name:'鐵掌峰頂',
+    intro:{speaker:'旁白', text:'郭靖與黃蓉為了尋找岳飛留下的兵法《武穆遺書》，根據線索來到裘千仞的地盤——鐵掌山。裘千仞號稱「鐵掌水上漂」，一雙鐵掌威震江湖。'},
+    nodes:['鐵掌峰下','羊梯','鐵掌幫總壇','密室','山頂','藥王廟','鐵掌峰下','山道','鐵掌幫大殿'],
+    boss:{name:'裘千仞', hp:240, wu:28, ling:20, fang:14, yu:10, element:'earth', gold:0, drop:null,canLose:true, passive:'reflect'},
+    bossPre:{speaker:'旁白', text:'郭靖黃蓉誤入鐵掌幫總壇，被裘千仞發現。裘千仞忌憚二人知曉幫中秘密，出手狠辣，欲將二人格殺當場。'},
+    bossPost:{speaker:'旁白', text:'黃蓉為護《武穆遺書》，硬接裘千仞一記鐵掌，身受重傷。郭靖背著她殺出重圍，必須盡快找到一燈大師救治，否則黃蓉性命難保。'},
+    eventPool: [
+      { type:'combat', enemy:{name:'鐵掌幫幫眾', hp:60, wu:9, ling:6, fang:3, yu:2, element:'earth', gold:0, drop:null} },
+      { type:'combat', enemy:{name:'鐵掌幫舵主', hp:70, wu:10, ling:5, fang:4, yu:2, element:'earth', gold:15, drop:'金創藥'} },
+      { type:'treasure', gold:30, item:'九花玉露丸' },
+      { type:'trap', dmg:10, text:'誤觸鐵掌幫機關，生命 −10。' },
+      { type:'event', text:'鐵掌幫密室尋得【鐵砂掌套】，剛猛霸道。', apply:function(){ equipItem('weapon','鐵砂掌套'); } },
+      { type:'heal', text:'山間泉眼療傷，生命全滿。' }
+    ]
+  },
+  {
+    name:'黑沼·南帝求醫',
+    intro:{speaker:'旁白', text:'黃蓉被裘千仞鐵掌所傷，傷勢沉重。郭靖背著她前往大理，求助於一燈大師。途經黑沼時遇到瑛姑，得其指引，又連闖漁、樵、耕、讀四關，終於見到已經出家為僧的南帝段智興。'},
+    nodes:['黑沼','瑛姑茅屋','山路','漁','樵','耕','讀','一燈居','返回中原'],
+    boss:{name:'漁樵耕讀（四關）', hp:220, wu:26, ling:20, fang:13, yu:10, element:'earth', gold:0, drop:null,canLose:false},
+    bossPre:{speaker:'旁白', text:'漁樵耕讀四人各守一關，郭靖必須憑武功與誠意過關，才能見到一燈大師。'},
+    bossPost:{speaker:'旁白', text:'一燈大師耗盡功力為黃蓉療傷，黃蓉痊癒，一燈武功暫失五年。瑛姑與南帝、周伯通的舊怨也在此了結。郭靖背著黃蓉下山，二人感情更深一層。', apply:function(){ if(p.skills.indexOf('tanzhi')>-1){ p.skills[p.skills.indexOf('tanzhi')] = 'tanzhi_pro'; } }},
+    eventPool: [
+      { type:'combat', enemy:{name:'漁人', hp:55, wu:9, ling:5, fang:3, yu:2, element:'water', gold:0, drop:null} },
+      { type:'combat', enemy:{name:'樵夫', hp:60, wu:10, ling:4, fang:3, yu:2, element:'wood', gold:0, drop:null} },
+      { type:'treasure', gold:25, item:'九花玉露丸' },
+      { type:'trap', dmg:9, text:'黑沼泥濘難行，生命 −9。' },
+      { type:'event', text:'一燈大師指點九陰總旨，靈 +3、御 +2。', apply:function(){p.ling+=3; p.yu+=2;} },
+      { type:'heal', text:'一燈大師以真氣為黃蓉療傷，生命全滿。' }
+    ]
+  },
+  {
+    name:'煙雨樓·鐵槍廟',
+    intro:{speaker:'旁白', text:'黃蓉傷癒之後，與郭靖一同前往嘉興。煙雨樓上，全真七子與黃藥師大戰。這一戰牽動著江南五怪血案的真相，也將徹底揭開楊康的真面目。'},
+    nodes:['煙雨樓','全真鬥法','煙雨樓','鐵槍廟','鐵槍廟','鐵槍廟','嘉興郊外','嘉興郊外','江南渡口'],
+    boss:{name:'瘋癲歐陽鋒', hp:280, wu:32, ling:28, fang:16, yu:12, element:'metal', gold:0, drop:null,canLose:true, passive:'madness'},
+    bossPre:{speaker:'旁白', text:'鐵槍廟中，黃蓉揭穿真相。楊康中毒而死。歐陽鋒逆練九陰真經，神智錯亂，與郭靖展開惡戰。'},
+    bossPost:{speaker:'旁白', text:'黃蓉憑藉機智，用幻影驚走了歐陽鋒。郭靖與黃蓉終於解開誤會，重修舊好。郭靖輾轉回到蒙古，正趕上成吉思汗西征。'},
+    eventPool: [
+      { type:'combat', enemy:{name:'全真道士', hp:60, wu:9, ling:6, fang:3, yu:2, element:'earth', gold:0, drop:null} },
+      { type:'combat', enemy:{name:'金國高手', hp:70, wu:10, ling:5, fang:4, yu:2, element:'metal', gold:15, drop:'金創藥'} },
+      { type:'treasure', gold:30, item:'九花玉露丸' },
+      { type:'trap', dmg:10, text:'遭歐陽鋒暗算，生命 −10。' },
+      { type:'event', text:'黃蓉指點九陰真經，靈 +3。', apply:function(){p.ling+=3;} },
+      { type:'heal', text:'客棧休整，生命全滿。' }
+    ]
+  },
+  {
+    name:'西征·撒馬爾罕',
+    intro:{speaker:'旁白', text:'鐵槍廟之後，郭靖四處尋訪黃蓉下落，輾轉來到蒙古大漠，正趕上成吉思汗西征花剌子模。為了擒殺殺父仇人完顏洪烈，郭靖請命出征，被任命為右軍統帥。'},
+    nodes:['蒙古大營','西征途中','禿木峰','撒馬爾罕城外','攻城','撒馬爾罕城','王宮','蒙古大營','南下中原'],
+    boss:{name:'撒馬爾罕守將', hp:250, wu:28, ling:22, fang:14, yu:11, element:'metal', gold:0, drop:null,canLose:false},
+    bossPre:{speaker:'旁白', text:'撒馬爾罕城高牆厚，守軍死戰不退。完顏洪烈藏身王宮，負隅頑抗。郭靖率軍攻城，卻久攻不下，傷亡慘重。'},
+    bossPost:{speaker:'旁白', text:'郭靖依黃蓉之計，裡應外合攻破撒馬爾罕，親手擒殺完顏洪烈，終報父仇。然而成吉思汗隨即欲南下攻宋，李萍為保兒子忠義自刎而死。郭靖與蒙古決裂，南下中原，赴華山之約。', apply:function(){ if(p.skills.indexOf('xianglong')>-1){ p.skills[p.skills.indexOf('xianglong')] = 'xianglong_pro'; } }},
+    eventPool: [
+      { type:'combat', enemy:{name:'花剌子模守軍', hp:70, wu:11, ling:5, fang:4, yu:3, element:'metal', gold:15, drop:null} },
+      { type:'combat', enemy:{name:'蒙古精銳', hp:80, wu:12, ling:6, fang:5, yu:3, element:'earth', gold:12, drop:'金創藥'} },
+      { type:'treasure', gold:35, item:'九花玉露丸' },
+      { type:'trap', dmg:12, text:'戰場流矢，生命 −12。' },
+      { type:'event', text:'蒙古軍中得【屠龍刀】，武林至尊。', apply:function(){ equipItem('weapon','屠龍刀'); } },
+      { type:'heal', text:'軍中休整，生命全滿。' }
+    ]
+  },
+  {
+    name:'華山·論劍',
+    intro:{speaker:'旁白', text:'郭靖南下中原，正逢第二次華山論劍之期。洪七公、黃藥師、一燈大師、周伯通、瑛姑等齊聚華山之巔。此時歐陽鋒逆練九陰真經，武功怪異莫測，也來到了華山。'},
+    nodes:['華山腳','山道','蒼龍嶺','一線天','雲霧','論劍台','論劍台','蒼龍嶺','論劍台'],
+    boss:{name:'歐陽鋒（瘋癲）', hp:280, wu:32, ling:28, fang:16, yu:12, element:'metal', gold:0, drop:null,canLose:true, passive:'madness'},
+    bossPre:{speaker:'旁白', text:'華山之巔，歐陽鋒逆練真經，陷入瘋癲，大戰群雄。郭靖雖知其武功高深莫測，卻依然挺身而出。'},
+    bossPost:{speaker:'旁白', text:'郭靖雖力戰不敵，卻以九陰真經之學與歐陽鋒周旋。洪七公與黃藥師相繼出手，終於逼退瘋癲的歐陽鋒。華山之巔，郭靖與黃蓉看透世情，深知「俠之大者，為國為民」，攜手南下襄陽。'},
+    eventPool: [
+      { type:'combat', enemy:{name:'華山隱士', hp:80, wu:11, ling:8, fang:4, yu:3, element:'earth', gold:0, drop:null} },
+      { type:'combat', enemy:{name:'西域怪客', hp:85, wu:12, ling:6, fang:5, yu:3, element:'metal', gold:15, drop:'金創藥'} },
+      { type:'treasure', gold:40, item:'九花玉露丸' },
+      { type:'trap', dmg:12, text:'華山險道失足，生命 −12。' },
+      { type:'event', text:'得【玄鐵護甲】，堅不可摧。', apply:function(){ equipItem('armor','玄鐵護甲'); } },
+      { type:'heal', text:'華山之巔休整，生命全滿。' }
+    ]
+  }
+];
+
+function expandNodes(nodes, target){
+  target = target || NODE_COUNT;
+  if(nodes.length >= target) return nodes.slice();
+  if(nodes.length <= 2) return nodes.slice();
+  var first = nodes[0];
+  var last  = nodes[nodes.length - 1];
+  var mid   = nodes.slice(1, nodes.length - 1);
+  var slots = target - 2;
+  var base  = Math.floor(slots / mid.length);
+  var rem   = slots % mid.length;
+  var out = [first];
+  for(var i = 0; i < mid.length; i++){
+    var count = base + (i < rem ? 1 : 0);
+    for(var j = 0; j < count; j++) out.push(mid[i]);
+  }
+  out.push(last);
+  return out;
+}
+
+function prepareChapters(){
+  for(var i = 0; i < CHAPTERS.length; i++){
+    CHAPTERS[i].nodes = expandNodes(CHAPTERS[i].nodes, NODE_COUNT);
+    var hasMerchant = CHAPTERS[i].eventPool.some(function(e){ return e.type === 'merchant'; });
+    if(!hasMerchant){
+      CHAPTERS[i].eventPool.push({ type:'merchant' });
+    }
+  }
+}
+
+var p, state;
+
+function initPlayer(){
+  return {
+    hp:50,  maxHp:50, mp:5, maxMp:5, sta:15, maxSta:15, rage:0, maxRage:10,
+    wu:8, ling:5, fang:2, yu:2, gold:20,
+    equip:{ weapon:'短劍', armor:null },
+    equipLevels: { weapon: 0, armor: 0 },
+    equipAffixes: { weapon: [], armor: [] },
+    skills:[], inventory:{ '金創藥':3 }, status:[],
+    huangrongTimer: 0,
+    achievements: [],
+    trainPoints: 0,
+    skillLevels: {},
+    stats: { turns: 0, itemsUsed: 0, merchantsVisited: 0 }
+  };
+}
+
+function initState(){
+  return { phase: PHASE.STORY, chapter: 0, node: -1, storyFlag: 'intro', combat: null, log: [], bossPreview: null, combatSpeed: 1 };
+}
+
+function $(id){ return document.getElementById(id); }
+
+function addLog(msg, cls){
+  cls = cls || 'log-sys';
+  if(!state.log) state.log = [];
+  state.log.push({ msg: msg, cls: cls });
+  if(state.log.length > 80) state.log.shift();
+}
+
+function unlockAchievement(id){
+  if(p.achievements.indexOf(id) !== -1) return;
+  var ach = ACHIEVEMENTS.find(function(a){ return a.id === id; });
+  if(!ach) return;
+  p.achievements.push(id);
+  showToast('解鎖成就：' + ach.name + '（' + ach.reward + '）');
+  
+  if (id === 'first_clear') p.gold += 20;
+  if (id === 'master_clear') { p.wu += 2; p.ling += 2; p.fang += 2; p.yu += 2; }
+  if (id === 'hard_clear') p.trainPoints += 10;
+  if (id === 'no_heal_boss') p.fang += 2;
+  if (id === 'low_hp_kill') p.wu += 2;
+  if (id === 'merchant_friend') p.gold += 50;
+  if (id === 'rich_man') p.ling += 1;
+  if (id === 'skill_master') p.trainPoints += 3;
+  if (id === 'long_fight') { p.maxHp += 20; p.hp += 20; }
+  if (id === 'crit_hit') p.wu += 1;
+  
+  renderSidebar();
+}
+
+function showToast(msg){
+  var c = $('toast-container');
+  if(!c) return;
+  var t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = '<span style="font-size:18px;">🏆</span> ' + msg;
+  c.appendChild(t);
+  setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 3000);
+}
+
+/* ★ 裝備加成與詞條計算 */
+function getEquipBonus(){
+  var b = { wu:0, ling:0, fang:0, yu:0 };
+  
+  if (p.equip.weapon) {
+    var w = EQUIPMENT.weapons[p.equip.weapon];
+    var wLv = p.equipLevels.weapon || 0;
+    b.wu += w.wu + (wLv * 2);
+    b.ling += w.ling;
+    b.fang += w.fang + (wLv * 1);
+    b.yu += w.yu;
+  }
+  
+  if (p.equip.armor) {
+    var a = EQUIPMENT.armors[p.equip.armor];
+    var aLv = p.equipLevels.armor || 0;
+    b.wu += a.wu;
+    b.ling += a.ling;
+    b.fang += a.fang + (aLv * 2);
+    b.yu += a.yu + (aLv * 1);
+  }
+  
+  return b;
+}
+function getWu(){   return p.wu   + getEquipBonus().wu;   }
+function getLing(){ return p.ling + getEquipBonus().ling; }
+function getFang(){ return p.fang + getEquipBonus().fang; }
+function getYu(){   return p.yu   + getEquipBonus().yu;   }
+
+// 檢查是否擁有特定詞條（武器或護甲任一有即可）
+function hasAffix(affixName) {
+  var wAff = p.equipAffixes.weapon || [];
+  var aAff = p.equipAffixes.armor || [];
+  return wAff.indexOf(affixName) !== -1 || aAff.indexOf(affixName) !== -1;
+}
+
+function getSkillLv(skillKey){
+  var baseKey = skillKey.replace('_pro','');
+  return p.skillLevels[baseKey] || 1;
+}
+function getSkillMult(skillKey){
+  var lv = getSkillLv(skillKey);
+  return 1 + (lv - 1) * 0.3;
+}
+function upgradeSkill(skillKey){
+  var baseKey = skillKey.replace('_pro','');
+  var lv = getSkillLv(baseKey);
+  var cost = lv * 3;
+  if (p.trainPoints < cost) {
+    alert('修煉點不足！升級到 Lv.' + (lv+1) + ' 需要 ' + cost + ' 點。');
+    return;
+  }
+  p.trainPoints -= cost;
+  p.skillLevels[baseKey] = lv + 1;
+  addLog('【' + SKILLS[skillKey].name + '】提升至 Lv.' + (lv+1) + '！', 'log-event');
+  playSound('heal');
+  renderSidebar();
+  showModal('bag');
+}
+
+function equipItem(slot, name){
+  var pool = slot === 'weapon' ? EQUIPMENT.weapons : EQUIPMENT.armors;
+  if(!pool[name]){ addLog('未知裝備：'+name, 'log-combat'); return; }
+  var old = p.equip[slot];
+  p.equip[slot] = name;
+  
+  // 換裝備時清空該部位的強化等級和詞條（或者保留？為了平衡，保留等級與詞條，但數值基於新裝備）
+  // 這裡選擇重置，避免一把新手劍繼承屠龍刀的詞條
+  if (old !== name) {
+    p.equipLevels[slot] = 0;
+    p.equipAffixes[slot] = [];
+  }
+  
+  if(old && old !== name){
+    addLog('裝備【'+name+'】，替換【'+old+'】。', 'log-event');
+  } else {
+    addLog('裝備【'+name+'】。', 'log-event');
+  }
+  playSound('click');
+}
+
+function equipDesc(slot, name){
+  var pool = slot === 'weapon' ? EQUIPMENT.weapons : EQUIPMENT.armors;
+  var e = pool[name];
+  if(!e) return '';
+  var b = { wu:0, ling:0, fang:0, yu:0 };
+  var lv = p.equipLevels[slot] || 0;
+  
+  if (slot === 'weapon') {
+    b.wu = e.wu + lv*2; b.ling = e.ling; b.fang = e.fang + lv*1; b.yu = e.yu;
+  } else {
+    b.wu = e.wu; b.ling = e.ling; b.fang = e.fang + lv*2; b.yu = e.yu + lv*1;
+  }
+  
+  var parts = [];
+  if(b.wu)   parts.push('武'   + (b.wu   >0?'+':'') + b.wu);
+  if(b.ling) parts.push('靈'   + (b.ling >0?'+':'') + b.ling);
+  if(b.fang) parts.push('防'   + (b.fang >0?'+':'') + b.fang);
+  if(b.yu)   parts.push('御'   + (b.yu   >0?'+':'') + b.yu);
+  
+  var lvStr = lv > 0 ? ' Lv.'+lv : '';
+  return lvStr + (parts.length ? '（' + parts.join('　') + '）' : '');
+}
+
+/* ★ 鐵匠鋪 */
+function showSmith() {
+  if (state.phase !== PHASE.STORY && state.phase !== PHASE.EXPLORE) {
+    alert('戰鬥中無法進入鐵匠鋪。');
+    return;
+  }
+  closeAllModals();
+  renderSmith();
+  $('modal-smith').classList.add('active');
+}
+
+function renderSmith() {
+  $('smith-gold').textContent = p.gold;
+  var html = '';
+  
+  ['weapon', 'armor'].forEach(function(slot){
+    var name = p.equip[slot];
+    if (!name) return; // 沒有裝備則跳過
+    
+    var pool = slot === 'weapon' ? EQUIPMENT.weapons : EQUIPMENT.armors;
+    var desc = pool[name].desc;
+    var lv = p.equipLevels[slot] || 0;
+    var affixes = p.equipAffixes[slot] || [];
+    
+    // 洗練詞條產生器
+    var affixHtml = affixes.map(function(af){
+      return '<span class="affix-tag">' + AFFIXES[af].name + '</span>';
+    }).join('');
+    
+    var upCost = (lv + 1) * 30;
+    var upBtn = '';
+    if (lv < 5) {
+      upBtn = '<button class="btn" '+(p.gold >= upCost ? '' : 'disabled')+' onclick="upgradeEquip(\''+slot+'\','+upCost+')">強化至 Lv.'+(lv+1)+' (需 '+upCost+' 兩)</button>';
+    } else {
+      upBtn = '<span style="font-size:12px; color:#6fb3a0;">已滿級</span>';
+    }
+    
+    var reforgeCost = 40;
+    var reforgeBtn = '';
+    if (affixes.length < 2) {
+      reforgeBtn = '<button class="btn" '+(p.gold >= reforgeCost ? '' : 'disabled')+' onclick="reforgeEquip(\''+slot+'\','+reforgeCost+')">洗練詞條 (需 '+reforgeCost+' 兩)</button>';
+    } else {
+      reforgeBtn = '<span style="font-size:12px; color:#6fb3a0;">詞條已滿</span>';
+    }
+    
+    html += '<div class="smith-row">' +
+      '<div class="smith-info" style="flex:1;">' +
+        '<b>' + (slot==='weapon'?'兵器':'護甲') + '：' + name + ' Lv.' + lv + '</b><br>' +
+        '<span>' + desc + ' ' + equipDesc(slot, name) + '</span>' +
+        '<div style="margin-top:6px;">' + (affixHtml || '<span style="font-size:11px;color:var(--dim);">暫無詞條</span>') + '</div>' +
+      '</div>' +
+      '<div style="display:flex; flex-direction:column; gap:6px;">' +
+        upBtn + reforgeBtn +
+      '</div>' +
+    '</div>';
+  });
+  
+  $('smith-list').innerHTML = html;
+}
+
+function upgradeEquip(slot, cost) {
+  if (p.gold < cost) return;
+  p.gold -= cost;
+  p.equipLevels[slot] = (p.equipLevels[slot] || 0) + 1;
+  playSound('heal');
+  renderSidebar();
+  renderSmith();
+  addLog('裝備強化成功！', 'log-sys');
+}
+
+function reforgeEquip(slot, cost) {
+  if (p.gold < cost) return;
+  p.gold -= cost;
+  
+  // 隨機選擇一個尚未擁有的詞條
+  var current = p.equipAffixes[slot] || [];
+  var available = Object.keys(AFFIXES).filter(function(k){ return current.indexOf(k) === -1; });
+  if (available.length === 0) return;
+  
+  var newAffix = available[Math.floor(Math.random() * available.length)];
+  p.equipAffixes[slot] = current.concat([newAffix]);
+  
+  playSound('win');
+  renderSidebar();
+  renderSmith();
+  addLog('洗練出詞條【' + AFFIXES[newAffix].name + '】！', 'log-event');
+}
+
+function cycleDifficulty(){
+  var order = ['easy','normal','hard'];
+  var idx = order.indexOf(currentDifficulty);
+  idx = (idx + 1) % order.length;
+  currentDifficulty = order[idx];
+  try{ localStorage.setItem('shediao_difficulty', currentDifficulty); } catch(e){}
+  updateDifficultyBtn();
+  playSound('click');
+}
+function updateDifficultyBtn(){
+  var d = DIFFICULTY[currentDifficulty];
+  var btn = $('btn-difficulty');
+  if(btn){
+    btn.textContent = '難度：' + d.name;
+    btn.style.color = d.color;
+    btn.style.borderColor = d.color;
+  }
+}
+
+function svgIcon(kind, color){
+  var c = color;
+  if(kind==='sword') return '<svg viewBox="0 0 64 64"><polygon points="32,4 38,32 32,40 26,32" fill="'+c+'"/><rect x="16" y="40" width="32" height="4" rx="2" fill="#c9a227"/><rect x="29" y="44" width="6" height="16" rx="2" fill="#8b5a2b"/></svg>';
+  if(kind==='shield') return '<svg viewBox="0 0 64 64"><path d="M32 6 L54 14 L54 34 Q54 50 32 58 Q10 50 10 34 L10 14 Z" fill="'+c+'" opacity=".9"/><circle cx="32" cy="32" r="8" fill="#1a1410" opacity=".5"/></svg>';
+  if(kind==='dragon') return '<svg viewBox="0 0 64 64"><path d="M6 50 Q20 28 32 40 Q44 54 40 30 Q36 8 56 16" fill="none" stroke="'+c+'" stroke-width="4.5" stroke-linecap="round"/><circle cx="52" cy="20" r="2.5" fill="#fff"/></svg>';
+  if(kind==='heal') return '<svg viewBox="0 0 64 64"><rect x="26" y="10" width="12" height="44" rx="3" fill="'+c+'"/><rect x="10" y="26" width="44" height="12" rx="3" fill="'+c+'"/><circle cx="32" cy="32" r="5" fill="#1a1410" opacity=".35"/></svg>';
+  if(kind==='staff') return '<svg viewBox="0 0 64 64"><rect x="29" y="8" width="6" height="50" rx="3" fill="'+c+'"/><circle cx="32" cy="14" r="7" fill="none" stroke="'+c+'" stroke-width="3.5"/></svg>';
+  if(kind==='finger') return '<svg viewBox="0 0 64 64"><rect x="28" y="10" width="8" height="34" rx="4" fill="'+c+'"/><circle cx="32" cy="14" r="5.5" fill="'+c+'"/><circle cx="50" cy="26" r="3" fill="'+c+'" opacity=".7"/><circle cx="14" cy="32" r="3" fill="'+c+'" opacity=".7"/></svg>';
+  return '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="20" fill="'+c+'"/></svg>';
+}
+
+function playerAvatar(){ return '<svg viewBox="0 0 64 64"><circle cx="32" cy="22" r="12" fill="#c9a227"/><rect x="18" y="36" width="28" height="22" rx="4" fill="#c9a227" opacity=".85"/><circle cx="27" cy="20" r="2" fill="#1a1410"/><circle cx="37" cy="20" r="2" fill="#1a1410"/><path d="M28 28 Q32 31 36 28" fill="none" stroke="#1a1410" stroke-width="2"/></svg>'; }
+function enemyAvatar(element){ var c = ELEM_COLOR[element] || '#a86a3a'; return '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="24" fill="'+c+'" opacity=".65"/><circle cx="24" cy="28" r="4" fill="#1a1410"/><circle cx="40" cy="28" r="4" fill="#1a1410"/><path d="M22 44 Q32 52 42 44" fill="none" stroke="#1a1410" stroke-width="3" stroke-linecap="round"/></svg>'; }
+
+function randIn(range){
+  return range.min + Math.random() * (range.max - range.min);
+}
+
+function pickRange(base, isBoss){
+  if(isBoss && base.canLose === true) return BALANCE.canLoseBoss;
+  if(isBoss)                          return BALANCE.normalBoss;
+  return BALANCE.mob;
+}
+
+function makeScaledEnemy(base, isBoss){
+  var r = pickRange(base, isBoss);
+  var e = JSON.parse(JSON.stringify(base));
+  var diff = DIFFICULTY[currentDifficulty].mult;
+
+  var hpMult  = randIn(r.hp)  * diff;
+  var atkMult = randIn(r.atk) * diff;
+  var defMult = randIn(r.def) * diff;
+
+  e.maxHp = Math.max(1, Math.round(p.maxHp * hpMult));
+  e.hp    = e.maxHp;
+  e.wu    = Math.max(1, Math.round(p.wu   * atkMult));
+  e.ling  = Math.max(0, Math.round(p.ling * atkMult));
+  e.fang  = Math.max(0, Math.round(p.fang * defMult));
+  e.yu    = Math.max(0, Math.round(p.yu   * defMult));
+  
+  if (e.passive) {
+    if (e.passive === 'charge') e.chargeTimer = 0;
+    if (e.passive === 'elemental') e.elemTimer = 0;
+  }
+  return e;
+}
+
+function calcDamage(atk, def){
+  atk = Math.max(1, atk);
+  def = Math.max(0, def);
+  return Math.max(1, Math.round(atk * atk / (atk + def)));
+}
+
+function calcHealAmount(itemName){
+  var it = ITEMS[itemName];
+  if(!it) return 0;
+  return Math.max(it.healMin, Math.floor(p.maxHp * it.healPct));
+}
+
+function useHealingItem(itemName){
+  if((p.inventory[itemName] || 0) <= 0){
+    addLog('行囊中沒有【'+itemName+'】。', 'log-combat');
+    return false;
+  }
+  var amount = calcHealAmount(itemName);
+  var before = p.hp;
+  p.inventory[itemName]--;
+  p.hp = Math.min(p.maxHp, p.hp + amount);
+  p.stats.itemsUsed++;
+  addLog('服用【'+itemName+'】，回復 '+(p.hp - before)+' 點生命。', 'log-sys');
+  playSound('heal');
+  return true;
+}
+
+function showDamageFloat(who, amount, color){
+  var board = $('combat-board');
+  if(!board || board.hidden) return;
+  var container;
+  if(who === 'player'){
+    container = board.querySelectorAll('.combatant')[0];
+  } else {
+    var all = board.querySelectorAll('.combatant');
+    container = all[all.length - 1];
+  }
+  if(!container) return;
+  var el = document.createElement('div');
+  el.className = 'dmg-float';
+  el.style.color = color || '#c0392b';
+  el.textContent = '-' + amount;
+  container.appendChild(el);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 1000);
+  
+  var avatar = container.querySelector('.avatar');
+  if (avatar) {
+    avatar.classList.remove('hit-flash');
+    void avatar.offsetWidth;
+    avatar.classList.add('hit-flash');
+  }
+}
+
+function shakeScreen(){
+  var b = document.body;
+  b.classList.remove('shake');
+  void b.offsetWidth;
+  b.classList.add('shake');
+  playSound('hurt');
+}
+
+function renderSidebar(){
+  try {
+    $('ui-chapter').textContent = CHAPTERS[state.chapter].name;
+    $('ui-train-points').textContent = '修煉點：' + p.trainPoints;
+    $('ui-hp').textContent = Math.max(0,p.hp) + ' / ' + p.maxHp;
+    $('ui-hp-bar').style.width = Math.max(0, Math.min(100, p.hp / p.maxHp * 100)) + '%';
+    $('ui-mp').textContent = p.mp + ' / ' + p.maxMp;
+    $('ui-mp-bar').style.width = Math.max(0, Math.min(100, p.mp / p.maxMp * 100)) + '%';
+    $('ui-sta').textContent = p.sta + ' / ' + p.maxSta;
+    $('ui-sta-bar').style.width = Math.max(0, Math.min(100, p.sta / p.maxSta * 100)) + '%';
+    $('ui-rage').textContent = p.rage;
+    $('ui-rage-bar').style.width = Math.max(0, Math.min(100, p.rage / p.maxRage * 100)) + '%';
+    $('ui-wu').textContent = getWu();
+    $('ui-ling').textContent = getLing();
+    $('ui-fang').textContent = getFang();
+    $('ui-yu').textContent = getYu();
+
+    var wName = p.equip.weapon || '無';
+    var aName = p.equip.armor  || '無';
+    $('ui-weapon').textContent = wName;
+    $('ui-armor').textContent = aName;
+    $('ui-weapon-bonus').textContent = p.equip.weapon ? equipDesc('weapon', p.equip.weapon) : '';
+    $('ui-armor-bonus').textContent  = p.equip.armor  ? equipDesc('armor',  p.equip.armor)  : '';
+
+    $('ui-status').textContent = p.status.length ? p.status.join('、') : '無';
+    $('ui-gold').textContent = p.gold;
+  } catch(e) { console.error('Sidebar render error:', e); }
+}
+
+function renderMap(){
+  try {
+    var board = $('map-board');
+    if(state.phase !== PHASE.EXPLORE && state.phase !== PHASE.DICE){ board.hidden = true; return; }
+    board.hidden = false;
+    var chapter = CHAPTERS[state.chapter];
+    var html = '';
+    var displayNode = state.node === -1 ? 0 : state.node;
+
+    for(var i=0; i<chapter.nodes.length; i++){
+      var cls = 'map-node';
+      var icon = '?';
+      if(i === displayNode){ cls += ' active'; icon = '🚩'; }
+      else if(i < displayNode){ cls += ' visited'; icon = '✓'; }
+      else if(i === chapter.nodes.length - 1){ icon = '👹'; }
+      var token = (i === displayNode) ? '<div class="token">郭</div>' : '';
+      html += '<div class="'+cls+'"><div class="mname">'+chapter.nodes[i]+'</div><div class="micon">'+icon+'</div>'+token+'</div>';
+      if(i < chapter.nodes.length - 1) html += '<div class="path-arrow">⇌</div>';
+    }
+    board.innerHTML = html;
+    setTimeout(function(){
+      var act = board.querySelector('.map-node.active');
+      if(act) act.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+    }, 60);
+  } catch(e) { console.error('Map render error:', e); }
+}
+
+var storyTimer = null;
+var storyDisplayed = true;
+
+function renderStory(){
+  try {
+    var board = $('story-board');
+    if(state.phase !== PHASE.STORY){
+      board.hidden = true;
+      if(storyTimer){ clearTimeout(storyTimer); storyTimer = null; }
+      return;
+    }
+    board.hidden = false;
+
+    var chapterData = CHAPTERS[state.chapter];
+    var bgColors = ['#1a1c23', '#2b1d15', '#1c2320', '#162024', '#23161c', '#1a1c23', '#2b1d15', '#1c2320'];
+    board.style.background = 'radial-gradient(circle at 50% 30%, '+bgColors[state.chapter%8]+' 0%, #14100e 100%)';
+
+    var speaker = '';
+    var text = '';
+
+    if (state.storyFlag === 'intro') {
+      speaker = chapterData.intro.speaker;   text = chapterData.intro.text;
+    } else if (state.storyFlag === 'bossPre') {
+      speaker = chapterData.bossPre.speaker; text = chapterData.bossPre.text;
+    } else if (state.storyFlag === 'bossPost') {
+      speaker = chapterData.bossPost.speaker; text = chapterData.bossPost.text;
+    }
+
+    $('story-speaker').textContent = speaker;
+
+    var textEl = $('story-text');
+    var newKey = state.chapter + '|' + state.storyFlag;
+    if(textEl.getAttribute('data-key') === newKey){
+      renderBossPreview();
+      return;
+    }
+    textEl.setAttribute('data-key', newKey);
+    textEl.setAttribute('data-full', text || '');
+
+    if(storyTimer){ clearTimeout(storyTimer); storyTimer = null; }
+
+    if(!text || text.length <= 20){
+      textEl.textContent = text || '';
+      storyDisplayed = true;
+    } else {
+      var idx = 0;
+      storyDisplayed = false;
+      textEl.textContent = '';
+      function tick(){
+        if(idx >= text.length){
+          storyDisplayed = true;
+          return;
+        }
+        idx += 3;
+        textEl.textContent = text.slice(0, idx);
+        storyTimer = setTimeout(tick, 18);
+      }
+      tick();
+    }
+
+    renderBossPreview();
+  } catch(e) { console.error('Story render error:', e); }
+}
+
+function renderBossPreview(){
+  try {
+    var extraEl = $('story-extra');
+    if(state.storyFlag === 'bossPre' && state.bossPreview){
+      var bp = state.bossPreview;
+      var elemColor = ELEM_COLOR[bp.element] || '#a86a3a';
+      var passiveText = '';
+      if (bp.passive === 'charge') passiveText = '【蛤蟆功：每 3 回合蓄力，下次攻擊雙倍】';
+      if (bp.passive === 'elemental') passiveText = '【奇門五行：每 2 回合切換自身屬性】';
+      if (bp.passive === 'reflect') passiveText = '【鐵掌反震：受物理攻擊反彈 20% 傷害】';
+      if (bp.passive === 'call') passiveText = '【呼朋引伴：有機率召喚援軍恢復生命】';
+      if (bp.passive === 'madness') passiveText = '【逆練真經：免疫定身，攻擊吸血 50%】';
+
+      var html = '<div class="boss-preview">' +
+        '<b>敵情預估</b>　' +
+        '生命 <span style="color:#e8a0a0">'+bp.maxHp+'</span>　' +
+        '武 <span style="color:#e8a0a0">'+bp.wu+'</span>　' +
+        '靈 <span style="color:#e8a0a0">'+bp.ling+'</span>　' +
+        '防 <span style="color:#e8a0a0">'+bp.fang+'</span>　' +
+        '御 <span style="color:#e8a0a0">'+bp.yu+'</span>' +
+        '<div class="bp-row">屬性：<span style="color:'+elemColor+';font-weight:700">'+ELEM_NAME[bp.element]+'</span></div>' +
+        (passiveText ? '<div class="bp-row" style="color:#ff8a80; font-weight:bold; margin-top:6px;">'+passiveText+'</div>' : '') +
+        '</div>';
+      extraEl.innerHTML = html;
+    } else {
+      extraEl.innerHTML = '';
+    }
+  } catch(e) { console.error('BossPreview error:', e); }
+}
+
+function skipTypewriter(){
+  if(storyDisplayed) return;
+  if(storyTimer){ clearTimeout(storyTimer); storyTimer = null; }
+  var textEl = $('story-text');
+  if(textEl) textEl.textContent = textEl.getAttribute('data-full') || '';
+  storyDisplayed = true;
+}
+
+function renderCombat(){
+  try {
+    var board = $('combat-board');
+    if(state.phase !== PHASE.COMBAT_PLAYER && state.phase !== PHASE.COMBAT_ENEMY){ board.hidden = true; return; }
+    board.hidden = false;
+    var e = state.combat.enemy;
+    var eStatus = (e.status || []).join('、') || '';
+    var pStatus = p.status.join('、') || '';
+    var eElemColor = ELEM_COLOR[e.element] || '#a86a3a';
+    var eElemTag = '<span class="elem-tag" style="background:'+eElemColor+'33; color:'+eElemColor+'; border:1px solid '+eElemColor+'">'+ELEM_NAME[e.element]+'</span>';
+    
+    var passiveHtml = '';
+    if (e.passive === 'charge' && e.chargeTimer >= 2) {
+      passiveHtml = '<div class="boss-passive-tag" style="background:#e67e2255; border-color:#e67e22; color:#ffb74d;">蓄力中！下擊致命</div>';
+    } else if (e.passive === 'elemental') {
+      passiveHtml = '<div class="boss-passive-tag">奇門五行</div>';
+    } else if (e.passive === 'reflect') {
+      passiveHtml = '<div class="boss-passive-tag">鐵掌反震</div>';
+    } else if (e.passive === 'call') {
+      passiveHtml = '<div class="boss-passive-tag">呼朋引伴</div>';
+    } else if (e.passive === 'madness') {
+      passiveHtml = '<div class="boss-passive-tag">逆練真經</div>';
+    }
+
+    var hrCountdown = 3 - (p.huangrongTimer || 0);
+    if (hrCountdown < 1) hrCountdown = 1;
+    var hrHtml = '<div class="huangrong-support">' +
+      '<div class="huangrong-icon">蓉</div>' +
+      '<div>黃蓉助戰：還需 ' + hrCountdown + ' 回合</div>' +
+      '</div>';
+
+    var speedBtnText = state.combatSpeed === 1 ? '⚡ 2倍速' : '⏸ 1倍速';
+    var speedBtn = '<button class="btn" style="position:absolute; top:10px; right:10px; font-size:11px; padding:2px 8px; z-index:10;" onclick="toggleCombatSpeed()">'+speedBtnText+'</button>';
+
+    board.innerHTML =
+      speedBtn + hrHtml +
+      '<div class="combatant"><div class="avatar">'+playerAvatar()+'</div><div style="color:var(--gold)">郭靖</div><div class="hp-mini"><div style="width:'+Math.max(0,p.hp/p.maxHp*100)+'%"></div></div><div style="font-size:12px;color:var(--dim)">生命 '+Math.max(0,p.hp)+' / '+p.maxHp+'</div><div class="player-status">'+(pStatus?'狀態：'+pStatus:'')+'</div><div class="enemy-attrs">武 '+getWu()+'｜靈 '+getLing()+'｜防 '+getFang()+'｜御 '+getYu()+'</div></div>'+
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="font-size:28px;color:var(--gold);font-weight:700;">VS</div><div style="font-size:12px;color:var(--dim)">'+eElemTag+'</div></div>'+
+      '<div class="combatant"><div class="avatar enemy">'+enemyAvatar(e.element)+'</div><div style="color:#e8a0a0">'+e.name+'</div><div class="hp-mini"><div style="width:'+Math.max(0,e.hp/e.maxHp*100)+'%"></div></div><div style="font-size:12px;color:var(--dim)">生命 '+Math.max(0,e.hp)+' / '+e.maxHp+'</div><div class="enemy-status">'+(eStatus?'狀態：'+eStatus:'')+'</div><div class="enemy-attrs">武 '+e.wu+'｜靈 '+e.ling+'｜防 '+e.fang+'｜御 '+e.yu+'</div>'+passiveHtml+'</div>';
+  } catch(e) { console.error('Combat render error:', e); }
+}
+
+function toggleCombatSpeed(){
+  state.combatSpeed = state.combatSpeed === 1 ? 2 : 1;
+  playSound('click');
+  renderCombat();
+}
+
+function renderCards(){
+  try {
+    var tray = $('card-tray');
+    if(state.phase !== PHASE.COMBAT_PLAYER){ tray.hidden = true; return; }
+    tray.hidden = false;
+    var scroller = $('cards-scroll');
+    if(!p.skills.length){
+      scroller.innerHTML = '<div style="color:var(--dim);font-size:12.5px;padding:10px;">尚未習得招式。</div>';
+      return;
+    }
+    var html = '';
+    var e = state.combat ? state.combat.enemy : null;
+    for(var i=0; i<p.skills.length; i++){
+      var k = p.skills[i];
+      var sk = SKILLS[k];
+      var canUse = p.rage >= sk.cost;
+      var typeName = { attack:'攻擊', shield:'防禦', heal:'療傷', stun:'定身', spell:'內功' }[sk.kind] || '';
+      var elemName = SKILL_ELEM[k.replace('_pro','')] ? ELEM_NAME[SKILL_ELEM[k.replace('_pro','')]] : '';
+      var hint = '';
+      if(e && SKILL_ELEM[k.replace('_pro','')] && (sk.kind==='attack' || sk.kind==='spell')){
+        var m = elemMult(SKILL_ELEM[k.replace('_pro','')], e.element);
+        if(m > 1) hint = '<div style="color:#6fb3a0;font-size:10px;margin-top:2px;">相剋 +30%</div>';
+        else if(m < 1) hint = '<div style="color:#c97070;font-size:10px;margin-top:2px;">被剋 -25%</div>';
+      }
+      var lv = getSkillLv(k);
+      var lvStr = lv > 1 ? '<span class="skill-lv">Lv.'+lv+'</span>' : '';
+      
+      html += '<div class="card '+(canUse?'':'disabled')+'" data-skill="'+k+'">'+
+        '<div class="card-cost">'+sk.cost+'</div><div class="card-type">'+typeName+'</div>'+
+        '<div class="card-art">'+svgIcon(sk.icon, sk.color)+'</div>'+
+        '<div class="card-label"><div class="card-name">'+sk.name+(elemName?'<span style="font-size:10px;color:'+(ELEM_COLOR[SKILL_ELEM[k.replace('_pro','')]])+'">（'+elemName+'）</span>':'')+lvStr+'</div><div class="card-desc">'+sk.desc+hint+'</div></div></div>';
+    }
+    scroller.innerHTML = html;
+
+    var cards = scroller.querySelectorAll('.card');
+    for(var j=0; j<cards.length; j++){
+      (function(card){
+        card.onclick = function(){
+          if(card.classList.contains('disabled')) return;
+          if(state.phase !== PHASE.COMBAT_PLAYER) return;
+          useSkill(card.getAttribute('data-skill'));
+        };
+      })(cards[j]);
+    }
+  } catch(e) { console.error('Cards render error:', e); }
+}
+
+function renderLog(){
+  try {
+    var log = $('log-area');
+    var recent = state.log.slice(-25);
+    var html = '';
+    for(var i=0; i<recent.length; i++){
+      html += '<div class="log-item '+recent[i].cls+'">'+recent[i].msg+'</div>';
+    }
+    log.innerHTML = html;
+    log.scrollTop = log.scrollHeight;
+  } catch(e) { console.error('Log render error:', e); }
+}
+
+function renderActionBar(){
+  try {
+    var bar = $('action-bar');
+    var html = '';
+
+    if(state.phase === PHASE.STORY){
+      html = '<button class="btn" style="font-size:16px; padding:12px 40px;" onclick="advanceStory()">繼續</button>';
+    } else if(state.phase === PHASE.EXPLORE){
+      var chapter = CHAPTERS[state.chapter];
+      var canBack = state.node > 0 && p.sta > 0;
+      var canFwd  = state.node < chapter.nodes.length - 1 && p.sta > 0;
+
+      html = '<button class="btn" onclick="movePlayer(-1)" '+(canBack?'':'disabled')+'>← 後退</button>'+
+             '<button class="btn" onclick="movePlayer(1)" '+(canFwd?'':'disabled')+'>前進 →</button>';
+
+      if(p.sta <= 0) html += '<button class="btn blood" onclick="restAction()">原地休息（耗 1 血回滿體力）</button>';
+      html += '<span class="hint">體力 '+p.sta+'/'+p.maxSta+'　移動每步消耗 1 點體力</span>';
+    } else if(state.phase === PHASE.COMBAT_PLAYER){
+      var jc = p.inventory['金創藥'] || 0;
+      var jh = p.inventory['九花玉露丸'] || 0;
+      var e = state.combat.enemy;
+      var atkMult = elemMult('metal', e.element);
+      var spellMult = elemMult('water', e.element);
+      var atkHint = atkMult>1 ? '（剋 +30%）' : (atkMult<1 ? '（被剋 -25%）' : '');
+      var spellHint = spellMult>1 ? '（剋 +30%）' : (spellMult<1 ? '（被剋 -25%）' : '');
+      html = '<button class="btn" onclick="playerAction(\'attack\')">物理攻擊（金）'+atkHint+' <span style="font-size:11px;color:var(--gold-l)">(+1怒氣)</span></button>'+
+             '<button class="btn" onclick="playerAction(\'charge\')">集氣 <span style="font-size:11px;color:var(--gold-l)">(+2怒氣)</span></button>'+
+             '<button class="btn" onclick="playerAction(\'spell\')" '+(p.mp>0?'':'disabled')+'>內功（水）'+spellHint+'</button>'+
+             '<button class="btn" onclick="playerAction(\'item\')" '+(jc>0?'':'disabled')+'>金創藥 ×'+jc+'（30%）</button>'+
+             '<button class="btn" onclick="playerAction(\'item2\')" '+(jh>0?'':'disabled')+'>九花玉露丸 ×'+jh+'（60%）</button>'+
+             '<span class="hint">點擊下方招式卡牌施展武功</span>';
+    } else if(state.phase === PHASE.COMBAT_ENEMY){
+      html = '<button class="btn" disabled>對手行動中…</button>';
+    } else if(state.phase === PHASE.DICE){
+      html = '<button class="btn" disabled>擲骰結算中…</button>';
+    } else if(state.phase === PHASE.GAMEOVER){
+      html = '<span class="hint" style="color:var(--blood)">俠途止步於此……</span><button class="btn" onclick="startNewGame()">重新開始</button>';
+    }
+    bar.innerHTML = html;
+    $('btn-save').disabled = !(state.phase === PHASE.STORY || state.phase === PHASE.EXPLORE);
+  } catch(e) { console.error('ActionBar render error:', e); }
+}
+
+function render(){
+  renderSidebar();
+  renderMap();
+  renderStory();
+  renderCombat();
+  renderCards();
+  renderLog();
+  renderActionBar();
+}
+
+function advanceStory(){
+  if(state.phase !== PHASE.STORY) return;
+
+  if(state.storyFlag === 'intro'){
+    state.node = 0;
+    state.phase = PHASE.EXPLORE;
+    addLog('抵達【' + CHAPTERS[state.chapter].nodes[0] + '】。', 'log-sys');
+    var chapter = CHAPTERS[state.chapter];
+    if (typeof chapter.intro.apply === 'function') chapter.intro.apply();
+    addLog(chapter.intro.text, 'log-event');
+    
+    if (state.chapter === 0) unlockAchievement('first_clear');
+    playSound('click');
+  } else if(state.storyFlag === 'bossPre'){
+    var chapter2 = CHAPTERS[state.chapter];
+    var preview = state.bossPreview;
+    state.bossPreview = null;
+    triggerCombat(chapter2.boss, true, preview);
+    playSound('dice');
+    return;
+  } else if(state.storyFlag === 'bossPost'){
+    var chapter3 = CHAPTERS[state.chapter];
+    if (typeof chapter3.bossPost.apply === 'function') chapter3.bossPost.apply();
+    
+    p.trainPoints += 3;
+    
+    state.chapter++;
+    if(state.chapter >= CHAPTERS.length){
+      state.phase = PHASE.VICTORY;
+      showFinale();
+      return;
+    }
+
+    p.maxHp += 30; p.hp = p.maxHp;
+    p.maxMp += 2; p.mp = p.maxMp;
+    p.maxSta += 5; p.sta = p.maxSta;
+    p.wu += 3; p.ling += 3; p.fang += 2; p.yu += 2;
+    p.rage = p.maxRage;
+    p.status = [];
+
+    addLog('━━ 進入新章節：' + CHAPTERS[state.chapter].name + ' ━━', 'log-event');
+    addLog('歷經磨練，郭靖武功大進！獲得 3 點修煉點。', 'log-event');
+
+    state.phase = PHASE.STORY;
+    state.storyFlag = 'intro';
+    state.node = -1;
+    state.bossPreview = null;
+    $('story-text').removeAttribute('data-key');
+    playSound('win');
+  }
+
+  render();
+}
+
+function movePlayer(dir){
+  if(state.phase !== PHASE.EXPLORE || p.sta <= 0) return;
+  var chapter = CHAPTERS[state.chapter];
+  var next = state.node + dir;
+  if(next < 0 || next >= chapter.nodes.length) return;
+
+  p.sta--;
+  state.node = next;
+  addLog('移動至【'+chapter.nodes[next]+'】，消耗 1 點體力。', 'log-sys');
+  playSound('click');
+
+  if(next === 0){ render(); return; }
+
+  if(next === chapter.nodes.length - 1){
+    state.phase = PHASE.STORY;
+    state.storyFlag = 'bossPre';
+    state.bossPreview = makeScaledEnemy(chapter.boss, true);
+    $('story-text').removeAttribute('data-key');
+    render();
+    return;
+  }
+
+  state.phase = PHASE.DICE;
+  render();
+  $('modal-dice').classList.add('active');
+  $('dice-face').textContent = '?';
+  $('dice-desc').textContent = '在【' + chapter.nodes[next] + '】進行探索...';
+  $('btn-roll').style.display = 'inline-block';
+}
+
+function rollExploreDice(){
+  if (state.phase !== PHASE.DICE) return;
+  $('btn-roll').style.display = 'none';
+  var roll = Math.floor(Math.random()*6)+1;
+  $('dice-face').textContent = roll;
+  $('dice-desc').textContent = '結算中……';
+  playSound('dice');
+
+  setTimeout(function(){
+    $('modal-dice').classList.remove('active');
+    state.phase = PHASE.EXPLORE;
+
+    var chapter = CHAPTERS[state.chapter];
+    var pool = chapter.eventPool;
+
+    var ev = null;
+    if (roll <= 2) {
+      ev = pool.find(function(e){ return e.type === 'combat'; });
+    } else if (roll === 3) {
+      ev = pool.find(function(e){ return e.type === 'treasure'; });
+    } else if (roll === 4) {
+      ev = pool.find(function(e){ return e.type === 'trap'; });
+    } else if (roll === 5) {
+      var candidates = pool.filter(function(e){ return e.type === 'event' || e.type === 'merchant'; });
+      ev = candidates[Math.floor(Math.random() * candidates.length)];
+    } else {
+      ev = pool.find(function(e){ return e.type === 'heal'; });
+    }
+
+    if (!ev) ev = pool[0];
+
+    if(ev.type === 'combat'){
+      var enemies = pool.filter(function(e){ return e.type === 'combat'; });
+      var selected = enemies[Math.floor(Math.random() * enemies.length)];
+      var enemy = JSON.parse(JSON.stringify(selected.enemy));
+      addLog('擲骰 '+roll+' 點：遭遇【'+enemy.name+'】！', 'log-combat');
+      triggerCombat(enemy, false);
+    } else if (ev.type === 'merchant') {
+      p.stats.merchantsVisited++;
+      if (p.stats.merchantsVisited >= 3) unlockAchievement('merchant_friend');
+      addLog('擲骰 '+roll+' 點：在【'+chapter.nodes[state.node]+'】遇到行腳商人。', 'log-event');
+      render();
+      openMerchant();
+    } else if (ev.type === 'treasure') {
+      p.gold += ev.gold;
+      var bonusCount = 1 + Math.floor(state.chapter / 3);
+      if(ev.item) addItem(ev.item, bonusCount);
+      addLog('擲骰 '+roll+' 點：拾得寶箱，得 ' + ev.gold + ' 兩。', 'log-event');
+      if (p.gold >= 200) unlockAchievement('rich_man');
+      render();
+      playSound('heal');
+    } else if (ev.type === 'trap') {
+      p.hp -= ev.dmg;
+      addLog('擲骰 '+roll+' 點：' + ev.text, 'log-combat');
+      if(p.hp <= 0){ p.hp = 0; gameOver(); return; }
+      render();
+      playSound('hurt');
+    } else if (ev.type === 'event') {
+      ev.apply();
+      addLog('擲骰 '+roll+' 點：' + ev.text, 'log-event');
+      render();
+      playSound('click');
+    } else if (ev.type === 'heal') {
+      p.hp = p.maxHp;
+      p.status = p.status.filter(function(s){ return s!=='毒'; });
+      addLog('擲骰 '+roll+' 點：' + ev.text, 'log-event');
+      render();
+      playSound('heal');
+    }
+  }, 700);
+}
+
+function addItem(name, count){
+  if(!count) count = 1;
+  if(p.inventory[name] !== undefined) p.inventory[name] += count;
+  else {
+    var k = Object.keys(p.inventory);
+    if(k.length >= 9){ addLog('行囊已滿！無法獲得【'+name+'】。', 'log-combat'); return; }
+    p.inventory[name] = count;
+  }
+  addLog('獲得【'+name+'】x'+count+'。', 'log-event');
+}
+
+function restAction(){
+  if(p.hp <= 1){ p.hp = 0; addLog('油盡燈枯，再難支撐……', 'log-combat'); gameOver(); return; }
+  p.hp -= 1; p.sta = p.maxSta;
+  addLog('原地休整，耗 1 點生命，體力全滿。', 'log-sys');
+  render();
+  playSound('heal');
+}
+
+function openMerchant(){
+  closeAllModals();
+  renderMerchant();
+  $('modal-shop').classList.add('active');
+  playSound('click');
+}
+
+function renderMerchant(){
+  $('shop-gold').textContent = p.gold;
+  var html = '';
+  for(var i=0; i<SHOP_ITEMS.length; i++){
+    var it = SHOP_ITEMS[i];
+    var canBuy = p.gold >= it.price;
+    var desc = ITEMS[it.name] ? ITEMS[it.name].desc : '';
+    var owned = p.inventory[it.name] || 0;
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#0d0a08;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;gap:8px;">'+
+            '<div style="flex:1;"><b style="color:var(--gold)">'+it.name+'</b> <span style="font-size:11px;color:var(--dim)">（持有 '+owned+'）</span><br><span style="font-size:12px;color:var(--dim)">'+desc+'</span></div>'+
+            '<button class="btn" '+(canBuy?'':'disabled')+' onclick="buyItem(\''+it.name+'\','+it.price+')">'+it.price+' 兩</button>'+
+            '</div>';
+  }
+  $('shop-list').innerHTML = html;
+}
+
+function buyItem(name, price){
+  if(p.gold < price){ alert('金錢不足。'); return; }
+  p.gold -= price;
+  addItem(name, 1);
+  playSound('click');
+  renderSidebar();
+  renderMerchant();
+  renderLog();
+}
+
+function triggerCombat(enemy, isBoss, presetEnemy){
+  var fullEnemy = presetEnemy || makeScaledEnemy(enemy, isBoss);
+  state.combat = { enemy: fullEnemy, isBoss: !!isBoss };
+  state.phase = PHASE.COMBAT_PLAYER;
+  p.mp = p.maxMp;
+  p.rage = Math.max(p.rage, 3);
+  p.huangrongTimer = 0;
+  p.stats.turns = 0;
+  state.combatSpeed = 1;
+
+  var tierName = (isBoss && enemy.canLose === true) ? '劇情 BOSS'
+               : (isBoss ? '章節 BOSS' : '雜兵');
+  addLog('遭遇【'+fullEnemy.name+'】（'+tierName+'／'+ELEM_NAME[fullEnemy.element]+'屬性）：生命 '+fullEnemy.maxHp+'／武 '+fullEnemy.wu+'／防 '+fullEnemy.fang, 'log-combat');
+  render();
+}
+
+function useSkill(skillKey){
+  if(state.phase !== PHASE.COMBAT_PLAYER) return;
+  var sk = SKILLS[skillKey];
+  if(p.rage < sk.cost) return;
+  p.rage -= sk.cost;
+  var e = state.combat.enemy;
+  var baseKey = skillKey.replace('_pro','');
+  var mult = getSkillMult(skillKey);
+
+  if(sk.kind === 'attack'){
+    var base = getWu() + 5;
+    if (baseKey === 'xianglong') base = getWu() + (skillKey === 'xianglong_pro' ? 18 : 12);
+    if (baseKey === 'yuenv') base = getWu() + (skillKey === 'yuenv_pro' ? 8 : 5);
+    
+    var m = elemMult(SKILL_ELEM[baseKey], e.element);
+    var dmg = Math.max(1, Math.round(calcDamage(base, e.fang) * m * mult));
+    
+    // 暴擊詞條
+    if (hasAffix('crit') && Math.random() < 0.15) {
+      dmg = Math.round(dmg * 1.5);
+      addLog('觸發【暴擊】！', 'log-event');
+    }
+    
+    e.hp -= dmg;
+    showDamageFloat('enemy', dmg, '#e8a0a0');
+    playSound('hit');
+    if (dmg >= 100) unlockAchievement('crit_hit');
+    var extra = m > 1 ? '（五行相剋 +30%）' : (m < 1 ? '（被剋 -25%）' : '');
+    addLog('施展【'+sk.name+'】，造成 '+dmg+' 點物理傷害'+extra+'。', 'log-combat');
+    
+    // 吸血詞條
+    if (hasAffix('lifesteal')) {
+      var leech = Math.floor(dmg * 0.1);
+      p.hp = Math.min(p.maxHp, p.hp + leech);
+      addLog('觸發【吸血】，回復 ' + leech + ' 點生命。', 'log-sys');
+    }
+    
+    if (e.passive === 'reflect') {
+      var reflectDmg = Math.max(1, Math.round(dmg * 0.2));
+      p.hp -= reflectDmg;
+      showDamageFloat('player', reflectDmg, '#c0392b');
+      addLog('遭到【鐵掌反震】，受到 '+reflectDmg+' 點傷害。', 'log-combat');
+      if (p.hp <= 0) { p.hp = 0; gameOver(); return; }
+    }
+  } else if(sk.kind === 'spell'){
+    var base2 = getLing() + (skillKey === 'tanzhi_pro' ? 15 : 10);
+    var m2 = elemMult(SKILL_ELEM[baseKey], e.element);
+    var dmg2 = Math.max(1, Math.round(calcDamage(base2, e.yu) * m2 * mult));
+    
+    if (hasAffix('crit') && Math.random() < 0.15) {
+      dmg2 = Math.round(dmg2 * 1.5);
+      addLog('觸發【暴擊】！', 'log-event');
+    }
+    
+    e.hp -= dmg2;
+    showDamageFloat('enemy', dmg2, '#e8a0a0');
+    playSound('hit');
+    if (dmg2 >= 100) unlockAchievement('crit_hit');
+    var extra2 = m2 > 1 ? '（五行相剋 +30%）' : (m2 < 1 ? '（被剋 -25%）' : '');
+    addLog('施展【'+sk.name+'】，造成 '+dmg2+' 點內功傷害'+extra2+'。', 'log-combat');
+    
+    if (hasAffix('lifesteal')) {
+      var leech2 = Math.floor(dmg2 * 0.1);
+      p.hp = Math.min(p.maxHp, p.hp + leech2);
+      addLog('觸發【吸血】，回復 ' + leech2 + ' 點生命。', 'log-sys');
+    }
+  } else if(sk.kind === 'shield'){
+    p.status.push('護盾10');
+    addLog('施展【'+sk.name+'】，獲得 10 點護盾。', 'log-sys');
+    playSound('heal');
+  } else if(sk.kind === 'heal'){
+    var before = p.hp;
+    var amt = Math.max(20, Math.floor(p.maxHp * 0.30 * mult));
+    p.hp = Math.min(p.maxHp, p.hp + amt);
+    addLog('施展【'+sk.name+'】，回復 '+(p.hp - before)+' 點生命。', 'log-sys');
+    playSound('heal');
+  } else if(sk.kind === 'stun'){
+    if (e.passive === 'madness') {
+      addLog('歐陽鋒逆練真經，免疫【定】身！', 'log-sys');
+    } else {
+      if(!e.status) e.status = [];
+      if(e.status.indexOf('定') === -1) e.status.push('定');
+      addLog('施展【'+sk.name+'】，'+e.name+' 被【定】住一回合！', 'log-event');
+      playSound('click');
+    }
+  }
+  afterPlayerAction();
+}
+
+function playerAction(action){
+  if(state.phase !== PHASE.COMBAT_PLAYER) return;
+  var e = state.combat.enemy;
+
+  if(action === 'attack'){
+    var m = elemMult('metal', e.element);
+    var dmg = Math.max(1, Math.round(calcDamage(getWu(), e.fang) * m));
+    
+    if (hasAffix('crit') && Math.random() < 0.15) {
+      dmg = Math.round(dmg * 1.5);
+      addLog('觸發【暴擊】！', 'log-event');
+    }
+    
+    e.hp -= dmg;
+    showDamageFloat('enemy', dmg, '#e8a0a0');
+    playSound('hit');
+    if (dmg >= 100) unlockAchievement('crit_hit');
+    p.rage = Math.min(p.maxRage, p.rage + 1);
+    var extra = m > 1 ? '（金剋'+ELEM_NAME[e.element]+' +30%）' : (m < 1 ? '（被剋 -25%）' : '');
+    addLog('物理攻擊，造成 '+dmg+' 點傷害'+extra+'，怒氣 +1。', 'log-combat');
+    
+    if (hasAffix('lifesteal')) {
+      var leech = Math.floor(dmg * 0.1);
+      p.hp = Math.min(p.maxHp, p.hp + leech);
+      addLog('觸發【吸血】，回復 ' + leech + ' 點生命。', 'log-sys');
+    }
+    
+    if (e.passive === 'reflect') {
+      var reflectDmg = Math.max(1, Math.round(dmg * 0.2));
+      p.hp -= reflectDmg;
+      showDamageFloat('player', reflectDmg, '#c0392b');
+      addLog('遭到【鐵掌反震】，受到 '+reflectDmg+' 點傷害。', 'log-combat');
+      if (p.hp <= 0) { p.hp = 0; gameOver(); return; }
+    }
+  } else if(action === 'charge') {
+    addLog('郭靖凝神集氣，積攢內力。怒氣 +2。', 'log-sys');
+    p.rage = Math.min(p.maxRage, p.rage + 2);
+    playSound('heal');
+  } else if(action === 'spell'){
+    if(p.mp < 1) return;
+    p.mp -= 1;
+    var m2 = elemMult('water', e.element);
+    var dmg2 = Math.max(1, Math.round(calcDamage(getLing(), e.yu) * m2));
+    
+    if (hasAffix('crit') && Math.random() < 0.15) {
+      dmg2 = Math.round(dmg2 * 1.5);
+      addLog('觸發【暴擊】！', 'log-event');
+    }
+    
+    e.hp -= dmg2;
+    showDamageFloat('enemy', dmg2, '#e8a0a0');
+    playSound('hit');
+    if (dmg2 >= 100) unlockAchievement('crit_hit');
+    var extra2 = m2 > 1 ? '（水剋'+ELEM_NAME[e.element]+' +30%）' : (m2 < 1 ? '（被剋 -25%）' : '');
+    addLog('施展【九陰真氣】，造成 '+dmg2+' 點內功傷害'+extra2+'。', 'log-combat');
+    
+    if (hasAffix('lifesteal')) {
+      var leech2 = Math.floor(dmg2 * 0.1);
+      p.hp = Math.min(p.maxHp, p.hp + leech2);
+      addLog('觸發【吸血】，回復 ' + leech2 + ' 點生命。', 'log-sys');
+    }
+  } else if(action === 'item'){
+    if(!useHealingItem('金創藥')) return;
+  } else if(action === 'item2'){
+    if(!useHealingItem('九花玉露丸')) return;
+  }
+  afterPlayerAction();
+}
+
+function afterPlayerAction(){
+  var e = state.combat.enemy;
+  if(e.hp <= 0){ winCombat(); return; }
+  state.phase = PHASE.COMBAT_ENEMY;
+  p.stats.turns++;
+  render();
+  var delay = 800 / state.combatSpeed;
+  setTimeout(enemyTurn, delay);
+}
+
+function enemyTurn(){
+  if(state.phase !== PHASE.COMBAT_ENEMY) return;
+  var e = state.combat.enemy;
+
+  if(e.status && e.status.indexOf('定') >= 0){
+    addLog(e.name+' 被【定】住，跳過本回合。', 'log-sys');
+    e.status = e.status.filter(function(s){ return s!=='定'; });
+    backToPlayer(); return;
+  }
+
+  if (e.passive === 'charge') {
+    e.chargeTimer = (e.chargeTimer || 0) + 1;
+    if (e.chargeTimer >= 3) {
+      addLog(e.name + ' 蛤蟆功蓄力完畢，發出致命一擊！', 'log-combat');
+      shakeScreen();
+      var bigDmg = calcDamage(e.wu * 2, getFang());
+      
+      // 閃避詞條
+      if (hasAffix('dodge') && Math.random() < 0.15) {
+        addLog('觸發【閃避】，完美躲開了致命一擊！', 'log-event');
+        bigDmg = 0;
+      }
+      
+      if (bigDmg > 0) {
+        p.hp -= bigDmg;
+        showDamageFloat('player', bigDmg, '#c0392b');
+        addLog('受到 '+bigDmg+' 點巨大傷害！', 'log-combat');
+        playSound('hurt');
+      }
+      
+      e.chargeTimer = 0;
+      if (p.hp <= 0) {
+        if (state.combat.enemy.canLose) {
+          addLog('郭靖不敵【'+e.name+'】，身受重傷……觸發原著危急劇情。', 'log-combat');
+          state.phase = PHASE.STORY; state.storyFlag = 'bossPost';
+          p.hp = Math.max(1, Math.floor(p.maxHp / 2));
+          $('story-text').removeAttribute('data-key'); render();
+        } else { gameOver(); }
+        return;
+      }
+      backToPlayer(); return;
+    } else {
+      addLog(e.name + ' 正在蓄力運功……', 'log-sys');
+      backToPlayer(); return;
+    }
+  }
+  
+  if (e.passive === 'elemental') {
+    e.elemTimer = (e.elemTimer || 0) + 1;
+    if (e.elemTimer >= 2) {
+      var elems = ['metal', 'wood', 'water', 'fire', 'earth'];
+      var newElem = elems[Math.floor(Math.random() * elems.length)];
+      e.element = newElem;
+      e.elemTimer = 0;
+      addLog(e.name + ' 運用奇門五行，屬性變為【' + ELEM_NAME[newElem] + '】！', 'log-event');
+    }
+  }
+
+  if (e.passive === 'call') {
+    if (Math.random() < 0.3) {
+      var heal = Math.floor(e.maxHp * 0.1);
+      e.hp = Math.min(e.maxHp, e.hp + heal);
+      addLog(e.name + ' 呼喚援軍，回復了 ' + heal + ' 點生命！', 'log-sys');
+    }
+  }
+
+  var dmg = calcDamage(e.wu, getFang());
+  addLog(e.name+' 發動攻擊。', 'log-combat');
+
+  var shieldIdx = -1;
+  for(var i=0; i<p.status.length; i++){
+    if(p.status[i].indexOf('護盾') === 0){ shieldIdx = i; break; }
+  }
+  if(shieldIdx >= 0 && dmg > 0){
+    var shieldVal = parseInt(p.status[shieldIdx].slice(2)) || 0;
+    var absorb = Math.min(shieldVal, dmg);
+    dmg -= absorb;
+    if(shieldVal - absorb > 0) p.status[shieldIdx] = '護盾' + (shieldVal - absorb);
+    else p.status.splice(shieldIdx, 1);
+    addLog('護盾抵擋 '+absorb+' 點傷害。', 'log-sys');
+  }
+
+  // 閃避詞條
+  if (hasAffix('dodge') && Math.random() < 0.15 && dmg > 0) {
+    addLog('觸發【閃避】，完美躲開了攻擊！', 'log-event');
+    dmg = 0;
+  }
+
+  if(dmg > 0){
+    p.hp -= dmg;
+    if (dmg >= p.maxHp * 0.05) {
+      p.rage = Math.min(p.maxRage, p.rage + 1);
+      addLog('受到 '+dmg+' 點傷害，怒氣 +1。', 'log-combat');
+    } else {
+      addLog('受到 '+dmg+' 點傷害。', 'log-combat');
+    }
+    showDamageFloat('player', dmg, '#c0392b');
+    playSound('hurt');
+    
+    if (e.passive === 'madness') {
+      var leech = Math.floor(dmg * 0.5);
+      e.hp = Math.min(e.maxHp, e.hp + leech);
+      addLog('歐陽鋒逆練真經，吸取了 ' + leech + ' 點生命！', 'log-combat');
+    }
+    
+    // 反傷詞條
+    if (hasAffix('thorns')) {
+      var thornsDmg = Math.floor(dmg * 0.15);
+      e.hp -= thornsDmg;
+      addLog('觸發【反傷】，反彈 ' + thornsDmg + ' 點傷害。', 'log-combat');
+    }
+  }
+
+  if(p.hp <= 0){
+    p.hp = 0;
+    if (state.combat.enemy.canLose) {
+      addLog('郭靖不敵【'+state.combat.enemy.name+'】，身受重傷……觸發原著危急劇情。', 'log-combat');
+      state.phase = PHASE.STORY;
+      state.storyFlag = 'bossPost';
+      p.hp = Math.max(1, Math.floor(p.maxHp / 2));
+      $('story-text').removeAttribute('data-key');
+      render();
+    } else {
+      gameOver();
+    }
+    return;
+  }
+  backToPlayer();
+}
+
+function backToPlayer(){
+  p.huangrongTimer = (p.huangrongTimer || 0) + 1;
+  if (p.huangrongTimer >= 3) {
+    triggerHuangrongSupport();
+    p.huangrongTimer = 0;
+  }
+  
+  state.phase = PHASE.COMBAT_PLAYER;
+  render();
+}
+
+function triggerHuangrongSupport(){
+  var e = state.combat.enemy;
+  var roll = Math.floor(Math.random() * 3);
+  
+  if (roll === 0) {
+    var dmg = Math.max(5, Math.round(getLing() * 1.5));
+    e.hp -= dmg;
+    showDamageFloat('enemy', dmg, '#d4a05a');
+    addLog('【黃蓉助戰】擲出暗器偷襲，造成 ' + dmg + ' 點真實傷害！', 'log-huangrong');
+    playSound('hit');
+  } else if (roll === 1) {
+    var heal = Math.floor(p.maxHp * 0.15);
+    var before = p.hp;
+    p.hp = Math.min(p.maxHp, p.hp + heal);
+    addLog('【黃蓉助戰】妙手回春，為你回復了 ' + (p.hp - before) + ' 點生命！', 'log-huangrong');
+    playSound('heal');
+  } else {
+    p.rage = Math.min(p.maxRage, p.rage + 2);
+    addLog('【黃蓉助戰】妙計安天下，郭靖士氣大振，怒氣 +2！', 'log-huangrong');
+    playSound('heal');
+  }
+  
+  if (e.hp <= 0) {
+    setTimeout(winCombat, 500);
+    return;
+  }
+}
+
+function winCombat(){
+  var e = state.combat.enemy;
+  var isBoss = state.combat.isBoss;
+  addLog('擊敗【'+e.name+'】！', 'log-combat');
+  playSound('win');
+
+  if (p.stats.turns >= 10) unlockAchievement('long_fight');
+  if (isBoss && p.hp <= p.maxHp * 0.1) unlockAchievement('low_hp_kill');
+  if (isBoss && state.chapter === CHAPTERS.length - 1) {
+    unlockAchievement('master_clear');
+    if (currentDifficulty === 'hard') unlockAchievement('hard_clear');
+    if (p.stats.itemsUsed === 0) unlockAchievement('no_heal_boss');
+  }
+  if (p.skills.length >= 6) unlockAchievement('skill_master');
+
+  if (isBoss) {
+    p.trainPoints += 2;
+    state.phase = PHASE.STORY;
+    state.storyFlag = 'bossPost';
+    $('story-text').removeAttribute('data-key');
+  } else {
+    state.phase = PHASE.EXPLORE;
+    state.combat = null;
+    if(e.drop) addItem(e.drop);
+    var healAmount = Math.max(5, Math.floor(p.maxHp * HEAL_AFTER_MOB));
+    var before = p.hp;
+    p.hp = Math.min(p.maxHp, p.hp + healAmount);
+    addLog('調息片刻，回復 '+(p.hp - before)+' 點生命。', 'log-sys');
+  }
+
+  render();
+}
+
+function gameOver(){
+  state.phase = PHASE.GAMEOVER;
+  addLog('【遊戲失敗】郭靖力盡倒地……', 'log-event');
+  playSound('hurt');
+  render();
+}
+
+function showFinale() {
+  closeAllModals();
+  
+  var score = 0;
+  var rank = 'C';
+  var comment = '';
+  
+  if (currentDifficulty === 'hard') score += 40;
+  else if (currentDifficulty === 'normal') score += 25;
+  else score += 10;
+  
+  if (p.stats.itemsUsed <= 2) score += 30;
+  else if (p.stats.itemsUsed <= 5) score += 15;
+  
+  if (p.hp > p.maxHp * 0.8) score += 20;
+  else if (p.hp > p.maxHp * 0.5) score += 10;
+  
+  if (score >= 80) {
+    rank = 'S';
+    comment = '完美無瑕！你將郭靖的俠義與堅韌發揮得淋漓盡致，實乃當世大俠！';
+  } else if (score >= 60) {
+    rank = 'A';
+    comment = '武藝精湛，智勇雙全。雖有小傷，但無傷大雅，順利名揚天下。';
+  } else if (score >= 40) {
+    rank = 'B';
+    comment = '一路跌跌撞撞，但也算有驚無險。俠之大者，還需多加歷練。';
+  } else {
+    rank = 'C';
+    comment = '雖然通關，但過程頗為驚險。江湖險惡，下次記得備足金創藥。';
+  }
+  
+  $('finale-rating').innerHTML = 
+    '<div class="rating-box">' +
+      '<div class="rating-grade">' + rank + '</div>' +
+      '<div class="rating-desc">' + comment + '</div>' +
+      '<div class="rating-desc" style="font-size:12px; opacity:.7; margin-top:10px;">' +
+        '難度：' + DIFFICULTY[currentDifficulty].name + '　|　用藥次數：' + p.stats.itemsUsed + ' 次' +
+      '</div>' +
+    '</div>';
+    
+  $('modal-finale').classList.add('active');
+}
+
+function restartFromFinale() {
+  closeAllModals();
+  startNewGame();
+}
+
+function showModal(id){
+  closeAllModals();
+  playSound('click');
+  if(id==='rules') $('modal-rules').classList.add('active');
+  if(id==='achievements'){
+    var html = '';
+    for (var i=0; i<ACHIEVEMENTS.length; i++) {
+      var a = ACHIEVEMENTS[i];
+      var isUnlocked = p.achievements.indexOf(a.id) !== -1;
+      var style = isUnlocked ? 'border-color:var(--gold); color:var(--gold);' : 'opacity:0.5; filter:grayscale(1);';
+      html += '<div class="rec-item" style="' + style + '">' +
+        '<div style="font-size:20px; margin-bottom:4px;">' + a.icon + '</div>' +
+        '<b>' + a.name + '</b><br><span style="font-size:11px;">' + a.desc + '</span><br>' +
+        '<span style="font-size:10px; color:#6fb3a0;">獎勵：' + a.reward + '</span>' +
+        '</div>';
+    }
+    $('achievement-list').innerHTML = html;
+    $('modal-achievements').classList.add('active');
+  }
+  if(id==='bag'){
+    var bagList = $('bag-list');
+    var items = Object.keys(p.inventory).filter(function(k){ return p.inventory[k]>0; });
+    var h = '';
+    for(var i=0; i<items.length; i++){
+      var desc = ITEMS[items[i]] ? ITEMS[items[i]].desc : '';
+      h += '<div class="item-tag" title="'+desc+'">'+items[i]+' ×'+p.inventory[items[i]]+(desc?'<br><span style="font-size:10px;color:var(--dim)">'+desc+'</span>':'')+'</div>';
+    }
+    bagList.innerHTML = h || '<div style="color:var(--dim);font-size:12.5px;">行囊空空如也。</div>';
+
+    var w = p.equip.weapon;
+    var a = p.equip.armor;
+    var eqHtml = '';
+    if(w) eqHtml += '<div class="rec-item"><b style="color:var(--gold)">兵器：'+w+'</b><br><span style="font-size:11px;color:var(--dim)">'+EQUIPMENT.weapons[w].desc+' '+equipDesc('weapon', w)+'</span></div>';
+    if(a) eqHtml += '<div class="rec-item"><b style="color:var(--gold)">護甲：'+a+'</b><br><span style="font-size:11px;color:var(--dim)">'+EQUIPMENT.armors[a].desc+' '+equipDesc('armor', a)+'</span></div>';
+    $('bag-equip').innerHTML = eqHtml || '<div style="color:var(--dim);font-size:12.5px;">尚未裝備。</div>';
+
+    $('bag-train-points').textContent = '（可用修煉點：' + p.trainPoints + '）';
+    var skillList = $('bag-skills');
+    var h2 = '';
+    for(var j=0; j<p.skills.length; j++){
+      var key = p.skills[j];
+      var sk = SKILLS[key];
+      var elem = SKILL_ELEM[key.replace('_pro','')];
+      var elemTag = elem ? '<span style="color:'+ELEM_COLOR[elem]+';font-size:11px">（'+ELEM_NAME[elem]+'）</span>' : '';
+      var lv = getSkillLv(key);
+      var cost = lv * 3;
+      var btnHtml = '';
+      if (lv < 5) {
+        btnHtml = '<button class="btn" style="font-size:11px; padding:2px 8px; margin-left:10px;" '+(p.trainPoints >= cost ? '' : 'disabled')+' onclick="upgradeSkill(\''+key+'\')">升級 (需 '+cost+' 點)</button>';
+      } else {
+        btnHtml = '<span style="font-size:11px; color:#6fb3a0; margin-left:10px;">已滿級</span>';
+      }
+      
+      h2 += '<div class="skill-upgrade-row">' +
+        '<div class="skill-info"><b>' + sk.name + elemTag + ' <span class="skill-lv">Lv.'+lv+'</span></b>' +
+        '<br><span>' + sk.desc + '</span></div>' +
+        btnHtml +
+        '</div>';
+    }
+    skillList.innerHTML = h2 || '<div style="color:var(--dim);font-size:12.5px;">尚未習得招式。</div>';
+    $('modal-bag').classList.add('active');
+  }
+  if(id==='record'){
+    var body = $('record-body');
+    var chHtml = '';
+    for(var k=0; k<CHAPTERS.length; k++){
+      var cls = 'rec-item';
+      if(k < state.chapter) cls += ' done';
+      else if(k === state.chapter) cls += ' cur';
+      var st = k < state.chapter ? '✔ 已通關' : (k === state.chapter ? '▶ 進行中' : '○ 未解鎖');
+      chHtml += '<div class="'+cls+'"><b>'+CHAPTERS[k].name+'</b><br><span style="font-size:11px;opacity:.8">'+st+'</span></div>';
+    }
+
+    var skHtml = '';
+    for(var m=0; m<p.skills.length; m++){
+      var sk = SKILLS[p.skills[m]];
+      skHtml += '<div class="rec-item"><b>'+sk.name+'</b><br>怒氣 '+sk.cost+'｜'+sk.desc+'</div>';
+    }
+    var bgHtml = '';
+    var bgKeys = Object.keys(p.inventory).filter(function(x){ return p.inventory[x]>0; });
+    for(var n=0; n<bgKeys.length; n++) bgHtml += '<div class="rec-item">'+bgKeys[n]+' ×'+p.inventory[bgKeys[n]]+'</div>';
+
+    var logHtml = '';
+    for(var z=0; z<state.log.length; z++) logHtml += '<div style="margin-bottom:3px;">'+state.log[z].msg+'</div>';
+
+    body.innerHTML = '<h3>章節進度</h3><div class="rec-list">'+chHtml+'</div>'+
+      '<h3>當前狀態</h3><p>生命 '+p.hp+'/'+p.maxHp+'　元神 '+p.mp+'/'+p.maxMp+'　體力 '+p.sta+'/'+p.maxSta+'　怒氣 '+p.rage+'/'+p.maxRage+'</p>'+
+      '<p>武 '+getWu()+'｜靈 '+getLing()+'｜防 '+getFang()+'｜御 '+getYu()+'（含裝備與詞條）　金錢 '+p.gold+' 兩</p>'+
+      '<p>難度：'+DIFFICULTY[currentDifficulty].name+'</p>'+
+      '<h3>已學招式</h3><div class="rec-list">'+(skHtml||'<div class="rec-item" style="opacity:.5">尚無</div>')+'</div>'+
+      '<h3>行囊</h3><div class="rec-list">'+(bgHtml||'<div class="rec-item" style="opacity:.5">空</div>')+'</div>'+
+      '<h3>日誌</h3><div style="max-height:220px;overflow-y:auto;background:#0d0a08;border:1px solid var(--border);border-radius:5px;padding:10px;font-size:12.5px;line-height:1.7;">'+(logHtml||'<span style="opacity:.5">尚無紀錄</span>')+'</div>';
+    $('modal-record').classList.add('active');
+  }
+}
+
+function closeModal(id){ $('modal-'+id).classList.remove('active'); playSound('click'); }
+function closeAllModals(){
+  var mods = document.querySelectorAll('.modal');
+  for(var i=0; i<mods.length; i++) mods[i].classList.remove('active');
+}
+
+var SAVE_KEYS = ['shediao_save_v15_slot1', 'shediao_save_v15_slot2', 'shediao_save_v15_slot3'];
+var saveModalMode = 'save';
+
+function showSaveModal(mode){
+  if(mode === 'save' && state.phase !== PHASE.STORY && state.phase !== PHASE.EXPLORE){
+    alert('僅能在劇情推進或地圖探索階段存檔。');
+    return;
+  }
+  saveModalMode = mode;
+  $('save-modal-title').textContent = mode === 'save' ? '存檔' : '讀檔';
+  renderSaveSlots();
+  $('save-code-area').value = '';
+  closeAllModals();
+  $('modal-saves').classList.add('active');
+  playSound('click');
+}
+
+function renderSaveSlots(){
+  var html = '';
+  for(var i = 0; i < 3; i++){
+    var key = SAVE_KEYS[i];
+    var raw = null;
+    try { raw = localStorage.getItem(key); } catch(e){}
+    var info = null;
+    if(raw){
+      try { info = JSON.parse(raw); } catch(e){}
+    }
+    var title = '存檔槽 ' + (i + 1);
+    var subtitle = '（空）';
+    if(info && info.p){
+      var chapterName = (CHAPTERS[info.chapter] && CHAPTERS[info.chapter].name) || '未知';
+      var diffName = (info.difficulty && DIFFICULTY[info.difficulty]) ? DIFFICULTY[info.difficulty].name : '普通';
+      subtitle = '第 ' + (info.chapter + 1) + ' 章「' + chapterName + '」　難度：' + diffName + '　生命 ' + info.p.hp + '/' + info.p.maxHp + '　金 ' + info.p.gold + ' 兩';
+    }
+    var btnLabel = saveModalMode === 'save' ? '存到此槽' : '讀取';
+    var canClick = saveModalMode === 'save' || info;
+    html += '<div style="padding:12px;background:#0d0a08;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
+      '<div style="flex:1;"><b style="color:var(--gold)">' + title + '</b><br><span style="font-size:11.5px;color:var(--dim)">' + subtitle + '</span></div>' +
+      '<button class="btn" ' + (canClick ? '' : 'disabled') + ' onclick="handleSaveSlot(' + i + ')">' + btnLabel + '</button>' +
+      (info ? '<button class="btn blood" onclick="deleteSaveSlot(' + i + ')">刪除</button>' : '') +
+      '</div>';
+  }
+  $('save-slots').innerHTML = html;
+}
+
+function handleSaveSlot(i){
+  if(saveModalMode === 'save'){
+    saveToSlot(i);
+  } else {
+    loadFromSlot(i);
+  }
+}
+
+function saveToSlot(i){
+  var data = {
+    p: JSON.parse(JSON.stringify(p)),
+    chapter: state.chapter,
+    node: state.node,
+    phase: state.phase,
+    storyFlag: state.storyFlag,
+    log: state.log.slice(-40),
+    difficulty: currentDifficulty,
+    savedAt: Date.now()
+  };
+  try{
+    localStorage.setItem(SAVE_KEYS[i], JSON.stringify(data));
+    addLog('已存檔到槽 ' + (i+1) + '。', 'log-sys');
+    renderSaveSlots();
+    renderLog();
+    playSound('heal');
+  } catch(e){
+    alert('存檔失敗：' + e.message);
+  }
+}
+
+function loadFromSlot(i){
+  var raw = localStorage.getItem(SAVE_KEYS[i]);
+  if(!raw){ alert('此槽無存檔。'); return; }
+  try{
+    var d = JSON.parse(raw);
+    p = d.p; state = initState();
+    state.chapter = d.chapter || 0;
+    state.node = d.node || -1;
+    state.phase = d.phase || PHASE.STORY;
+    state.storyFlag = d.storyFlag || 'intro';
+    state.log = d.log || [];
+    if(state.storyFlag === 'bossPre'){
+      state.bossPreview = makeScaledEnemy(CHAPTERS[state.chapter].boss, true);
+    }
+    if(d.difficulty && DIFFICULTY[d.difficulty]) currentDifficulty = d.difficulty;
+    
+    if (!p.achievements) p.achievements = [];
+    if (!p.stats) p.stats = { turns: 0, itemsUsed: 0, merchantsVisited: 0 };
+    if (p.huangrongTimer === undefined) p.huangrongTimer = 0;
+    if (p.trainPoints === undefined) p.trainPoints = 0;
+    if (!p.skillLevels) p.skillLevels = {};
+    if (!p.equipLevels) p.equipLevels = { weapon: 0, armor: 0 };
+    if (!p.equipAffixes) p.equipAffixes = { weapon: [], armor: [] };
+    
+    updateDifficultyBtn();
+    $('story-text').removeAttribute('data-key');
+    addLog('（讀取存檔槽 ' + (i+1) + '，續行俠途）', 'log-sys');
+    closeAllModals();
+    render();
+    playSound('heal');
+  } catch(e){
+    alert('讀檔失敗：' + e.message);
+  }
+}
+
+function deleteSaveSlot(i){
+  if(!confirm('確定刪除存檔槽 ' + (i+1) + '？')) return;
+  try { localStorage.removeItem(SAVE_KEYS[i]); } catch(e){}
+  renderSaveSlots();
+}
+
+function exportSaveCode(){
+  var data = {
+    p: JSON.parse(JSON.stringify(p)),
+    chapter: state.chapter,
+    node: state.node,
+    phase: state.phase,
+    storyFlag: state.storyFlag,
+    log: state.log.slice(-40),
+    difficulty: currentDifficulty,
+    savedAt: Date.now()
+  };
+  try {
+    var json = JSON.stringify(data);
+    var base64 = btoa(encodeURIComponent(json));
+    $('save-code-area').value = base64;
+    $('save-code-area').select();
+    document.execCommand('copy');
+    alert('存檔代碼已複製到剪貼簿！');
+    playSound('win');
+  } catch(e) {
+    alert('匯出失敗：' + e.message);
+  }
+}
+
+function importSaveCode(){
+  var code = $('save-code-area').value.trim();
+  if (!code) { alert('請先貼上存檔代碼。'); return; }
+  try {
+    var json = decodeURIComponent(atob(code));
+    var d = JSON.parse(json);
+    p = d.p; state = initState();
+    state.chapter = d.chapter || 0;
+    state.node = d.node || -1;
+    state.phase = d.phase || PHASE.STORY;
+    state.storyFlag = d.storyFlag || 'intro';
+    state.log = d.log || [];
+    if(state.storyFlag === 'bossPre'){
+      state.bossPreview = makeScaledEnemy(CHAPTERS[state.chapter].boss, true);
+    }
+    if(d.difficulty && DIFFICULTY[d.difficulty]) currentDifficulty = d.difficulty;
+    
+    if (!p.achievements) p.achievements = [];
+    if (!p.stats) p.stats = { turns: 0, itemsUsed: 0, merchantsVisited: 0 };
+    if (p.huangrongTimer === undefined) p.huangrongTimer = 0;
+    if (p.trainPoints === undefined) p.trainPoints = 0;
+    if (!p.skillLevels) p.skillLevels = {};
+    if (!p.equipLevels) p.equipLevels = { weapon: 0, armor: 0 };
+    if (!p.equipAffixes) p.equipAffixes = { weapon: [], armor: [] };
+    
+    updateDifficultyBtn();
+    $('story-text').removeAttribute('data-key');
+    addLog('（匯入存檔成功，續行俠途）', 'log-sys');
+    closeAllModals();
+    render();
+    alert('匯入成功！');
+    playSound('win');
+  } catch(e) {
+    alert('匯入失敗，代碼無效或已損壞。');
+  }
+}
+
+function startNewGame(){
+  try {
+    prepareChapters();
+    p = initPlayer(); state = initState();
+    state.storyFlag = 'intro';
+    $('story-text').removeAttribute('data-key');
+    addLog('故事開始。', 'log-sys');
+    render();
+  } catch(e) {
+    console.error('startNewGame error:', e);
+    alert('遊戲初始化失敗，請重新整理網頁。');
+  }
+}
+
+window.onload = function(){
+  try{
+    var savedDiff = localStorage.getItem('shediao_difficulty');
+    if(savedDiff && DIFFICULTY[savedDiff]) currentDifficulty = savedDiff;
+    
+    var savedSound = localStorage.getItem('shediao_sound');
+    if(savedSound !== null) settings.sound = savedSound === 'true';
+    var savedBgm = localStorage.getItem('shediao_bgm');
+    if(savedBgm !== null) settings.bgm = savedBgm === 'true';
+    updateAudioBtns();
+  } catch(e){}
+  updateDifficultyBtn();
+
+  try { prepareChapters(); } catch(e) { console.error('prepare error:', e); }
+
+  var modals = document.querySelectorAll('.modal');
+  for(var i=0; i<modals.length; i++){
+    (function(m){
+      m.addEventListener('click', function(e){
+        if(e.target === m) {
+          m.classList.remove('active');
+          if (m.id === 'modal-dice' && state && state.phase === PHASE.DICE) {
+            rollExploreDice();
+          }
+        }
+      });
+    })(modals[i]);
+  }
+
+  var st = $('story-text');
+  if (st) st.addEventListener('click', skipTypewriter);
+
+  // 任意點擊初始化音效（防止瀏覽器自動播放策略報錯）
+  document.body.addEventListener('click', function initAudioOnce() {
+    initAudio();
+    if (settings.bgm && !bgmInterval) {
+      playBGMNote();
+      bgmInterval = setInterval(playBGMNote, 1500);
+    }
+    document.body.removeEventListener('click', initAudioOnce);
+  }, { once: true });
+
+  startNewGame();
+};
+</script>
+</body>
+</html>
