@@ -2,27 +2,27 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>殖民火星 - 多人連線完整版</title>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, runTransaction, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // ★★★ 請替換成你的 Firebase 設定 ★★★
+    // ★★★ 你的 Firebase 設定 ★★★
     const firebaseConfig = {
         apiKey: "AIzaSyDol20mC72V7cXhF7higYVRYvg3WZZoXRo",
-		authDomain: "klyhate-ad36a.firebaseapp.com",
-		projectId: "klyhate-ad36a",
-		storageBucket: "klyhate-ad36a.firebasestorage.app",
-		messagingSenderId: "552820910195",
-		appId: "1:552820910195:web:e08ee3b5ebb2dee8172206"
+        authDomain: "klyhate-ad36a.firebaseapp.com",
+        projectId: "klyhate-ad36a",
+        storageBucket: "klyhate-ad36a.firebasestorage.app",
+        messagingSenderId: "552820910195",
+        appId: "1:552820910195:web:e08ee3b5ebb2dee8172206"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    window.FB = { auth, db, doc, setDoc, getDoc, updateDoc, onSnapshot, runTransaction, collection, query, where, getDocs, signInAnonymously, onAuthStateChanged };
+    window.FB = { auth, db, doc, setDoc, getDoc, updateDoc, onSnapshot, runTransaction, signInAnonymously, onAuthStateChanged };
 </script>
 
 <style>
@@ -39,45 +39,68 @@
     body { 
         background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); 
         height: 100vh; display: flex; flex-direction: column; overflow: hidden;
-        background-image: radial-gradient(circle at center, #1a1512 0%, #000000 100%);
+        position: relative;
     }
-    
-    /* 大廳 */
-    #lobby-screen { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; }
-    #lobby-screen h1 { color: var(--mars-orange); font-size: 40px; margin-bottom: 20px; text-shadow: 0 0 10px var(--mars-red); }
-    .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-    input { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid var(--mars-orange); background: #222; color: white; text-align: center; }
-    button { padding: 10px 20px; font-size: 16px; background: var(--mars-red); color: white; border: none; border-radius: 5px; cursor: pointer; transition: 0.2s; font-family: var(--font-main); }
+
+    /* 滿天星空背景 */
+    body::before {
+        content: "";
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background-image: 
+            radial-gradient(1px 1px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(1px 1px at 40px 70px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(1.5px 1.5px at 90px 40px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(2px 2px at 160px 120px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(1px 1px at 250px 20px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(1.5px 1.5px at 300px 150px, #ffffff, rgba(0,0,0,0));
+        background-repeat: repeat; background-size: 400px 200px;
+        opacity: 0.6; z-index: -1; animation: twinkle 5s infinite alternate;
+    }
+    @keyframes twinkle { 0% { opacity: 0.4; } 100% { opacity: 0.8; } }
+    body::after {
+        content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        box-shadow: inset 0 0 200px rgba(0,0,0,0.95); pointer-events: none; z-index: 1000;
+    }
+
+    /* 大廳與彈窗 */
+    .screen { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; }
+    .hidden { display: none !important; }
+    input { padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid var(--mars-orange); background: rgba(0,0,0,0.6); color: white; text-align: center; font-family: var(--font-main); }
+    button { padding: 12px 24px; font-size: 16px; background: var(--mars-red); color: white; border: none; border-radius: 5px; cursor: pointer; transition: 0.2s; font-family: var(--font-main); }
     button:hover:not(:disabled) { background: var(--mars-orange); }
     button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* 遊戲畫面 */
-    #game-screen { display: none; flex: 1; flex-direction: column; height: 100%; }
+    /* 遊戲介面 */
+    #game-screen { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
     
-    /* 頂部狀態 */
+    /* 頂部資訊 */
     #top-bar { display: flex; justify-content: space-between; padding: 10px 20px; background: var(--panel-bg); border-bottom: 2px solid var(--mars-red); font-size: 14px; }
-    .global-stat span { color: var(--mars-orange); font-weight: bold; }
+    .global-stat span { color: var(--mars-orange); font-weight: bold; font-size: 16px; }
 
-    /* 玩家列表 */
+    /* 玩家面板 */
     #players-board { display: flex; gap: 10px; padding: 10px; overflow-x: auto; background: rgba(0,0,0,0.6); }
-    .player-card { flex: 1; min-width: 150px; padding: 10px; border: 1px solid #555; border-radius: 6px; background: #1a1a1a; font-size: 12px; }
-    .player-card.active { border-color: var(--mars-orange); box-shadow: 0 0 10px var(--mars-orange); }
+    .player-card { flex: 1; min-width: 160px; padding: 10px; border: 1px solid #555; border-radius: 6px; background: #1a1a1a; font-size: 12px; transition: 0.3s; }
+    .player-card.active { border-color: var(--mars-orange); box-shadow: 0 0 15px var(--mars-orange); }
     .player-card.me { background: #1f2a1f; border-color: var(--mars-green); }
-    .p-name { font-weight: bold; font-size: 14px; margin-bottom: 5px; color: var(--mars-orange); }
-    .p-res { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .p-name { font-weight: bold; font-size: 15px; margin-bottom: 5px; color: var(--mars-orange); }
+    .p-corp { font-size: 11px; color: #aaa; margin-bottom: 5px; }
+    .p-res { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; color: #ccc; }
 
     /* 地圖 */
     #board-container { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; overflow: auto; padding: 20px; }
-    #mars-board { position: relative; width: 468px; height: 405px; }
+    #mars-atmosphere { position: relative; border-radius: 50%; background-color: #3e2b25; background-image: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.5) 100%); box-shadow: 0 0 60px rgba(193, 68, 14, 0.2), inset 0 0 40px rgba(0,0,0,0.8); border: 1px solid rgba(214, 122, 58, 0.3); display: flex; justify-content: center; align-items: center; }
+    #mars-board { position: relative; }
+    
     .hex { 
         position: absolute; width: 52px; height: 60px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-        background-color: #6b4c3e; display: flex; justify-content: center; align-items: center; font-size: 10px; cursor: pointer;
-        transform: scale(0.95); transition: 0.2s; color: rgba(255,255,255,0.6);
+        background-color: #8c5a48; background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%);
+        transform: scale(0.95); display: flex; justify-content: center; align-items: center; font-size: 10px; color: #fff; text-shadow: 1px 1px 2px #000;
+        transition: 0.2s; cursor: pointer; box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
     }
-    .hex.ocean-reserved { background-image: repeating-linear-gradient(45deg, rgba(33,150,243,0.4) 0, rgba(33,150,243,0.4) 4px, transparent 4px, transparent 8px); }
-    .hex.ocean { background-color: #2196f3; color: white; }
-    .hex.forest { background-color: #4caf50; color: white; }
-    .hex.city { background-color: #757575; color: white; border: 2px solid #fff; }
+    .hex.ocean-reserved { background-image: repeating-linear-gradient(45deg, rgba(33,150,243,0.4) 0, rgba(33,150,243,0.4) 4px, transparent 4px, transparent 8px); box-shadow: inset 0 0 10px rgba(33,150,243,0.8); color: var(--mars-blue); text-shadow: none; }
+    .hex.ocean { background-color: #2196f3; background-image: none; color: white; }
+    .hex.forest { background-color: #4caf50; background-image: none; color: white; }
+    .hex.city { background-color: #757575; background-image: none; color: white; border: 2px solid #fff; }
     .hex:hover { filter: brightness(1.3); transform: scale(1); z-index: 10; }
 
     /* 底部操作區 */
@@ -85,16 +108,18 @@
     #action-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .phase-title { font-size: 18px; color: var(--mars-orange); font-weight: bold; }
     .action-btns { display: flex; gap: 10px; }
-    .action-btns button { font-size: 14px; padding: 8px 15px; background: #333; border: 1px solid #555; }
-    .action-btns button:hover:not(:disabled) { background: var(--mars-red); }
+    .action-btns button { font-size: 14px; padding: 8px 16px; background: #333; border: 1px solid #555; }
 
     /* 手牌區 */
     #hand-cards { flex: 1; display: flex; gap: 10px; overflow-x: auto; align-items: center; padding-bottom: 5px; }
     .card { 
-        flex: 0 0 110px; height: 150px; background: #222; border: 2px solid #555; border-radius: 5px; padding: 8px; 
-        display: flex; flex-direction: column; cursor: pointer; font-size: 11px; transition: 0.2s;
+        flex: 0 0 120px; height: 160px; background: linear-gradient(135deg, #2c3e50, #1a252f); border: 2px solid #555; border-radius: 6px; padding: 8px; 
+        display: flex; flex-direction: column; cursor: pointer; font-size: 11px; transition: 0.2s; position: relative;
     }
-    .card:hover { transform: translateY(-8px); border-color: var(--mars-orange); }
+    .card:hover { transform: translateY(-8px); border-color: var(--mars-orange); box-shadow: 0 8px 16px rgba(214, 122, 58, 0.6); }
+    .card.event { border-color: #e53935; }
+    .card.auto { border-color: #43a047; }
+    .card.active { border-color: #1e88e5; }
     .card .title { font-weight: bold; text-align: center; margin-bottom: 5px; font-size: 13px; }
     .card .cost { color: gold; font-weight: bold; font-size: 14px; text-align: center; margin-bottom: 5px; }
     .card .text { color: #ccc; text-align: center; line-height: 1.2; }
@@ -102,10 +127,11 @@
 
     #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(193, 68, 14, 0.95); color: white; padding: 12px 24px; border-radius: 5px; display: none; z-index: 999; font-size: 14px; }
     
-    /* 彈窗 */
-    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; }
     .modal.active { display: flex; }
-    .modal-content { background: #2c1a12; padding: 20px; border-radius: 8px; border: 2px solid var(--mars-orange); width: 400px; }
+    .modal-content { background: #2c1a12; padding: 25px; border-radius: 8px; border: 2px solid var(--mars-orange); width: 450px; text-align: center; }
+    .company-card { background: #1a252f; border: 2px solid #555; padding: 15px; margin-bottom: 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+    .company-card:hover { transform: scale(1.02); border-color: var(--mars-orange); box-shadow: 0 0 15px var(--mars-orange); }
 </style>
 </head>
 <body>
@@ -113,16 +139,16 @@
 <div id="toast"></div>
 
 <!-- 大廳 -->
-<div id="lobby-screen">
-    <h1>🚀 火星改造計畫</h1>
+<div id="lobby-screen" class="screen">
+    <h1 style="color:var(--mars-orange); font-size:40px; margin-bottom:20px; text-shadow:0 0 10px var(--mars-red);">🚀 火星改造計畫</h1>
     <p id="auth-status" style="margin-bottom: 20px; color: #aaa;">正在連線至伺服器...</p>
     
-    <div id="lobby-actions" style="display: none; flex-direction: column; gap: 15px; align-items: center;">
-        <div class="input-group">
+    <div id="lobby-actions" class="hidden" style="display:flex; flex-direction:column; gap:15px; align-items:center;">
+        <div style="display:flex; gap:10px;">
             <input type="text" id="player-name" placeholder="輸入你的名字" maxlength="8">
             <button onclick="createRoom()">建立新房間</button>
         </div>
-        <div class="input-group">
+        <div style="display:flex; gap:10px;">
             <input type="text" id="room-id-input" placeholder="輸入 6 位數房間碼" maxlength="6">
             <button onclick="joinRoom()">加入房間</button>
         </div>
@@ -130,7 +156,7 @@
 </div>
 
 <!-- 遊戲主畫面 -->
-<div id="game-screen">
+<div id="game-screen" class="hidden">
     <div id="top-bar">
         <div class="global-stat">世代: <span id="ui-gen">1</span>/14 | 階段: <span id="ui-phase">等待開始</span></div>
         <div class="global-stat">氧氣: <span id="ui-oxy">0</span>% | 溫度: <span id="ui-temp">-30</span>°C | 海洋: <span id="ui-ocean">0</span>/9</div>
@@ -140,15 +166,17 @@
     <div id="players-board"></div>
     
     <div id="board-container">
-        <div id="mars-board"></div>
+        <div id="mars-atmosphere">
+            <div id="mars-board"></div>
+        </div>
     </div>
     
     <div id="action-area">
         <div id="action-controls">
             <div class="phase-title" id="turn-indicator">等待中...</div>
             <div class="action-btns">
-                <button id="btn-start" onclick="startGame()" style="display: none;">開始遊戲</button>
-                <button id="btn-keep" onclick="keepCards()" style="display: none;">保留卡牌</button>
+                <button id="btn-start" onclick="startGame()" class="hidden">開始遊戲</button>
+                <button id="btn-keep" onclick="keepCards()" class="hidden">保留卡牌</button>
                 <button id="btn-project" onclick="openStandardProjects()" disabled>標準專案</button>
                 <button id="btn-pass" onclick="passTurn()" disabled>結束回合 (Pass)</button>
             </div>
@@ -157,10 +185,18 @@
     </div>
 </div>
 
+<!-- 公司選擇彈窗 -->
+<div id="modal-company" class="modal">
+    <div class="modal-content">
+        <h2 style="color:var(--mars-orange); margin-bottom:15px;">選擇你的公司</h2>
+        <div id="company-list"></div>
+    </div>
+</div>
+
 <!-- 標準專案彈窗 -->
 <div id="modal-projects" class="modal">
     <div class="modal-content">
-        <h3 style="color:var(--mars-orange); margin-bottom:15px; text-align:center;">標準專案 (免抽卡直接買)</h3>
+        <h3 style="color:var(--mars-orange); margin-bottom:15px;">標準專案 (免抽卡直接買)</h3>
         <div style="display:flex; flex-direction:column; gap:10px;">
             <button onclick="buyProject('ocean', 18)" style="background:#1e3a5f;">水資源 (18 M€) - 放置海洋</button>
             <button onclick="buyProject('forest', 23)" style="background:#1e5f2a;">綠化 (23 M€) - 氧氣+1</button>
@@ -185,6 +221,13 @@
         [1,1,1,1,1,1,1,1,0], [0,1,1,1,1,1,1,1,0], [0,1,1,1,1,1,1,0,0], [0,0,1,1,1,1,1,0,0]
     ];
 
+    const companies = [
+        { id: 'c1', name: '生態學線', desc: '起始資金 20 M€，植物產量 +1。', mc: 20, prod: { plant: 1 } },
+        { id: 'c2', name: '採礦公會', desc: '起始資金 14 M€，鋼鐵產量 +1。', mc: 14, prod: { steel: 1 } },
+        { id: 'c3', name: '土星系統', desc: '起始資金 30 M€，無額外產量。', mc: 30, prod: {} },
+        { id: 'c4', name: '托爾蓋特', desc: '起始資金 14 M€，熱能產量 +2。', mc: 14, prod: { heat: 2 } }
+    ];
+
     function initApp() {
         if (!window.FB) { setTimeout(initApp, 500); return; }
         const { auth, signInAnonymously, onAuthStateChanged } = window.FB;
@@ -193,7 +236,7 @@
             if (user) {
                 currentUser = user;
                 document.getElementById('auth-status').innerText = "已連線，請輸入名字";
-                document.getElementById('lobby-actions').style.display = 'flex';
+                document.getElementById('lobby-actions').classList.remove('hidden');
             } else {
                 signInAnonymously(auth).catch(err => alert("登入失敗: " + err.message));
             }
@@ -210,13 +253,7 @@
         
         const initialRoomData = {
             hostId: currentUser.uid,
-            status: 'lobby',
-            gen: 1,
-            phase: 'lobby',
-            turnIndex: 0,
-            oxygen: 0,
-            temp: -30,
-            oceans: 0,
+            status: 'lobby', gen: 1, phase: 'lobby', turnIndex: 0, oxygen: 0, temp: -30, oceans: 0,
             board: generateBoardData(),
             players: [createNewPlayer(currentUser.uid, name)]
         };
@@ -248,8 +285,8 @@
 
     function enterRoom(roomId) {
         currentRoomId = roomId;
-        document.getElementById('lobby-screen').style.display = 'none';
-        document.getElementById('game-screen').style.display = 'flex';
+        document.getElementById('lobby-screen').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
         document.getElementById('ui-room').innerText = roomId;
 
         const { db, doc, onSnapshot } = window.FB;
@@ -263,15 +300,14 @@
 
     function createNewPlayer(uid, name) {
         return {
-            id: uid, name: name, mc: 14, steel: 0, titan: 0, plant: 0, energy: 0, heat: 0,
+            id: uid, name: name, mc: 0, steel: 0, titan: 0, plant: 0, energy: 0, heat: 0,
             prod: { mc: 0, steel: 0, titan: 0, plant: 0, energy: 0, heat: 0 },
-            tr: 14, passed: false, hand: [], draft: []
+            tr: 14, passed: false, hand: [], draft: [], company: null
         };
     }
 
     function generateBoardData() {
-        let board = [];
-        let id = 0;
+        let board = []; let id = 0;
         for (let r = 0; r < 9; r++) {
             for (let c = 0; c < 9; c++) {
                 if (mapGrid[r][c] === 1) {
@@ -285,8 +321,7 @@
         while(oceans.length < 9) {
             let empty = board.filter(b => !b.isReservedOcean);
             let randomCell = empty[Math.floor(Math.random() * empty.length)];
-            randomCell.isReservedOcean = true;
-            oceans.push(randomCell);
+            randomCell.isReservedOcean = true; oceans.push(randomCell);
         }
         return board;
     }
@@ -295,6 +330,7 @@
         if (roomData.hostId !== currentUser.uid) return alert("只有房主能開始遊戲");
         const { db, doc, updateDoc } = window.FB;
         
+        // 發 4 張牌進入開發階段
         let updatedPlayers = roomData.players.map(p => {
             p.draft = [generateCard(), generateCard(), generateCard(), generateCard()];
             p.hand = [];
@@ -306,6 +342,45 @@
         });
     }
 
+    // --- 公司卡選擇 ---
+    window.openCompanySelect = function() {
+        const list = document.getElementById('company-list');
+        list.innerHTML = '';
+        let shuffled = [...companies].sort(() => 0.5 - Math.random());
+        let choices = shuffled.slice(0, 2);
+
+        choices.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'company-card';
+            div.innerHTML = `<h3 style="color:var(--mars-orange);">${c.name}</h3><p style="font-size:12px; margin-top:5px; color:#ccc;">${c.desc}</p>`;
+            div.onclick = () => selectCompany(c);
+            list.appendChild(div);
+        });
+        document.getElementById('modal-company').classList.add('active');
+    }
+
+    window.selectCompany = async function(corp) {
+        document.getElementById('modal-company').classList.remove('active');
+        const { db, doc, runTransaction } = window.FB;
+        const roomRef = doc(db, "rooms", currentRoomId);
+
+        await runTransaction(db, async (transaction) => {
+            const roomDoc = await transaction.get(roomRef);
+            const data = roomDoc.data();
+            let players = [...data.players];
+            let pIndex = players.findIndex(p => p.id === currentUser.uid);
+
+            players[pIndex].company = corp.name;
+            players[pIndex].mc = corp.mc;
+            for (let key in corp.prod) {
+                players[pIndex].prod[key] += corp.prod[key];
+            }
+            
+            transaction.update(roomRef, { players: players });
+        }).catch(e => alert(e));
+    }
+
+    // --- 開發階段 ---
     window.toggleKeepCard = function(cardIndex) {
         if (roomData.phase !== 'research') return;
         if (localSelectedCards.includes(cardIndex)) {
@@ -318,7 +393,14 @@
 
     window.keepCards = async function() {
         const me = roomData.players.find(p => p.id === currentUser.uid);
-        if (!me) return; // ★ 防呆檢查
+        if (!me) return;
+        
+        // 如果還沒選公司，先跳公司視窗
+        if (!me.company) {
+            openCompanySelect();
+            return;
+        }
+
         if (me.mc < localSelectedCards.length * 3) return alert("金錢不足！");
         if (!confirm(`確定花費 ${localSelectedCards.length * 3} M€ 保留這些卡牌嗎？`)) return;
 
@@ -338,7 +420,6 @@
             players[pIndex].draft = [];
 
             let allKept = players.every(p => p.draft.length === 0);
-            
             if (allKept) {
                 transaction.update(roomRef, { players: players, phase: 'action' });
             } else {
@@ -348,9 +429,10 @@
         localSelectedCards = [];
     }
 
+    // --- 行動階段 ---
     window.passTurn = async function() {
         const me = roomData.players.find(p => p.id === currentUser.uid);
-        if (!me) return; // ★ 防呆檢查
+        if (!me) return;
         const currentTurnPlayer = roomData.players[roomData.turnIndex];
         if (!currentTurnPlayer || me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
 
@@ -377,6 +459,7 @@
             }
 
             if (allPassed) {
+                // 生產階段結算
                 players = players.map(p => {
                     p.mc += p.tr + p.prod.mc;
                     p.steel += p.prod.steel;
@@ -386,6 +469,7 @@
                     p.heat += p.prod.heat;
                     p.passed = false; 
                     
+                    // 新回合抽牌
                     p.draft = [generateCard(), generateCard(), generateCard(), generateCard()];
                     return p;
                 });
@@ -405,7 +489,7 @@
 
     window.playCard = async function(handIndex) {
         const me = roomData.players.find(p => p.id === currentUser.uid);
-        if (!me) return; // ★ 防呆檢查
+        if (!me) return;
         const currentTurnPlayer = roomData.players[roomData.turnIndex];
         if (!currentTurnPlayer || me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
         
@@ -459,7 +543,7 @@
 
     window.buyProject = async function(type, cost) {
         const me = roomData.players.find(p => p.id === currentUser.uid);
-        if (!me) return; // ★ 防呆檢查
+        if (!me) return;
         const currentTurnPlayer = roomData.players[roomData.turnIndex];
         if (!currentTurnPlayer || me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
         if (me.mc < cost) return alert("金錢不足！");
@@ -500,23 +584,22 @@
 
     function generateCard() {
         const pool = [
-            { name: "小行星", cost: 14, effect: "temp", value: 1, text: "溫度+1" },
-            { name: "水資源", cost: 18, effect: "ocean", text: "放置海洋" },
-            { name: "自然保護區", cost: 23, effect: "forest", text: "放置綠化" },
-            { name: "發電廠", cost: 11, effect: "none", text: "無效果" },
-            { name: "採礦業", cost: 8, effect: "mcProd", text: "金錢產量+1" }
+            { name: "小行星", cost: 14, effect: "temp", value: 1, text: "溫度+1", type: "event" },
+            { name: "水資源", cost: 18, effect: "ocean", text: "放置海洋", type: "event" },
+            { name: "自然保護區", cost: 23, effect: "forest", text: "放置綠化", type: "auto" },
+            { name: "發電廠", cost: 11, effect: "none", text: "無效果", type: "auto" },
+            { name: "採礦業", cost: 8, effect: "mcProd", text: "金錢產量+1", type: "auto" }
         ];
         return pool[Math.floor(Math.random() * pool.length)];
     }
 
+    // --- 渲染 ---
     function renderGame() {
         if (!roomData || !roomData.players) return;
 
-        // ★ 核心防呆：如果玩家資料還沒同步好，先不要渲染
         const me = roomData.players.find(p => p.id === currentUser.uid);
         if (!me) return; 
 
-        // 頂部資訊
         document.getElementById('ui-gen').innerText = roomData.gen;
         document.getElementById('ui-phase').innerText = 
             roomData.phase === 'lobby' ? '等待開始' : 
@@ -526,16 +609,13 @@
         document.getElementById('ui-temp').innerText = roomData.temp;
         document.getElementById('ui-ocean').innerText = roomData.oceans;
 
-        // 按鈕控制
         const isHost = roomData.hostId === currentUser.uid;
         const isMyTurn = roomData.players[roomData.turnIndex]?.id === currentUser.uid;
 
         document.getElementById('btn-start').style.display = (roomData.status === 'lobby' && isHost) ? 'inline-block' : 'none';
         
-        // ★ 防呆：檢查 draft 是否存在
         const hasDraft = me.draft && me.draft.length > 0;
         document.getElementById('btn-keep').style.display = (roomData.phase === 'research' && hasDraft) ? 'inline-block' : 'none';
-        
         document.getElementById('btn-pass').disabled = !(roomData.phase === 'action' && isMyTurn);
         document.getElementById('btn-project').disabled = !(roomData.phase === 'action' && isMyTurn);
 
@@ -549,6 +629,7 @@
             div.className = `player-card ${isTurn ? 'active' : ''} ${isMe ? 'me' : ''}`;
             div.innerHTML = `
                 <div class="p-name">${p.name} ${isTurn?'👈':''} ${p.passed?'(已結束)':''}</div>
+                <div class="p-corp">${p.company ? p.company : '未選擇公司'}</div>
                 <div class="p-res">
                     <div>💰 ${p.mc} (+${p.tr + p.prod.mc})</div>
                     <div>⚙️ ${p.steel} (+${p.prod.steel})</div>
@@ -559,7 +640,6 @@
             pBoard.appendChild(div);
         });
 
-        // 回合指示
         if (roomData.phase === 'action') {
             document.getElementById('turn-indicator').innerText = `行動階段 - 輪到：${roomData.players[roomData.turnIndex].name}`;
         } else if (roomData.phase === 'research') {
@@ -568,7 +648,6 @@
             document.getElementById('turn-indicator').innerText = `等待中...`;
         }
 
-        // 手牌與抽牌區
         const handArea = document.getElementById('hand-cards');
         handArea.innerHTML = '';
         
@@ -576,7 +655,7 @@
             me.draft.forEach((card, i) => {
                 const el = document.createElement('div');
                 const isSelected = localSelectedCards.includes(i);
-                el.className = `card ${isSelected ? 'selected' : ''}`;
+                el.className = `card ${card.type} ${isSelected ? 'selected' : ''}`;
                 el.innerHTML = `
                     <div class="title">${card.name}</div>
                     <div class="cost">💰 ${card.cost}</div>
@@ -588,7 +667,7 @@
         } else if (roomData.phase === 'action' || roomData.phase === 'production') {
             me.hand.forEach((card, i) => {
                 const el = document.createElement('div');
-                el.className = 'card';
+                el.className = `card ${card.type}`;
                 el.innerHTML = `
                     <div class="title">${card.name}</div>
                     <div class="cost">💰 ${card.cost}</div>
@@ -620,6 +699,9 @@
                 hex.style.top = (cell.r * (h * 0.75)) + 'px';
                 boardEl.appendChild(hex);
             });
+            // 設置外框大小
+            document.getElementById('mars-atmosphere').style.width = `${9 * w}px`;
+            document.getElementById('mars-atmosphere').style.height = `${9 * h * 0.75 + h * 0.25}px`;
         }
 
         roomData.board.forEach(cell => {
