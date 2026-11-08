@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>殖民火星 - 多人連線終極豪華版</title>
+<title>殖民火星 - 多人連線終極版 (行動制)</title>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -42,17 +42,13 @@
         height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative;
     }
 
-    /* 星空背景 */
     body::before {
         content: ""; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        background-image: radial-gradient(1px 1px at 20px 30px, #fff, transparent), radial-gradient(2px 2px at 160px 120px, #fff, transparent), radial-gradient(1.5px 1.5px at 300px 150px, #fff, transparent);
+        background-image: radial-gradient(1px 1px at 20px 30px, #fff, transparent), radial-gradient(2px 2px at 160px 120px, #fff, transparent);
         background-repeat: repeat; background-size: 300px 200px; opacity: 0.6; z-index: -1; animation: twinkle 5s infinite alternate;
     }
     @keyframes twinkle { 0% { opacity: 0.4; } 100% { opacity: 0.8; } }
-    body::after {
-        content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        box-shadow: inset 0 0 150px rgba(0,0,0,0.9); pointer-events: none; z-index: 1000;
-    }
+    body::after { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; box-shadow: inset 0 0 150px rgba(0,0,0,0.9); pointer-events: none; z-index: 1000; }
 
     .hidden { display: none !important; }
     input { padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid var(--mars-orange); background: rgba(0,0,0,0.6); color: white; text-align: center; font-family: var(--font-main); }
@@ -60,15 +56,12 @@
     button:hover:not(:disabled) { background: var(--mars-orange); }
     button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* 大廳 */
     #lobby-screen { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; }
     #game-screen { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
     
-    /* 頂部資訊 */
     #top-bar { display: flex; justify-content: space-between; padding: 8px 15px; background: var(--panel-bg); border-bottom: 2px solid var(--mars-red); font-size: 13px; flex-wrap: wrap; gap: 10px; }
     .global-stat span { color: var(--mars-orange); font-weight: bold; }
 
-    /* 玩家列表 */
     #players-board { display: flex; gap: 8px; padding: 10px; overflow-x: auto; background: rgba(0,0,0,0.6); }
     .player-card { flex: 1; min-width: 160px; padding: 8px; border: 1px solid #555; border-radius: 6px; background: #1a1a1a; font-size: 11px; transition: 0.3s; position: relative; }
     .player-card.active { border-color: var(--mars-orange); box-shadow: 0 0 15px var(--mars-orange); }
@@ -79,49 +72,30 @@
     .p-played { font-size: 10px; color: #81c784; margin-top: 5px; border-top: 1px dashed #444; padding-top: 3px;}
     .color-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
 
-    /* 地圖區域 */
     #board-container { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; width: 100%; height: 100%; min-height: 0; }
-    #mars-atmosphere { 
-        position: relative; border-radius: 50%; background-color: #3e2b25; 
-        background-image: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.5) 100%); 
-        box-shadow: 0 0 60px rgba(193, 68, 14, 0.2), inset 0 0 40px rgba(0,0,0,0.8); 
-        border: 1px solid rgba(214, 122, 58, 0.3); transform-origin: center center; 
-    }
+    #mars-atmosphere { position: relative; border-radius: 50%; background-color: #3e2b25; background-image: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.5) 100%); box-shadow: 0 0 60px rgba(193, 68, 14, 0.2), inset 0 0 40px rgba(0,0,0,0.8); border: 1px solid rgba(214, 122, 58, 0.3); transform-origin: center center; }
     #mars-board { position: relative; }
     
-    .hex { 
-        position: absolute; width: var(--hex-w); height: var(--hex-h); 
-        clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-        background-color: #6b4c3e; background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%);
-        transform: scale(0.95); display: flex; justify-content: center; align-items: center; font-size: 10px; color: #fff; text-shadow: 1px 1px 2px #000;
-        transition: 0.2s; cursor: pointer; box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
-    }
+    .hex { position: absolute; width: var(--hex-w); height: var(--hex-h); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); background-color: #6b4c3e; background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%); transform: scale(0.95); display: flex; justify-content: center; align-items: center; font-size: 10px; color: #fff; text-shadow: 1px 1px 2px #000; transition: 0.2s; cursor: pointer; box-shadow: inset 0 0 8px rgba(0,0,0,0.6); }
     .hex.ocean-reserved { background-image: repeating-linear-gradient(45deg, rgba(33,150,243,0.4) 0, rgba(33,150,243,0.4) 4px, transparent 4px, transparent 8px); box-shadow: inset 0 0 10px rgba(33,150,243,0.8); color: var(--mars-blue); text-shadow: none; }
     .hex.ocean { background-color: #2196f3; background-image: none; color: white; }
     .hex.forest { background-color: #4caf50; background-image: none; color: white; }
     .hex.city { background-color: #757575; background-image: none; color: white; border: 2px solid #fff; }
-    
     .hex.valid-target { border: 2px solid gold; box-shadow: 0 0 15px gold; filter: brightness(1.3); }
     .hex:hover { filter: brightness(1.3); transform: scale(1); z-index: 10; }
     .hex-reward { position: absolute; bottom: 2px; font-size: 8px; background: rgba(0,0,0,0.8); padding: 1px 3px; border-radius: 2px; pointer-events: none; color: #fff; }
 
-    /* 底部操作區 */
     #action-area { min-height: 220px; background: var(--panel-bg); border-top: 2px solid var(--mars-orange); display: flex; flex-direction: column; padding: 10px; z-index: 10; flex-shrink: 0; }
     #action-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
     .phase-title { font-size: 16px; color: var(--mars-orange); font-weight: bold; }
     .action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
     .action-btns button { font-size: 13px; padding: 8px 12px; background: #333; border: 1px solid #555; }
     
-    /* 卡牌區 */
     #card-container { display: flex; gap: 15px; overflow-x: auto; align-items: flex-end; padding-bottom: 10px; min-height: 180px; }
     #active-cards { display: flex; gap: 10px; min-width: 150px; border-right: 1px dashed #555; padding-right: 15px; }
     #hand-cards { display: flex; gap: 10px; flex: 1; }
     
-    .card { 
-        flex: 0 0 110px; height: 150px; background: linear-gradient(135deg, #2c3e50, #1a252f); 
-        border: 2px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; 
-        cursor: pointer; font-size: 10px; transition: 0.2s; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.6);
-    }
+    .card { flex: 0 0 110px; height: 150px; background: linear-gradient(135deg, #2c3e50, #1a252f); border: 2px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; cursor: pointer; font-size: 10px; transition: 0.2s; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.6); }
     .card:hover { transform: translateY(-8px); border-color: var(--mars-orange); box-shadow: 0 8px 16px rgba(214, 122, 58, 0.6); }
     .card.event { border-color: #e53935; }
     .card.auto { border-color: #43a047; }
@@ -137,31 +111,23 @@
     .card .vp { position: absolute; top: 5px; right: 5px; background: var(--mars-green); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; justify-content: center; align-items: center; font-size: 10px; font-weight: bold; }
     .card.active-card.used { opacity: 0.4; pointer-events: none; border-color: #555; }
 
-    /* 歷史紀錄面板 */
     #history-panel { position: absolute; right: -300px; top: 0; width: 300px; height: 100%; background: rgba(20,15,10,0.95); border-left: 1px solid var(--mars-orange); transition: right 0.3s; z-index: 20; overflow-y: auto; padding: 15px; }
     #history-panel.active { right: 0; }
     .log-item { font-size: 12px; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #333; color: #ccc; }
 
-    /* 彈窗 */
     .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; }
     .modal.active { display: flex; }
     .modal-content { background: #2c1a12; padding: 25px; border-radius: 8px; border: 2px solid var(--mars-orange); width: 90%; max-width: 500px; text-align: center; max-height: 80vh; overflow-y: auto; box-shadow: 0 0 30px rgba(214, 122, 58, 0.5); }
     .company-card { background: #1a252f; border: 2px solid #555; padding: 15px; margin-bottom: 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
     .company-card:hover { transform: scale(1.02); border-color: var(--mars-orange); }
 
-    /* Toast 氣泡提示 */
     #toast-container { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 9999; pointer-events: none; }
-    .toast {
-        background: rgba(193, 68, 14, 0.95); color: white; padding: 8px 16px; border-radius: 4px;
-        font-size: 13px; animation: fadeInOut 2.5s forwards; margin-bottom: 5px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
+    .toast { background: rgba(193, 68, 14, 0.95); color: white; padding: 8px 16px; border-radius: 4px; font-size: 13px; animation: fadeInOut 2.5s forwards; margin-bottom: 5px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     @keyframes fadeInOut { 0% { opacity: 0; transform: translateY(-10px); } 10%, 80% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-10px); } }
 
-    /* 結算畫面 */
     .score-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; font-size: 14px; flex-wrap: wrap;}
     .score-row:last-child { border-bottom: none; }
 
-    /* 手機板調整 */
     @media (max-width: 768px) {
         :root { --hex-w: 38px; --hex-h: 43.87px; }
         #action-area { min-height: 250px; }
@@ -179,7 +145,6 @@
 
 <div id="toast-container"></div>
 
-<!-- 大廳 -->
 <div id="lobby-screen" class="screen">
     <h1 style="color:var(--mars-orange); font-size:36px; margin-bottom:20px; text-shadow: 0 0 10px var(--mars-red);">🚀 火星改造計畫</h1>
     <p id="auth-status" style="margin-bottom: 20px; color: #aaa;">正在連線至伺服器...</p>
@@ -196,7 +161,6 @@
     </div>
 </div>
 
-<!-- 遊戲主畫面 -->
 <div id="game-screen" class="hidden">
     <div id="top-bar">
         <div class="global-stat">世代: <span id="ui-gen">1</span>/14 | 階段: <span id="ui-phase">等待開始</span></div>
@@ -250,21 +214,18 @@
         <p><b>🕹️ 回合流程（總共 14 世代）</b></p>
         <ul style="margin-left: 20px; margin-bottom: 15px;">
             <li><b>開發階段</b>：每人抽 4 張牌，點擊想買的卡（每張 3 M€），按下「保留」。</li>
-            <li><b>行動階段</b>：輪流進行。你可以出牌、買標準專案、轉換資源、宣稱獎項。做完按「結束回合」。</li>
+            <li><b>行動階段</b>：嚴格輪流制，每次輪到你只能執行 <b>1~2 個行動</b>（打牌、買專案、轉換資源、宣稱獎項）。做完按「結束回合」換人。</li>
             <li><b>生產階段</b>：所有人 Pass 後自動觸發。獲得「TR + 金錢產量」的資金。</li>
         </ul>
-        <p><b>🃏 卡牌顏色</b></p>
+        <p><b>🃏 卡牌與折抵</b></p>
         <ul style="margin-left: 20px; margin-bottom: 15px;">
-            <li><b>紅色 (事件)</b>：打出後立即生效，然後放入棄牌堆。</li>
-            <li><b>綠色 (自動)</b>：打出後持續提供被動效果（如增加產量）。</li>
-            <li><b>藍色 (主動)</b>：打出後會留在你的面前。每回合你可以點擊它來發動效果！</li>
+            <li><b>紅/綠/藍卡</b>：事件、自動、主動效果。</li>
+            <li><b>資源折抵</b>：打出有「建築」標籤的卡，可用鋼鐵折抵（1鋼=2元）；打出有「太空」標籤的卡，可用鈦折抵（1鈦=3元）。</li>
         </ul>
-        <p><b>🗺️ 地圖放置規則</b></p>
+        <p><b>🗺️ 地圖與版圖獎勵</b></p>
         <ul style="margin-left: 20px; margin-bottom: 15px;">
-            <li><b>海洋</b>：只能放在藍色斜線保留區。</li>
-            <li><b>綠化</b>：必須跟你「自己的板塊」相鄰。</li>
-            <li><b>城市</b>：不能跟其他城市相鄰。城市周圍的綠化板塊可加分。</li>
-            <li><b>海洋獎勵</b>：放置板塊時，若周圍有海洋，每有一個海洋可獲得 2 M€！</li>
+            <li><b>海洋獎勵</b>：放置板塊時，周圍每有一個海洋可獲得 2 M€。</li>
+            <li><b>周遭寶箱</b>：放置板塊時，周圍 6 格印製的獎勵也會一併領取！</li>
         </ul>
         <button onclick="toggleRules()" style="width:100%; margin-top:15px;">開始遊戲</button>
     </div>
@@ -283,7 +244,9 @@
         <div style="display:flex; flex-direction:column; gap:10px;">
             <button onclick="buyProject('ocean', 18)" style="background:#1e3a5f;">水資源 (18 M€) - 放置海洋</button>
             <button onclick="buyProject('forest', 23)" style="background:#1e5f2a;">綠化 (23 M€) - 氧氣+1</button>
+            <button onclick="buyProject('city', 25)" style="background:#757575;">城市 (25 M€) - 放置城市</button>
             <button onclick="buyProject('temp', 14)" style="background:#5f3e1e;">小行星 (14 M€) - 溫度+1</button>
+            <button onclick="buyProject('sell', 1)" style="background:#4a148c;">賣專利 (1 M€) - 抽 1 張牌</button>
             <button onclick="document.getElementById('modal-projects').classList.remove('active')" style="margin-top:10px; background:#555;">取消</button>
         </div>
     </div>
@@ -308,7 +271,6 @@
 <script type="module">
     setTimeout(initApp, 500);
 
-    // --- 音效管理 ---
     const Audio = {
         enabled: true, ctx: null,
         init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
@@ -331,7 +293,6 @@
         toggle() { this.enabled = !this.enabled; this.click(); UI.toast(this.enabled ? "音效已開啟" : "音效已關閉"); }
     };
 
-    // --- UI 管理 ---
     const UI = {
         toast(msg) {
             const container = document.getElementById('toast-container');
@@ -407,7 +368,7 @@
         
         const initialRoomData = {
             hostId: currentUser.uid,
-            status: 'lobby', gen: 1, phase: 'lobby', turnIndex: 0, oxygen: 0, temp: -30, oceans: 0,
+            status: 'lobby', gen: 1, phase: 'lobby', turnIndex: 0, actionsLeft: 2, oxygen: 0, temp: -30, oceans: 0,
             board: generateBoardData(),
             players: [createNewPlayer(currentUser.uid, name, 0)],
             milestones: allMilestones.map(m => ({ id: m.id, claimedBy: null, claimedByName: '' })),
@@ -475,7 +436,7 @@
                 if (mapGrid[r][c] === 1) {
                     let isReservedOcean = Math.random() < 0.15; 
                     let reward = null;
-                    if (Math.random() < 0.2 && !isReservedOcean) {
+                    if (Math.random() < 0.25 && !isReservedOcean) {
                         let types = ['steel', 'titan', 'plant', 'card'];
                         let t = types[Math.floor(Math.random() * types.length)];
                         reward = { type: t, amount: t === 'card' ? 1 : 2, text: t==='steel'?'2鋼':t==='titan'?'2鈦':t==='plant'?'2植':'抽牌' };
@@ -520,6 +481,15 @@
             if (neighborTiles.some(b => b.type === 'city')) return false;
         }
         return true;
+    }
+
+    // --- 消耗行動 ---
+    function consumeAction() {
+        if (roomData.actionsLeft <= 1) {
+            // 如果剩 1 個行動，做完後強制結束回合
+            return true; // 觸發自動 Pass
+        }
+        return false;
     }
 
     // --- 遊戲階段 ---
@@ -613,7 +583,7 @@
 
             let allKept = players.every(p => p.draft.length === 0);
             if (allKept) {
-                transaction.update(roomRef, { players: players, phase: 'action', logs: newLogs });
+                transaction.update(roomRef, { players: players, phase: 'action', turnIndex: 0, actionsLeft: 2, logs: newLogs });
             } else {
                 transaction.update(roomRef, { players: players, logs: newLogs });
             }
@@ -671,15 +641,36 @@
             targetCell.type = placingMode.type;
             targetCell.ownerId = currentUser.uid; 
 
-            // 計算海洋相鄰獎勵
+            // 結算周遭獎勵
             const adjacents = getAdjacentCells(targetCell.r, targetCell.c);
-            let oceanCount = board.filter(b => adjacents.some(a => a.r === b.r && a.c === b.c) && b.type === 'ocean').length;
-            if (oceanCount > 0) {
-                let rewardMc = oceanCount * 2;
-                p.mc += rewardMc;
-                newLogs.push(`${p.name} 因相鄰海洋獲得了 ${rewardMc} M€。`);
+            let totalRewardText = "";
+            let extraMc = 0;
+            
+            adjacents.forEach(adj => {
+                let neighbor = board.find(b => b.r === adj.r && b.c === adj.c);
+                if (neighbor) {
+                    if (neighbor.type === 'ocean') extraMc += 2; // 海洋相鄰
+                    if (neighbor.reward) { // 周遭寶箱
+                        let rw = neighbor.reward;
+                        if (rw.type === 'steel') p.steel += rw.amount;
+                        if (rw.type === 'titan') p.titan += rw.amount;
+                        if (rw.type === 'plant') p.plant += rw.amount;
+                        if (rw.type === 'card') p.hand.push(generateCard());
+                        totalRewardText += `${rw.text} `;
+                        neighbor.reward = null;
+                    }
+                }
+            });
+
+            if (extraMc > 0) {
+                p.mc += extraMc;
+                newLogs.push(`${p.name} 因相鄰海洋獲得了 ${extraMc} M€。`);
+            }
+            if (totalRewardText) {
+                newLogs.push(`${p.name} 獲得周遭版圖獎勵：${totalRewardText}`);
             }
 
+            // 本格獎勵
             if (targetCell.reward) {
                 let rw = targetCell.reward;
                 newLogs.push(`${p.name} 獲得了版圖獎勵：${rw.text}`);
@@ -695,17 +686,16 @@
             if (placingMode.type === 'ocean') newOceans += 1;
             if (placingMode.type === 'forest') newOxy += 1;
 
+            let newActionsLeft = data.actionsLeft - 1;
+
             if (newOceans >= 9 && newOxy >= 14 && newTemp >= 8) {
                 newLogs.push(`🔥 火星改造完成！遊戲結束！`);
-                transaction.update(roomRef, { 
-                    status: 'ended', players: players, board: board, logs: newLogs, 
-                    oceans: newOceans, oxygen: newOxy, temp: newTemp
-                });
+                transaction.update(roomRef, { status: 'ended', players: players, board: board, logs: newLogs, oceans: newOceans, oxygen: newOxy, temp: newTemp });
                 return;
             }
 
             transaction.update(roomRef, { 
-                players: players, board: board, logs: newLogs, oceans: newOceans, oxygen: newOxy, temp: newTemp
+                players: players, board: board, logs: newLogs, oceans: newOceans, oxygen: newOxy, temp: newTemp, actionsLeft: newActionsLeft
             });
         }).catch(e => UI.toast(e));
 
@@ -720,12 +710,27 @@
         if (!me || me.id !== roomData.players[roomData.turnIndex].id) return UI.toast("還沒輪到你！");
         
         const card = me.hand[handIndex];
-        if (me.mc < card.cost) return UI.toast("金錢不足！");
         if (card.reqOxy !== undefined && roomData.oxygen < card.reqOxy) return UI.toast(`需要氧氣 ${card.reqOxy}% 才能打出！`);
         if (card.reqTemp !== undefined && roomData.temp < card.reqTemp) return UI.toast(`需要溫度 ${card.reqTemp}°C 才能打出！`);
 
+        // 計算資源折抵
+        let actualCost = card.cost;
+        let steelUsed = 0;
+        let titanUsed = 0;
+        
+        if (card.tags && card.tags.includes('建築') && me.steel > 0) {
+            steelUsed = Math.min(Math.floor(actualCost / 2), me.steel);
+            actualCost -= steelUsed * 2;
+        }
+        if (card.tags && card.tags.includes('太空') && me.titan > 0) {
+            titanUsed = Math.min(Math.floor(actualCost / 3), me.titan);
+            actualCost -= titanUsed * 3;
+        }
+
+        if (me.mc < actualCost) return UI.toast("金錢不足！(已計算資源折抵)");
+
         if (card.effect === 'ocean' || card.effect === 'forest' || card.effect === 'city') {
-            placingMode = { type: card.effect, cardIndex: handIndex, cost: card.cost };
+            placingMode = { type: card.effect, cardIndex: handIndex, cost: actualCost, steelUsed, titanUsed };
             highlightValidTiles(card.effect);
             Audio.click();
             renderGame();
@@ -738,14 +743,20 @@
                 let p = players.find(p => p.id === currentUser.uid);
                 let newLogs = [...data.logs];
                 
-                p.mc -= card.cost; 
+                p.mc -= actualCost; 
+                p.steel -= steelUsed;
+                p.titan -= titanUsed;
                 p.hand.splice(handIndex, 1);
+                
+                let payText = actualCost > 0 ? `${actualCost} M€` : '';
+                if (steelUsed > 0) payText += ` 及 ${steelUsed} 鋼鐵`;
+                if (titanUsed > 0) payText += ` 及 ${titanUsed} 鈦`;
                 
                 if (card.type === 'active') {
                     p.activeCards.push(card);
-                    newLogs.push(`${p.name} 部署了主動卡：${card.name}`);
+                    newLogs.push(`${p.name} 部署了主動卡：${card.name} (支付 ${payText})`);
                 } else {
-                    newLogs.push(`${p.name} 打出了 ${card.name}。`);
+                    newLogs.push(`${p.name} 打出了 ${card.name} (支付 ${payText})。`);
                 }
                 
                 let newTemp = data.temp;
@@ -756,7 +767,8 @@
                 if (card.effect === 'plantProd') p.prod.plant += card.value || 1;
                 if (card.effect === 'heatProd') p.prod.heat += card.value || 1;
                 
-                transaction.update(doc(db, "rooms", currentRoomId), { players: players, temp: newTemp, logs: newLogs });
+                let newActionsLeft = data.actionsLeft - 1;
+                transaction.update(doc(db, "rooms", currentRoomId), { players: players, temp: newTemp, logs: newLogs, actionsLeft: newActionsLeft });
             }).catch(e => UI.toast(e));
             Audio.success();
         }
@@ -796,14 +808,15 @@
                 newLogs.push(`${p.name} 提升了 1°C。`);
             }
             
-            transaction.update(doc(db, "rooms", currentRoomId), { players: players, temp: newTemp, logs: newLogs });
+            let newActionsLeft = data.actionsLeft - 1;
+            transaction.update(doc(db, "rooms", currentRoomId), { players: players, temp: newTemp, logs: newLogs, actionsLeft: newActionsLeft });
         }).catch(e => UI.toast(e));
         Audio.success();
     }
 
     // --- 標準專案與轉換 ---
     window.openStandardProjects = function() {
-        if (roomData.phase !== 'action') return;
+        if (roomData.phase !== 'action' || roomData.players[roomData.turnIndex].id !== currentUser.uid) return;
         UI.toggleModal('modal-projects');
     }
 
@@ -813,20 +826,24 @@
         if (me.mc < cost) return UI.toast("金錢不足！");
         UI.toggleModal('modal-projects');
 
-        if (type === 'temp') {
+        if (type === 'temp' || type === 'sell') {
             const { db, doc, runTransaction } = window.FB;
             await runTransaction(db, async (transaction) => {
                 const roomDoc = await transaction.get(doc(db, "rooms", currentRoomId));
                 const data = roomDoc.data();
                 let players = [...data.players];
                 let p = players.find(p => p.id === currentUser.uid);
-                p.mc -= cost; p.tr += 1;
-                let newLogs = [...data.logs, `${p.name} 購買標準專案：小行星。`];
-                transaction.update(doc(db, "rooms", currentRoomId), { players: players, temp: data.temp + 1, logs: newLogs });
+                p.mc -= cost; 
+                let newLogs = [];
+                if (type === 'temp') { p.tr += 1; data.temp += 1; newLogs.push(`${p.name} 購買標準專案：小行星。`); }
+                if (type === 'sell') { p.hand.push(generateCard()); newLogs.push(`${p.name} 購買標準專案：賣專利 (抽牌)。`); }
+                
+                let newActionsLeft = data.actionsLeft - 1;
+                transaction.update(doc(db, "rooms", currentRoomId), { players: players, temp: data.temp, logs: newLogs, actionsLeft: newActionsLeft });
             }).catch(e => UI.toast(e));
             Audio.success();
         } else {
-            placingMode = { type: type, cost: cost };
+            placingMode = { type: type, cost: cost, isProject: true };
             highlightValidTiles(type);
             renderGame();
         }
@@ -856,7 +873,8 @@
                 let p = players.find(p => p.id === currentUser.uid);
                 p.heat -= 8; p.tr += 1;
                 let newLogs = [...data.logs, `${p.name} 消耗 8 熱能升溫。`];
-                transaction.update(doc(db, "rooms", currentRoomId), { players: players, temp: data.temp + 1, logs: newLogs });
+                let newActionsLeft = data.actionsLeft - 1;
+                transaction.update(doc(db, "rooms", currentRoomId), { players: players, temp: data.temp + 1, logs: newLogs, actionsLeft: newActionsLeft });
             }).catch(e => UI.toast(e));
             Audio.success();
         }
@@ -910,7 +928,8 @@
                     awards[aIdx].claimedByName = p.name;
                     
                     let newLogs = [...data.logs, `🏅 ${p.name} 建立了獎項：${a.name}`];
-                    transaction.update(doc(db, "rooms", currentRoomId), { players: players, awards: awards, logs: newLogs });
+                    let newActionsLeft = data.actionsLeft - 1;
+                    transaction.update(doc(db, "rooms", currentRoomId), { players: players, awards: awards, logs: newLogs, actionsLeft: newActionsLeft });
                 }).catch(e => UI.toast(e));
                 UI.toggleModal('modal-awards');
                 Audio.success();
@@ -959,16 +978,16 @@
                 if (data.gen >= 14) {
                     transaction.update(roomRef, { status: 'ended', players: players, logs: newLogs });
                 } else {
-                    transaction.update(roomRef, { gen: data.gen + 1, turnIndex: 0, phase: 'research', players: players, logs: newLogs });
+                    transaction.update(roomRef, { gen: data.gen + 1, turnIndex: 0, actionsLeft: 2, phase: 'research', players: players, logs: newLogs });
                 }
             } else {
-                transaction.update(roomRef, { turnIndex: nextIdx, players: players, logs: newLogs });
+                transaction.update(roomRef, { turnIndex: nextIdx, actionsLeft: 2, players: players, logs: newLogs });
             }
         }).catch(e => UI.toast(e));
         Audio.success();
     }
 
-    // --- 卡牌池 (大擴充) ---
+    // --- 卡牌池 ---
     function generateCard() {
         const pool = [
             { name: "小行星", cost: 14, effect: "temp", text: "溫度+1", type: "event", vp: 0, tags: ['太空'] },
@@ -985,7 +1004,6 @@
             { name: "採礦業", cost: 8, effect: "steelProd", value: 1, text: "鋼鐵產量+1", type: "auto", vp: 0, tags: ['建築'] },
             { name: "苔原植物", cost: 10, effect: "plantProd", value: 1, text: "植物產量+1", type: "auto", vp: 0, tags: ['植物'] },
             { name: "放射性同位素", cost: 14, effect: "heatProd", value: 2, text: "熱能產量+2", type: "auto", vp: 0, tags: ['科學'] },
-            // 藍色主動卡
             { name: "研究實驗室", cost: 15, type: "active", activeEffect: "draw", activeCost: 2, text: "行動：支付 2 M€ 抽 1 張牌", tags: ['科學'] },
             { name: "商業中心", cost: 18, type: "active", activeEffect: "mc", activeCost: 0, text: "行動：獲得 3 M€", tags: ['建築'] },
             { name: "地熱發電站", cost: 20, type: "active", activeEffect: "temp", activeCost: 5, text: "行動：支付 5 M€ 升溫 1°C", tags: ['科學'] }
@@ -1108,8 +1126,10 @@
             div.className = `player-card ${isTurn ? 'active' : ''} ${isMe ? 'me' : ''}`;
             div.style.borderLeft = `5px solid ${p.color}`;
             
+            let actionText = (isTurn && roomData.phase === 'action') ? `<span style="color:gold; font-size:12px;">⚡剩餘行動: ${roomData.actionsLeft}</span>` : '';
+            
             div.innerHTML = `
-                <div class="p-name">${p.name} ${isTurn?'👈':''}</div>
+                <div class="p-name">${p.name} ${isTurn?'👈':''} ${actionText}</div>
                 <div class="p-corp">${p.company ? p.company : '未選擇公司'}</div>
                 <div class="p-res">
                     <div>💰 ${p.mc} (+${p.tr + p.prod.mc})</div>
@@ -1125,7 +1145,7 @@
             let typeName = placingMode.type === 'ocean' ? '海洋' : placingMode.type === 'forest' ? '綠化' : '城市';
             document.getElementById('turn-indicator').innerText = `請在地圖上點擊放置：${typeName}`;
         } else if (roomData.phase === 'action') {
-            document.getElementById('turn-indicator').innerText = `行動階段 - 輪到：${roomData.players[roomData.turnIndex].name}`;
+            document.getElementById('turn-indicator').innerText = `行動階段 - 輪到：${roomData.players[roomData.turnIndex].name} (剩餘 ${roomData.actionsLeft} 行動)`;
         } else if (roomData.phase === 'research') {
             document.getElementById('turn-indicator').innerText = `開發階段 - 請選卡後按保留`;
         } else {
@@ -1145,7 +1165,7 @@
                     <div class="text" style="color:#ccc; font-size:10px;">${card.text}</div>
                     ${isUsed ? '<div style="text-align:center; color:#e74c3c; font-size:10px; margin-top:5px;">本回合已使用</div>' : ''}
                 `;
-                if (!isUsed && isMyTurn && roomData.phase === 'action' && !placingMode) {
+                if (!isUsed && isMyTurn && roomData.phase === 'action' && !placingMode && roomData.actionsLeft > 0) {
                     el.onclick = () => useActiveCard(i);
                 }
                 activeArea.appendChild(el);
