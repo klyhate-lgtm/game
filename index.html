@@ -165,10 +165,9 @@
 </div>
 
 <script>
-  // 使用免費的計數 API (Abacus) 來記錄點擊率
-  // 如果 API 掛了或不穩定，會默認顯示 0
-    // 使用免費的計數 API，並加上防卡死機制
-  const COUNTER_API = "https://abacus.jasoncameron.dev/hit/klyhate-lgtm-games/";
+    // 免費計數 API 設定
+  const API_BASE = "https://abacus.jasoncameron.dev";
+  const NAMESPACE = "klyhate-lgtm-games";
 
   async function loadGames() {
     const menu = document.getElementById('menu');
@@ -183,7 +182,7 @@
       menu.innerHTML = '';
       logList.innerHTML = '';
 
-      // 生成最近更新日誌 (最多顯示前 3 筆)
+      // 1. 生成最近更新日誌
       games.slice(0, 3).forEach(game => {
         const li = document.createElement('li');
         li.textContent = `${game.time} 更新了《${game.title}》`;
@@ -191,7 +190,7 @@
       });
       if (games.length > 0) logBoard.style.display = 'block';
 
-      // 生成遊戲卡片
+      // 2. 生成遊戲卡片
       games.forEach(game => {
         const a = document.createElement('a');
         a.href = encodeURI(game.file);
@@ -199,28 +198,56 @@
         
         const pageId = encodeURIComponent(game.file);
 
-        // 🟢 這裡移除了原本的「讀取中」，改成靜態的「開始遊戲」文字，介面會更乾淨
+        // 卡片結構：左邊標題時間，右邊數字 + 開始按鈕
         a.innerHTML = `
           <div class="game-info">
             <div class="game-title">🎮 ${game.title}</div>
             <div class="game-time">🕒 ${game.time}</div>
           </div>
           <div class="game-views">
-            ➤ 開始
+            <span class="views-count" id="views-${pageId}">👁️ -</span>
+            <span>➤ 開始</span>
           </div>
         `;
         
-        // 點擊時發送計數請求 (靜默在後台執行，不卡頓)
+        // 點擊時默默發送計數請求 (加上 keepalive 防止跳轉中斷)
         a.addEventListener('click', () => {
-           // 使用 keepalive 確保跳轉頁面時請求也能順利送出
-           fetch(`${COUNTER_API}${pageId}`, { keepalive: true }).catch(() => {});
+           fetch(`${API_BASE}/hit/${NAMESPACE}/${pageId}`, { keepalive: true }).catch(() => {});
         });
 
         menu.appendChild(a);
+
+        // 非同步獲取點擊數字，加上 2 秒超時防卡死
+        fetchViews(pageId);
       });
 
     } catch (error) {
       menu.innerHTML = `<div style="color:#ff6b81;text-align:center;">讀取失敗 🥺<br><small>${error.message}</small></div>`;
+    }
+  }
+
+  // 獲取瀏覽次數的函數 (包含超時機制)
+  async function fetchViews(pageId) {
+    const el = document.getElementById(`views-${pageId}`);
+    if (!el) return;
+
+    try {
+      // 建立一個 2 秒的計時器，如果時間到就中斷請求
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+      const res = await fetch(`${API_BASE}/get/${NAMESPACE}/${pageId}`, { 
+        signal: controller.signal 
+      });
+      clearTimeout(timeoutId); // 請求成功，清除計時器
+
+      const data = await res.json();
+      // 如果 API 有回傳數字，就更新；沒有的話顯示 0
+      el.innerHTML = `👁️ ${data.value !== undefined ? data.value : 0}`;
+      
+    } catch (err) {
+      // 如果超時或網路錯誤，就顯示 0，不讓畫面卡住
+      el.innerHTML = `👁️ 0`;
     }
   }
 
