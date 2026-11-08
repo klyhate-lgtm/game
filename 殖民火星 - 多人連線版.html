@@ -41,7 +41,6 @@
         position: relative;
     }
 
-    /* 星空背景 */
     body::before {
         content: ""; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
         background-image: 
@@ -53,22 +52,20 @@
         opacity: 0.6; z-index: -1;
     }
 
-    /* 大廳 */
     .screen { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; }
-    .hidden { display: none !important; }
+    /* ★ 修正：移除 !important，讓 JS 可以自由控制顯示 */
+    .hidden { display: none; } 
+    
     input { padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid var(--mars-orange); background: rgba(0,0,0,0.6); color: white; text-align: center; font-family: var(--font-main); }
     button { padding: 12px 20px; font-size: 15px; background: var(--mars-red); color: white; border: none; border-radius: 5px; cursor: pointer; transition: 0.2s; font-family: var(--font-main); }
     button:hover:not(:disabled) { background: var(--mars-orange); }
     button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* 遊戲介面 */
     #game-screen { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
     
-    /* 頂部資訊 */
     #top-bar { display: flex; justify-content: space-between; padding: 8px 15px; background: var(--panel-bg); border-bottom: 2px solid var(--mars-red); font-size: 13px; flex-wrap: wrap; gap: 10px; }
     .global-stat span { color: var(--mars-orange); font-weight: bold; }
 
-    /* 玩家面板 */
     #players-board { display: flex; gap: 8px; padding: 10px; overflow-x: auto; background: rgba(0,0,0,0.6); }
     .player-card { flex: 1; min-width: 140px; padding: 8px; border: 1px solid #555; border-radius: 6px; background: #1a1a1a; font-size: 11px; transition: 0.3s; }
     .player-card.active { border-color: var(--mars-orange); box-shadow: 0 0 10px var(--mars-orange); }
@@ -77,52 +74,24 @@
     .p-corp { font-size: 10px; color: #aaa; margin-bottom: 4px; }
     .p-res { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; color: #ccc; }
 
-    /* 地圖容器 - 核心修正區 */
-    #board-container { 
-        flex: 1; display: flex; justify-content: center; align-items: center; 
-        position: relative; overflow: hidden; /* 隱藏超出範圍的內容 */
-        width: 100%; height: 100%;
-    }
-    
-    /* 大氣層外圈 */
-    #mars-atmosphere { 
-        position: relative; 
-        border-radius: 50%; 
-        background-color: #3e2b25; 
-        background-image: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.5) 100%); 
-        box-shadow: 0 0 60px rgba(193, 68, 14, 0.2), inset 0 0 40px rgba(0,0,0,0.8); 
-        border: 1px solid rgba(214, 122, 58, 0.3); 
-        /* 透過 JS 動態設定大小並置中 */
-        transform-origin: center center;
-    }
-    
+    #board-container { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; width: 100%; height: 100%; }
+    #mars-atmosphere { position: relative; border-radius: 50%; background-color: #3e2b25; background-image: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.5) 100%); box-shadow: 0 0 60px rgba(193, 68, 14, 0.2), inset 0 0 40px rgba(0,0,0,0.8); border: 1px solid rgba(214, 122, 58, 0.3); transform-origin: center center; }
     #mars-board { position: relative; }
-    
-    .hex { 
-        position: absolute; width: 52px; height: 60px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-        background-color: #8c5a48; background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%);
-        transform: scale(0.95); display: flex; justify-content: center; align-items: center; font-size: 10px; color: #fff; text-shadow: 1px 1px 2px #000;
-        transition: 0.2s; cursor: pointer; box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
-    }
+    .hex { position: absolute; width: 52px; height: 60px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); background-color: #8c5a48; background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%); transform: scale(0.95); display: flex; justify-content: center; align-items: center; font-size: 10px; color: #fff; text-shadow: 1px 1px 2px #000; transition: 0.2s; cursor: pointer; box-shadow: inset 0 0 8px rgba(0,0,0,0.6); }
     .hex.ocean-reserved { background-image: repeating-linear-gradient(45deg, rgba(33,150,243,0.4) 0, rgba(33,150,243,0.4) 4px, transparent 4px, transparent 8px); box-shadow: inset 0 0 10px rgba(33,150,243,0.8); color: var(--mars-blue); text-shadow: none; }
     .hex.ocean { background-color: #2196f3; background-image: none; color: white; }
     .hex.forest { background-color: #4caf50; background-image: none; color: white; }
     .hex.city { background-color: #757575; background-image: none; color: white; border: 2px solid #fff; }
     .hex:hover { filter: brightness(1.3); transform: scale(1); z-index: 10; }
 
-    /* 底部操作區 */
     #action-area { min-height: 200px; background: var(--panel-bg); border-top: 2px solid var(--mars-orange); display: flex; flex-direction: column; padding: 10px; z-index: 10; }
     #action-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
     .phase-title { font-size: 16px; color: var(--mars-orange); font-weight: bold; }
     .action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
     .action-btns button { font-size: 13px; padding: 8px 12px; background: #333; border: 1px solid #555; }
 
-    /* 手牌區 */
     #hand-cards { flex: 1; display: flex; gap: 10px; overflow-x: auto; align-items: center; padding-bottom: 10px; min-height: 160px; }
-    .card { 
-        flex: 0 0 110px; height: 150px; background: linear-gradient(135deg, #2c3e50, #1a252f); border: 2px solid #555; border-radius: 6px; padding: 6px; 
-        display: flex; flex-direction: column; cursor: pointer; font-size: 10px; transition: 0.2s; position: relative;
-    }
+    .card { flex: 0 0 110px; height: 150px; background: linear-gradient(135deg, #2c3e50, #1a252f); border: 2px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; cursor: pointer; font-size: 10px; transition: 0.2s; position: relative; }
     .card:hover { transform: translateY(-8px); border-color: var(--mars-orange); box-shadow: 0 8px 16px rgba(214, 122, 58, 0.6); }
     .card.event { border-color: #e53935; }
     .card.auto { border-color: #43a047; }
@@ -138,7 +107,6 @@
     .company-card { background: #1a252f; border: 2px solid #555; padding: 15px; margin-bottom: 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
     .company-card:hover { transform: scale(1.02); border-color: var(--mars-orange); }
 
-    /* ★ 手機版專用調整 ★ */
     @media (max-width: 768px) {
         #action-area { min-height: 220px; }
         #action-controls { flex-direction: column; align-items: stretch; text-align: center; }
@@ -151,9 +119,6 @@
 </head>
 <body>
 
-<div id="toast"></div>
-
-<!-- 大廳 -->
 <div id="lobby-screen" class="screen">
     <h1 style="color:var(--mars-orange); font-size:36px; margin-bottom:20px;">🚀 火星改造計畫</h1>
     <p id="auth-status" style="margin-bottom: 20px; color: #aaa;">正在連線至伺服器...</p>
@@ -170,7 +135,6 @@
     </div>
 </div>
 
-<!-- 遊戲主畫面 -->
 <div id="game-screen" class="hidden">
     <div id="top-bar">
         <div class="global-stat">世代: <span id="ui-gen">1</span>/14 | 階段: <span id="ui-phase">等待開始</span></div>
@@ -181,7 +145,6 @@
     <div id="players-board"></div>
     
     <div id="board-container">
-        <!-- 大氣層圓圈與地圖 -->
         <div id="mars-atmosphere">
             <div id="mars-board"></div>
         </div>
@@ -191,17 +154,17 @@
         <div id="action-controls">
             <div class="phase-title" id="turn-indicator">等待中...</div>
             <div class="action-btns">
+                <!-- 全部都先加上 hidden，由 JS 決定何時顯示 -->
                 <button id="btn-start" onclick="startGame()" class="hidden">開始遊戲</button>
                 <button id="btn-keep" onclick="keepCards()" class="hidden">保留卡牌</button>
-                <button id="btn-project" onclick="openStandardProjects()" disabled>標準專案</button>
-                <button id="btn-pass" onclick="passTurn()" disabled>結束回合</button>
+                <button id="btn-project" onclick="openStandardProjects()" class="hidden">標準專案</button>
+                <button id="btn-pass" onclick="passTurn()" class="hidden">結束回合</button>
             </div>
         </div>
         <div id="hand-cards"></div>
     </div>
 </div>
 
-<!-- 公司選擇彈窗 -->
 <div id="modal-company" class="modal">
     <div class="modal-content">
         <h2 style="color:var(--mars-orange); margin-bottom:15px;">選擇你的公司</h2>
@@ -209,7 +172,6 @@
     </div>
 </div>
 
-<!-- 標準專案彈窗 -->
 <div id="modal-projects" class="modal">
     <div class="modal-content">
         <h3 style="color:var(--mars-orange); margin-bottom:15px;">標準專案</h3>
@@ -259,7 +221,6 @@
         });
     }
 
-    // --- 房間與玩家管理 ---
     window.createRoom = async function() {
         const name = document.getElementById('player-name').value.trim();
         if (!name) return alert("請輸入名字");
@@ -343,7 +304,6 @@
         return board;
     }
 
-    // --- 遊戲流程 ---
     window.startGame = async function() {
         if (roomData.hostId !== currentUser.uid) return alert("只有房主能開始遊戲");
         const { db, doc, updateDoc } = window.FB;
@@ -575,7 +535,7 @@
         return pool[Math.floor(Math.random() * pool.length)];
     }
 
-    // --- 渲染核心 ---
+    // ★ 核心修正：改用 classList 來控制按鈕顯示 ★
     function renderGame() {
         if (!roomData || !roomData.players) return;
         const me = roomData.players.find(p => p.id === currentUser.uid);
@@ -590,12 +550,32 @@
 
         const isHost = roomData.hostId === currentUser.uid;
         const isMyTurn = roomData.players[roomData.turnIndex]?.id === currentUser.uid;
-
-        document.getElementById('btn-start').style.display = (roomData.status === 'lobby' && isHost) ? 'inline-block' : 'none';
         const hasDraft = me.draft && me.draft.length > 0;
-        document.getElementById('btn-keep').style.display = (roomData.phase === 'research' && hasDraft) ? 'inline-block' : 'none';
-        document.getElementById('btn-pass').disabled = !(roomData.phase === 'action' && isMyTurn);
-        document.getElementById('btn-project').disabled = !(roomData.phase === 'action' && isMyTurn);
+
+        // 大廳階段：只有房主看到開始按鈕
+        if (roomData.status === 'lobby' && isHost) {
+            document.getElementById('btn-start').classList.remove('hidden');
+        } else {
+            document.getElementById('btn-start').classList.add('hidden');
+        }
+
+        // 開發階段：有抽牌的人看到保留按鈕
+        if (roomData.phase === 'research' && hasDraft) {
+            document.getElementById('btn-keep').classList.remove('hidden');
+        } else {
+            document.getElementById('btn-keep').classList.add('hidden');
+        }
+
+        // 行動階段：所有人看到標準專案與結束回合（但只有輪到的人可以點）
+        if (roomData.phase === 'action') {
+            document.getElementById('btn-project').classList.remove('hidden');
+            document.getElementById('btn-pass').classList.remove('hidden');
+            document.getElementById('btn-pass').disabled = !isMyTurn;
+            document.getElementById('btn-project').disabled = !isMyTurn;
+        } else {
+            document.getElementById('btn-project').classList.add('hidden');
+            document.getElementById('btn-pass').classList.add('hidden');
+        }
 
         // 玩家面板
         const pBoard = document.getElementById('players-board');
@@ -654,14 +634,12 @@
         renderBoard();
     }
 
-    // ★ 核心修正：精準計算地圖大小與縮放比例 ★
     function renderBoard() {
         const boardEl = document.getElementById('mars-board');
         const atmosEl = document.getElementById('mars-atmosphere');
         const container = document.getElementById('board-container');
         
         const w = 52; const h = 60;
-        // 計算整個地圖的邊界大小
         const boardW = 9 * w;
         const boardH = 9 * h * 0.75 + h * 0.25;
 
@@ -678,17 +656,15 @@
             boardEl.style.width = `${boardW}px`;
             boardEl.style.height = `${boardH}px`;
             
-            // 大氣層大小與地圖完全一致
             atmosEl.style.width = `${boardW}px`;
             atmosEl.style.height = `${boardH}px`;
         }
 
-        // 計算縮放比例 (根據目前容器的寬高來縮放，最大放大 1.3 倍，最小縮小到能塞進去)
-        const padding = 40; // 留一點邊距
+        const padding = 40;
         const scaleX = (container.clientWidth - padding) / boardW;
         const scaleY = (container.clientHeight - padding) / boardH;
         let scale = Math.min(scaleX, scaleY);
-        if (scale > 1.3) scale = 1.3; // 電腦版不要放到太大
+        if (scale > 1.3) scale = 1.3;
         
         atmosEl.style.transform = `scale(${scale})`;
 
@@ -705,7 +681,6 @@
         });
     }
 
-    // 當視窗大小改變時，重新計算縮放
     window.addEventListener('resize', () => { if (roomData) renderBoard(); });
 </script>
 </body>
