@@ -17,17 +17,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Generate games.json
+      - name: Generate games.json with Time
         run: |
           python3 -c "
-          import os, json, urllib.parse
+          import os, json, datetime
           games = []
           for f in os.listdir('.'):
               if f.endswith('.html') and f != 'index.html':
-                  # 去掉 .html 當作標題
                   title = f[:-5]
-                  games.append({'title': title, 'file': f})
-          games.sort(key=lambda x: x['title'])
+                  # 取得檔案最後修改時間
+                  mtime = os.path.getmtime(f)
+                  time_str = datetime.datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M')
+                  games.append({'title': title, 'file': f, 'time': time_str})
+          # 依照時間反序排列 (最新在最上面)
+          games.sort(key=lambda x: x['time'], reverse=True)
           with open('games.json', 'w', encoding='utf-8') as out:
               json.dump(games, out, ensure_ascii=False, indent=2)
           "
