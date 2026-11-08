@@ -1,0 +1,2672 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>詭鎮奇談：阿卡姆之影</title>
+<style>
+:root{--parch:#e8dcc0;--ink:#2b2118;--blood:#7a1f1f;--gold:#b8912f;--edge:#5a4430}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;background:#0d0a08;color:var(--ink);
+  font-family:"Songti TC","Noto Serif TC",Georgia,serif;overscroll-behavior:none}
+body{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+#app{flex:1;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.bg{position:fixed;inset:0;z-index:-2;background:radial-gradient(ellipse at 50% 0%,#2a2018,#140f0b 60%,#080605)}
+.bg::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.85))}
+#hud{position:sticky;top:0;z-index:40;background:linear-gradient(180deg,#241b13,#191209);
+  border-bottom:1px solid var(--edge);padding:6px 10px;display:flex;flex-wrap:wrap;gap:6px;
+  font-size:12px;color:#e8dcc0;box-shadow:0 2px 12px rgba(0,0,0,.6)}
+#hud .stat{display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(184,145,47,.3);border-radius:12px;padding:2px 8px;white-space:nowrap}
+#hud .stat b{color:#f0d896;font-weight:600}
+#hud .stat.neg b{color:#ff6b6b}
+#hud .name{font-weight:700;color:#f0d896;margin-right:4px;font-size:12px}
+#main{flex:1;overflow-y:auto;padding:12px 14px 100px}
+.scene{max-width:720px;margin:0 auto;animation:fadeIn .45s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.chapter-tag{display:inline-block;font-size:11px;letter-spacing:2px;color:#b8912f;
+  border:1px solid #b8912f;border-radius:2px;padding:1px 8px;margin-bottom:10px}
+.story{
+  background-color: #241b13 !important; /* 深咖啡色背景 */
+  background-image: none !important;
+  border: 1px solid #7a5c2e;
+  border-radius: 6px;
+  padding: 16px 16px 18px;
+  box-shadow: inset 0 0 30px rgba(0,0,0,.8), 0 4px 12px rgba(0,0,0,.6);
+  color: #f0d896 !important;            /* 淺黃色文字 */
+  line-height: 1.85;
+  font-size: 15px;
+  position: relative;
+}
+  padding:16px 16px 18px;box-shadow:0 6px 24px rgba(0,0,0,.55),inset 0 0 40px rgba(120,90,50,.15);
+  color:#2b2118;line-height:1.85;font-size:15px;position:relative;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(120,90,50,.06) 27px,rgba(120,90,50,.06) 28px)}
+.story::before{content:"";position:absolute;inset:4px;border:1px solid rgba(120,90,50,.25);border-radius:4px;pointer-events:none}
+.story p{margin:0 0 12px}
+.story .kw{ color: #ffb347 !important; font-weight: bold; text-shadow: 0 0 8px rgba(255,179,71,0.5); }
+.story .kw2{color:#3a5a2a;font-weight:700}
+.cursor{display:inline-block;width:8px;height:16px;background:#7a1f1f;vertical-align:-2px;animation:blink .8s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.choices{margin-top:14px;display:flex;flex-direction:column;gap:9px}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+.btn{background:linear-gradient(180deg,#3a2a18,#241608);color:#f0d896;border:1px solid #7a5c2e;
+  border-radius:5px;padding:12px 14px;font-size:14px;line-height:1.5;text-align:left;
+  transition:transform .08s,box-shadow .15s,background .2s;box-shadow:0 3px 0 #0d0905,0 4px 10px rgba(0,0,0,.5)}
+.btn:hover{background:linear-gradient(180deg,#4c3820,#2e1e0c);box-shadow:0 3px 0 #0d0905,0 6px 16px rgba(184,145,47,.25)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #0d0905}
+.btn.primary{background:linear-gradient(180deg,#7a1f1f,#4a1010);border-color:#c04040;color:#ffe0e0}
+.btn.gold{background:linear-gradient(180deg,#b8912f,#8a6a1f);color:#1a1206;border-color:#e0c070;font-weight:700}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn .sub{display:block;font-size:11px;opacity:.75;margin-top:3px}
+.panel{margin-top:14px;background:linear-gradient(160deg,#2a1e12,#191009);border:1px solid #7a5c2e;
+  border-radius:6px;padding:14px;color:#e8dcc0;box-shadow:0 6px 24px rgba(0,0,0,.6)}
+.panel h3{margin:0 0 8px;font-size:15px;color:#f0d896;letter-spacing:1px}
+.panel .formula{font-size:12px;color:#b8a074;margin-bottom:10px;line-height:1.7}
+.panel .row{display:flex;gap:8px;flex-wrap:wrap}
+.dice-area{display:flex;gap:10px;justify-content:center;margin:12px 0;min-height:60px;align-items:center}
+.die{width:52px;height:52px;background:linear-gradient(145deg,#f5e8c8,#d8c49a);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#2b2118;
+  box-shadow:0 4px 12px rgba(0,0,0,.6),inset 0 -3px 8px rgba(0,0,0,.2);transform:scale(.4);opacity:0}
+.die.show{animation:pop .35s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes pop{to{transform:scale(1);opacity:1}}
+.die.rolling{animation:roll .5s linear infinite}
+@keyframes roll{0%{transform:rotate(0)}25%{transform:rotate(12deg) scale(1.05)}75%{transform:rotate(-12deg) scale(1.05)}100%{transform:rotate(0)}}
+.result-big{text-align:center;font-size:20px;font-weight:800;margin:6px 0;letter-spacing:2px}
+.result-big.ok{color:#7fe07f}.result-big.bad{color:#ff7a7a}
+.overlay{position:fixed;inset:0;z-index:250;background:rgba(8,5,3,.92);display:none;
+  align-items:flex-start;justify-content:center;padding:20px 14px;overflow-y:auto}
+.overlay.on{display:flex;animation:fadeIn .25s}
+.modal{background:linear-gradient(160deg,#241b13,#14100a);border:1px solid #b8912f;border-radius:8px;
+  max-width:640px;width:100%;padding:20px;color:#e8dcc0;box-shadow:0 10px 50px rgba(0,0,0,.9);position:relative;margin-top:20px}
+.modal h2{margin:0 0 6px;color:#f0d896;font-size:18px;letter-spacing:1px}
+.modal h3{color:#c8b48a;font-size:14px;margin:16px 0 6px;letter-spacing:1px}
+.modal p{font-size:13px;line-height:1.8;margin:6px 0;color:#d8c8a8}
+.modal .hl{color:#f0d896;font-weight:700}
+.modal .lead{color:#b8a074;font-size:12px;margin-bottom:14px}
+.modal ul{padding-left:18px;font-size:13px;line-height:1.8;color:#d8c8a8}
+.modal li{margin:4px 0}
+.close-x{position:absolute;top:10px;right:12px;background:none;color:#b8912f;font-size:22px;padding:4px 8px}
+.modal .foot{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+#nav{position:fixed;bottom:0;left:0;right:0;z-index:50;display:flex;justify-content:space-around;
+  background:linear-gradient(0deg,#1a1209,#241b13);border-top:1px solid #7a5c2e;
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -3px 16px rgba(0,0,0,.7)}
+#nav button{flex:1;background:none;color:#c8b48a;font-size:11px;padding:6px 2px;border-radius:6px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;transition:background .2s,color .2s}
+#nav button .ico{font-size:17px;line-height:1}
+#nav button:hover{background:rgba(184,145,47,.12);color:#f0d896}
+#toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+  background:rgba(20,12,6,.96);border:1px solid #b8912f;color:#f0d896;padding:10px 16px;border-radius:8px;
+  font-size:13px;z-index:300;opacity:0;transition:.3s;pointer-events:none;max-width:88vw;text-align:center;line-height:1.5}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#splash{position:fixed;inset:0;z-index:150;background:radial-gradient(ellipse at center,#1e150e,#080605);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
+#splash h1{font-size:30px;color:#f0d896;letter-spacing:6px;margin:0 0 6px;text-shadow:0 0 24px rgba(184,145,47,.5)}
+#splash .en{color:#8a6a3f;font-size:12px;letter-spacing:3px;margin-bottom:28px}
+#splash .frame{border:1px solid #7a5c2e;border-radius:50%;width:120px;height:120px;
+  display:flex;align-items:center;justify-content:center;font-size:52px;margin-bottom:26px;
+  background:radial-gradient(circle,#3a2a18,#140f0b);
+  animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 40px rgba(184,145,47,.25),inset 0 0 30px rgba(0,0,0,.8)}50%{box-shadow:0 0 70px rgba(184,145,47,.55),inset 0 0 30px rgba(0,0,0,.8)}}
+#splash .tagline{color:#b8a074;font-size:13px;line-height:1.9;margin-bottom:30px;max-width:340px}
+#splash .btns{display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px}
+.inv-grid{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 18px;scroll-snap-type:x mandatory}
+.inv-card{flex:0 0 230px;scroll-snap-align:center;background:linear-gradient(170deg,#2a1e12,#170f08);
+  border:1px solid #7a5c2e;border-radius:8px;padding:14px;color:#e8dcc0;
+  box-shadow:0 6px 20px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:8px;cursor:pointer;
+  transition:transform .2s,border-color .2s}
+.inv-card:hover{transform:translateY(-3px);border-color:#b8912f}
+.inv-card.sel{border-color:#f0d896;box-shadow:0 0 0 2px #b8912f,0 8px 24px rgba(184,145,47,.35)}
+.inv-portrait{height:80px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-size:44px;background:radial-gradient(circle,#3a2a18,#120c06);border:1px solid #5a4430}
+.inv-name{font-size:16px;color:#f0d896;font-weight:700}
+.inv-title{font-size:11px;color:#b8a074;letter-spacing:2px;margin-top:-4px}
+.inv-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;color:#c8b48a}
+.inv-stats span b{color:#f0d896}
+.inv-desc{font-size:11px;line-height:1.6;color:#a89878;border-top:1px dashed #5a4430;padding-top:6px;margin-top:auto}
+.log-item{padding:8px 10px;border-left:2px solid #7a5c2e;margin-bottom:6px;background:rgba(255,255,255,.03);
+  border-radius:0 4px 4px 0;font-size:12px;line-height:1.6;color:#d8c8a8}
+.log-item .ch{color:#b8912f;font-size:11px;letter-spacing:1px}
+.secret-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;margin-top:8px}
+.secret-item{font-size:11px;padding:6px 8px;border-radius:4px;background:rgba(255,255,255,.03);
+  border:1px solid #3a2a1a;color:#7a6a50;display:flex;align-items:center;gap:5px}
+.secret-item.got{border-color:#b8912f;color:#f0d896;background:rgba(184,145,47,.12)}
+.secret-item .dot{width:8px;height:8px;border-radius:50%;background:#3a2a1a;flex:0 0 auto}
+.secret-item.got .dot{background:#f0d896;box-shadow:0 0 6px #f0d896}
+.puzzle{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.puzzle input{flex:1;min-width:140px;background:#140f0b;border:1px solid #7a5c2e;border-radius:5px;
+  color:#f0d896;padding:10px 12px;font-size:14px;font-family:inherit;outline:none}
+.puzzle input:focus{border-color:#b8912f;box-shadow:0 0 0 2px rgba(184,145,47,.25)}
+.ending{text-align:center;padding:30px 10px}
+.ending .stars{font-size:38px;color:#f0d896;letter-spacing:6px;margin:10px 0;text-shadow:0 0 30px rgba(184,145,47,.6)}
+.ending h2{color:#f0d896;font-size:24px;letter-spacing:4px}
+@media(max-width:420px){
+  .story{font-size:14px;padding:14px}
+  #hud{font-size:11px;gap:4px;padding:5px 8px}
+  #splash h1{font-size:24px;letter-spacing:3px}
+}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:#120c06}
+::-webkit-scrollbar-thumb{background:#5a4430;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div id="app">
+  <div id="hud" style="display:none"></div>
+  <div id="main"></div>
+</div>
+<div id="nav" style="display:none">
+  <button data-act="help"><span class="ico">📖</span>說明</button>
+  <button data-act="save"><span class="ico">💾</span>存檔</button>
+  <button data-act="load"><span class="ico">📂</span>讀檔</button>
+  <button data-act="log"><span class="ico">🗺️</span>歷程</button>
+  <button data-act="secrets"><span class="ico">🔮</span>祕密</button>
+  <button data-act="sound"><span class="ico" id="snd-ico">🔊</span>音效</button>
+</div>
+<div id="toast"></div>
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div id="splash">
+  <div class="frame">🕯️</div>
+  <h1>詭鎮奇談</h1>
+  <div class="en">THE DARKNESS OVER ARKHAM</div>
+  <div class="tagline">1920年代，麻州阿卡姆。<br>一連串離奇的失蹤與一則古老的預言，<br>正將這座小鎮推向深淵。</div>
+  <div class="btns">
+    <button class="btn primary" id="startBtn">▶ 開始調查</button>
+    <button class="btn" id="splashHelp">📖 遊戲說明</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ 音效 ============ */
+const Sound = (() => {
+  let ctx=null,on=true;
+  const ensure=()=>{if(!ctx){try{ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}return ctx};
+  const beep=(f=440,d=.08,t="sine",v=.06)=>{if(!on)return;const c=ensure();if(!c)return;
+    if(c.state==="suspended")c.resume();
+    const o=c.createOscillator(),g=c.createGain();
+    o.type=t;o.frequency.value=f;
+    g.gain.setValueAtTime(0,c.currentTime);
+    g.gain.linearRampToValueAtTime(v,c.currentTime+.01);
+    g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+d);
+    o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d+.02)};
+  return{
+    click(){beep(520,.05,"triangle",.05)},
+    dice(){beep(300,.06,"square",.04);setTimeout(()=>beep(400,.06,"square",.04),70)},
+    ok(){beep(660,.1,"sine",.07);setTimeout(()=>beep(880,.14,"sine",.07),90)},
+    bad(){beep(180,.16,"sawtooth",.07);setTimeout(()=>beep(120,.22,"sawtooth",.07),100)},
+    secret(){beep(880,.08,"sine",.05);setTimeout(()=>beep(1100,.08,"sine",.05),80);setTimeout(()=>beep(1320,.14,"sine",.05),160)},
+    toggle(){on=!on;if(on){ensure();beep(700,.08,"sine",.06)}return on},
+	resume(){const c=ensure();if(c&&c.state==="suspended")c.resume();}
+  }
+})();
+
+/* ============ 物品/能力/弱點 ============ */
+const ITEM_DEF={
+  HEIRLOOM:{n:"海波里亞傳家寶"},HIDDEN:{n:"隱藏武器"},REPORTER_NB:{n:"記者筆記本"},
+  NOTEBOOK:{n:"布萊恩博士的筆記本"},TOE_TAG:{n:"腳牌"},BONESAW:{n:"骨鋸"},
+  BREADKNIFE:{n:"麵包刀"},BRANDY:{n:"白蘭地"},PISTOL:{n:"手槍"},LIGHTER:{n:"打火機"},
+  WHISKEY:{n:"威士忌"},KEY120:{n:"鑰匙（120）"},CULT_ROBES:{n:"教袍"},SKULL_MASK:{n:"頭骨面具"},
+  BRASS_TELESCOPE:{n:"黃銅望遠鏡"},BLACK_TALON:{n:"黑爪匕首"},FLICK_KNIFE:{n:"彈簧刀"},
+  CEREMONIAL_DAGGER:{n:"儀式匕首"},BLUEPRINT:{n:"建築藍圖"},GARDEN_PLAN:{n:"園丁規劃圖"},
+  ARCHIBALDS_ACCOUNT:{n:"阿奇博爾德的記錄"},TOWN_MAP:{n:"城鎮地圖"},
+  HARDEN_CARD:{n:"哈登警探的名片"},HANDKERCHIEF:{n:"手帕"},SWABBING_ALCOHOL:{n:"消毒酒精"}
+};
+const ABILITY_DEF={
+  MYSTIC:{n:"神祕"},SORCERY:{n:"巫術"},ARCANE_STUDIES:{n:"神祕研究"},
+  GUARDIAN:{n:"守護者"},FIGHTER:{n:"戰士"},SEEKER:{n:"探索者"},
+  AGILE:{n:"敏捷"},STUDIOUS:{n:"勤學"},QUICKWITTED:{n:"機智"},
+  SECRET_RITES:{n:"祕儀"},ANCIENT_LANGUAGES:{n:"古語言"},POLICE:{n:"警察"},DETECTIVE:{n:"偵探"}
+};
+const WEAK_DEF={
+  HAUNTED:{n:"鬧鬼"},PARANOID:{n:"偏執"},CURSED:{n:"被詛咒"},FEAR_INSECTS:{n:"恐蟲症"},
+  CLAUSTROPHOBIA:{n:"幽閉恐懼症"},CRIMINAL:{n:"罪犯"},INKY_FINGERS:{n:"墨漬手指"},WET_SHOES:{n:"濕鞋子"}
+};
+
+/* ============ 調查員 ============ */
+const INVESTIGATORS={
+  agnes:{id:"agnes",name:"艾格妮絲·貝克",title:"女服務員",icon:"🧙‍♀️",
+    wp:5,int:2,com:2,hp:6,san:8,item:"HEIRLOOM",majorAbility:"SORCERER",
+    otherAbilities:["MYSTIC","SORCERY","ARCANE_STUDIES"],
+    majorWeak:"DARK_MEMORIES",otherWeak:["HAUNTED"],
+    desc:"維爾瑪餐廳服務員是你的完美掩護。你追查線索，探尋自己作為巫師的過往。"},
+  nathaniel:{id:"nathaniel",name:"納撒尼爾·曹",title:"拳擊手",icon:"🥊",
+    wp:3,int:2,com:5,hp:9,san:6,item:"HIDDEN",majorAbility:"BOXER",
+    otherAbilities:["GUARDIAN","FIGHTER"],otherWeak:["CRIMINAL"],majorWeak:"HUNTED",
+    desc:"你告別拳台，如今用拳頭保護阿卡姆的無辜市民免受黑幫侵害。"},
+  rex:{id:"rex",name:"雷克斯·墨菲",title:"記者",icon:"📰",
+    wp:3,int:4,com:2,hp:6,san:9,item:"REPORTER_NB",majorAbility:"REPORTER",
+    otherAbilities:["SEEKER"],otherWeak:["CURSED"],majorWeak:"REX_CURSE",
+    desc:"《阿卡姆廣告報》的編輯似乎很器重你。你攪動咖啡，往杯裡倒了點威士忌。"}
+};
+
+/* ============ 秘密線索清單（48條，對齊原著） ============ */
+const SECRET_SET=[
+  "一枚好壞參半的蛋","破碎之兆","黑暗預兆","窮途末路","尋卵者","埃澤爾-森-雷茲的崛起",
+  "家族畫廊","家族合影","想來一口嗎？","狩獵夜魘","巫術魔法","我眼前的這把匕首",
+  "擇日再戰","壹號地點","貳號地點","叄號地點","肆號地點","伍號地點","陸號地點",
+  "柒號地點","捌號地點","玖號地點","迷失阿卡姆","謹記",
+  "隱藏的壹號","隱藏的貳號","隱藏的叄號","隱藏的肆象","隱藏的伍號","隱藏的陸號","隱藏的柒號",
+  "古神的秘密","小望遠鏡","匍匐的混沌","阿卡姆之影","警探的線索","空天之神","昆蟲學家",
+  "第一個犧牲者","占卜師","暗夜徘徊者","歷史學家","圖書管理員","殯葬師","守護與服務",
+  "外神之戰","古老的智慧","不破不立"
+];
+
+/* ============ 章節資料（1~300） ============ */
+const C={
+1:{t:`維爾瑪餐廳是阿卡姆鎮頗受歡迎的聚集地。透過窗戶，餐廳外的世界裡，太陽正緩緩沉向阿卡姆西邊杉樹成林的群山。是時候離開了。
+
+一聲抬高的嗓音吸引了你的注意，你的目光落在卡座裡的一對老年男女身上。男人留著花白的鬍子，女人身形瘦削，頭髮尖刺豎起。兩人激烈爭執。一隻蒼蠅在桌上爬來爬去，女人突然一巴掌拍在蒼蠅身上。男人低聲回了句什麼，女人抽回手，眨眼間將手指湊到唇邊——彷彿將什麼東西送進了嘴裡。但當你再看向桌子時，那隻蒼蠅已經消失了。
+
+女人突然站起身，怒氣沖沖地走出餐廳。男人將一張揉皺的美元放在桌上，也跟了出去。
+
+直到這對男女離開，你才注意到，他們坐的卡座旁的地上，掉著一個筆記本。你蹲下身子，撿起了【布萊恩博士的筆記本】。快速翻了翻，書頁上寫滿了手寫的筆記，所用的文字你完全不認識。`,
+o:[["若你想花點時間仔細研究這個筆記本，翻到第45章",45],
+   ["若你想離開餐廳，追上那兩位學者，將筆記本物歸原主，翻到第75章",75]],
+give:["NOTEBOOK"]},
+
+2:{t:`哎呀，看來你闖入了不該去的地方。這本書的正確玩法，是根據你的選擇和書中的指引，在不同章節間跳轉。
+
+不過，還是獎勵你兩個秘密線索吧。`,
+sec:["迷失阿卡姆","古神的秘密"],
+o:[["返回第1章",1]]},
+
+3:{t:`你似乎走進了死胡同。你完全不知道該去哪裡尋找更多線索，布萊恩博士的命運之謎，將永遠成為一個謎。
+
+你內心惴惴不安，因為你從心底裡知道，一片巨大的黑暗正籠罩著阿卡姆，無人能逃脫它的陰影。`,
+sec:["黑暗預兆"],end:{stars:0,title:"無盡的陰影"}},
+
+4:{t:`你朝護士喊道，問她能否幫忙。「我能為你做些什麼？」她問道。
+
+「我想知道布萊恩博士是不是已經被送過來了。」
+
+「應該是來了。」女人說，「他就在裡面。」她朝你身後的門點了點頭。
+
+她猶豫了一下，答道：「露絲·特納。」
+
+她回到擔架旁，繼續往前走，轉過一個拐角便消失了。
+
+就在這時，你注意到地上掉著一個【腳牌】。撿起來一看，上面寫著「無名氏」。`,
+sec:["殯葬師"],give:["TOE_TAG"],
+o:[["將腳牌記錄在角色表，翻到第36章",36]]},
+
+5:{t:`你和警察交談時，警長下達了指令。你壯著膽子問警長發生了什麼。
+
+「很遺憾地告訴你，三樓的一間辦公室裡發現了一具屍體，這起案件現已定性為凶殺案。」
+
+果然如你所料。筆記本的主人布萊恩博士，被你之前對抗的那個怪物殺害了。
+
+看著口袋裡的筆記本，你不禁懷疑，布萊恩博士是不是因為這本筆記才被殺的。`,
+o:[["若你想去上城的魔法老店，翻到第171章",171],
+   ["若你想在遠處觀察密斯卡托尼克大學這邊的事態發展，翻到第41章",41]]},
+
+6:{t:`你再次思索這段預言的含義。「當月亮在黑暗中消逝」——「一位新神即將崛起」——「三者擇一，終獲至寶」。
+
+你不禁懷疑，是否有三個派系在推動這段預言成真。
+
+既然布萊恩博士已經遇害，若想查清他的真正死因，你需要調查他的兩位對手：尼德斯教授和沃醫生。`,
+sec:["隱藏的肆象"],
+o:[["若你想調查尼德斯教授，翻到第125章",125],
+   ["若你想了解更多關於沃醫生的信息，翻到第155章",155]]},
+
+7:{t:`你仔細查看了日期列表，還有一本攤開的書，書頁上滿是關於月球運行軌道的圖表。你很快意識到，這些文件的主人計算出，今晚將出現月食。`,
+fx:{c:1},o:[["翻到第170章",170]]},
+
+8:{t:`你更加用力地搖晃門把手，看到裡面卡著一根圓柱形的木頭。看起來有人用掃帚桿穿過門把手和牆對面的掛鉤，把門反鎖了。`,
+o:[["若你擁有【骨鋸】，翻到第295章",295,{has:"BONESAW"}],
+   ["若沒有，翻到第270章",270]]},
+
+9:{t:`你回過神時，震驚地猛地合上書。你聽到了蟋蟀的鳴叫聲——聲音竟來自你身後牆上的展示櫃裡。
+
+一隻巨大的玫瑰金龜子展開的翅膀微微顫動。餘光中，另一隻翠綠色麗蠅也做出了同樣的動作。
+
+當恐懼壓過懷疑，好奇便轉化為了驚駭。`,
+test:{n:"恐慌測試",s:"wp",d:1,p:{HAUNTED:-1},c:"res",need:9,ok:43,ng:22}},
+
+10:{t:`你小心翼翼地走近屍體，男人一動不動。你鼓起勇氣，將指尖按在他的脖子上。皮膚冰冷而黏膩，你感受不到絲毫不脈搏。
+
+你覺得自己或許已經幫不了這個男人了，但或許可以去尋求幫助。`,
+o:[["若你想去尋求幫助，翻到第28章",28],
+   ["若你想走到敞開的窗邊看看，翻到第52章",52]]},
+
+11:{t:`閃爍的街燈指引著你，來到一座殖民風格的巨大宅邸前。門口的牌匾上寫著「阿巴頓府」。宅邸坐落在一片廣闊的土地上，一道濃密的紫杉樹籬將其與道路隔開。`,
+sec:["玖號地點"],
+o:[["若你想走近正門，翻到第18章",18],
+   ["若你想悄悄繞到房子側面，翻到第120章",120]]},
+
+12:{t:`你將建築藍圖鋪在園丁的平面圖上，發現一條表面通往冰庫的隧道，實則還連接著房子下方的酒窖。
+
+你們穿過房子後方的果園，走進冰庫隧道的磚砌入口。隧道很窄，僅容一人單行。若你有弱點{幽閉恐懼症}，意志力-1。
+
+通道盡頭被一道生鏽的鐵門擋住。布萊恩博士按住你的肩膀：「你必須打破保護這裡的超自然屏障。拿出那把刀。」
+
+你們終於進入了酒窖，穿過一扇木門，便來到了食品儲藏室。`,
+sec:["隱藏的柒號"],
+o:[["若你想仔細查看食品儲藏室裡的東西，翻到第35章",35],
+   ["若你想繼續前行，翻到第54章",54]]},
+
+13:{t:`一聲尖叫從站在石質高台上的女人口中傳出。透過溫室的玻璃屋頂，夜空萬里無雲，圓月高懸。但地球的陰影正緩緩爬上月球表面。
+
+有什麼東西正穿過夜色，朝阿巴頓府逼近。從最基本的外形來看，牠像一隻鳥，翅膀巨大無比，嘴則是一張巨大的血盆大口。
+
+「是沃醫生，」布萊恩博士嘶聲說道，「他也沒閒著。」
+
+當地球完全擋住太陽光，天空變成了一個真正的黑洞——一道巨大的傳送門。大門內，一隻長著利爪、有著無數腫脹巨口和數不清眼睛的存在，正從星際迷霧中緩緩浮現。`,
+test:{n:"自控測試",s:"wp+san",d:1,c:"res",need:10,ok:292,ng:37}},
+
+14:{t:`沃醫生的辦公室裡空無一人，你能想到的，唯一能找到他的地方，就是天文台本身，但你已經去過那裡了。`,
+o:[["若你想穿過大樓，回到發現鑰匙的地方，翻到第170章",170],
+   ["若你想離開沃倫天文台，翻到第140章",140]]},
+
+15:{t:`你們繞到房子側面，砸碎窗戶爬進屋。突然，一陣憤怒的嗡嗡聲讓你察覺到了牠們的存在。兩隻巨大而醜陋的昆蟲朝你俯衝而來，門楣上爬滿了夢魘般的甲蟲狀胡蜂。
+
+「三顎蜂。」布萊恩博士低聲說道。「我們必須從這裡進去，但我們免不了一場惡戰。」`,
+combat:{res:true,onlyCostRound:2,
+ prep:"三輪皆為 2d6 + 戰鬥值。每輪若你有{恐蟲症}，點數-2。只有第三輪開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com",p:{FEAR_INSECTS:-2},need:15,label:"第一輪"},
+  {d:2,s:"com",p:{FEAR_INSECTS:-2},prev:2,need:15,label:"第二輪"},
+  {d:2,s:"com",p:{FEAR_INSECTS:-2},prev:2,need:13,label:"第三輪"}
+ ],
+ resolve:"last",win:74,lose:20}},
+
+16:{t:`你用盡全身力氣，猛地撞向房門，木門鎖周圍的木頭發出碎裂的聲響。門應聲而開，你踉蹌著衝進走廊。`,
+fx:{h:-1},o:[["翻到第151章",151]]},
+
+17:{t:`那些詭異的空靈存在被擊退了，你急忙衝向天文台的大門，卻發現門被鎖上了。`,
+o:[["消耗1點線索或1點資源，或獲得+1厄運值，然後翻到第140章",140,{cost:["c","r"],orDoom:1}]]},
+
+18:{t:`你鼓起勇氣走上台階，來到正門跟前。眼前的大門由純黑的木頭製成，木紋中浮現出虛幻的影子。`,
+o:[["若你想敲門，翻到第58章",58],
+   ["若你想先試試門，翻到第34章",34]]},
+
+19:{t:`警方提取了你的指紋，很快你就被關進了東鎮警察局深處的拘留室。
+
+令人不安的是，旁邊的老婦人正在喃喃自語。
+
+「他不信任那個尼德斯教授，你知道嗎？」她突然看向你，「就是生命科學系的那個女人。」
+
+她突然抓住你的手：「我看到你的未來一片黑暗！」`,
+wk:["INKY_FINGERS"],
+o:[["若你想抽回手，翻到第99章",99],
+   ["若你想讓她握著你的手，翻到第159章",159]]},
+
+20:{t:`儘管你拼盡全力抵禦三顎蜂的攻擊，但牠們的數量實在太多了。十幾根帶著毒液的尖刺刺進你的身體，注入致命的毒素。劇痛難忍，但並未持續太久，很快，毒素便將你吞噬。`,
+end:{stars:0,title:"毒針之下"}},
+
+21:{t:`當你抵達密斯卡托尼克大學時，夜色已籠罩阿卡姆。科學樓外停著幾輛警車，入口周圍拉起了警戒線。`,
+o:[["若你擁有{警察}或{偵探}能力，翻到第297章",297,{abil:["POLICE","DETECTIVE"]}],
+   ["試圖偷偷穿過警戒線，翻到第61章",61],
+   ["和警察交談，翻到第81章",81]]},
+
+22:{t:`越來越多的昆蟲，在鋼針的穿刺下，以一種詭異的方式「活」了過來。你再也無法忍受待在這裡，倉皇逃離了這個房間。`,
+fx:{s:-1},o:[["翻到第151章",151]]},
+
+23:{t:`你開始翻找工作站上的地圖和文件。`,
+test:{n:"調查測試",s:"int",d:1,c:"clue",need:7,ok:180,ng:7}},
+
+24:{t:`你無法再等布萊恩博士的計畫實施了。`,
+o:[["看看自己身上有沒有能用來對抗同化教派的東西，翻到第48章",48],
+   ["攻擊教徒，翻到第221章",221],
+   ["想出其他策略，翻到第109章",109]]},
+
+25:{t:`門把手轉動，門開了，你走進一間地圖室。世界地圖的上方，刻著一句文學名言：「霍拉旭，人世間的事，比你想像的要複雜得多。」——《哈姆雷特》第一幕第五場`,
+o:[["仔細查看墨卡托投影世界地圖，翻到第86章",86],
+   ["仔細查看地球儀，翻到第44章",44],
+   ["仔細查看天球儀，翻到第70章",70],
+   ["離開房間，翻到第151章",151]]},
+
+26:{t:`今晚的種種遭遇，對你的考驗遠超你的想像。你筋疲力盡，最終在逃出溫室前，轟然倒地。`,
+end:{stars:0,title:"力竭而亡"}},
+
+27:{t:`「尼德斯教授的辦公室在二樓，卡夫卡藏品館那邊。」克里斯托弗博士對你說，「現在，恕我失陪。」`,
+o:[["若你想去尼德斯教授的辦公室，翻到第298章",298],
+   ["若你想離開科學樓，翻到第140章",140]]},
+
+28:{t:`你立刻離開書房，卻迎面遇上四名朝你走來的警察。「站住！」領頭的魁梧警長大喊道，「我們接到報案，這裡有騷亂發生。你看到什麼了嗎？」`,
+o:[["翻到第262章",262]]},
+
+29:{t:`你握住門把手，用身體猛地撞向房門，門紋絲不動。`,
+fx:{h:-1,co:-1},
+o:[["「我們在浪費時間。」布萊恩博士冷冷地說。翻到第15章",15]]},
+
+30:{t:`你在儲物櫃旁找到了一些紗布和繃帶，塞進口袋。`,
+fx:{r:1},sec:["隱藏的貳號"],
+o:[["在推車上的屍體中尋找布萊恩博士的遺體，翻到第186章",186],
+   ["在冷藏隔間裡尋找這位學者，翻到第226章",226],
+   ["不再打擾逝者，離開停屍房，翻到第246章",246]]},
+
+31:{t:`沒用的，無論你如何用力撞門、拉門把手，門都紋絲不動。牆壁內部，傳來一陣憤怒的嗡嗡聲。當你的囚禁者最終放你出去時，你已經精神錯亂，無法反抗。`,
+end:{stars:0,title:"嗡鳴的牢籠"}},
+
+32:{t:`你無法接受眼前的景象，你逃離了沃倫天文台，沿著克蘭山往回跑。`,
+fx:{wp:-1,s:-1},o:[["翻到第140章",140]]},
+
+33:{t:`這間書房裡，堆滿了各式各樣的學術資料。你的目光被一排裝裱好的照片吸引，其中一張華麗的金框學術證書，上面寫著：德夫林·布萊恩獲得了動物學哲學博士學位。`,
+fx:{c:1},
+o:[["布告板，翻到第114章",114],
+   ["大書架，翻到第94章",94],
+   ["書桌，翻到第63章",63]]},
+
+34:{t:`宏偉的正門應聲開啟，門後是一間富麗堂皇的門廳。從宏偉的門廳出發，兩道弧形樓梯蜿蜒向上通往宅邸二層，而你面前的寬闊拱門下，是一條鋪著地毯的走廊。`,
+o:[["若你想拾級而上前往二樓，翻至第151章",151],
+   ["若你想穿過拱門繼續前行，翻至第84章",84]]},
+
+35:{t:`你找到一塊乾酪和半條酸麵包吃了起来，還喝了半瓶波爾多紅酒。你還發現了一把大號的【麵包刀】和一瓶上好的【白蘭地】。`,
+fx:{h:1,wp:1,r:2},give:["BREADKNIFE","BRANDY"],
+o:[["翻至第54章",54]]},
+
+36:{t:`停屍房門外的推車上擺著各式各樣的醫療用品。`,
+o:[["若你想檢查推車上的物品，翻至第66章",66],
+   ["若你只想徑直走進停屍房內部，翻至第156章",156]]},
+
+37:{t:`你的目光無法從那潛藏在天空裂隙後的虛空巨獸身上移開。`,
+fx:{s:-1},
+o:[["若你持有【阿奇博爾德的記錄】，翻至第68章",68,{has:"ARCHIBALDS_ACCOUNT"}],
+   ["若未持有，翻至第111章",111]]},
+
+38:{t:`你重新挺直身軀，強迫自己移開視線，不再去看那避無可避的虛空。`,
+fx:{wp:1,c:1},o:[["翻至第170章",170]]},
+
+39:{t:`被帶去拘留室前，你遭到了搜身。上膛的槍支被沒收了。`,
+take:["PISTOL"],fx:{r:-1},o:[["翻至第19章",19]]},
+
+40:{t:`你一把扯下這副猙獰的面具，狠狠摔在地上。`,
+take:["SKULL_MASK"],fx:{wp:1},
+o:[["若你持有【黃銅望遠鏡】並打算此刻使用，翻至第212章",212,{has:"BRASS_TELESCOPE"}],
+   ["若你擁有{巫術}能力並打算此刻施展，翻至第173章",173,{abil:["SORCERY"]}],
+   ["若你二者皆無，翻至第275章",275]]},
+
+41:{t:`你站在原地，看著眼前一片忙亂的景象。`,
+o:[["若你擁有{警察}或{偵探}能力，翻至第297章",297,{abil:["POLICE","DETECTIVE"]}],
+   ["試圖偷偷穿過警方警戒線進入大樓，翻至第61章",61],
+   ["緩步走向警察與其攀談，翻至第81章",81]]},
+
+42:{t:`你一把抓住身旁一個瘦小的身影，喝令其他人退後。`,
+test:{n:"扭打測試",s:"com",d:1,b:{agile:1},c:"res",need:8,ok:138,ng:108}},
+
+43:{t:`你幾乎無法相信自己親眼所見的一切。你一刻也不想多待，生怕自己的心智就此崩塌。`,
+fx:{wp:1},
+o:[["若你想嘗試另一扇門，翻至第25章",25],
+   ["若你想返回主走廊，翻至第247章",247]]},
+
+44:{t:`這台地球儀顯然年代久遠，卻被精心保存著。你忍不住輕輕轉動它，卻只聽到了一聲輕微的咔嗒聲。`,
+o:[["仔細查看墨卡托投影世界地圖，翻至第86章",86],
+   ["仔細查看天球儀，翻至第70章",70],
+   ["離開房間，翻至第151章",151]]},
+
+45:{t:`這本筆記上寫滿了晦澀難懂的手跡。有些頁面畫著象形文字，還有些頁面寫滿了看似鏡像文字的內容。其中一幅畫著一艘造型奇特的飛行器，形似巨型蟬。`,
+fx:{s:-1,c:1},
+o:[["若你想帶著【布萊恩博士的筆記本】前往上城的魔法老店，翻至第171章",171],
+   ["若你想追上那兩位學者，翻至第75章",75]]},
+
+46:{t:`儘管你英勇地抵擋著那些空靈的存在，卻始終無法佔據上風。你唯一的選擇，就是轉身逃離。`,
+fx:{h:-1,d:2},
+o:[["翻至第140章（可消耗2線索/資源免厄運）",140,{doomFix:2}]]},
+
+47:{t:`「他不久前還來找過我。」「他找你做什麼？」「他有一些關於一種罕見胡蜂的問題。」「他一直念叨著，自己在找一枚卵，你敢信。」`,
+sec:["尋卵者"],
+o:[["若你想詢問尼德斯教授的情況，翻至第228章",228],
+   ["若你想詢問他此刻在做什麼，翻至第67章",67]]},
+
+48:{t:`被蟲群之主的信徒團團圍住，你究竟能用什麼辦法擾亂教派的儀式？`,
+o:[["若你持有【頭骨面具】，翻至第73章",73,{has:"SKULL_MASK"}],
+   ["若你持有【黃銅望遠鏡】，翻至第212章",212,{has:"BRASS_TELESCOPE"}],
+   ["若你擁有{巫術}能力，翻至第173章",173,{abil:["SORCERY"]}],
+   ["若你三者皆無，翻至第275章",275]]},
+
+49:{t:`「我們必須進去，而且要快。」布萊恩博士壓低聲音。`,
+o:[["強行從正門闖入，翻至第29章",29],
+   ["砸窗而入，翻至第15章",15],
+   ["想到別的辦法，翻至第236章",236]]},
+
+50:{t:`你無視布萊恩博士的存在，推開混戰的教徒，踉蹌著登上石質高台的台階，手中緊握著阿卡姆之刃。你猛地揮下儀式匕首，刺進了自己的胸膛。
+
+在心跳徹底停止前，你看到了一幅幻象：一枚巨大的卵轟然碎裂，從中誕生出一個完美無缺的生物。`,
+sec:["不破不立"],end:{stars:0,title:"不破不立"}},
+
+51:{t:`面對如此懸殊的力量，最好的辦法無疑是坐山觀虎鬥。`,
+test:{n:"智慧測試",s:"int",d:1,b:{studious:1},c:"clue",need:8,ok:172,ng:127}},
+
+52:{t:`這扇窗對著一片屋頂的瓦片斜坡。餘光中，你瞥見一個比漸濃夜色更黑的身影。`,
+o:[["若你敢冒險爬出窗戶，翻至第102章",102],
+   ["若你想先查看屍體，翻至第82章",82],
+   ["若你想搜查書房，翻至第33章",33]]},
+
+53:{t:`穿過這扇門，你發現自己身處一間更衣間。還剩下幾件無人取走的【教袍】。`,
+give:["CULT_ROBES"],
+o:[["將教袍記錄在角色表中，然後翻至第72章",72]]},
+
+54:{t:`布萊恩博士透過門縫朝裡望去，門後顯然是一間溫室。溫室正中央是一座凸起的石質高台，台上站著尼德斯教授本人。
+
+「走。」布萊恩博士低聲說完，便溜進了溫室。`,
+test:{n:"專注測試",s:"wp",d:1,b:{sorcery:1},c:"res",need:8,ok:104,ng:144}},
+
+55:{t:`推開門，你發現自己身處一間家族肖像畫廊。其中一幅畫描繪了一位19世紀末的傳奇探險家，手中捧著一隻奇怪的陶土花盆。`,
+fx:{c:1},sec:["家族畫廊"],
+o:[["嘗試對面的另一扇門，翻至第131章",131],
+   ["前往宅邸的中央走廊，翻至第194章",194]]},
+
+56:{t:`如今你戴上這副面具，自我意識正被蜂群的意志吞噬。`,
+fx:{wp:-1},o:[["翻至第13章",13]]},
+
+57:{t:`你感覺自己目睹的是衰敗的必然，是熵增的終極終點。`,
+fx:{s:-1},o:[["翻至第170章",170]]},
+
+58:{t:`你敲了三下門，卻始終無人前來應門。`,
+o:[["若你想試著開門，翻至第34章",34],
+   ["若你想繞到宅邸側面，翻至第120章",120]]},
+
+59:{t:`抵達警察局後，你被粗暴地押到拘留警官面前。`,
+o:[["若你持有【手槍】，翻至第39章",39,{has:"PISTOL"}],
+   ["若未持有，翻至第19章",19]]},
+
+60:{t:`回到沃醫生的辦公室，你將鑰匙插進鎖孔，門成功打開。`,
+sec:["隱藏的伍號"],
+o:[["進行智力測試：1d6+智力，可消耗1線索擲2d6取高。≥7→243；≤6→293",0,{autoTest:{s:"int",d:1,c:"clue",need:7,ok:243,ng:293}}]]},
+
+61:{t:`你慢慢挪到警戒線旁，趁值班警察轉身之際鑽了過去。「站住！」說話的是那個穿風衣的男人，「我是哈登警探。」`,
+test:{n:"急智測試",s:"int",d:1,b:{quickwitted:1},c:"clue",need:7,ok:101,ng:81}},
+
+62:{t:`你看到從天空中俯衝而下的東西：它兼具人類與非人的特徵，瘦骨嶙峋，皮膚漆黑且富有彈性，還有一對膜質翅膀、兩隻犄角，但最恐怖的是——它沒有臉。`,
+fx:{s:-1},sec:["狩獵夜魘"],
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com+wp",need:15,label:"第一輪"},
+  {d:2,s:"com+wp",prev:2,need:16,label:"第二輪"},
+  {d:2,s:"com+wp",prev:2,need:17,label:"第三輪"}
+ ],
+ resolve:"majority",win:103,lose:83}},
+
+63:{t:`你找到的不是答案，而是更多的疑問。一個抽屜裡有一隻【打火機】，另一個裡有一把上膛的【手槍】，還有一個裡有半瓶【威士忌】。`,
+give:["LIGHTER","PISTOL","WHISKEY"],fx:{r:3},
+o:[["布告板，翻至第195章",195],
+   ["大書架，翻至第175章",175],
+   ["敞開的窗外，翻至第134章",134],
+   ["布萊恩博士書房之外，翻至第215章",215]]},
+
+64:{t:`你僵在原地，看著那些幽靈般的生物朝你俯衝而來。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com+wp",b:{secretRites:1},need:15,label:"第一輪"},
+  {d:2,s:"com+wp",b:{secretRites:1},prev:2,need:16,label:"第二輪"}
+ ],
+ resolve:"last",win:113,lose:133}},
+
+65:{t:`不幸的是，這個地方陰森的氛圍，讓你對表現出這般善意的人產生了莫名的懷疑。`,
+test:{n:"偏執測試",s:"wp",d:1,p:{CURSED:-1,HAUNTED:-1},c:"res",need:9,ok:118,ng:89}},
+
+66:{t:`推車上有一大瓶【消毒酒精】、一個剪貼板、一把【骨鋸】、一件沾著血跡的圍裙，還有一瓶藥片。`,
+give:["SWABBING_ALCOHOL","BONESAW"],
+o:[["仔細查看剪貼板，翻至第126章",126],
+   ["仔細查看藥片，翻至第96章",96],
+   ["進入停屍房，翻至第156章",156]]},
+
+67:{t:`克里斯托弗博士瞥了一眼身後的工作台。「我是昆蟲學教授，時不時需要研究一些怪異的標本。」`,
+test:{n:"急智測試",s:"int",d:1,b:{quickwitted:1,studious:1},c:"clue",need:7,ok:117,ng:147}},
+
+68:{t:`你想起在阿奇博爾德·尼德斯的筆記裡讀到過關於這頭生物的記載。無知或許是福，但一知半解，卻是最危險的事！`,
+fx:{it:1},
+o:[["對抗同化教派，翻至第281章",281],
+   ["攻擊空天教派的教徒，翻至第201章",201],
+   ["冷眼旁觀，翻至第181章",181]]},
+
+69:{t:`「時間緊迫，」布萊恩博士打斷了你，「我們必須進入宅邸。」`,
+o:[["走正門，翻至第49章",49],
+   ["砸開側面的窗戶闖入，翻至第15章",15],
+   ["試試別的辦法，翻至第236章",236]]},
+
+70:{t:`這台天球儀堪稱一件珍品。`,
+o:[["仔細查看墨卡托投影世界地圖，翻至第86章",86],
+   ["仔細查看地球儀，翻至第107章",107],
+   ["離開房間，翻至第151章",151]]},
+
+71:{t:`你拼命搖晃門把手，用肩膀狠狠撞向房門。`,
+test:{n:"力量測試",s:"com",d:1,c:"res",need:8,ok:16,ng:31}},
+
+72:{t:`布萊恩博士推開門。門後顯然是一間溫室。溫室正中央，尼德斯教授站在石質高台上。
+
+「走。」布萊恩博士低聲說完，便溜進了溫室。`,
+o:[["若你身著【教袍】，翻至第124章",124,{has:"CULT_ROBES"}],
+   ["若未身著，翻至第144章",144]]},
+
+73:{t:`你戴上這副面具，教徒們突然停下腳步。吟唱聲充斥著你的腦海。`,
+test:{n:"意志力測試",s:"wp",d:1,b:{sorcery:1},c:"res",need:10,ok:40,ng:56}},
+
+74:{t:`那些胡蜂般的恐怖生物紛紛墜落在地，有些渾身冒煙。布萊恩博士推開雙開門，你趕緊跟了上去。
+
+「儀式已經開始了。」布萊恩博士壓低聲音，朝雙開門走去。`,
+o:[["若你想看看那扇敞著的門後有什麼，翻至第53章",53],
+   ["若你想聽從布萊恩博士的安排，翻至第72章",72]]},
+
+75:{t:`你再次翻開筆記本，在封面內側看到了一行字：歸密斯卡托尼克大學生命科學系動物學系布萊恩博士所有。`,
+o:[["若你想追隨那位年長的男士，翻至第197章",197],
+   ["若你想追上那位年長的女士，翻至第98章",98]]},
+
+76:{t:`你俯身將眼睛湊到了望遠鏡的目鏡上。透過取景器什麼也看不到。`,
+test:{n:"自控測試",s:"wp",d:1,c:"res",need:8,ok:38,ng:57}},
+
+77:{t:`布萊恩博士才是最大的威脅，你此刻終於看清了這一點。`,
+test:{n:"魔法抗性測試",s:"wp",d:1,b:{secretRites:1,sorcery:2},p:{CURSED:-1},c:"res",need:10,ok:218,ng:280}},
+
+78:{t:`你打開艙門，嗡嗡的低鳴突然變得刺耳。你小心翼翼地拉出抽屜，裡面躺著一具你認識的男人的屍體。他的容貌已經變得幾乎無法辨認。當一隻形似胡蜂和麗蠅雜交的詭異昆蟲從他潰爛的嘴巴裡爬出來時，你才徹底從失神中驚醒。`,
+test:{n:"鎮定測試",s:"wp",d:1,c:"res",need:9,ok:110,ng:80}},
+
+79:{t:`一張當作書籤的明信片掉在了閱覽桌上。背面寫著：「相信我們離飛行器的所在地已經不遠了。讚美蟲群之主。讚美埃澤爾-森-雷茲！你誠摯的，阿奇博爾德」`,
+fx:{c:1,it:1},sec:["隱藏的陸號"],
+o:[["翻至第9章",9]]},
+
+80:{t:`這些昆蟲的存在讓你感到前所未有的威脅。`,
+fx:{s:-1},wk:["FEAR_INSECTS"],o:[["翻至第110章",110]]},
+
+81:{t:`「你怎麼知道布萊恩博士死了？」警察問道。你語無倫次，漏洞百出。轉眼間，你被戴上了手銬。`,
+wk:["CRIMINAL"],o:[["翻至第59章",59]]},
+
+82:{t:`你鼓起勇氣，將指尖按在他的脖子上，感受不到絲毫不脈搏。
+
+書房的門突然砰的一聲關上，四名警察衝進房間。`,
+o:[["翻至第262章",262]]},
+
+83:{t:`一切都是徒勞——你只是一介凡人，面對這般可怖的怪物，又能做些什麼？`,
+end:{stars:0,title:"夜魘之爪"}},
+
+84:{t:`你從大理石門廳走進走廊，停下腳步，側耳傾聽。`,
+o:[["左側的走廊，翻至第176章",176],
+   ["右側的走廊，翻至第234章",234],
+   ["走向那對雙開門，翻至第267章",267]]},
+
+85:{t:`你走進一間私人圖書館。閱覽桌上攤著幾本書。`,
+o:[["閱讀那本綠色的書，翻至第164章",164],
+   ["翻閱黑色封皮的書，翻至第187章",187],
+   ["細讀那本手寫筆記本，翻至第207章",207],
+   ["嘗試走廊上的另一扇門，翻至第25章",25],
+   ["返回宅邸的中央走廊，翻至第247章",247]]},
+
+86:{t:`你發現畫作上有一道筆直的切割線。你似乎發現了一扇暗門——但無論你在哪個位置按壓，都找不到打開它的明顯機關。`,
+o:[["仔細查看地球儀，翻至第44章",44],
+   ["仔細查看天球儀，翻至第70章",70],
+   ["離開房間，翻至第151章",151]]},
+
+87:{t:`你打開87號櫃門，拉出不鏽鋼托盤，上面卻空空如也，沒有屍體。`,
+wk:["PARANOID"],sec:["隱藏的壹號"],
+o:[["若你敢冒險打開另一扇不鏽鋼門，翻至第78章",78],
+   ["若你想立刻離開停屍房，翻至第246章",246]]},
+
+88:{t:`「我會幫你，」你告訴布萊恩博士，「但這把匕首必須由我保管。」他平靜地說：「好。」
+
+「同化教派已經得到了將他們的神明引入這個世界的方法。他們信奉埃澤爾-森-雷茲，蟲群之主。這個教派計劃今夜就將蟲群釋放到阿卡姆，除非我們阻止他們。」`,
+o:[["翻至第69章",69]]},
+
+89:{t:`你隨口嘟囔著說不需要幫忙，便躲進了書架之間。最終找到了一本關於五十年前傳奇探險家阿奇博爾德·尼德斯的書。`,
+fx:{c:1},
+o:[["消耗1點線索或1點資源，或厄運值+1，翻至第140章",140,{cost:["c","r"],orDoom:1}]]},
+
+90:{t:`你跑下黑色的金屬樓梯，看到四名警察從警車裡衝出來。`,
+o:[["走向警察，翻至第242章",242],
+   ["逃離現場，翻至第202章",202]]},
+
+91:{t:`你貼著牆走，一隻手始終觸著植絨牆紙。你首先摸到的不是開關，而是一個木質的盒子。緊接著，一聲極其微弱、短暫的翅膀扇動的嗡嗡聲響起。`,
+fx:{s:-1},wk:["CLAUSTROPHOBIA"],
+o:[["翻至第71章",71]]},
+
+92:{t:`敵對教派的到來，讓埃澤爾-森-雷茲的追隨者陷入了混亂。與你搏鬥的兩名教徒用拳頭狠狠毆打你。`,
+fx:{h:-2},o:[["翻至第181章",181]]},
+
+93:{t:`你身上有什麼東西，能用來對抗這些空靈的存在？`,
+o:[["若你擁有{巫術}能力，翻至第153章",153,{abil:["SORCERY"]}],
+   ["若你持有【黑爪匕首】，翻至第183章",183,{has:"BLACK_TALON"}],
+   ["若你持有【黃銅望遠鏡】，翻至第203章",203,{has:"BRASS_TELESCOPE"}],
+   ["若你持有【手槍】，翻至第223章",223,{has:"PISTOL"}],
+   ["若你四者皆無，翻至第64章",64,{cost:["r"]}]]},
+
+94:{t:`這個書架堪稱一座晦澀文獻的寶庫。還有一本是古語言翻譯指南。`,
+ab:["ANCIENT_LANGUAGES"],
+o:[["布告板，翻至第195章",195],
+   ["書桌，翻至第154章",154],
+   ["敞開的窗外，翻至第134章",134],
+   ["其他地點，翻至第215章",215]]},
+
+95:{t:`當你動身前往法國山這片富裕而古老的街區時，內心開始感到不安——彷彿有什麼東西在黑暗中注視著你。`,
+o:[["若你有弱點{被詛咒}，厄運+1；{鬧鬼}，厄運+1；{偏執}，厄運再+1。總厄運值≥3→62章；≤2→11章",0,{doomCheck:{3:62,2:11}}]]},
+
+96:{t:`這些藥片是咖啡因片。`,
+fx:{r:1},
+o:[["仔細查看剪貼板，翻至第126章",126],
+   ["進入停屍房，翻至第156章",156]]},
+
+97:{t:`你去天文台找沃醫生，卻發現空無一人。`,
+o:[["搜查這片區域，翻至第23章",23],
+   ["透過望遠鏡觀測，翻至第76章",76]]},
+
+98:{t:`你立刻動身追趕，可還沒等追上她，女人就攔下了一輛計程車。`,
+o:[["攔一輛計程車，翻至第128章",128],
+   ["去追隨那位老者，翻至第167章",167]]},
+
+99:{t:`你試圖掙脫老婦人的手，可她卻握得更緊了。「不，你必須聽我說！」`,
+o:[["用力抽回自己的手，翻至第119章",119],
+   ["聽聽她要說什麼，翻至第159章",159]]},
+
+100:{t:`儘管今夜的種種考驗讓你身心俱疲，但急需的腎上腺素還是為你疲憊的身體注入了一絲力量，你逃離了阿巴頓府。
+
+你拼盡全力狂奔，恐懼讓你忘卻了疲憊。你精疲力竭，踉蹌著停下腳步，凝視著月光籠罩的莊園。可阿巴頓府早已消失不見，只剩一片完好無損的草地。彷彿這座宅邸從未存在過，而你關於這裡的記憶，也開始漸漸消散。`,
+fx:{s:-1},sec:["謹記"],end:{stars:1,title:"模糊的記憶"}},
+
+101:{t:`「……我想把這個還給布萊恩博士。」你向哈登警探展示了那本筆記本。
+
+「那現在會怎麼樣？」你問。
+
+「遺體將會被送往聖瑪麗醫院做全面屍檢。」警探把筆記本遞回給你，「你留著吧。」
+
+他遞給你一張印著姓名和電話號碼的小卡片。「這是我的聯繫方式。」`,
+sec:["警探的線索"],give:["HARDEN_CARD"],
+o:[["若你持有【黑爪匕首】，翻至第121章",121,{has:"BLACK_TALON"}],
+   ["若未持有，翻至第140章",140]]},
+
+102:{t:`你爬上屋頂，發現前方的景象是夢魘般的存在：瘦骨嶙峋，皮膚漆黑，一條佈滿倒刺的長尾巴，還有一對膜質翅膀，卻沒有臉。`,
+fx:{s:-1},
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com+wp",b:{secretRites:1},need:12,label:"第一輪"},
+  {d:2,s:"com+wp",b:{secretRites:1},prev:2,need:13,label:"第二輪"}
+ ],
+ resolve:"last",win:132,lose:235}},
+
+103:{t:`難以置信，你竟然擊敗了這隻怪物。當牠意識到你並非輕易就能獵殺的目標時，扇動著翅膀，消失在夜色中。`,
+fx:{co:1,wp:1},o:[["翻至第11章",11]]},
+
+104:{t:`你悄無聲息地進入溫室，躲在一盆樹蕨後。「我們現在該怎麼辦？」你低聲問道。
+
+「等著。」布萊恩博士答道，「別說話。」`,
+o:[["聽從布萊恩博士的命令，翻至第256章",256],
+   ["主動採取行動，翻至第24章",24]]},
+
+105:{t:`你將【儀式匕首】朝這位巫師擲去。匕首狠狠刺進布萊恩博士的肩胛骨之間。
+
+這位奈亞拉托提普的信徒卻痛苦地彎下腰。他的皮膚開始變得蒼白，皺紋也愈發深刻。`,
+o:[["立刻逃離阿巴頓府，翻至第300章",300],
+   ["將注意力轉向正在混戰的兩大教派，翻至第249章",249]]},
+
+106:{t:`教徒的數量實在太多了。最終，你們還是被同化教派的教徒團團圍住。尼德斯教授猛地揚起雙手，無數巨大的黑色昆蟲從陶土容器的口中湧了出來。`,
+end:{stars:0,title:"蟲群降臨"}},
+
+107:{t:`牆上那幅世界地圖的一部分緩緩開啟，露出了背後一片漆黑空間。你找到了一道暗門！`,
+o:[["若你想看看這扇暗門通向何處，翻至第136章",136],
+   ["若你想立刻離開房間，翻至第151章",151]]},
+
+108:{t:`你和布萊恩博士寡不敵眾，很快就被教徒們制服。`,
+fx:{h:-1},
+o:[["進行一次命運測試：1d6，若{被詛咒}點數+1。≤厄運值→232章；>厄運值→177章",0,{fate:{232:177}}]]},
+
+109:{t:`想要擾亂儀式，最好的辦法無疑是在溫室裡製造混亂。`,
+test:{n:"巧思測試",s:"int",d:1,c:"clue",need:8,ok:129,ng:149}},
+
+110:{t:`死者的胸膛突然一陣抽搐，隨後徹底塌陷，無數醜陋的蟲子從他的衣服裡湧了出來。`,
+o:[["立刻逃離，翻至第130章",130],
+   ["做好準備全力自衛，翻至第220章",220],
+   ["嘗試其他辦法，翻至第240章",240]]},
+
+111:{t:`你看到數十道身影正攀爬在溫室的玻璃屋頂上！尼德斯教授的尖叫戛然而止。
+
+「他們是空天教派的教徒。」布萊恩博士告訴你，「他們信奉西勒諾斯，也就是『虛無之天』。他們什麼都不怕，尤其是自己的死亡。」`,
+o:[["用阿卡姆之刃，翻至第143章",143],
+   ["用你手邊的其他武器，翻至第160章",160]]},
+
+112:{t:`「不。」你堅定地說，「我不會幫你。」
+
+布萊恩博士的臉沉了下來。「尼德斯教授是同化教派的首領。他們信奉埃澤爾-森-雷茲，蟲群之主。埃澤爾-森-雷茲的蜂群想要將所有有機生命都同化其中。」
+
+或許「敵人的敵人就是朋友」。你別無選擇，只能答應。`,
+fx:{c:1,it:1,wp:-1},o:[["翻至第69章",69]]},
+
+113:{t:`在你堅定的抵抗下，那些空靈的生物竟節節敗退，扇動著朦朧的翅膀飛到了你搆不到的地方。`,
+fx:{co:1},o:[["翻至第140章",140]]},
+
+114:{t:`布告板上貼滿了各式各樣的圖片、照片。其中有許多藝術家筆下的插畫，描繪的都是一枚奇特的卵，比人類高出數倍。`,
+fx:{c:1},sec:["一枚好壞參半的蛋"],
+o:[["書桌，翻至第154章",154],
+   ["大書架，翻至第175章",175],
+   ["敞開的窗外，翻至第134章",134],
+   ["布萊恩博士書房之外，翻至第215章",215]]},
+
+115:{t:`你行走在聖瑪麗醫院的病房和走廊中。`,
+fx:{wp:-1,d:2},sec:["伍號地點"],
+o:[["前往別處尋找答案，翻至第140章（可消耗2線索/資源免厄運）",140,{doomFix:2}]]},
+
+116:{t:`你拿起煙灰缸架砸向門上的玻璃面板。你伸手穿過破碎的玻璃，卻被劃破了胳膊。`,
+fx:{h:-1,co:-1},
+o:[["翻至第170章",170]]},
+
+117:{t:`「這份工作一定很有趣吧。」「你根本無法想像。」博士掀開了那塊布，那是一隻巨大的胡蜂。`,
+fx:{c:1},
+o:[["前往尼德斯教授的辦公室，翻至第298章",298],
+   ["離開科學樓，翻至第140章",140]]},
+
+118:{t:`你有沒有想重點了解的特定地點？將這個地點的兩個英文單詞的字母 A=1、B=2……相加後乘以二，翻至對應章節。`,
+puzzle:{type:"place",mult:2,fallback:140},
+o:[["若你想消耗1點線索，翻至第265章",265,{cost:["c"]}]]},
+
+119:{t:`「不！」你厲聲喝道，「我不想聽你說任何話，離我遠點！」`,
+o:[["翻至第219章",219]]},
+
+120:{t:`宅邸盡頭的一扇窗戶，似乎是虛掩著的。`,
+o:[["若你想從這扇窗戶進入宅邸，翻至第148章",148],
+   ["若你想返回正門，翻至第18章",18]]},
+
+121:{t:`你看到了布萊恩博士的遺體，也遭到了那個逃離案發現場的怪物的襲擊。`,
+o:[["若你想跟著遺體前往聖瑪麗醫院，翻至第279章",279],
+   ["若不想，翻至第140章",140]]},
+
+122:{t:`你回到溫暖的維爾瑪餐廳，點了一杯濃咖啡和一塊蘋果派。`,
+fx:{h:1,d:1},sec:["壹號地點"],o:[["翻至第140章",140]]},
+
+123:{t:`魔法老店今夜卻緊閉大門。`,
+sec:["貳號地點"],
+o:[["消耗1點線索或1點資源，或厄運值+1，翻至第140章",140,{cost:["c","r"],orDoom:1}]]},
+
+124:{t:`教徒們以為你是自己人，重新將注意力放回了尼德斯教授身上。`,
+fx:{it:1},
+o:[["聽從布萊恩博士的命令，翻至第256章",256],
+   ["主動採取行動，翻至第24章",24]]},
+
+125:{t:`布告板顯示，整個系裡，只有米蘭·克里斯托弗博士的狀態顯示為「在辦公室」。`,
+o:[["若你想去尼德斯教授的辦公室，翻至第298章",298],
+   ["若你想去拜訪米蘭·克里斯托弗博士，翻至第168章",168]]},
+
+126:{t:`剪貼板上夾著一張紙，布萊恩·D·博士的名字被寫在最後，旁邊標註著數字：78號。還有一個被劃掉的名字，旁邊標註：87號。`,
+fx:{c:1},
+o:[["仔細查看藥片，翻至第96章",96],
+   ["進入停屍房，翻至第156章",156]]},
+
+127:{t:`你根本來不及想出能左右戰局的辦法。兩名混戰的教徒撞到了你。`,
+fx:{it:-1,h:-1},
+o:[["立刻逃離這裡，翻至第260章",260],
+   ["攻擊布萊恩博士，翻至第77章",77],
+   ["阻止埃澤爾-森-雷茲的召喚儀式，翻至第157章",157],
+   ["阻止西勒諾斯的降臨，翻至第185章",185],
+   ["做出終極犧牲，翻至第50章",50]]},
+
+128:{t:`你攔了一輛計程車跟上那輛車。可一輛老舊的汽車突然擋在了你們的車前，你就這樣跟丟了目標。`,
+fx:{c:1},
+o:[["最後你決定前往密斯卡托尼克大學。翻至第21章",21]]},
+
+129:{t:`你隨手拿起身邊的東西，瞄準了一盞照亮溫室的燈，狠狠砸了過去。`,
+fx:{it:1},o:[["翻至第13章",13]]},
+
+130:{t:`此刻最明智的選擇，無疑是盡快離開停屍房。`,
+o:[["若你持有【腳牌】，翻至第214章",214,{has:"TOE_TAG"}],
+   ["若未持有，翻至第266章",266]]},
+
+131:{t:`門沒有鎖，你推開門走了進去，房間裡一片漆黑。突然房門「砰」的一聲關上。你被鎖在裡面了！`,
+o:[["強行撞門，翻至第71章",71],
+   ["努力保持冷靜，翻至第91章",91]]},
+
+132:{t:`與這隻詭異怪物搏鬥的過程中，你無意間將牠的一隻翅膀，卡在了屋頂尖刺上。怪物從三十多英尺的高空，重重摔在地上。而在你身邊的屋頂瓦片間，留下了一根【黑爪】。`,
+fx:{co:1},ab:["AGILE"],give:["BLACK_TALON"],
+o:[["從消防通道下樓，翻至第152章",152],
+   ["從窗戶爬回書房，翻至第277章",277]]},
+
+133:{t:`無論你如何努力，都無法擊退那些煙霧般的幽靈。`,
+fx:{s:-1},o:[["翻至第140章",140]]},
+
+134:{t:`透過窗戶，你敢肯定，外面有什麼東西，有什麼活物。`,
+o:[["若你想爬出窗戶，翻至第102章",102],
+   ["若你想待在原地，翻至第215章",215]]},
+
+135:{t:`你敲了敲門，門後沒有任何回應。門被鎖上了。`,
+o:[["若你想砸破門上的玻璃面板，翻至第116章",116],
+   ["若你認為強行闖入並不明智，翻至第145章",145]]},
+
+136:{t:`你小心翼翼地推開暗門，走了進去。石質基座上鋪著一塊黑色的天鵝絨，上面擺放著一把明顯是儀式用的匕首。你伸手拿起這把匕首。`,
+give:["CEREMONIAL_DAGGER"],sec:["我眼前的這把匕首"],
+o:[["翻至第151章",151]]},
+
+137:{t:`奧恩圖書館，三層，灰色花崗岩。`,
+sec:["陸號地點"],
+o:[["若你有弱點{偏執}，翻至第65章",65,{wk:["PARANOID"]}],
+   ["若沒有，翻至第118章",118]]},
+
+138:{t:`你拼命控制著手中的「人質」，可其他蟲群信徒一擁而上。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com",need:17,label:"第一輪"},
+  {d:2,s:"com",prev:2,need:18,label:"第二輪",loseHp:1}
+ ],
+ resolve:"last",win:269,lose:257}},
+
+139:{t:`你行走在聖瑪麗醫院中，卻始終找不到線索。`,
+fx:{wp:-1,d:2},sec:["伍號地點"],
+o:[["翻至第140章（可消耗2線索/資源免厄運）",140,{doomFix:2}]]},
+
+140:{t:`很明顯，這起謎團遠不止布萊恩博士的離奇死亡這麼簡單，接下來，你想去哪裡尋找答案？
+
+輸入地點的英文名稱（去掉定冠詞 the），將字母 A=1、B=2…Z=26 相加，翻至對應章節。`,
+puzzle:{type:"place",mult:1,fallback:3},
+o:[]},
+
+141:{t:`你離開了魔法老店，門口鈴鐺叮噹作響。`,
+fx:{r:-1},
+o:[["前往密斯卡托尼克大學，翻至第21章",21]]},
+
+142:{t:`「我想看看它。」布萊恩博士說。
+
+「這是阿卡姆之刃。由於我這一生的選擇，以及許下的那些承諾，我無法進入阿巴頓府。如果想阻止末日，這把匕首就是讓我能夠進入宅邸的鑰匙。」`,
+o:[["同意幫助布萊恩博士，翻至第88章",88],
+   ["拒絕幫助，翻至第112章",112]]},
+
+143:{t:`看到你手持匕首，這位西勒諾斯的信徒踉蹌著停下了腳步。
+
+「動手！現在就動手！」布萊恩博士大喊道。
+
+※ 本測試無消耗線索/資源選項。`,
+test:{n:"意志強度測試",s:"wp",d:1,b:{sorcery:2},need:9,ok:217,ng:237}},
+
+144:{t:`你們突然成了六名教徒的關注焦點。`,
+o:[["若你認為自己有可以用來自衛的物品，翻至第48章",48],
+   ["準備和教徒們戰鬥，翻至第138章",138],
+   ["抓住一名教徒當人質，翻至第42章",42]]},
+
+145:{t:`鎖著的門，通常都需要鑰匙才能打開。如果你在第180章找到的【鑰匙（120）】，180-120=60，翻至第60章。若無，翻至第97章。`,
+o:[["若你持有【鑰匙（120）】，翻至第60章（180-120=60）",60,{has:"KEY120"}],
+   ["否則翻至第97章",97]]},
+
+146:{t:`那隻詭異的有翼怪物竟重重摔在了石質高台上，將尼德斯教授視若珍寶的陶土容器撞落在地，摔得粉碎。`,
+fx:{co:1},
+o:[["立刻逃離這裡，翻至第260章",260],
+   ["攻擊布萊恩博士，翻至第77章",77],
+   ["制服殘餘的同化教派教徒，翻至第249章",249]]},
+
+147:{t:`「這些東西真醜。」你說。「不！」克里斯托弗博士不屑地說道，「只要懂得欣賞，就能發現昆蟲世界的極致之美。」`,
+wk:["PARANOID"],
+o:[["前往尼德斯教授的辦公室，翻至第298章",298],
+   ["離開科學樓，翻至第140章",140]]},
+
+148:{t:`你撥開窗戶的插銷翻進屋裡。你的腿被生鏽的鐵釘劃破了。`,
+fx:{h:-1},
+o:[["左側的門，翻至第55章",55],
+   ["右側的門，翻至第131章",131],
+   ["穿過拱門深入宅邸，翻至第194章",194]]},
+
+149:{t:`沒用的，再做任何孤注一擲的嘗試，都已經晚了。`,
+o:[["翻至第256章",256]]},
+
+150:{t:`你逃離了阿巴頓府，教徒混戰的喊殺聲和蟲群的低鳴聲漸漸消失在遠方。月食漸漸消散，那道空中的裂隙和潛藏其後的恐怖存在，都已消失無蹤。
+
+一切總算有了一個結局——阿卡姆安全了。可空天教派的教徒們去哪裡了？布萊恩博士呢？`,
+sec:["擇日再戰"],end:{stars:2,title:"活著再戰"}},
+
+151:{t:`一陣尖銳的嗡嗡聲突然吸引了你的注意。兩隻巨大的昆蟲正朝你飛來。`,
+o:[["堅守原地準備戰鬥，翻至第205章",205],
+   ["立刻逃離阿巴頓府，翻至第166章",166]]},
+
+152:{t:`你跑下樓梯，走向那隻怪物墜落的地方。卻發現——那隻怪物不見了！兩輛警車停在了科學樓外。`,
+o:[["走向警察，翻至第242章",242],
+   ["逃離現場，翻至第202章",202]]},
+
+153:{t:`你調動自身的祕術力量，凝神聚焦於這些空靈存在。狂風驟起，最終捲走了這些攻擊者，你順利逃出沃倫天文台。`,
+o:[["翻至第140章",140]]},
+
+154:{t:`你找到的不是答案，而是更多的疑問。一個抽屜裡有一隻【打火機】，另一個裡有一把上膛的【手槍】，還有一個裡有半瓶【威士忌】。`,
+give:["LIGHTER","PISTOL","WHISKEY"],fx:{r:3},o:[["翻至第215章",215]]},
+
+155:{t:`沃倫天文台是密斯卡托尼克大學最新的建築成果。接待員說：「如果他不在觀測穹頂，你大概率能在他的辦公室找到他。」`,
+o:[["去他的辦公室，翻至第135章",135],
+   ["去觀測穹頂找他，翻至第97章",97]]},
+
+156:{t:`踏入停屍房，冰冷的醫用白瓷磚在嗡嗡作響的燈具下泛著光。十幾輛運屍車整齊排列。`,
+o:[["在運屍車上的屍體中尋找，翻至第186章",186],
+   ["在冷藏隔間裡尋找，翻至第226章",226],
+   ["離開停屍房，翻至第246章",246]]},
+
+157:{t:`你擠過混戰的教徒，朝著那座凸起的石質高台衝去。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com",minusDoom:true,b:{agile:1,secretRites:1},p:{FEAR_INSECTS:-2},need:15,label:"第一輪"},
+  {d:2,s:"com",b:{agile:1,secretRites:1},p:{FEAR_INSECTS:-2},prev:2,need:16,label:"第二輪"},
+  {d:2,s:"com",b:{agile:1,secretRites:1},p:{FEAR_INSECTS:-2},prev:2,need:16,label:"第三輪"}
+ ],
+ resolve:"last",win:238,lose:272}},
+
+158:{t:`你前往東鎮街區，走進警察局。`,
+sec:["肆號地點"],
+o:[["若你有弱點{墨漬手指}，翻至第165章",165,{wk:["INKY_FINGERS"]}],
+   ["若你持有【哈登警探的名片】，翻至第222章",222,{has:"HARDEN_CARD"}],
+   ["若均無，翻至第204章",204]]},
+
+159:{t:`她開口說話了。「當月亮在黑暗中消逝，一位新神即將崛起。三者擇一，終獲至寶。其一自烈焰深淵召喚而來，其一欲撕裂次元帷幕，最後一位為幼神，其卵將遭背棄。」`,
+fx:{c:1},sec:["破碎之兆"],
+test:{n:"恐慌測試",s:"wp",d:1,p:{HAUNTED:-1},c:"res",need:9,ok:179,ng:199}},
+
+160:{t:`你別無選擇，只能用盡一切可用的手段自衛。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com",b:{agile:1},need:15,label:"第一輪"},
+  {d:2,s:"com",b:{agile:1},prev:2,need:16,label:"第二輪"}
+ ],
+ resolve:"last",win:201,lose:184}},
+
+161:{t:`「好吧，跟我來。」米里亞姆·比徹領你走進一間裡屋，「我即將告訴你的一切，將徹底改變你。」`,
+sec:["占卜師"],
+o:[["若你擁有{古語言}能力，翻至第191章",191,{abil:["ANCIENT_LANGUAGES"]}],
+   ["若未擁有，翻至第231章",231]]},
+
+162:{t:`自從在餐廳與你相遇後，布萊恩博士的笑容第一次僵住。「我本以為，你找到這本筆記本後，我留下的這些線索，最終會引你找到那至寶。真是太令人失望了。」
+
+他的觸碰冰冷刺骨，你發現聲音哽在了喉嚨裡。「由於某些限制，我無法親自踏入阿巴頓府。但一個有用的蠢貨，一個不受這些限制約束的人——可以做到。」
+
+在無盡的寒冷中，世界漸漸縮成一點微光，最終消失在永恆的黑暗之中。`,
+end:{stars:0,title:"鏡花水月"}},
+
+163:{t:`你將利爪朝他擲去。利爪在空中旋轉，劃過他的額頭，留下一道血痕。
+
+「放肆的螻蟻。」他朝你一指，一隻扭曲的陰影觸鬚立刻朝你伸來。骨頭碎裂的聲響傳來，鮮血從身體的裂口噴湧而出。`,
+end:{stars:0,title:"放肆的螻蟻"}},
+
+164:{t:`你翻看著美洲地圖的蝕刻畫，細節精緻得令人驚嘆。`,
+fx:{c:1},o:[["翻至第9章",9]]},
+
+165:{t:`「真沒想到你還敢回來。」值班警官說道，「現在趕緊走。」`,
+fx:{d:2},
+o:[["翻至第140章（可消耗1線索/資源減少1厄運；2點可全免）",140,{doomFix:2}]]},
+
+166:{t:`你轉身狂奔。就在你伸手拉開正門的瞬間，一隻怪物還是蟄中了你，劇痛讓你幾乎栽倒。
+
+但你終究衝了出去，反手猛地關上大門，將那些生物困在了宅邸內。`,
+fx:{h:-1},o:[["翻至第264章",264]]},
+
+167:{t:`你發現老者也早已沒了蹤影。你手中只剩下一條線索，於是動身前往河對岸的密斯卡托尼克大學。`,
+o:[["翻至第227章",227]]},
+
+168:{t:`你找到了克里斯托弗博士的辦公室。你正準備敲門，卻聽到門內傳來一聲怒吼：「簡直難以置信！」`,
+o:[["敲門，翻至第188章",188],
+   ["直接推門進入，翻至第169章",169],
+   ["放棄尋找克里斯托弗博士，翻至第298章",298]]},
+
+169:{t:`你走進一間書房。一個高大的男人站在工作台前，聽到你的突然闖入，他慌忙用一塊細棉布蓋住了工作台上的標本。「我是米蘭·克里斯托弗博士。」`,
+fx:{c:1},
+o:[["道歉並離開，翻至第208章",208],
+   ["向克里斯托弗博士打聽尼德斯教授，翻至第27章",27]]},
+
+170:{t:`你看到有什麼東西從觀測穹頂的開口處溜進了天文台。`,
+o:[["逃跑，翻至第32章",32],
+   ["堅守原地，翻至第64章",64],
+   ["另尋辦法，翻至第93章",93]]},
+
+171:{t:`魔法老店依舊開著門。「我能幫你嗎？」米里亞姆·比徹語氣溫和地問道。
+
+「有個基本準則，不要插手你無法理解的事情。」她冷冷地說，「尤其是在阿卡姆。」你解釋說，現在已經太遲了。
+
+「那就要付出代價。」「我要的不是錢。」她的話讓你四肢發涼，「無論代價是什麼，你還想知道真相嗎？」`,
+o:[["若你決定在付出無法承受的代價前離開，翻至第141章",141],
+   ["若你準備好付出代價，翻至第161章",161]]},
+
+172:{t:`你擠過混戰的教徒，登上石質高台的台階，一把抓起那隻詭異的陶土容器，將它的開口對準了月食形成的天空傳送門。
+
+無數巨型黑色昆蟲從容器口中噴湧而出，直衝雲霄。空間彷彿開始扭曲、收縮。你的手臂酸痛難忍，任由容器掉落在地，摔得粉碎。但你的目的似乎已經達到——蟲群依舊死死盯著高空傳送門後的怪物。`,
+o:[["擲1d6，若{敏捷}點數+1。≤生命值→250章；>生命值→200章",0,{escapeRoll:{250:200}}]]},
+
+173:{t:`你凝神靜氣，在自己和逼近的教徒之間佈下一道魔法屏障。`,
+o:[["翻至第13章",13]]},
+
+174:{t:`火與酒精本就水火不容，火與昆蟲更是天生相剋。`,
+test:{n:"巧思測試（2d6）",s:"int+com",d:2,b:{studious:1},need:14,ok:273,ng:254}},
+
+175:{t:`這個書架堪稱一座晦澀文獻的寶庫。還有一本是古語言翻譯指南。`,
+ab:["ANCIENT_LANGUAGES"],o:[["翻至第215章",215]]},
+
+176:{t:`你身處宅邸的西翼，走廊兩側各有一扇門。`,
+o:[["左邊的門，翻至第131章",131],
+   ["右邊的門，翻至第55章",55],
+   ["返回中央走廊，翻至第194章",194]]},
+
+177:{t:`儘管你從中阻撓，但其他教徒的吟唱並未停止。抓住你和布萊恩博士的教徒，強行將你們拖向場地中央。
+
+尼德斯教授猛地舉起雙手，無數巨型黑色昆蟲從陶土容器的口中噴湧而出。`,
+end:{stars:0,title:"蜂群同化"}},
+
+178:{t:`「到底發生了什麼？」你低聲質問道。
+
+「同化教派和空天教派，雙方都想讓自己的神明崛起。但我們必須確保，無論是埃澤爾-森-雷茲，還是西勒諾斯，都無法在今夜掌控阿卡姆。」`,
+fx:{it:1},
+o:[["繼續猛攻蟲群之神的追隨者，翻至第281章",281],
+   ["向空天之神西勒諾斯的信徒發起進攻，翻至第201章",201],
+   ["詢問布萊恩博士最佳的行動方案，翻至第189章",189]]},
+
+179:{t:`「小心影之召喚師。」她的聲音變得沙啞粗糲，「尋找那把利刃，儘管你需要上刀山下火海才能找到它。」`,
+fx:{c:1},wk:["HAUNTED"],sec:["古老的智慧"],o:[["翻至第219章",219]]},
+
+180:{t:`你發現了一本攤開的書，書頁上滿是關於月球運行軌道的圖表。你還發現講台下有一把【鑰匙】，上面刻著數字「120」。`,
+fx:{c:1},give:["KEY120"],o:[["翻至第170章",170]]},
+
+181:{t:`一道強光突然照亮了溫室。布萊恩博士緩緩升空。
+
+「奈亞拉托提普即將崛起！」他的聲音在破碎的溫室裡迴盪，「你們都將在匍匐之混沌的威嚴下俯首稱臣！」`,
+o:[["對布萊恩博士發動突然襲擊，翻至第289章",289],
+   ["靜觀其變，翻至第224章",224]]},
+
+182:{t:`「你拿到了嗎？」這位學者急切地問道。「那把利刃。」`,
+o:[["若你持有【儀式匕首】，翻至第142章",142,{has:"CEREMONIAL_DAGGER"}],
+   ["若未持有，翻至第162章",162]]},
+
+183:{t:`你掏出【黑爪匕首】，橫在身前。那些無形的攻擊者朝你俯衝而來。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com+wp",b:{secretRites:1},need:14,label:"第一輪"},
+  {d:2,s:"com+wp",b:{secretRites:1},prev:2,need:15,label:"第二輪"}
+ ],
+ resolve:"last",win:113,lose:133}},
+
+184:{t:`一切都是徒勞。無論你給他們造成多麼嚴重的傷害，他們都堅信，除了光榮赴死，生命再無其他意義。
+
+最終，你們二人寡不敵眾，被徹底擊敗。`,
+end:{stars:0,title:"虛無的盡頭"}},
+
+185:{t:`看到那隻怪物出現在阿卡姆上空的空間裂隙中，你的想法徹底改變了。`,
+o:[["擲1d6，若{被詛咒}或{鬧鬼}點數-1。≤理智值→258章；>理智值→196章",0,{sanityRoll:{258:196}}]]},
+
+186:{t:`你掀開了白布。這是一具年輕男子的屍體，肩膀上的傷口是人類的牙印，而且傷口周圍沒有血跡。`,
+fx:{s:-1},sec:["想來一口嗎？"],
+o:[["在冷藏隔間裡尋找，翻至第226章",226],
+   ["立刻離開停屍房，翻至第246章",246]]},
+
+187:{t:`你發現，這本書是一套天文學系列書籍中的第七本。`,
+fx:{c:1},
+o:[["閱讀那本綠色的書，翻至第164章",164],
+   ["細讀那本手寫筆記本，翻至第207章",207],
+   ["嘗試走廊上的另一扇門，翻至第25章",25],
+   ["返回中央走廊，翻至第247章",247]]},
+
+188:{t:`你敲了敲門，門內傳來一聲回應：「請進。」`,
+o:[["道歉並離開，翻至第208章",208],
+   ["打聽尼德斯教授，翻至第228章",228],
+   ["打聽布萊恩博士，翻至第47章",47],
+   ["詢問他正在做什麼，翻至第67章",67]]},
+
+189:{t:`「無論怎樣都無所謂。」布萊恩博士說，「今夜，只有一位神明會在阿卡姆崛起，那就是我所侍奉的神明——奈亞拉托提普！」`,
+test:{n:"理性測試",s:"int",d:1,b:{studious:2},need:8,ok:213,ng:252}},
+
+190:{t:`「我在找關於阿巴頓府的資料。」你告訴圖書管理員。
+
+她拿出一張【建築藍圖】，說：「這就是阿巴頓府的藍圖。這座位於法國山街區的老房子，中央庭院被改造成了一座巨大的玻璃穹頂溫室。」`,
+fx:{c:1},give:["BLUEPRINT"],sec:["圖書管理員"],
+o:[["消耗1點線索或1點資源，或厄運值+1，翻至第140章",140,{cost:["c","r"],orDoom:1}]]},
+
+191:{t:`「這是一種古老的語言，自它誕生以來，無數紀元更迭，這種語言的名字，非入門者無法發音。但這本筆記本的主人，只是將它作為密碼的基礎。」
+
+你翻回扉頁，發現在布萊恩博士的名字下方，有用鉛筆淡淡寫下的更多相同符號。這會不會是解開密碼的鑰匙？
+
+你反覆對照著扉頁的符號，試圖從這些看似毫無意義的文字中找出含義。`,
+o:[["若你想消耗1點線索輔助破譯，翻至第285章",285,{cost:["c"]}],
+   ["若不想，翻至第271章",271]]},
+
+192:{t:`皮博迪先生找到了園林設計師繪製的規劃圖，上面標註了一條從廚房通往草坪下隱藏冰庫的地下通道。
+
+「你能把它帶走，但你可以抄一份。」`,
+give:["GARDEN_PLAN"],sec:["歷史學家"],fx:{d:2},
+o:[["翻至第140章（可消耗1線索/資源減少1厄運；2點可全免）",140,{doomFix:2}]]},
+
+193:{t:`你用手拼命拍打這些球狀的昆蟲身體，可這就像試圖與風搏鬥一樣。你一步步退向停屍房唯一的出口，最終轉身狂奔。`,
+fx:{h:-1},
+o:[["輸入四數字之和→對應章節；若無頭緒，翻至第259章",0,{sumPuzzle:259}]]},
+
+194:{t:`你身處宅邸的中央走廊，接下來想去哪裡？`,
+o:[["探索宅邸的東翼，翻至第234章",234],
+   ["嘗試左側那扇宏偉的雙開門，翻至第267章",267]]},
+
+195:{t:`這塊布告板上貼滿了各式各樣的圖片、照片、地圖和報紙剪報。其中許多藝術家筆下的巨型蛋的畫像。`,
+fx:{c:1},sec:["一枚好壞參半的蛋"],o:[["翻至第215章",215]]},
+
+196:{t:`一切都是徒勞，你無法移開目光，死死盯著西勒諾斯。你會目瞪口呆地盯著你的主君，直到布萊恩博士或某位教徒結束你的痛苦。`,
+sec:["空天之神"],end:{stars:0,title:"虛無之天"}},
+
+197:{t:`你快步追趕那位老者，但他似乎陷入了沉思，轉過街角就消失了。
+
+你再次看了一眼筆記本封面內側的題字，決定動身前往密斯卡托尼克大學。`,
+o:[["翻至第227章",227]]},
+
+198:{t:`「他們說你死了。」你反駁道。
+
+「誰說的？」布萊恩博士問道。
+
+「警察，哈登警探。」
+
+「哼，警察知道什麼？」這位學者答道，「我可以向你保證，他們知道的太少了。」`,
+fx:{it:-1},sec:["第一個犧牲者"],
+o:[["若你擁有弱點{濕鞋子}，翻至第209章",209,{wk:["WET_SHOES"]}],
+   ["若未擁有，翻至第182章",182]]},
+
+199:{t:`一切都是徒勞，老婦人的目光太過銳利。她向你揭示的真相——你知道那都是真相——足以讓你心神俱裂。`,
+fx:{s:-1},o:[["翻至第219章",219]]},
+
+200:{t:`今夜的種種考驗，遠比你想像的更折磨人。你筋疲力盡，最終在逃出溫室前，轟然倒地。`,
+sec:["外神之戰"],end:{stars:2,title:"外神之戰"}},
+
+201:{t:`你抓住這轉瞬即逝的有利時機，加入蟲群之神信徒的隊伍，向這些虛無主義的入侵者發起進攻。突然與另一名虛無主義者正面相遇，她強迫你與她對視。`,
+test:{n:"自控測試",s:"wp+san",d:1,b:{secretRites:1},c:"res",need:8,ok:253,ng:278}},
+
+202:{t:`你躲在巨大的紫杉樹籬的陰影裡。最終決定動身前往上城的魔法老店。`,
+o:[["翻至第171章",171]]},
+
+203:{t:`你掏出【黃銅望遠鏡】，卻不知道該用它做什麼。那些幽靈般的生物已經朝你俯衝而來。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com+wp",b:{secretRites:1},need:16,label:"第一輪"},
+  {d:2,s:"com+wp",b:{secretRites:1},prev:2,need:17,label:"第二輪"}
+ ],
+ resolve:"last",win:113,lose:133}},
+
+204:{t:`你向值班警官解釋，你想幫忙找到殺害布萊恩博士的兇手。「換做是我，早就溜之大吉了。」`,
+fx:{d:1},
+o:[["翻至第140章（可消耗1線索/資源免厄運）",140,{doomFix:1}]]},
+
+205:{t:`你的心跳在耳邊砰砰作響，準備與這些甲蟲般的胡蜂展開搏鬥。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com",p:{FEAR_INSECTS:-2},need:13,label:"第一輪",loseHp:1},
+  {d:2,s:"com",p:{FEAR_INSECTS:-2},prev:2,need:14,label:"第二輪"}
+ ],
+ resolve:"last",win:245,lose:225}},
+
+206:{t:`那名受暗影束縛的巫師散發出陣陣令人瘋狂的力量。人類及其在世界中的存在毫無意義。
+
+今夜，一位古神將崛起，而這位引致瘋狂的神明，便是奈亞拉托提普——匍匐的混沌。`,
+sec:["匍匐的混沌"],end:{stars:0,title:"匍匐的混沌"}},
+
+207:{t:`你仔細研讀這些手寫筆記，得知其出自阿奇博爾德·尼德斯之手。其中記載了三位敵對的古神為爭奪世界的統治權而爭鬥。其中一位名為西勒諾斯，亦被稱作「空寂之天」。
+
+你便將【阿奇博爾德的記錄】塞進口袋。`,
+fx:{c:1,r:1},give:["ARCHIBALDS_ACCOUNT"],o:[["翻至第9章",9]]},
+
+208:{t:`離開昆蟲學家的房間後，你接下來想去哪裡？`,
+o:[["尋找尼德斯教授，翻至第298章",298],
+   ["離開科學樓，翻至第140章",140]]},
+
+209:{t:`「我親自去了停屍房。」你反駁道。
+
+「被送到停屍房的不過是一具幻象替身罷了。」`,
+fx:{s:-1},
+o:[["消耗1點資源，否則理智值再-1。翻至第182章",182,{cost:["r"],elseSan:-1}]]},
+
+210:{t:`阿卡姆歷史學會現任館長皮博迪先生問你來訪所為何事。
+
+「我在研究阿卡姆的古老家族。」
+
+「啊，尼德斯家族我倒是聽說過，他們在法國山有一處宅邸，就是阿巴頓府。」`,
+sec:["捌號地點"],
+o:[["若你願意等皮博迪先生尋找規劃圖，翻至第192章",192],
+   ["前往別處繼續追查，厄運值+1，翻至第140章",140,{cost:["c","r"],orDoom:1}]]},
+
+211:{t:`即便你未能集齊所有字母，也能推斷出缺失的部分。
+
+當月亮在黑暗中消逝，一位新神即將崛起。三者擇一，終獲至寶。其一自烈焰深淵召喚，其一欲撕裂次元帷幕，最後一位為幼神，其卵獻祭。
+
+常言道，一知半解最是危險，無知反而是種幸福。此刻，你對此深有體會。`,
+fx:{c:1,s:-1},sec:["隱藏的叄號"],
+o:[["翻到另一頁，開始解讀上面的內容，翻至第141章",141]]},
+
+212:{t:`你拿出【黃銅望遠鏡】，教徒們卻突然踉蹌著停下腳步，面面相覷。`,
+o:[["翻至第13章",13]]},
+
+213:{t:`一知半解固然危險，但這或許也是你擺脫困境的唯一辦法。因為知曉一物的真名，是擊敗它的第一步。`,
+fx:{s:1},o:[["翻至第181章",181]]},
+
+214:{t:`你衝向房門想要推開，卻遭到了阻力。嗡嗡聲愈發刺耳，你轉身發現自己已被蟲群團團圍住。`,
+fx:{h:-1,co:-1},
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com+int",need:10,label:"第一輪"},
+  {d:2,s:"com+int",prev:2,need:11,label:"第二輪"}
+ ],
+ resolve:"last",win:290,lose:274}},
+
+215:{t:`你突然聽到走廊裡傳來急促的腳步聲，四名警察衝進房間。「舉起手來！」`,
+o:[["翻至第262章",262]]},
+
+216:{t:`你攤開建築藍圖和園丁的規劃圖。將較大的數字除以較小的數字，翻至結果對應的章節。
+
+※ 108 ÷ 9 = 12。`,
+o:[["若你同時持有【建築藍圖（108）】和【園丁規劃圖（9）】，翻至第12章",12,{has:["BLUEPRINT","GARDEN_PLAN"]}],
+   ["否則翻至第15章",15]]},
+
+217:{t:`你能感受到布萊恩博士的指令帶來的物理衝擊。`,
+o:[["翻至第201章",201]]},
+
+218:{t:`你的心跳不斷加快，但你仍努力壓制著越來越強烈的不安。`,
+o:[["趁他注意力分散時發動攻擊，翻至第289章",289],
+   ["使用神祕聖物對抗他，翻至第296章",296]]},
+
+219:{t:`你在拘留室裡待了一個小時，一名警察出現在鐵欄前。「有人保釋你出去了。」`,
+o:[["輸入四數字之和→對應章節；若無頭緒，翻至第259章",0,{sumPuzzle:259}]]},
+
+220:{t:`你突然發現自己被一群醜陋的昆蟲團團圍住。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com+int",need:10,label:"第一輪"},
+  {d:2,s:"com+int",prev:2,need:11,label:"第二輪"}
+ ],
+ resolve:"last",win:233,lose:193}},
+
+221:{t:`你出其不意地撲向離你最近的教徒，將幾人打倒在地。`,
+fx:{co:1},
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com",b:{agile:1},need:15,label:"第一輪"},
+  {d:2,s:"com",b:{agile:1},prev:2,need:16,label:"第二輪"}
+ ],
+ resolve:"last",win:269,lose:257}},
+
+222:{t:`你向值班警察出示【哈登警探的名片】。幾分鐘後，警探現身，「你有什麼線索要告訴我？」`,
+o:[["若你願意消耗1點線索，翻至第261章",261,{cost:["c"]}],
+   ["若不願，翻至第241章",241]]},
+
+223:{t:`你朝那些生物開槍，但子彈卻徑直穿過了牠們的身體。`,
+fx:{wp:-1},o:[["翻至第64章",64]]},
+
+224:{t:`面對這般瘋狂的景象，你迫切想要弄清真相。「你到底在做什麼？」
+
+「啊，我有用的蠢貨，」布萊恩博士說，「你想知道真相，很好。」
+
+「一切始於尼德斯教授。我的主人絕不容許另一位古神在阿卡姆崛起，於是我設法暗中破壞她的召喚儀式。然而，由於她在阿巴頓府周圍佈下了魔法結界——我始終無法進入儀式舉行的場所。而這，就是你出現的原因。」`,
+o:[["拼盡全力逃離此地，翻至第260章",260],
+   ["親自襲擊布萊恩博士，翻至第77章",77],
+   ["阻止埃澤爾-森-雷茲的召喚，翻至第157章",157],
+   ["全力阻止西勒諾斯的降臨，翻至第185章",185],
+   ["設法讓雙方兩敗俱傷，翻至第51章",51],
+   ["做出終極犧牲，翻至第50章",50]]},
+
+225:{t:`你拼盡全力抵擋那些巨型昆蟲，可無論如何掙扎，牠們依舊能避開你的防禦。最終，你倒在走廊的地毯上。`,
+end:{stars:0,title:"毒液蔓延"}},
+
+226:{t:`停屍櫃的編號從61號開始，一直到90號，而非從1號開始。突然你聽到一陣微弱的嗡鳴，聲音是從78號櫃門後傳來的。`,
+o:[["若你敢冒險打開這個抽屜，翻至第78章",78],
+   ["若你想立刻離開停屍房，翻至第246章",246]]},
+
+227:{t:`你抵達了校園的生命科學系區域。走廊的地毯上，掉著一方【手帕】，上面繡著字母縮寫DB。
+
+你敲了敲門，門卻在觸碰下吱呀一聲開了。書桌後的椅子上，坐著那位白髮老者，癱倒在椅上，頭向後仰，直視著天花板。`,
+give:["HANDKERCHIEF"],
+o:[["檢查老者是否還活著，翻至第10章",10],
+   ["衝向敞開的窗戶，翻至第52章",52],
+   ["搜查書房尋找線索，翻至第33章",33]]},
+
+228:{t:`「你認識尼德斯教授嗎？」你向克里斯托弗博士問道。
+
+「當然認識，她是系裡的重要人物。」
+
+「那你知道我能在哪裡找到她嗎？」`,
+test:{n:"可信度測試",s:"wp",d:1,p:{PARANOID:-1,CRIMINAL:-1},c:"res",need:8,ok:248,ng:27}},
+
+229:{t:`你集中精神，準備以魔法對抗魔法。但布萊恩博士立刻察覺到了你的舉動。
+
+「放肆的螻蟻，」他怒吼道，「你竟敢挑戰我？」`,
+end:{stars:0,title:"暗影纏身"}},
+
+230:{t:`「你以為，是誰把你從監獄裡保釋出來的？」布萊恩博士問道。`,
+o:[["翻至第182章",182]]},
+
+231:{t:`「我從未見過這樣的符號。」「再仔細看看，」米里亞姆說，「現在看出什麼了嗎？」`,
+test:{n:"圖案識別測試",s:"int",d:1,b:{arcaneStudies:1},c:"clue",need:8,ok:251,ng:271}},
+
+232:{t:`你身旁突然閃過一道強光。襲擊你的教徒們橫七豎八地倒在溫室的地板上，一動不動。
+
+一聲尖叫從站在石質高台上的女人口中傳出。你順著她的目光望去，透過溫室玻璃屋頂的縫隙，地球的陰影正緩緩爬上月球表面。
+
+「是沃醫生，」你身邊的布萊恩博士嘶聲說道，「他也沒閒著。」
+
+當地球完全擋住太陽光，天空變成了一個真正的黑洞。一隻長著利爪、有著無數腫脹巨口和數不清眼睛的存在，正從星際迷霧中緩緩浮現。`,
+test:{n:"自控測試",s:"wp+san",d:1,c:"res",need:10,ok:292,ng:37}},
+
+233:{t:`你隨手抓起身邊的東西，朝那些圓胖的昆蟲拍去。最終，殘存的昆蟲不再攻擊你。`,
+fx:{co:1,c:1},
+o:[["輸入四數字之和→對應章節；若無頭緒，翻至第259章",0,{sumPuzzle:259}]]},
+
+234:{t:`你身處宅邸的東翼，走廊上有兩扇門。`,
+o:[["嘗試左側的門，翻至第25章",25],
+   ["嘗試右側的門，翻至第85章",85],
+   ["返回中央走廊，翻至第247章",247]]},
+
+235:{t:`面對這隻生物咄咄逼人的攻擊，你踉蹌著後退，被牠鋒利的利爪劃出一道可怕的傷口。
+
+就在你以為自己必死無疑時，下方突然傳來剎車的尖嘯。這隻怪物轉過沒有五官的腦袋，振翅飛向空中，消失在夜色中。`,
+fx:{h:-1},
+o:[["順著消防通道爬下去，翻至第90章",90],
+   ["從窗戶重新進入布萊恩博士的書房，翻至第255章",255]]},
+
+236:{t:`你能否找到另一種進入阿巴頓府的方式，取決於你對宅邸及其庭院佈局的熟悉程度。`,
+o:[["若你同時持有【建築藍圖】和【園丁規劃圖】，翻至第216章",216,{has:["BLUEPRINT","GARDEN_PLAN"]}],
+   ["若沒有，翻至第15章",15]]},
+
+237:{t:`你無法抗拒布萊恩博士的話語帶來的力量。你揮下匕首，刺中了那名失神的虛無主義者的胸膛。
+
+這名教徒倒在地上，圓睜的雙眼死死盯著你。`,
+fx:{s:-1},wk:["CURSED"],
+o:[["對抗同化教派，翻至第281章",281],
+   ["繼續與空寂之天教派戰鬥，翻至第201章",201],
+   ["靜待事態發展，翻至第181章",181]]},
+
+238:{t:`你殺出一條血路，穿過蟲群，登上石質高台。尼德斯教授看到你，發出一聲憤怒的尖叫。
+
+你親眼看到，一隻巨大的黑色昆蟲從陶罐的口中爬了出來。你雙手抓起容器，狠狠砸向地面。
+
+尼德斯教授再次尖叫起來。但還沒等她撲到你身上，蟲群便一擁而上，鑽進她身上所有能鑽進去的縫隙。`,
+o:[["保全自己，拼盡全力逃離此地，翻至第150章",150],
+   ["襲擊布萊恩博士，翻至第77章",77],
+   ["阻止西勒諾斯的降臨，翻至第249章",249]]},
+
+239:{t:`你登上克蘭山，還未抵達天文台，就被兩隻空靈的生物攔住了去路。`,
+sec:["柒號地點"],
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com+wp",b:{secretRites:1},need:14,label:"第一輪"},
+  {d:2,s:"com+wp",b:{secretRites:1},prev:2,need:15,label:"第二輪"}
+ ],
+ resolve:"majority",win:17,lose:46}},
+
+240:{t:`你的思緒飛速運轉，試圖想出辦法，抵禦這嗡嗡作響的蟲群。
+
+你身上有能用來製作有效武器的東西嗎？`,
+o:[["若你同時擁有【打火機】，以及【威士忌】或【消毒酒精】，翻至第174章",174,{has:["LIGHTER"],hasAny:["WHISKEY","SWABBING_ALCOHOL"]}],
+   ["若沒有足夠的物品，翻至第254章",254]]},
+
+241:{t:`「我想盡我所能，幫忙找到殺害布萊恩博士的兇手。」`,
+o:[["若你願意消耗1點線索，翻至第261章",261,{cost:["c"]}],
+   ["若不願，厄運值+1，翻至第140章",140,{cost:["c","r"],orDoom:1}]]},
+
+242:{t:`你從黑暗中走出，朝警察們大喊。`,
+o:[["若你有能力{警察}或{偵探}，翻至第297章",297,{abil:["POLICE","DETECTIVE"]}],
+   ["否則進行一次欺騙測試：1d6+智力（可消耗1資源擲2d6取高）。≥8→5章；≤7→262章",0,{autoTest:{s:"int",d:1,c:"res",need:8,ok:5,ng:262}}]]},
+
+243:{t:`模型中的許多建築，只是簡單的木塊。你將目光從阿卡姆的模型上移開，開始檢查貼滿一面牆的軟木板上的星圖。
+
+其中有一張並非星圖，而是一幅看似星座的圖案。這個星座的星辰，與阿卡姆微縮模型上標註的地點，完美對應。只有一個標註的地點，與星座的星辰無法匹配——那就是法國山的那棟宅邸。
+
+你將這份城鎮平面圖臨摹了下來。`,
+fx:{c:2},give:["TOWN_MAP"],
+o:[["若你想看看盒子裡有什麼，翻至第263章",263],
+   ["若你想繼續尋找沃醫生，翻至第14章",14]]},
+
+244:{t:`「可我看到了你的屍體。」「是嗎？」「你看起來就像死了一樣。」「看來，你不能總是相信自己的眼睛。」他苦笑著說。`,
+o:[["若你有弱點{墨漬手指}，翻至第230章",230,{wk:["INKY_FINGERS"]}],
+   ["若你有弱點{濕鞋子}，翻至第209章",209,{wk:["WET_SHOES"]}],
+   ["若你二者皆無，翻至第182章",182]]},
+
+245:{t:`你隨手拿起一切東西朝昆蟲拍去。你靈機一動，從掛鉤上扯下一幅畫，朝其中一隻砸去。當另一隻憤怒的蟲子朝你撲來時，你抓起厚重的天鵝絨窗簾，朝牠揮去。`,
+fx:{co:1},o:[["翻至第264章",264]]},
+
+246:{t:`你受夠了這個地方，一秒也不想多待。`,
+o:[["若你撿到了【腳牌】，翻至第286章",286,{has:"TOE_TAG"}],
+   ["若沒有，翻至第266章",266]]},
+
+247:{t:`你依舊孤身一人，身處這座神祕的宅邸之中。`,
+o:[["探索宅邸的西翼，翻至第176章",176],
+   ["嘗試右側的雙開門，翻至第267章",267]]},
+
+248:{t:`「尼德斯教授的辦公室在二樓，卡夫卡藏品館那邊，」克里斯托弗博士告訴你，「不如我帶你過去吧。」`,
+sec:["昆蟲學家"],
+o:[["他領著你穿過科學樓，最終在一扇深胡桃木色的房門前停下。",0,{goto:248.5}]]},
+
+"248.5":{t:`房間裡一片漆黑，但一陣憤怒的嗡嗡聲，立刻讓你察覺到了危險。克里斯托弗博士找到電燈開關，房間瞬間被燈光照亮，這位科學家發出一聲驚恐的尖叫。
+
+那是一隻體型巨大的胡蜂。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com",p:{FEAR_INSECTS:-2},need:12,label:"第一輪"},
+  {d:2,s:"com",p:{FEAR_INSECTS:-2},prev:2,need:13,label:"第二輪"}
+ ],
+ resolve:"last",win:288,lose:268}},
+
+249:{t:`你正準備對付殘存的教徒，現實本身卻開始扭曲。溫室的牆壁如同水中的倒影般泛起漣漪。一陣颶風席捲了整棟建築，時空的帷幕被撕開兩道裂口。`,
+end:{stars:0,title:"時空崩壞"}},
+
+250:{t:`儘管今夜的種種遭遇讓你身心俱疲，但急需的腎上腺素還是為你疲憊的身體注入了一絲力量，你逃離了阿巴頓府。
+
+月食漸漸結束，月光追隨著你的腳步，你抬頭望向天空，看到月亮重新出現，而天空中的黑洞都消失無蹤。但阿巴頓府卻消失得無影無蹤，只剩一片完好無損的草坪。`,
+sec:["暗夜徘徊者"],end:{stars:3,title:"暗夜徘徊者"}},
+
+251:{t:`「這看起來與其說是一種語言，不如說是一種密碼。」「說得非常好。沒有密碼本，上面寫的一切，都將永遠無法理解。」`,
+o:[["若你願意消耗1點線索，翻至第285章",285,{cost:["c"]}],
+   ["若不願，翻至第271章",271]]},
+
+252:{t:`事實證明，今夜並非只有兩個派系，而是三個——而你自始至終，都在幫助其中一方！
+
+一知半解最是危險，知曉真相的你，本就瀕臨崩潰的理智，再次受到了侵蝕。`,
+fx:{s:-1},o:[["翻至第181章",181]]},
+
+253:{t:`溫室中的其他人，或許都已失去了理智——包括布萊恩博士——但你決心堅守本心，絕不重蹈覆轍。`,
+fx:{wp:1},o:[["翻至第181章",181]]},
+
+254:{t:`沒用的，在這危急關頭，你根本來不及想出辦法。慌亂中，你手中的物品不慎滑落，摔在地上。`,
+take:["LIGHTER","WHISKEY","SWABBING_ALCOHOL"],o:[["翻至第220章",220]]},
+
+255:{t:`你小心翼翼地翻過窗台，回到了辦公室。而四名警察早已在房間裡等候多時。`,
+o:[["翻至第262章",262]]},
+
+256:{t:`你沒有採取任何行動擾亂儀式，只是冷眼旁觀，靜靜等待。尼德斯教授將雙手高高舉起，無數巨大的黑色昆蟲，從陶罐的口中湧了出來。
+
+片刻之間，數百隻、數千隻、數萬隻昆蟲接連湧出。緊接著，尖叫聲開始響起。`,
+end:{stars:0,title:"旁觀者的下場"}},
+
+257:{t:`教徒的數量實在太多，你和布萊恩博士被徹底壓制。局勢逆轉，你被教徒俘虜。`,
+o:[["進行一次命運測試：1d6，若{被詛咒}點數+1。≤厄運值→232章；>厄運值→177章",0,{fate:{232:177}}]]},
+
+258:{t:`你終於將目光從那可怖怪物身上移開。但沃醫生已經察覺。他決意要除掉你。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com+wp",minusDoom:true,b:{secretRites:1},need:18,label:"第一輪"},
+  {d:2,s:"com+wp",b:{secretRites:1},prev:2,need:19,label:"第二輪"},
+  {d:2,s:"com+wp",b:{secretRites:1},prev:2,need:20,label:"第三輪"}
+ ],
+ resolve:"last",win:146,lose:284}},
+
+259:{t:`你的調查似乎走進了死胡同。你完全不知下一步該何去何從，只能選擇回家。
+
+但當你獨自走在阿卡姆漆黑的街道上時，心中那股末日將至的預感始終揮之不去，如影隨形。`,
+sec:["窮途末路"],end:{stars:0,title:"窮途末路"}},
+
+260:{t:`面對這般瘋狂的景象，除了逃離，一個心智正常的人還能作何反應？`,
+o:[["擲1d6，若{敏捷}點數+1。≤生命值→100章；>生命值→26章",0,{escapeRoll:{100:26}}]]},
+
+261:{t:`哈登警探認真傾聽著你所掌握的一切線索。他伸手從大衣口袋裡掏出一把【彈簧刀】，「小心點用。」`,
+give:["FLICK_KNIFE"],fx:{r:1},sec:["守護與服務"],
+o:[["消耗1點線索或1點資源，或厄運值+1，翻至第140章",140,{cost:["c","r"],orDoom:1}]]},
+
+262:{t:`那位神情粗獷的警長開始宣讀你被指控的罪名。你成了布萊恩博士謀殺案的頭號嫌疑人。`,
+o:[["若你選擇束手就擒，翻至第282章",282],
+   ["若你選擇反抗逮捕，翻至第299章",299]]},
+
+263:{t:`你從桌下拖出一個盒子，打開後發現，盒內鋪著深藍色的絲絨，一件精緻的【黃銅望遠鏡】靜靜躺在其中。`,
+give:["BRASS_TELESCOPE"],fx:{r:1},sec:["小望遠鏡"],o:[["翻至第14章",14]]},
+
+264:{t:`你需要一點時間梳理思緒，最終又回到了維爾瑪餐廳門口。
+
+你絲毫沒有注意到對面的卡座多了一個人，直到他在你面前坐下。
+
+「想必，你就是布萊恩博士吧。」`,
+fx:{h:1,wp:1},
+o:[["若你持有【手帕】，翻至第244章",244,{has:"HANDKERCHIEF"}],
+   ["若未持有，但有【哈登警探的名片】，翻至第198章",198,{has:"HARDEN_CARD"}],
+   ["若未持有，但有弱點{墨漬手指}，翻至第230章",230,{wk:["INKY_FINGERS"]}],
+   ["若未持有，但有弱點{濕鞋子}，翻至第209章",209,{wk:["WET_SHOES"]}],
+   ["若以上物品均未持有，翻至第182章",182]]},
+
+265:{t:`或許奧恩圖書館藏有與尼德斯教授祖宅相關的文獻。`,
+fx:{c:-1},
+puzzle:{type:"place",mult:2,fallback:140},
+o:[]},
+
+266:{t:`你推開門，匆匆穿過醫院大樓。`,
+o:[["若你有線索，輸入四數字之和→對應章節；若無，翻至第259章",0,{sumPuzzle:259}]]},
+
+267:{t:`你躡手躡腳地走向那扇門，遠處傳來的低語聲漸漸清晰。`,
+o:[["若你選擇打開房門，翻至第151章",151],
+   ["若你選擇先將耳朵貼在門上聽片刻，翻至第287章",287]]},
+
+268:{t:`這隻可怖的生物躲開了你慌亂的防禦，用致命的尾刺狠狠蟄向你。「吃我一擊，惡魔！」克里斯托弗博士高呼道。
+
+你看到這位昆蟲學家一手高舉著一尊貴族石像，將那隻生物砸在桌上、碾成肉泥。
+
+辦公室的一面牆上，顯眼地掛著一張照片。照片的底片上刻著：阿巴頓府。`,
+fx:{h:-1,c:1},sec:["家族合影"],o:[["翻至第140章",140]]},
+
+269:{t:`你和同伴並肩作戰，擊退了教徒的第一波進攻。`,
+fx:{co:1},
+o:[["繼續殺出一條血路，翻至第294章",294],
+   ["尋找能對抗蟲群之主信徒的物品，翻至第48章",48]]},
+
+270:{t:`你突然發現自己被一群面目可憎的昆蟲團團圍住。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com+int",need:10,label:"第一輪"},
+  {d:2,s:"com+int",prev:2,need:11,label:"第二輪"}
+ ],
+ resolve:"last",win:290,lose:274}},
+
+271:{t:`「我有個主意，」魔法老店的店主開口道，「把筆記本留在我這兒，我試試看能不能破譯上面的內容。」`,
+o:[["若你選擇同意她的提議，翻至第291章",291],
+   ["若你不願交出【布萊恩博士的筆記本】，翻至第141章",141]]},
+
+272:{t:`你拼盡全力想要衝出蟲群的包圍，可這些昆蟲的數量實在太多。你艱難地爬到石質高台腳下，看到尼德斯教授站在高台上，面露勝利的笑容。`,
+sec:["埃澤爾-森-雷茲的崛起"],end:{stars:0,title:"蟲群之神的崛起"}},
+
+273:{t:`你擰開酒瓶，喝了一大口酒，卻沒有嚥下，而是含在嘴裡。你彈開打火機，將口中高度易燃的酒精噴成霧狀，徑直噴向迎面而來的蟲群。
+
+你自製的火焰噴射器讓數隻昆蟲瞬間起火。但還沒等你再次噴射，打火機的火焰便熄滅了。`,
+take:["LIGHTER","WHISKEY","SWABBING_ALCOHOL"],fx:{it:1},
+o:[["輸入四數字之和→對應章節；若無頭緒，翻至第259章",0,{sumPuzzle:259}]]},
+
+274:{t:`你用手拼命拍打這些鼓脹的昆蟲軀體，可這就像試圖與風搏鬥。你一步步朝停屍房唯一的出口退去，最終轉身逃跑。但當你沿著走廊往回跑時，數隻巨型昆蟲狠狠攻擊了你。`,
+fx:{h:-2},
+o:[["輸入四數字之和→對應章節；若無頭緒，翻至第259章",0,{sumPuzzle:259}]]},
+
+275:{t:`你在此地猶豫不決，如今除了與教徒正面開戰，已別無選擇。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com",minusDoom:true,b:{agile:1},need:17,label:"第一輪"},
+  {d:2,s:"com",b:{agile:1},prev:2,need:18,label:"第二輪"}
+ ],
+ resolve:"last",win:269,lose:257}},
+
+276:{t:`自從布萊恩博士的辦公室裡發現那具可怖的屍體後，這裡的局勢總算漸漸平復。`,
+sec:["叄號地點"],fx:{d:2},
+o:[["鎖定一個具體的調查地點，翻至第140章（可消耗2線索/資源免厄運）",140,{doomFix:2}]]},
+
+277:{t:`你回到書房，看著桌上雜亂的書籍、文件，還有玻璃櫃裡的動物標本。`,
+o:[["查看布告板，翻至第195章",195],
+   ["查看巨大書架，翻至第175章",175],
+   ["搜查書桌，翻至第154章",154],
+   ["立刻離開房間，翻至第215章",215]]},
+
+278:{t:`西勒諾斯的追隨者所陷入的瘋狂，具有極強的傳染性。你心想，既然宇宙最終的歸宿都是熱寂，所有生命都會走向終結，那麼繼續掙扎又有什麼意義？
+
+就在這時，那個女人突然朝你襲來，給了你一道致命的傷口。`,
+fx:{s:-1,h:-1},o:[["翻至第181章",181]]},
+
+279:{t:`聖瑪麗醫院那座哥德式的建築，矗立在上城周邊。你不小心踩進了路面坑窪裡的一灘髒水。`,
+wk:["WET_SHOES"],
+o:[["若你選擇出聲求助，翻至第4章",4],
+   ["若你選擇低調行事，翻至第36章",36]]},
+
+280:{t:`那位漂浮在空中的巫師身上散發出的恐怖力量，清晰可感。`,
+o:[["擲1d6，若{被詛咒}或{鬧鬼}點數-1。≤理智值→260章；>理智值→206章",0,{sanityRoll:{260:206}}]]},
+
+281:{t:`你來到這裡的目的，就是阻止尼德斯教授，以及她所領導的同化教派。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com",minusDoom:true,b:{agile:1},need:16,label:"第一輪"},
+  {d:2,s:"com",b:{agile:1},prev:2,need:16,label:"第二輪"}
+ ],
+ resolve:"last",win:181,lose:92}},
+
+282:{t:`當警察已經將你團團圍住時，逃跑根本毫無意義。你選擇束手就擒。`,
+wk:["CRIMINAL"],o:[["翻至第59章",59]]},
+
+283:{t:`你推開門，在房間裡亮堂堂的白光下開始搜查。尼德斯教授顯然不在這裡，但離開前，你發現了兩件值得仔細查看的東西。
+
+一件是一張照片，照片中是一座宏偉的殖民風格宅邸，底片上刻著：阿巴頓府。另一件是一個造型奇特的人類頭骨面具。`,
+sec:["家族合影"],give:["SKULL_MASK"],fx:{r:1},o:[["翻至第140章",140]]},
+
+284:{t:`當這隻怪物用佈滿利齒的喙咬住你，將你癱軟的身體拋向空中，再一口吞下時，你才意識到，牠的喙是如此真實可觸。`,
+end:{stars:0,title:"葬身鳥腹"}},
+
+285:{t:`你意識到，布萊恩博士在扉頁筆記下寫下的那些符號，正是破解密碼的關鍵：每個符號都對應著英文信息中同一位置的字母。`,
+fx:{c:-1},
+o:[["若不能，翻至第271章",271]]},
+
+286:{t:`你伸手推了推門，門只動了一點點，就被什麼東西擋住了。身後傳來一陣嗡嗡聲，一群黑色的昆蟲從冷藏格縫隙中蜂擁而出。`,
+o:[["若你選擇強行打開停屍房的門，翻至第8章",8],
+   ["若你選擇準備迎戰蟲群，翻至第270章",270]]},
+
+287:{t:`你小心翼翼地將耳朵貼在溫熱的木門上。你聽到的，無疑是人們吟唱的聲音。可當你更加仔細地傾聽時，這悠揚的吟唱聲中，卻多了一絲嗡嗡的雜音，讓你心生不安。`,
+fx:{s:-1},o:[["翻至第151章",151]]},
+
+288:{t:`這隻可怖的生物試圖用細長的尾刺蟄你，卻被你一次次躲開。終於，你將牠狠狠砸在辦公室的地板上，一疊厚重的書籍砸在牠身上，將牠碾得粉碎。
+
+「幹得漂亮！」克里斯托弗博士說道。
+
+你還在房間裡發現了一個造型奇特的人類【頭骨面具】。以及一張照片，底片上刻著：阿巴頓府。
+
+「那是尼德斯教授的祖宅，」克里斯托弗博士說，「她現在很可能就在那裡。」`,
+fx:{co:1,c:2},give:["SKULL_MASK"],sec:["家族合影"],o:[["翻至第140章",140]]},
+
+289:{t:`布萊恩博士彷彿早已察覺你的意圖，轉過頭注視著你。
+
+「卑賤的蠕蟲，」他啐道，「你竟敢挑戰我？你已經完成了你的使命，現在的你，毫無用處。我不再需要你了。」
+
+他指向你，一道扭曲的陰影觸鬚朝你伸來。最終，你在劇痛中失去了意識。`,
+end:{stars:0,title:"卑賤的蠕蟲"}},
+
+290:{t:`你隨手抓起身邊的東西，將一托盤手術刀和其他消過毒的工具掃落在地，拼命拍打那些鼓脹的昆蟲。最終，剩下的昆蟲終於不再攻擊你。
+
+你再次將注意力轉向房門，拼命搖晃門把手，終於打開門逃了出去。`,
+fx:{co:1},
+o:[["輸入四數字之和→對應章節；若無頭緒，翻至第259章",0,{sumPuzzle:259}]]},
+
+291:{t:`你將筆記本遞給米里亞姆·比徹。她讓你明天再來，說完便將你送出了店門。`,
+take:["NOTEBOOK"],fx:{r:-1,c:-1},sec:["巫術魔法"],o:[["翻至第141章",141]]},
+
+292:{t:`究竟發生了什麼？整個世界都陷入了瘋狂嗎？
+
+「那些是空天教派的信徒，」布萊恩博士彷彿看穿了你的心思，「他們信奉空天之神西勒諾斯，是一群虛無主義者。」`,
+o:[["繼續猛攻蟲群之主的追隨者，翻至第281章",281],
+   ["向空天之神西勒諾斯的信徒宣戰，翻至第201章",201],
+   ["要求布萊恩博士說出真相，翻至第178章",178]]},
+
+293:{t:`模型中的許多建築，只是用零碎的木頭粗略拼接而成。你找來一張紙和一支鉛筆，將這份城鎮平面圖，還有上面標註的地點都臨摹了下來。`,
+give:["TOWN_MAP"],fx:{c:1},o:[["翻至第14章",14]]},
+
+294:{t:`挑戰如此多的敵人，看似瘋狂，但你如今所處的境遇，本就與理智無關。`,
+combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
+ rounds:[
+  {d:2,s:"com",b:{agile:1},need:14,label:"第一輪"},
+  {d:2,s:"com",prev:2,need:15,label:"第二輪",loseHp:1},
+  {d:2,s:"com",prev:1,need:14,label:"第三輪"}
+ ],
+ resolve:"last",win:13,lose:106}},
+
+295:{t:`你將【骨鋸】的刀刃插進房門和門框之間的縫隙，拼命鋸起來。
+
+可就在這時，你突然被一群面目可憎的昆蟲團團圍住。就在你猛地撞開停屍房的門逃出去時，數隻昆蟲還是狠狠蟄中了你。`,
+fx:{h:-1,s:-1},wk:["FEAR_INSECTS"],
+o:[["輸入四數字之和→對應章節；若無頭緒，翻至第259章",0,{sumPuzzle:259}]]},
+
+296:{t:`你身上有什麼東西，你認為能對布萊恩博士產生克制作用？`,
+o:[["若你想使用{巫術}能力，翻至第229章",229,{abil:["SORCERY"]}],
+   ["若你想使用【黑爪匕首】，翻至第163章",163,{has:"BLACK_TALON"}],
+   ["若你想將阿卡姆之刃對準他，翻至第105章",105,{has:"CEREMONIAL_DAGGER"}]]},
+
+297:{t:`這些人和你是同一類人，於是你走上前與他們交談。
+
+「疑似謀殺案，」負責此案的哈登警探答道，「受害者是布萊恩博士。」
+
+他遞給你一張小小的硬紙片。「如果你有任何線索，可以打這個電話聯繫我。」`,
+give:["HARDEN_CARD"],
+o:[["若你持有【黑爪匕首】，翻至第121章",121,{has:"BLACK_TALON"}],
+   ["若未持有，翻至第140章",140]]},
+
+298:{t:`你穿過科學樓，走上樓梯，沿著走廊前行，終於找到了目的地。「尼德斯教授？」你輕聲呼喚，可黑暗的房間裡，沒有任何回應。`,
+o:[["擅自進入尼德斯教授的辦公室，翻至第283章",283],
+   ["去找米蘭·克里斯托弗博士，翻至第168章",168]]},
+
+299:{t:`你掙脫年輕警察的束縛，拔腿就跑。警長伸出一腳，將你絆倒在地。`,
+fx:{h:-1},wk:["CRIMINAL"],o:[["翻至第59章",59]]},
+
+300:{t:`儘管今夜的種種考驗讓你身心俱疲，但急需的腎上腺素還是為你疲憊的身體注入了力量，你逃離了阿巴頓府。
+
+月食漸漸結束，你抬頭望向天空，看到月亮重新出現，而天空中的裂隙，還有裂隙後潛藏的那個存在，都消失得無影無蹤。
+
+宅邸的消失，是否意味著兩個敵對教派同歸於盡？一個無可辯駁的事實擺在眼前：那些瘋狂的神明和牠們的追隨者都消失了，而你，成功阻止了一股更危險的力量在阿卡姆崛起。`,
+sec:["阿卡姆之影"],end:{stars:4,title:"阿卡姆之影"}}
+};
+
+/* ============ 狀態 ============ */
+const S={screen:"splash",chapter:1,chapterData:null,phase:"idle",player:null,
+  history:[],secrets:new Set(),endings:{},combat:null,test:null};
+const SAVE_KEY="arkham_save_v2";
+const META_KEY="arkham_meta_v2";
+
+/* ============ 工具 ============ */
+const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
+const d6=()=>Math.floor(Math.random()*6)+1;
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function toast(msg,dur=2200){
+  const t=$("#toast");t.textContent=msg;t.classList.add("on");
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),dur);
+}
+function effective(p){
+  let com=p.com,wp=p.wp,int=p.int;
+  if(p.hp<0)com+=p.hp;
+  if(p.san<=-1)wp-=1;
+  if(p.san<=-2)int-=2;
+  return{com,wp,int};
+}
+function testMod(test,p){
+  let bonus=0,pen=0;
+  if(test.b){
+    for(const[k,v]of Object.entries(test.b)){
+      if(k==="sorcery"&&p.otherAbilities.includes("SORCERY"))bonus+=v;
+      else if(k==="secretRites"&&p.otherAbilities.includes("SECRET_RITES"))bonus+=v;
+      else if(k==="arcaneStudies"&&p.otherAbilities.includes("ARCANE_STUDIES"))bonus+=v;
+      else if(k==="agile"&&p.otherAbilities.includes("AGILE"))bonus+=v;
+      else if(k==="studious"&&p.otherAbilities.includes("STUDIOUS"))bonus+=v;
+      else if(k==="quickwitted"&&p.otherAbilities.includes("QUICKWITTED"))bonus+=v;
+    }
+  }
+  if(test.p){
+    for(const[k,v]of Object.entries(test.p)){
+      if(p.otherWeak.includes(k))pen+=v;
+    }
+  }
+  return{bonus,pen};
+}
+function sumStats(s,p){
+  const eff=effective(p);
+  const map={wp:eff.wp,int:eff.int,com:eff.com,san:p.san};
+  return s.split("+").reduce((a,k)=>a+(map[k.trim()]||0),0);
+}
+
+/* ============ HUD ============ */
+function renderHUD(){
+  const p=S.player;
+  if(!p||S.screen!=="game"){$("#hud").style.display="none";return}
+  $("#hud").style.display="flex";
+  const eff=effective(p);
+  $("#hud").innerHTML=`
+    <span class="name">${p.icon} ${p.name}</span>
+    <span class="stat" title="意志力">🧠 <b>${eff.wp}</b></span>
+    <span class="stat" title="智力">📘 <b>${eff.int}</b></span>
+    <span class="stat" title="戰鬥">⚔️ <b>${eff.com}</b></span>
+    <span class="stat ${p.hp<0?'neg':''}" title="生命值">❤️ <b>${p.hp}</b></span>
+    <span class="stat ${p.san<0?'neg':''}" title="理智值">👁️ <b>${p.san}</b></span>
+    <span class="stat" title="線索">🔍 <b>${p.clues}</b></span>
+    <span class="stat" title="資源">💎 <b>${p.res}</b></span>
+    <span class="stat ${p.doom>0?'neg':''}" title="厄運值">☠️ <b>${p.doom}</b></span>
+  `;
+}
+
+/* ============ 開始 / 選擇調查員 ============ */
+function showSplash(){
+  $("#splash").style.display="flex";
+  $("#hud").style.display="none";
+  $("#nav").style.display="none";
+  $("#main").innerHTML="";
+  S.screen="splash";
+}
+function showInvestigatorSelect(){
+  $("#splash").style.display="none";
+  $("#hud").style.display="none";
+  $("#nav").style.display="none";
+  S.screen="inv";
+  const main=$("#main");
+  main.innerHTML=`
+    <div class="scene">
+      <div style="text-align:center;margin:10px 0 16px">
+        <div style="color:#b8912f;font-size:12px;letter-spacing:3px">選擇你的調查員</div>
+      </div>
+      <div class="inv-grid" id="invGrid">
+        ${Object.values(INVESTIGATORS).map(inv=>`
+          <div class="inv-card" data-id="${inv.id}">
+            <div class="inv-portrait">${inv.icon}</div>
+            <div class="inv-name">${inv.name}</div>
+            <div class="inv-title">${inv.title}</div>
+            <div class="inv-stats">
+              <span>意志 <b>${inv.wp}</b></span>
+              <span>智力 <b>${inv.int}</b></span>
+              <span>戰鬥 <b>${inv.com}</b></span>
+              <span>生命 <b>${inv.hp}</b></span>
+              <span>理智 <b>${inv.san}</b></span>
+            </div>
+            <div class="inv-desc">${inv.desc}</div>
+          </div>
+        `).join("")}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:360px;margin:0 auto">
+        <button class="btn gold" id="confirmInv" disabled>請先選擇調查員</button>
+        <button class="btn" id="backSplash">返回</button>
+      </div>
+    </div>
+  `;
+  let sel=null;
+  $$(".inv-card").forEach(card=>{
+    card.addEventListener("click",()=>{
+      Sound.click();
+      $$(".inv-card").forEach(c=>c.classList.remove("sel"));
+      card.classList.add("sel");
+      sel=card.dataset.id;
+      const btn=$("#confirmInv");
+      btn.disabled=false;
+      btn.textContent=`以 ${INVESTIGATORS[sel].name} 開始調查`;
+    });
+  });
+  $("#confirmInv").addEventListener("click",()=>{
+    if(!sel)return;
+    Sound.ok();
+    startGame(sel);
+  });
+  $("#backSplash").addEventListener("click",()=>{Sound.click();showSplash();});
+}
+function startGame(invId){
+  const inv=INVESTIGATORS[invId];
+  S.player={
+    id:inv.id,name:inv.name,icon:inv.icon,title:inv.title,
+    wp:inv.wp,int:inv.int,com:inv.com,
+    hp:inv.hp,san:inv.san,
+    clues:inv.id==="rex"?1:0,
+    res:0,doom:0,
+    majorAbility:inv.majorAbility,
+    otherAbilities:[...inv.otherAbilities],
+    majorWeak:inv.majorWeak,
+    otherWeak:[...inv.otherWeak],
+    items:[inv.item]
+  };
+  S.chapter=1;S.history=[];S.secrets=new Set();S.combat=null;S.test=null;
+  S.screen="game";
+  $("#splash").style.display="none";
+  $("#nav").style.display="flex";
+  goChapter(1);
+}
+
+/* ============ 章節渲染 ============ */
+function goChapter(n){
+  if(!n||!C[n]){
+    toast(`⚠️ 找不到第 ${n} 章。`);
+    return;
+  }
+  S.chapter=n;S.chapterData=C[n];S.phase="idle";S.combat=null;S.test=null;
+  applyEffects(C[n]);
+  S.history.push({ch:n,t:Date.now()});
+  autoSave();
+  renderChapter();
+}
+function applyEffects(d){
+  const p=S.player;if(!p)return;
+  if(d.fx){
+    for(const[k,v]of Object.entries(d.fx)){
+      if(k==="c")p.clues+=v;
+      else if(k==="r")p.res+=v;
+      else if(k==="h")p.hp+=v;
+      else if(k==="s")p.san+=v;
+      else if(k==="d")p.doom+=v;
+      else if(k==="wp")p.wp+=v;
+      else if(k==="it")p.int+=v;
+      else if(k==="co")p.com+=v;
+    }
+  }
+  if(d.give)d.give.forEach(it=>{if(!p.items.includes(it))p.items.push(it)});
+  if(d.take)d.take.forEach(it=>{p.items=p.items.filter(x=>x!==it)});
+  if(d.ab)d.ab.forEach(a=>{if(!p.otherAbilities.includes(a))p.otherAbilities.push(a)});
+  if(d.wk)d.wk.forEach(w=>{if(!p.otherWeak.includes(w))p.otherWeak.push(w)});
+  if(d.sec)d.sec.forEach(s=>{if(!S.secrets.has(s)){S.secrets.add(s);Sound.secret()}});
+  if(d.end&&d.end.secret&&!S.secrets.has(d.end.secret)){S.secrets.add(d.end.secret);Sound.secret()}
+  renderHUD();
+}
+function renderChapter(){
+  const d=S.chapterData;
+  $("#main").innerHTML=`
+    <div class="scene">
+      <div class="chapter-tag">第 ${S.chapter} 章</div>
+      <div class="story" id="storyBox"></div>
+      <div id="actionArea"></div>
+    </div>
+  `;
+  S.phase="typing";
+  typeText(d.t,()=>{S.phase="idle";renderActions();});
+}
+function typeText(text,done){
+  const box=$("#storyBox");if(!box)return;
+  const total=text.length;let idx=0,skipped=false;
+  const step=()=>{
+    if(skipped)return;
+    if(idx>=total){
+      box.innerHTML=formatStory(text);
+      box._typing=false;done&&done();
+      return;
+    }
+    idx+=2;if(idx>total)idx=total;
+    box.innerHTML=formatStory(text.slice(0,idx))+'<span class="cursor"></span>';
+    setTimeout(()=>{if(!skipped)step()},14);
+  };
+  box._skip=()=>{skipped=true;box.innerHTML=formatStory(text);box._typing=false;done&&done()};
+  box.addEventListener("click",()=>{if(box._skip)box._skip()},{once:true});
+  step();
+}
+function formatStory(t){
+  return esc(t)
+    .replace(/【([^】]+)】/g,'<span class="kw">【$1】</span>')
+    .replace(/\{([^}]+)\}/g,'<span class="kw2">{$1}</span>')
+    .replace(/\n/g,"<br>");
+}
+function renderActions(){
+  const d=S.chapterData;
+  const area=$("#actionArea");if(!area)return;
+  area.innerHTML="";
+  if(d.end){S.phase="end";renderEnding();return;}
+  if(d.puzzle){S.phase="puzzle";renderPuzzle(d.puzzle);}
+  if(d.test){S.phase="test";renderTest(d.test);return;}
+  if(d.combat){S.phase="combat";renderCombatStart(d.combat);return;}
+  if(d.o&&d.o.length){
+    S.phase="idle";
+    const wrap=document.createElement("div");
+    wrap.className="choices";
+    d.o.forEach(opt=>{
+      const[label,target,cond]=opt;
+      const btn=document.createElement("button");
+      btn.className="btn";
+      btn.innerHTML=label;
+      const check=canChoose(cond);
+      if(!check.ok){
+        btn.title=check.msg||"";
+        btn.addEventListener("click",()=>{Sound.bad();toast(check.msg||"你無法選擇此選項。")});
+      }else{
+        btn.addEventListener("click",()=>{Sound.click();handleChoice(target,cond)});
+      }
+      wrap.appendChild(btn);
+    });
+    area.appendChild(wrap);
+  }
+}
+function canChoose(cond){
+  if(!cond)return{ok:true};
+  const p=S.player;
+  if(cond.has){
+    const need=Array.isArray(cond.has)?cond.has:[cond.has];
+    for(const it of need)if(!p.items.includes(it))
+      return{ok:false,msg:`🔒 你需要持有【${ITEM_DEF[it]?.n||it}】才能選擇此項。`};
+  }
+  if(cond.hasAny){
+    if(!cond.hasAny.some(it=>p.items.includes(it)))
+      return{ok:false,msg:`🔒 你需要持有【${cond.hasAny.map(i=>ITEM_DEF[i]?.n||i).join(" 或 ")}】其中之一。`};
+  }
+  if(cond.abil){
+    const need=Array.isArray(cond.abil)?cond.abil:[cond.abil];
+    if(!need.some(a=>p.otherAbilities.includes(a)))
+      return{ok:false,msg:`🔒 你需要 {${need.map(a=>ABILITY_DEF[a]?.n||a).join(" 或 ")}} 能力。`};
+  }
+  if(cond.wk){
+    const need=Array.isArray(cond.wk)?cond.wk:[cond.wk];
+    if(!need.some(w=>p.otherWeak.includes(w)))
+      return{ok:false,msg:`🔒 你需要弱點 {${need.map(w=>WEAK_DEF[w]?.n||w).join(" 或 ")}}。`};
+  }
+  return{ok:true};
+}
+function handleChoice(target,cond){
+  const p=S.player;
+  if(cond){
+    if(cond.cost){
+      const costs=Array.isArray(cond.cost)?cond.cost:[cond.cost];
+      const c=costs[0];
+      if(c==="c"){
+        if(p.clues>=1){p.clues-=1;toast("🔍 消耗 1 點線索。");}
+        else if(cond.orDoom){p.doom+=1;toast("☠️ 線索不足，厄運+1。");}
+        else if(costs.includes("r")&&p.res>=1){p.res-=1;toast("💎 線索不足，改消耗 1 資源。");}
+        else{toast("⚠️ 你沒有足夠的線索或資源。");return;}
+      }else if(c==="r"){
+        if(p.res>=1){p.res-=1;toast("💎 消耗 1 點資源。");}
+        else if(cond.orDoom){p.doom+=1;toast("☠️ 資源不足，厄運+1。");}
+        else{toast("⚠️ 你沒有足夠的資源。");return;}
+      }
+    }
+    if(cond.elseSan){p.san-=cond.elseSan;}
+    if(cond.doomFix){showDoomFixDialog(cond.doomFix,()=>proceed());renderHUD();return;}
+  }
+  function proceed(){
+    if(target===0&&cond){
+      if(cond.doomCheck)return handleDoomCheck(cond.doomCheck);
+      if(cond.fate)return handleFate(cond.fate);
+      if(cond.escapeRoll)return handleEscapeRoll(cond.escapeRoll);
+      if(cond.sanityRoll)return handleSanityRoll(cond.sanityRoll);
+      if(cond.sumPuzzle)return renderSumPuzzle(cond.sumPuzzle);
+      if(cond.goto)return goChapter(cond.goto);
+      if(cond.autoTest)return renderTest(cond.autoTest);
+    }
+    if(target===0)return;
+    goChapter(target);
+  }
+  proceed();
+}
+function showDoomFixDialog(n,done){
+  const p=S.player;
+  const opts=[];
+  if(p.clues>=n)opts.push(["clue",n]);
+  if(p.res>=n)opts.push(["res",n]);
+  const ov=$("#overlay"),md=$("#modal");
+  md.innerHTML=`
+    <button class="close-x" data-close="1">✕</button>
+    <h2>減少厄運值</h2>
+    <p class="lead">你被額外施加了 <b>+${n} 點厄運值</b>。</p>
+    <div class="foot">
+      ${opts.map(([k,v])=>`<button class="btn" data-opt="${k}">消耗 ${v} 點${k==="clue"?"線索":"資源"}（抵消 ${v} 厄運）</button>`).join("")}
+      <button class="btn primary" data-opt="none">不消耗（接受厄運）</button>
+    </div>
+  `;
+  ov.classList.add("on");
+  md.querySelectorAll("[data-opt]").forEach(b=>{
+    b.addEventListener("click",()=>{
+      const o=b.dataset.opt;
+      if(o==="clue"){p.clues-=n;p.doom-=n;toast("🔍 消耗線索，厄運抵消。");}
+      else if(o==="res"){p.res-=n;p.doom-=n;toast("💎 消耗資源，厄運抵消。");}
+      ov.classList.remove("on");Sound.click();done();
+    });
+  });
+  md.querySelector("[data-close]").addEventListener("click",()=>{ov.classList.remove("on");done()});
+}
+function handleDoomCheck(map){
+  const p=S.player;
+  if(p.otherWeak.includes("CURSED"))p.doom+=1;
+  if(p.otherWeak.includes("HAUNTED"))p.doom+=1;
+  if(p.otherWeak.includes("PARANOID"))p.doom+=1;
+  renderHUD();
+  const target=p.doom>=3?map[3]:map[2];
+  toast(`☠️ 厄運值：${p.doom}`);
+  setTimeout(()=>goChapter(target),400);
+}
+function handleFate(map){
+  const p=S.player;
+  let roll=d6();
+  if(p.otherWeak.includes("CURSED"))roll+=1;
+  toast(`🎲 命運測試：${roll}（厄運值 ${p.doom}）`);
+  setTimeout(()=>{
+    if(roll<=p.doom)goChapter(map[232]||Object.values(map)[0]);
+    else goChapter(map[177]||Object.values(map)[1]);
+  },500);
+}
+function handleEscapeRoll(map){
+  const p=S.player;
+  let roll=d6();
+  if(p.otherAbilities.includes("AGILE"))roll+=1;
+  toast(`🎲 逃脫測試：${roll}（生命 ${p.hp}）`);
+  setTimeout(()=>{
+    if(roll<=p.hp)goChapter(map[100]||Object.values(map)[0]);
+    else goChapter(map[26]||Object.values(map)[1]);
+  },600);
+}
+function handleSanityRoll(map){
+  const p=S.player;
+  let roll=d6();
+  if(p.otherWeak.includes("CURSED")||p.otherWeak.includes("HAUNTED"))roll-=1;
+  toast(`🎲 理智測試：${roll}（理智值 ${p.san}）`);
+  setTimeout(()=>{
+    const keys=Object.keys(map);
+    if(roll<=p.san)goChapter(map[keys[0]]);
+    else goChapter(map[keys[1]]);
+  },600);
+}
+function renderSumPuzzle(fallback){
+  S.phase="puzzle";
+  const area=$("#actionArea");
+  const box=document.createElement("div");
+  box.className="panel";
+  box.innerHTML=`
+    <h3>🔢 數字謎題</h3>
+    <p class="formula">你手上有一組相關的四個數字。將它們相加，翻至總和對應的章節。</p>
+    <div class="puzzle">
+      <input type="number" id="sumIn1" placeholder="數字1" style="max-width:80px">
+      <input type="number" id="sumIn2" placeholder="數字2" style="max-width:80px">
+      <input type="number" id="sumIn3" placeholder="數字3" style="max-width:80px">
+      <input type="number" id="sumIn4" placeholder="數字4" style="max-width:80px">
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn gold" id="sumGo">計算並前往</button>
+      <button class="btn" id="sumSkip">毫無頭緒，跳過</button>
+    </div>
+  `;
+  area.appendChild(box);
+  $("#sumGo").addEventListener("click",()=>{
+    const v=[1,2,3,4].map(i=>parseInt($("#sumIn"+i).value)||0);
+    const sum=v.reduce((a,b)=>a+b,0);
+    if(sum===0){toast("⚠️ 請輸入數字。");return;}
+    Sound.ok();
+    toast(`🔢 總和：${sum}`);
+    setTimeout(()=>{
+      if(C[sum])goChapter(sum);
+      else{toast(`第 ${sum} 章不存在。`);setTimeout(()=>goChapter(259),700);}
+    },400);
+  });
+  $("#sumSkip").addEventListener("click",()=>{Sound.click();goChapter(fallback)});
+}
+function renderPuzzle(pz){
+  const area=$("#actionArea");
+  const box=document.createElement("div");
+  box.className="panel";
+  box.innerHTML=`
+    <h3>📍 地點謎題</h3>
+    <p class="formula">輸入地點的英文名稱（去掉冠詞 the，兩個單詞），系統會自動計算字母總和${pz.mult===2?" × 2":""}，翻至對應章節。</p>
+    <div class="puzzle">
+      <input type="text" id="placeInput" placeholder="例如 Velma Diner">
+      <button class="btn gold" id="placeGo">前往</button>
+    </div>
+    <div style="font-size:11px;color:#8a7a5a;margin-top:8px;line-height:1.6">
+      💡 提示：Velma Diner、Orne Library、Warren Observatory、Science Building、French Hill、Historical Society、Magic Shop
+    </div>
+  `;
+  area.appendChild(box);
+  const submit=()=>{
+    const raw=$("#placeInput").value.trim();
+    if(!raw){toast("⚠️ 請輸入地點名稱。");return;}
+    const cleaned=raw.replace(/^the\s+/i,"").replace(/[^a-zA-Z]/g,"");
+    let sum=0;
+    for(const c of cleaned.toUpperCase())sum+=c.charCodeAt(0)-64;
+    sum*=(pz.mult||1);
+    Sound.ok();
+    toast(`📖 「${raw}」→ ${sum}`);
+    setTimeout(()=>{
+      if(C[sum])goChapter(sum);
+      else{toast(`第 ${sum} 章不存在。`);setTimeout(()=>goChapter(pz.fallback||3),800);}
+    },500);
+  };
+  $("#placeGo").addEventListener("click",submit);
+  $("#placeInput").addEventListener("keypress",e=>{if(e.key==="Enter")submit()});
+}
+
+/* ============ 測試 ============ */
+function renderTest(test){
+  S.test=test;
+  const area=$("#actionArea");
+  const p=S.player;
+  const mod=testMod(test,p);
+  const hasCostOption=!!test.c;
+  const costKey=test.c==="clue"?"clues":"res";
+  const costType=test.c==="clue"?"線索":"資源";
+  const canCost=hasCostOption&&p[costKey]>=1;
+  const base=sumStats(test.s,p);
+  const diceCount=test.d||1;
+  area.innerHTML=`
+    <div class="panel" id="testPanel">
+      <h3>🎲 ${test.n||"測試"}</h3>
+      <div class="formula">
+        擲 ${diceCount} 顆骰子 + <b>${statLabel(test.s)}</b>（${base}）
+        ${mod.bonus?` + 能力加值 <b style="color:#7fe07f">+${mod.bonus}</b>`:""}
+        ${mod.pen?` - 弱點減值 <b style="color:#ff7a7a">${mod.pen}</b>`:""}
+        <br>目標：<b>${test.need} 及以上</b>
+        <br>成功 → 第 ${test.ok} 章；失敗 → 第 ${test.ng} 章
+      </div>
+      <div class="dice-area" id="diceArea"></div>
+      <div class="result-big" id="testResult"></div>
+      <div class="row" style="justify-content:center">
+        <button class="btn primary" id="rollBtn">🎲 擲骰</button>
+        ${hasCostOption?`<button class="btn" id="costBtn" ${canCost?"":"disabled"}>
+          消耗 1 點${costType}，改擲 2 骰取高<br>
+          <span class="sub">目前${costType}：${p[costKey]}</span>
+        </button>`:""}
+      </div>
+    </div>
+  `;
+  let usedCost=false;
+  const doRoll=(withCost)=>{
+    if(S.phase==="testResult")return;
+    S.phase="testResult";
+    usedCost=withCost;
+    if(withCost){p[costKey]-=1;renderHUD();}
+    const area2=$("#diceArea");area2.innerHTML="";
+    const n=withCost?2:diceCount;
+    const results=[];
+    for(let i=0;i<n;i++){
+      const die=document.createElement("div");
+      die.className="die rolling";die.textContent="?";
+      area2.appendChild(die);
+      results.push({el:die,val:d6()});
+    }
+    Sound.dice();
+    setTimeout(()=>{
+      results.forEach((r,i)=>{
+        setTimeout(()=>{
+          r.el.classList.remove("rolling");r.el.classList.add("show");
+          r.el.textContent=r.val;Sound.dice();
+        },i*220);
+      });
+      setTimeout(()=>{
+        const sum=results.map(r=>r.val).reduce((a,b)=>a+b,0);
+        const final=sum+base+mod.bonus+mod.pen;
+        const ok=final>=test.need;
+        const rb=$("#testResult");
+        rb.className="result-big "+(ok?"ok":"bad");
+        rb.textContent=`${ok?"✅ 成功":"❌ 失敗"}　總點數 ${final}`;
+        if(ok)Sound.ok();else Sound.bad();
+        const panel=$("#testPanel");
+        if(panel&&panel.parentNode){
+          const wrap=document.createElement("div");wrap.className="choices";
+          const btn=document.createElement("button");
+          btn.className="btn gold";
+          btn.textContent=`繼續 → 第 ${ok?test.ok:test.ng} 章`;
+          btn.addEventListener("click",()=>goChapter(ok?test.ok:test.ng));
+          wrap.appendChild(btn);panel.appendChild(wrap);
+        }
+        const rollBtn=$("#rollBtn"),costBtn=$("#costBtn");
+        if(rollBtn)rollBtn.disabled=true;
+        if(costBtn)costBtn.disabled=true;
+      },n*220+300);
+    },300);
+  };
+  $("#rollBtn").addEventListener("click",()=>{
+    if(usedCost){toast("⚠️ 你已使用消耗選項。");return;}
+    const cb=$("#costBtn");if(cb)cb.disabled=true;
+    doRoll(false);
+  });
+  if(hasCostOption){
+    $("#costBtn").addEventListener("click",()=>{
+      if(!canCost){toast(`⚠️ 你的${costType}不足。`);return;}
+      $("#rollBtn").disabled=true;
+      doRoll(true);
+    });
+  }
+}
+function statLabel(s){
+  return s.split("+").map(k=>{
+    const m={wp:"意志力",int:"智力",com:"戰鬥",san:"理智值"};
+    return m[k.trim()]||k;
+  }).join(" + ");
+}
+
+/* ============ 戰鬥 ============ */
+function renderCombatStart(combat){
+  S.combat={round:0,wins:0,losses:0,cfg:combat,lastWin:false};
+  const area=$("#actionArea");
+  area.innerHTML=`
+    <div class="panel" id="combatPanel">
+      <h3>⚔️ 戰鬥開始</h3>
+      <div class="formula">${combat.prep||"每輪開始前，你可以消耗 1 點資源，為本輪總點數 +2。"}</div>
+      <div class="choices">
+        <button class="btn primary" id="combatNext">⚔️ 開始第一輪</button>
+      </div>
+    </div>
+  `;
+  $("#combatNext").addEventListener("click",()=>combatNextRound());
+}
+function combatNextRound(){
+  const c=S.combat;const cfg=c.cfg;
+  if(c.round>=cfg.rounds.length)return combatResolve();
+  const r=cfg.rounds[c.round];
+  const p=S.player;
+  const area=$("#actionArea");
+  const prevWon=c.round>0&&c.lastWin;
+  const prevBonus=(r.prev&&prevWon)?r.prev:0;
+  const base=sumStats(r.s,p);
+  const mod=testMod(r,p);
+  const allowCost=(cfg.onlyCostRound===undefined||cfg.onlyCostRound===c.round);
+  const canCost=allowCost&&p.res>=1;
+  area.innerHTML=`
+    <div class="panel" id="combatRoundPanel">
+      <h3>⚔️ ${r.label||("第 "+(c.round+1)+" 輪")}</h3>
+      <div class="formula">
+        擲 ${r.d||2} 顆骰子 + <b>${statLabel(r.s)}</b>（${base}）
+        ${prevBonus?` + 上輪勝利 <b style="color:#7fe07f">+${prevBonus}</b>`:""}
+        ${r.b?Object.entries(r.b).filter(([k])=>{
+          if(k==="sorcery")return p.otherAbilities.includes("SORCERY");
+          if(k==="secretRites")return p.otherAbilities.includes("SECRET_RITES");
+          if(k==="agile")return p.otherAbilities.includes("AGILE");
+          if(k==="studious")return p.otherAbilities.includes("STUDIOUS");
+          return false;
+        }).map(([k,v])=>` + <b style="color:#7fe07f">${v}</b>`).join(""):""}
+        ${r.p?Object.entries(r.p).filter(([k])=>p.otherWeak.includes(k)).map(([k,v])=>` <b style="color:#ff7a7a">${v}</b>`).join(""):""}
+        ${r.minusDoom?` - 厄運 <b style="color:#ff7a7a">${p.doom}</b>`:""}
+        <br>目標：<b>${r.need} 及以上</b>
+      </div>
+      <div class="dice-area" id="diceArea"></div>
+      <div class="result-big" id="combatResult"></div>
+      <div class="row" style="justify-content:center">
+        <button class="btn primary" id="rollBtn">🎲 擲骰</button>
+        ${allowCost?`<button class="btn" id="costBtn" ${canCost?"":"disabled"}>
+          消耗 1 資源，本輪 +2<br>
+          <span class="sub">目前資源：${p.res}</span>
+        </button>`:""}
+      </div>
+    </div>
+  `;
+  let usedCost=false;
+  const doRoll=()=>{
+    S.phase="combatRound";
+    if(usedCost){p.res-=1;renderHUD();}
+    const n=r.d||2;
+    const results=[];
+    const area2=$("#diceArea");area2.innerHTML="";
+    for(let i=0;i<n;i++){
+      const die=document.createElement("div");
+      die.className="die rolling";die.textContent="?";
+      area2.appendChild(die);
+      results.push({el:die,val:d6()});
+    }
+    Sound.dice();
+    setTimeout(()=>{
+      results.forEach((rr,i)=>{
+        setTimeout(()=>{
+          rr.el.classList.remove("rolling");rr.el.classList.add("show");
+          rr.el.textContent=rr.val;Sound.dice();
+        },i*200);
+      });
+      setTimeout(()=>{
+        const sum=results.map(rr=>rr.val).reduce((a,b)=>a+b,0);
+        const bonus=prevBonus+mod.bonus+mod.pen+(r.minusDoom?-p.doom:0)+(usedCost?2:0);
+        const total=sum+base+bonus;
+        const ok=total>=r.need;
+        const rb=$("#combatResult");
+        rb.className="result-big "+(ok?"ok":"bad");
+        rb.textContent=`${ok?"✅ 勝利":"❌ 失敗"}　總點數 ${total}`;
+        if(!ok&&r.loseHp){p.hp-=r.loseHp;toast(`💔 生命值 -${r.loseHp}`);renderHUD();}
+        if(ok)Sound.ok();else Sound.bad();
+        c.lastWin=ok;
+        if(ok)c.wins++;else c.losses++;
+        c.round++;
+        const panel=$("#combatRoundPanel");
+        if(panel&&panel.parentNode){
+          const wrap=document.createElement("div");wrap.className="choices";
+          const btn=document.createElement("button");
+          btn.className="btn gold";
+          const isLast=c.round>=cfg.rounds.length;
+          btn.textContent=isLast?"結算戰鬥":`繼續 → ${cfg.rounds[c.round].label||("第 "+(c.round+1)+" 輪")}`;
+          btn.addEventListener("click",()=>{
+            if(isLast)combatResolve();
+            else combatNextRound();
+          });
+          wrap.appendChild(btn);panel.appendChild(wrap);
+        }
+        const rollBtn=$("#rollBtn"),costBtn=$("#costBtn");
+        if(rollBtn)rollBtn.disabled=true;
+        if(costBtn)costBtn.disabled=true;
+      },n*200+250);
+    },300);
+  };
+  $("#rollBtn").addEventListener("click",()=>{
+    if(usedCost){toast("⚠️ 你已使用消耗選項。");return;}
+    const cb=$("#costBtn");if(cb)cb.disabled=true;
+    doRoll();
+  });
+  if(allowCost){
+    $("#costBtn").addEventListener("click",()=>{
+      if(!canCost){toast("⚠️ 資源不足。");return;}
+      usedCost=true;
+      $("#rollBtn").disabled=true;
+      doRoll();
+    });
+  }
+}
+function combatResolve(){
+  const c=S.combat,cfg=c.cfg;
+  let win;
+  if(cfg.resolve==="majority")win=c.wins>c.losses;
+  else if(cfg.resolve==="last")win=c.lastWin;
+  else win=c.wins>=c.losses;
+  const area=$("#actionArea");
+  area.innerHTML=`
+    <div class="panel">
+      <h3>⚔️ 戰鬥結束</h3>
+      <div class="result-big ${win?"ok":"bad"}">${win?"✅ 你贏得了戰鬥！":"❌ 你被擊敗了..."}</div>
+      <div class="choices">
+        <button class="btn gold" id="afterCombat">繼續 → 第 ${win?cfg.win:cfg.lose} 章</button>
+      </div>
+    </div>
+  `;
+  if(win)Sound.ok();else Sound.bad();
+  $("#afterCombat").addEventListener("click",()=>goChapter(win?cfg.win:cfg.lose));
+}
+
+/* ============ 結局 ============ */
+function renderEnding(){
+  const d=S.chapterData,p=S.player;
+  const end=d.end;
+  const stars=end.stars||0;
+  S.endings[S.chapter]={stars,title:end.title||"結局",ts:Date.now()};
+  saveMeta();
+  $("#actionArea").innerHTML=`
+    <div class="ending">
+      <div style="font-size:40px">${stars>=4?"🌕":stars>=3?"🌖":stars>=2?"🌗":stars>=1?"🌘":"🌑"}</div>
+      <h2>${end.title||"結局"}</h2>
+      <div class="stars">${"★".repeat(stars)}${"☆".repeat(4-stars)}</div>
+      <p style="color:#b8a074;font-size:13px">最終評分：${stars} 星</p>
+      <p style="color:#8a7a5a;font-size:12px;margin-top:12px">
+        已解鎖秘密線索：${S.secrets.size} / ${SECRET_SET.length}<br>
+        生命值：${p.hp}　理智值：${p.san}　線索：${p.clues}　資源：${p.res}　厄運：${p.doom}
+      </p>
+      <div class="choices" style="max-width:340px;margin:20px auto 0">
+        <button class="btn primary" id="restartGame">🔁 重新開始</button>
+        <button class="btn" id="openSecretsFromEnd">🔮 查看秘密線索</button>
+      </div>
+    </div>
+  `;
+  $("#restartGame").addEventListener("click",()=>{Sound.click();clearSave();showSplash()});
+  $("#openSecretsFromEnd").addEventListener("click",()=>{Sound.click();openSecrets()});
+}
+
+/* ============ 存檔 ============ */
+function serialize(){
+  return{v:2,player:S.player,chapter:S.chapter,history:S.history,
+    secrets:[...S.secrets],ts:Date.now()};
+}
+function autoSave(){
+  if(S.screen!=="game")return;
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify(serialize()))}catch(e){}
+}
+function saveManual(){
+  if(S.screen!=="game"){toast("⚠️ 遊戲尚未開始。");return;}
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify(serialize()));toast("💾 已存檔。")}
+  catch(e){toast("⚠️ 存檔失敗。")}
+}
+function loadManual(){
+  const raw=localStorage.getItem(SAVE_KEY);
+  if(!raw){toast("📂 沒有可用的存檔。");return;}
+  try{
+    const data=JSON.parse(raw);
+    if(!data.player){toast("⚠️ 存檔損壞。");return;}
+    S.player=data.player;
+    S.chapter=data.chapter;
+    S.history=data.history||[];
+    S.secrets=new Set(data.secrets||[]);
+    S.screen="game";
+    $("#splash").style.display="none";
+    $("#nav").style.display="flex";
+    $("#main").innerHTML="";
+    goChapter(S.chapter);
+    toast("📂 讀檔成功。");
+  }catch(e){toast("⚠️ 讀檔失敗。")}
+}
+function clearSave(){try{localStorage.removeItem(SAVE_KEY)}catch(e){}}
+function saveMeta(){
+  try{
+    const meta=JSON.parse(localStorage.getItem(META_KEY)||"{}");
+    meta.endings=Object.assign(meta.endings||{},S.endings);
+    meta.secrets=[...new Set([...(meta.secrets||[]),...S.secrets])];
+    localStorage.setItem(META_KEY,JSON.stringify(meta));
+  }catch(e){}
+}
+
+/* ============ 彈窗 ============ */
+function openModal(html){
+  const ov=$("#overlay"),md=$("#modal");
+  md.innerHTML=html;ov.classList.add("on");
+}
+function closeModal(){$("#overlay").classList.remove("on")}
+function openHelp(){
+  Sound.click();
+  openModal(`
+    <button class="close-x" data-close="1">✕</button>
+    <h2>📖 遊戲說明</h2>
+    <p class="lead">改編自《詭鎮奇談：調查員冒險書 — 阿卡姆之影》。</p>
+    <h3>🎯 遊戲目標</h3>
+    <p>扮演三名調查員之一，在阿卡姆展開調查。你的<b class="hl">選擇</b>與<b class="hl">骰子測試</b>會決定你走向哪個章節，最終迎向不同的結局（0～4 星）。</p>
+    <h3>🖥️ 看懂畫面</h3>
+    <ul>
+      <li>頂部 <b>🧠 意志 / 📘 智力 / ⚔️ 戰鬥</b>：測試時的加值。</li>
+      <li>❤️ <b>生命值</b>、👁️ <b>理智值</b>：降到負值會削弱對應技能。</li>
+      <li>🔍 <b>線索</b>、💎 <b>資源</b>：可在測試前消耗，換取「2 骰取高」或「+2 加成」。</li>
+      <li>☠️ <b>厄運值</b>：累積越多，世界越危險；部分命運測試依此判定。</li>
+      <li>中央 <b>打字機故事區</b>：點擊可立即顯示全文。</li>
+      <li>下方 <b>按鈕</b>：你的選項。點擊灰暗的按鈕會提示缺少什麼。</li>
+    </ul>
+    <h3>🎲 操作流程</h3>
+    <ul>
+      <li>1️⃣ 選調查員 → 2️⃣ 閱讀章節 → 3️⃣ 點選項 / 擲骰 → 4️⃣ 前往新章節。</li>
+      <li>測試時：按 <b>🎲 擲骰</b> 直接擲；或按「消耗線索/資源」改擲 2 骰取高。</li>
+      <li>戰鬥時：逐輪擲骰。**注意：有些戰鬥只有特定輪次可消耗資源 +2**（例如三顎蜂戰只有第三輪）。</li>
+    </ul>
+    <h3>✨ 特殊機制</h3>
+    <ul>
+      <li><b>祕密線索</b>：某些章節會解鎖，收集越多越完整（共 48 條）。</li>
+      <li><b>能力與弱點</b>：例如 {巫術} 或 {鬧鬼}，只在特定章節觸發加減值。</li>
+      <li><b>字母謎題</b>：把地點英文名 A=1、B=2…相加，翻到該章節。</li>
+      <li><b>四數字謎題</b>：把四個數字相加，翻到總和章節。</li>
+    </ul>
+    <div class="foot">
+      <button class="btn gold" id="helpOk">✅ 我準備好了，開始遊戲</button>
+    </div>
+  `);
+  $("#helpOk").addEventListener("click",()=>{closeModal();Sound.click()});
+  $$("[data-close]").forEach(b=>b.addEventListener("click",()=>closeModal()));
+}
+function openLog(){
+  Sound.click();
+  if(S.screen!=="game"){toast("⚠️ 遊戲尚未開始。");return;}
+  const rows=S.history.slice().reverse().map(h=>{
+    const d=C[h.ch];
+    const title=d?(d.t||"").slice(0,40).replace(/\n/g," "):"";
+    return `<div class="log-item"><div class="ch">第 ${h.ch} 章</div>${esc(title)}…</div>`;
+  }).join("")||`<p style="color:#8a7a5a">尚無紀錄。</p>`;
+  openModal(`
+    <button class="close-x" data-close="1">✕</button>
+    <h2>🗺️ 冒險歷程</h2>
+    <p class="lead">共 ${S.history.length} 個章節。最近的在最上面。</p>
+    <div style="max-height:60vh;overflow-y:auto">${rows}</div>
+    <div class="foot"><button class="btn" data-close="2">關閉</button></div>
+  `);
+  $$("[data-close]").forEach(b=>b.addEventListener("click",closeModal));
+}
+function openSecrets(){
+  Sound.click();
+  const meta=(()=>{try{return JSON.parse(localStorage.getItem(META_KEY)||"{}")}catch(e){return{}}})();
+  const allGot=new Set([...(meta.secrets||[]),...S.secrets]);
+  const items=SECRET_SET.map(s=>{
+    const got=allGot.has(s);
+    return `<div class="secret-item ${got?"got":""}"><span class="dot"></span>${esc(s)}</div>`;
+  }).join("");
+  const endings=Object.entries(meta.endings||{}).map(([ch,e])=>{
+    const stars=e.stars||0;
+    return `<div class="log-item"><span class="ch">${e.title||"結局"}</span>　${"★".repeat(stars)}${"☆".repeat(4-stars)}</div>`;
+  }).join("")||`<p style="color:#8a7a5a">尚未達成任何結局。</p>`;
+  openModal(`
+    <button class="close-x" data-close="1">✕</button>
+    <h2>🔮 祕密線索 & 結局</h2>
+    <p class="lead">已收集 ${allGot.size} / ${SECRET_SET.length} 條秘密線索</p>
+    <div class="secret-grid">${items}</div>
+    <h3>🏆 已解鎖結局</h3>
+    <div>${endings}</div>
+    <div class="foot"><button class="btn" data-close="2">關閉</button></div>
+  `);
+  $$("[data-close]").forEach(b=>b.addEventListener("click",closeModal));
+}
+function openSaveLoad(){
+  if(S.screen!=="game"){toast("⚠️ 遊戲尚未開始。");return;}
+  Sound.click();
+  openModal(`
+    <button class="close-x" data-close="1">✕</button>
+    <h2>💾 存檔 / 讀檔</h2>
+    <p class="lead">存檔會記錄你當前的調查員、章節、屬性、物品與秘密線索。</p>
+    <div class="foot">
+      <button class="btn gold" id="doSave">💾 立即存檔</button>
+      <button class="btn primary" id="doLoad">📂 讀取存檔</button>
+      <button class="btn" id="doDel">🗑️ 刪除存檔</button>
+      <button class="btn" data-close="2">取消</button>
+    </div>
+  `);
+  $("#doSave").addEventListener("click",()=>{saveManual();closeModal()});
+  $("#doLoad").addEventListener("click",()=>{loadManual();closeModal()});
+  $("#doDel").addEventListener("click",()=>{clearSave();toast("🗑️ 已刪除存檔。");closeModal()});
+  $$("[data-close]").forEach(b=>b.addEventListener("click",closeModal));
+}
+
+/* ============ 事件綁定 ============ */
+$("#startBtn").addEventListener("click",()=>{Sound.click();showInvestigatorSelect()});
+$("#splashHelp").addEventListener("click",()=>openHelp());
+$("#nav").addEventListener("click",e=>{
+  const btn=e.target.closest("button[data-act]");
+  if(!btn)return;
+  const act=btn.dataset.act;
+  if(act==="help")openHelp();
+  else if(act==="save"||act==="load")openSaveLoad();
+  else if(act==="log")openLog();
+  else if(act==="secrets")openSecrets();
+  else if(act==="sound"){
+    const on=Sound.toggle();
+    $("#snd-ico").textContent=on?"🔊":"🔇";
+    toast(on?"🔊 音效開啟":"🔇 音效關閉");
+  }
+});
+document.addEventListener("pointerdown",()=>Sound.resume(),{once:true});
+$("#overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeModal()});
+
+/* ============ 初始化 ============ */
+showSplash();
+(function(){
+  const raw=localStorage.getItem(SAVE_KEY);
+  if(raw){
+    try{
+      const d=JSON.parse(raw);
+      const b=document.createElement("button");
+      b.className="btn";
+      b.textContent=`📂 繼續存檔（第 ${d.chapter} 章 · ${d.player?.name||""}）`;
+      b.style.marginTop="4px";
+      b.addEventListener("click",()=>{Sound.click();loadManual()});
+      const btns=document.querySelector("#splash .btns");
+      if(btns)btns.appendChild(b);
+    }catch(e){}
+  }
+})();
+</script>
+</body>
+</html>
