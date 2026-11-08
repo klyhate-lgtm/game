@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>殖民火星 - 多人連線版</title>
+<title>殖民火星 - 多人連線完整版</title>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -41,6 +41,7 @@
         position: relative;
     }
 
+    /* 星空背景 */
     body::before {
         content: ""; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
         background-image: 
@@ -52,15 +53,20 @@
         opacity: 0.6; z-index: -1;
     }
 
-    .screen { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; }
-    /* ★ 修正：移除 !important，讓 JS 可以自由控制顯示 */
-    .hidden { display: none; } 
-    
+    /* ★ 強制隱藏，解決重疊問題 ★ */
+    .hidden { display: none !important; }
+
+    /* 大廳全螢幕置中 */
+    #lobby-screen {
+        flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10;
+    }
+
     input { padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid var(--mars-orange); background: rgba(0,0,0,0.6); color: white; text-align: center; font-family: var(--font-main); }
     button { padding: 12px 20px; font-size: 15px; background: var(--mars-red); color: white; border: none; border-radius: 5px; cursor: pointer; transition: 0.2s; font-family: var(--font-main); }
     button:hover:not(:disabled) { background: var(--mars-orange); }
     button:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    /* 遊戲主畫面 */
     #game-screen { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
     
     #top-bar { display: flex; justify-content: space-between; padding: 8px 15px; background: var(--panel-bg); border-bottom: 2px solid var(--mars-red); font-size: 13px; flex-wrap: wrap; gap: 10px; }
@@ -74,22 +80,34 @@
     .p-corp { font-size: 10px; color: #aaa; margin-bottom: 4px; }
     .p-res { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; color: #ccc; }
 
-    #board-container { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; width: 100%; height: 100%; }
+    /* 地圖區 - 修正 flex 權重 */
+    #board-container { 
+        flex: 1; display: flex; justify-content: center; align-items: center; 
+        position: relative; overflow: hidden; width: 100%; height: 100%; min-height: 0; /* 解決 flex 壓縮問題 */
+    }
     #mars-atmosphere { position: relative; border-radius: 50%; background-color: #3e2b25; background-image: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.5) 100%); box-shadow: 0 0 60px rgba(193, 68, 14, 0.2), inset 0 0 40px rgba(0,0,0,0.8); border: 1px solid rgba(214, 122, 58, 0.3); transform-origin: center center; }
     #mars-board { position: relative; }
-    .hex { position: absolute; width: 52px; height: 60px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); background-color: #8c5a48; background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%); transform: scale(0.95); display: flex; justify-content: center; align-items: center; font-size: 10px; color: #fff; text-shadow: 1px 1px 2px #000; transition: 0.2s; cursor: pointer; box-shadow: inset 0 0 8px rgba(0,0,0,0.6); }
+    
+    .hex { 
+        position: absolute; width: 52px; height: 60px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        background-color: #8c5a48; background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%);
+        transform: scale(0.95); display: flex; justify-content: center; align-items: center; font-size: 10px; color: #fff; text-shadow: 1px 1px 2px #000;
+        transition: 0.2s; cursor: pointer; box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
+    }
     .hex.ocean-reserved { background-image: repeating-linear-gradient(45deg, rgba(33,150,243,0.4) 0, rgba(33,150,243,0.4) 4px, transparent 4px, transparent 8px); box-shadow: inset 0 0 10px rgba(33,150,243,0.8); color: var(--mars-blue); text-shadow: none; }
     .hex.ocean { background-color: #2196f3; background-image: none; color: white; }
     .hex.forest { background-color: #4caf50; background-image: none; color: white; }
     .hex.city { background-color: #757575; background-image: none; color: white; border: 2px solid #fff; }
+    .hex.valid-target { border: 2px solid gold; box-shadow: 0 0 15px gold; filter: brightness(1.3); }
     .hex:hover { filter: brightness(1.3); transform: scale(1); z-index: 10; }
 
-    #action-area { min-height: 200px; background: var(--panel-bg); border-top: 2px solid var(--mars-orange); display: flex; flex-direction: column; padding: 10px; z-index: 10; }
+    /* 底部操作區 */
+    #action-area { min-height: 200px; background: var(--panel-bg); border-top: 2px solid var(--mars-orange); display: flex; flex-direction: column; padding: 10px; z-index: 10; flex-shrink: 0; }
     #action-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
     .phase-title { font-size: 16px; color: var(--mars-orange); font-weight: bold; }
     .action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
     .action-btns button { font-size: 13px; padding: 8px 12px; background: #333; border: 1px solid #555; }
-
+    
     #hand-cards { flex: 1; display: flex; gap: 10px; overflow-x: auto; align-items: center; padding-bottom: 10px; min-height: 160px; }
     .card { flex: 0 0 110px; height: 150px; background: linear-gradient(135deg, #2c3e50, #1a252f); border: 2px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; cursor: pointer; font-size: 10px; transition: 0.2s; position: relative; }
     .card:hover { transform: translateY(-8px); border-color: var(--mars-orange); box-shadow: 0 8px 16px rgba(214, 122, 58, 0.6); }
@@ -101,11 +119,16 @@
     .card .text { color: #ccc; text-align: center; line-height: 1.2; }
     .card.selected { border-color: gold; transform: translateY(-10px); box-shadow: 0 0 15px gold; }
 
+    /* 彈窗與歷史紀錄 */
     .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; }
     .modal.active { display: flex; }
     .modal-content { background: #2c1a12; padding: 25px; border-radius: 8px; border: 2px solid var(--mars-orange); width: 90%; max-width: 400px; text-align: center; }
     .company-card { background: #1a252f; border: 2px solid #555; padding: 15px; margin-bottom: 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
     .company-card:hover { transform: scale(1.02); border-color: var(--mars-orange); }
+
+    #history-panel { position: absolute; right: -300px; top: 0; width: 300px; height: 100%; background: rgba(20,15,10,0.95); border-left: 1px solid var(--mars-orange); transition: right 0.3s; z-index: 20; overflow-y: auto; padding: 15px; }
+    #history-panel.active { right: 0; }
+    .log-item { font-size: 12px; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #333; color: #ccc; }
 
     @media (max-width: 768px) {
         #action-area { min-height: 220px; }
@@ -119,11 +142,13 @@
 </head>
 <body>
 
+<!-- 大廳 -->
+<!-- 移除原本的 style="display:flex"，改用 CSS 控制 -->
 <div id="lobby-screen" class="screen">
     <h1 style="color:var(--mars-orange); font-size:36px; margin-bottom:20px;">🚀 火星改造計畫</h1>
     <p id="auth-status" style="margin-bottom: 20px; color: #aaa;">正在連線至伺服器...</p>
     
-    <div id="lobby-actions" class="hidden" style="display:flex; flex-direction:column; gap:15px; align-items:center;">
+    <div id="lobby-actions" class="hidden" style="flex-direction:column; gap:15px; align-items:center;">
         <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
             <input type="text" id="player-name" placeholder="輸入你的名字" maxlength="8">
             <button onclick="createRoom()">建立新房間</button>
@@ -135,11 +160,12 @@
     </div>
 </div>
 
+<!-- 遊戲主畫面 -->
 <div id="game-screen" class="hidden">
     <div id="top-bar">
         <div class="global-stat">世代: <span id="ui-gen">1</span>/14 | 階段: <span id="ui-phase">等待開始</span></div>
         <div class="global-stat">氧氣: <span id="ui-oxy">0</span>% | 溫度: <span id="ui-temp">-30</span>°C | 海洋: <span id="ui-ocean">0</span>/9</div>
-        <div>房間碼: <span id="ui-room" style="color:#fff;">------</span></div>
+        <div>房間碼: <span id="ui-room" style="color:#fff;">------</span> <button onclick="toggleHistory()" style="padding:2px 5px; font-size:12px; margin-left:10px;">紀錄</button></div>
     </div>
     
     <div id="players-board"></div>
@@ -154,17 +180,24 @@
         <div id="action-controls">
             <div class="phase-title" id="turn-indicator">等待中...</div>
             <div class="action-btns">
-                <!-- 全部都先加上 hidden，由 JS 決定何時顯示 -->
                 <button id="btn-start" onclick="startGame()" class="hidden">開始遊戲</button>
                 <button id="btn-keep" onclick="keepCards()" class="hidden">保留卡牌</button>
                 <button id="btn-project" onclick="openStandardProjects()" class="hidden">標準專案</button>
                 <button id="btn-pass" onclick="passTurn()" class="hidden">結束回合</button>
+                <button id="btn-cancel" onclick="cancelPlacement()" class="hidden" style="background:#c1440e;">取消放置</button>
             </div>
         </div>
         <div id="hand-cards"></div>
     </div>
+
+    <!-- 歷史紀錄側邊欄 -->
+    <div id="history-panel">
+        <h3 style="color:var(--mars-orange); margin-bottom:10px;">歷史紀錄</h3>
+        <div id="log-list"></div>
+    </div>
 </div>
 
+<!-- 公司選擇彈窗 -->
 <div id="modal-company" class="modal">
     <div class="modal-content">
         <h2 style="color:var(--mars-orange); margin-bottom:15px;">選擇你的公司</h2>
@@ -172,6 +205,7 @@
     </div>
 </div>
 
+<!-- 標準專案彈窗 -->
 <div id="modal-projects" class="modal">
     <div class="modal-content">
         <h3 style="color:var(--mars-orange); margin-bottom:15px;">標準專案</h3>
@@ -193,6 +227,7 @@
     let roomData = null;
     let unsubscribeRoom = null;
     let localSelectedCards = []; 
+    let placingMode = null; 
 
     const mapGrid = [
         [0,0,1,1,1,1,1,0,0], [0,1,1,1,1,1,1,0,0], [0,1,1,1,1,1,1,1,0], [1,1,1,1,1,1,1,1,0], [1,1,1,1,1,1,1,1,1],
@@ -214,7 +249,10 @@
             if (user) {
                 currentUser = user;
                 document.getElementById('auth-status').innerText = "已連線，請輸入名字";
-                document.getElementById('lobby-actions').classList.remove('hidden');
+                // ★ 移除 hidden 時，記得加上 flex 讓它正常排版
+                const actions = document.getElementById('lobby-actions');
+                actions.classList.remove('hidden');
+                actions.style.display = 'flex'; 
             } else {
                 signInAnonymously(auth).catch(err => alert("登入失敗: " + err.message));
             }
@@ -233,7 +271,8 @@
             hostId: currentUser.uid,
             status: 'lobby', gen: 1, phase: 'lobby', turnIndex: 0, oxygen: 0, temp: -30, oceans: 0,
             board: generateBoardData(),
-            players: [createNewPlayer(currentUser.uid, name)]
+            players: [createNewPlayer(currentUser.uid, name)],
+            logs: ["遊戲房間已建立。"]
         };
         
         await setDoc(doc(db, "rooms", roomId), initialRoomData);
@@ -257,20 +296,28 @@
         if (data.players.length >= 4) return alert("房間已滿 (最多 4 人)");
         if (data.players.find(p => p.name === name)) return alert("名字重複，請換一個");
 
-        await updateDoc(roomRef, { players: [...data.players, createNewPlayer(currentUser.uid, name)] });
+        let newLogs = [...data.logs, `${name} 加入了房間。`];
+        await updateDoc(roomRef, { players: [...data.players, createNewPlayer(currentUser.uid, name)], logs: newLogs });
         enterRoom(roomId);
     }
 
     function enterRoom(roomId) {
         currentRoomId = roomId;
-        document.getElementById('lobby-screen').classList.add('hidden');
-        document.getElementById('game-screen').classList.remove('hidden');
+        
+        // ★ 直接操作 style 確保隱藏/顯示絕對成功
+        document.getElementById('lobby-screen').style.display = 'none';
+        
+        const gameScreen = document.getElementById('game-screen');
+        gameScreen.classList.remove('hidden');
+        gameScreen.style.display = 'flex';
+        
         document.getElementById('ui-room').innerText = roomId;
 
         const { db, doc, onSnapshot } = window.FB;
         unsubscribeRoom = onSnapshot(doc(db, "rooms", roomId), (docSnap) => {
             if (docSnap.exists()) {
                 roomData = docSnap.data();
+                if(!roomData.logs) roomData.logs = [];
                 renderGame();
             }
         });
@@ -313,9 +360,11 @@
             p.hand = [];
             return p;
         });
+        
+        let newLogs = [...roomData.logs, `遊戲開始！`];
 
         await updateDoc(doc(db, "rooms", currentRoomId), {
-            status: 'playing', phase: 'research', players: updatedPlayers
+            status: 'playing', phase: 'research', players: updatedPlayers, logs: newLogs
         });
     }
 
@@ -350,7 +399,8 @@
             players[pIndex].mc = corp.mc;
             for (let key in corp.prod) { players[pIndex].prod[key] += corp.prod[key]; }
             
-            transaction.update(roomRef, { players: players });
+            let newLogs = [...data.logs, `${players[pIndex].name} 選擇了公司：${corp.name}`];
+            transaction.update(roomRef, { players: players, logs: newLogs });
         }).catch(e => alert(e));
     }
 
@@ -385,15 +435,162 @@
             players[pIndex].mc -= localSelectedCards.length * 3;
             localSelectedCards.forEach(idx => { players[pIndex].hand.push(players[pIndex].draft[idx]); });
             players[pIndex].draft = [];
+            let newLogs = [...data.logs, `${players[pIndex].name} 保留了 ${localSelectedCards.length} 張卡牌。`];
 
             let allKept = players.every(p => p.draft.length === 0);
             if (allKept) {
-                transaction.update(roomRef, { players: players, phase: 'action' });
+                transaction.update(roomRef, { players: players, phase: 'action', logs: newLogs });
             } else {
-                transaction.update(roomRef, { players: players });
+                transaction.update(roomRef, { players: players, logs: newLogs });
             }
         }).catch(e => alert(e));
         localSelectedCards = [];
+    }
+
+    function highlightValidTiles(type) {
+        document.querySelectorAll('.hex').forEach(el => el.classList.remove('valid-target'));
+        
+        roomData.board.forEach(cell => {
+            if (cell.type !== 'empty') return;
+            let isValid = false;
+
+            if (type === 'ocean' && cell.isReservedOcean) isValid = true;
+            if (type === 'forest' && !cell.isReservedOcean) isValid = true;
+            if (type === 'city' && !cell.isReservedOcean) isValid = true;
+
+            if (isValid) {
+                let el = document.getElementById(`hex-${cell.id}`);
+                if (el) el.classList.add('valid-target');
+            }
+        });
+    }
+
+    window.cancelPlacement = function() {
+        placingMode = null;
+        document.querySelectorAll('.hex').forEach(el => el.classList.remove('valid-target'));
+        renderGame();
+    }
+
+    window.onHexClick = async function(cellId) {
+        if (!placingMode) return; 
+        
+        let cell = roomData.board.find(b => b.id === cellId);
+        if (!cell) return;
+
+        let valid = false;
+        if (placingMode.type === 'ocean' && cell.type === 'empty' && cell.isReservedOcean) valid = true;
+        if (placingMode.type === 'forest' && cell.type === 'empty' && !cell.isReservedOcean) valid = true;
+        if (placingMode.type === 'city' && cell.type === 'empty' && !cell.isReservedOcean) valid = true;
+
+        if (!valid) return alert("這裡不能放置！");
+
+        const { db, doc, runTransaction } = window.FB;
+        const roomRef = doc(db, "rooms", currentRoomId);
+
+        await runTransaction(db, async (transaction) => {
+            const roomDoc = await transaction.get(roomRef);
+            const data = roomDoc.data();
+            let players = [...data.players];
+            let board = [...data.board];
+            let pIndex = players.findIndex(p => p.id === currentUser.uid);
+            
+            let p = players[pIndex];
+            let newLogs = [...data.logs];
+            
+            if (placingMode.cost > 0) {
+                p.mc -= placingMode.cost;
+            } else if (placingMode.cardIndex !== undefined) {
+                let cardName = p.hand[placingMode.cardIndex].name;
+                p.hand.splice(placingMode.cardIndex, 1);
+                newLogs.push(`${p.name} 打出了卡牌：${cardName}`);
+            }
+
+            let targetCell = board.find(b => b.id === cellId);
+            targetCell.type = placingMode.type;
+
+            p.tr += 1;
+            let newOceans = data.oceans;
+            let newOxy = data.oxygen;
+            let newTemp = data.temp;
+
+            if (placingMode.type === 'ocean') newOceans += 1;
+            if (placingMode.type === 'forest') newOxy += 1;
+
+            if (newOceans >= 9 && newOxy >= 14 && newTemp >= 8) {
+                newLogs.push(`🔥 火星改造完成！遊戲結束！`);
+            }
+
+            transaction.update(roomRef, { 
+                players: players, board: board, logs: newLogs, 
+                oceans: newOceans, oxygen: newOxy, temp: newTemp
+            });
+        }).catch(e => alert(e));
+
+        placingMode = null;
+        document.querySelectorAll('.hex').forEach(el => el.classList.remove('valid-target'));
+    }
+
+    window.playCard = async function(handIndex) {
+        const me = roomData.players.find(p => p.id === currentUser.uid);
+        if (!me) return;
+        const currentTurnPlayer = roomData.players[roomData.turnIndex];
+        if (!currentTurnPlayer || me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
+        
+        const card = me.hand[handIndex];
+        if (me.mc < card.cost) return alert("金錢不足！");
+
+        if (card.effect === 'temp') {
+            const { db, doc, runTransaction } = window.FB;
+            await runTransaction(db, async (transaction) => {
+                const roomDoc = await transaction.get(doc(db, "rooms", currentRoomId));
+                const data = roomDoc.data();
+                let players = [...data.players];
+                let p = players.find(p => p.id === currentUser.uid);
+                
+                p.mc -= card.cost; p.hand.splice(handIndex, 1); p.tr += 1;
+                let newLogs = [...data.logs, `${p.name} 打出了 ${card.name}，溫度 +1。`];
+                
+                transaction.update(doc(db, "rooms", currentRoomId), { 
+                    players: players, temp: data.temp + 1, logs: newLogs 
+                });
+            });
+        } else if (card.effect === 'ocean' || card.effect === 'forest' || card.effect === 'city') {
+            placingMode = { type: card.effect, cardIndex: handIndex, cost: card.cost };
+            highlightValidTiles(card.effect);
+            renderGame();
+        }
+    }
+
+    window.openStandardProjects = function() {
+        if (roomData.phase !== 'action') return;
+        document.getElementById('modal-projects').classList.add('active');
+    }
+
+    window.buyProject = async function(type, cost) {
+        const me = roomData.players.find(p => p.id === currentUser.uid);
+        if (!me) return;
+        const currentTurnPlayer = roomData.players[roomData.turnIndex];
+        if (!currentTurnPlayer || me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
+        if (me.mc < cost) return alert("金錢不足！");
+
+        document.getElementById('modal-projects').classList.remove('active');
+
+        if (type === 'temp') {
+            const { db, doc, runTransaction } = window.FB;
+            await runTransaction(db, async (transaction) => {
+                const roomDoc = await transaction.get(doc(db, "rooms", currentRoomId));
+                const data = roomDoc.data();
+                let players = [...data.players];
+                let p = players.find(p => p.id === currentUser.uid);
+                p.mc -= cost; p.tr += 1;
+                let newLogs = [...data.logs, `${p.name} 購買標準專案：小行星 (溫度+1)。`];
+                transaction.update(doc(db, "rooms", currentRoomId), { players: players, temp: data.temp + 1, logs: newLogs });
+            });
+        } else {
+            placingMode = { type: type, cost: cost };
+            highlightValidTiles(type);
+            renderGame();
+        }
     }
 
     window.passTurn = async function() {
@@ -410,6 +607,7 @@
             const data = roomDoc.data();
             let players = [...data.players];
             let currentIdx = data.turnIndex;
+            let newLogs = [...data.logs, `${players[currentIdx].name} 結束了回合。`];
             
             players[currentIdx].passed = true;
 
@@ -423,6 +621,7 @@
             }
 
             if (allPassed) {
+                newLogs.push(`全員結束回合，進入生產階段。`);
                 players = players.map(p => {
                     p.mc += p.tr + p.prod.mc;
                     p.steel += p.prod.steel; p.titan += p.prod.titan; p.plant += p.prod.plant;
@@ -432,110 +631,31 @@
                 });
                 
                 if (data.gen >= 14) {
-                    transaction.update(roomRef, { status: 'ended', players: players });
+                    transaction.update(roomRef, { status: 'ended', players: players, logs: newLogs });
                 } else {
-                    transaction.update(roomRef, { gen: data.gen + 1, turnIndex: 0, phase: 'research', players: players });
+                    transaction.update(roomRef, { gen: data.gen + 1, turnIndex: 0, phase: 'research', players: players, logs: newLogs });
                 }
             } else {
-                transaction.update(roomRef, { turnIndex: nextIdx, players: players });
+                transaction.update(roomRef, { turnIndex: nextIdx, players: players, logs: newLogs });
             }
-        }).catch(e => alert(e));
-    }
-
-    window.playCard = async function(handIndex) {
-        const me = roomData.players.find(p => p.id === currentUser.uid);
-        if (!me) return;
-        const currentTurnPlayer = roomData.players[roomData.turnIndex];
-        if (!currentTurnPlayer || me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
-        
-        const card = me.hand[handIndex];
-        if (me.mc < card.cost) return alert("金錢不足！");
-
-        const { db, doc, runTransaction } = window.FB;
-        const roomRef = doc(db, "rooms", currentRoomId);
-
-        await runTransaction(db, async (transaction) => {
-            const roomDoc = await transaction.get(roomRef);
-            const data = roomDoc.data();
-            let players = [...data.players];
-            let board = [...data.board];
-            let pIndex = players.findIndex(p => p.id === currentUser.uid);
-            
-            players[pIndex].mc -= card.cost;
-            players[pIndex].hand.splice(handIndex, 1);
-
-            let newTemp = data.temp, newOxy = data.oxygen, newOceans = data.oceans, trGain = 0;
-
-            if (card.effect === 'temp') { newTemp += card.value || 1; trGain += 1; }
-            else if (card.effect === 'ocean') { 
-                newOceans += 1; trGain += 1;
-                let emptyOcean = board.find(b => b.type === 'empty' && b.isReservedOcean);
-                if(emptyOcean) emptyOcean.type = 'ocean';
-            }
-            else if (card.effect === 'forest') { 
-                newOxy += 1; trGain += 1;
-                let emptyForest = board.find(b => b.type === 'empty' && !b.isReservedOcean);
-                if(emptyForest) emptyForest.type = 'forest';
-            }
-            else if (card.effect === 'mcProd') { players[pIndex].prod.mc += 1; }
-
-            players[pIndex].tr += trGain;
-            transaction.update(roomRef, { players: players, board: board, temp: newTemp, oxygen: newOxy, oceans: newOceans });
-        }).catch(e => alert(e));
-    }
-
-    window.openStandardProjects = function() {
-        if (roomData.phase !== 'action') return;
-        document.getElementById('modal-projects').classList.add('active');
-    }
-
-    window.buyProject = async function(type, cost) {
-        const me = roomData.players.find(p => p.id === currentUser.uid);
-        if (!me) return;
-        const currentTurnPlayer = roomData.players[roomData.turnIndex];
-        if (!currentTurnPlayer || me.id !== currentTurnPlayer.id) return alert("還沒輪到你！");
-        if (me.mc < cost) return alert("金錢不足！");
-
-        const { db, doc, runTransaction } = window.FB;
-        const roomRef = doc(db, "rooms", currentRoomId);
-        document.getElementById('modal-projects').classList.remove('active');
-
-        await runTransaction(db, async (transaction) => {
-            const roomDoc = await transaction.get(roomRef);
-            const data = roomDoc.data();
-            let players = [...data.players]; let board = [...data.board];
-            let pIndex = players.findIndex(p => p.id === currentUser.uid);
-            
-            players[pIndex].mc -= cost;
-            let newTemp = data.temp, newOxy = data.oxygen, newOceans = data.oceans;
-
-            if (type === 'temp') { newTemp += 1; players[pIndex].tr += 1; }
-            if (type === 'ocean') { 
-                newOceans += 1; players[pIndex].tr += 1;
-                let emptyOcean = board.find(b => b.type === 'empty' && b.isReservedOcean);
-                if(emptyOcean) emptyOcean.type = 'ocean';
-            }
-            if (type === 'forest') { 
-                newOxy += 1; players[pIndex].tr += 1;
-                let emptyForest = board.find(b => b.type === 'empty' && !b.isReservedOcean);
-                if(emptyForest) emptyForest.type = 'forest';
-            }
-            transaction.update(roomRef, { players: players, board: board, temp: newTemp, oxygen: newOxy, oceans: newOceans });
         }).catch(e => alert(e));
     }
 
     function generateCard() {
         const pool = [
-            { name: "小行星", cost: 14, effect: "temp", value: 1, text: "溫度+1", type: "event" },
+            { name: "小行星", cost: 14, effect: "temp", text: "溫度+1", type: "event" },
             { name: "水資源", cost: 18, effect: "ocean", text: "放置海洋", type: "event" },
             { name: "自然保護區", cost: 23, effect: "forest", text: "放置綠化", type: "auto" },
-            { name: "發電廠", cost: 11, effect: "none", text: "無效果", type: "auto" },
-            { name: "採礦業", cost: 8, effect: "mcProd", text: "金錢產量+1", type: "auto" }
+            { name: "城市建設", cost: 25, effect: "city", text: "放置城市", type: "auto" },
+            { name: "太陽能發電", cost: 11, effect: "mcProd", text: "金錢產量+1", type: "auto" },
+            { name: "深井熱力", cost: 13, effect: "temp", text: "溫度+1", type: "auto" },
+            { name: "生物量燃燒", cost: 4, effect: "mcProd", text: "金錢產量+2", type: "auto" },
+            { name: "巨冰小行星", cost: 36, effect: "ocean", text: "放置海洋", type: "event" },
+            { name: "磁力發動機", cost: 20, effect: "temp", text: "溫度+1", type: "auto" }
         ];
         return pool[Math.floor(Math.random() * pool.length)];
     }
 
-    // ★ 核心修正：改用 classList 來控制按鈕顯示 ★
     function renderGame() {
         if (!roomData || !roomData.players) return;
         const me = roomData.players.find(p => p.id === currentUser.uid);
@@ -552,21 +672,18 @@
         const isMyTurn = roomData.players[roomData.turnIndex]?.id === currentUser.uid;
         const hasDraft = me.draft && me.draft.length > 0;
 
-        // 大廳階段：只有房主看到開始按鈕
         if (roomData.status === 'lobby' && isHost) {
             document.getElementById('btn-start').classList.remove('hidden');
         } else {
             document.getElementById('btn-start').classList.add('hidden');
         }
 
-        // 開發階段：有抽牌的人看到保留按鈕
         if (roomData.phase === 'research' && hasDraft) {
             document.getElementById('btn-keep').classList.remove('hidden');
         } else {
             document.getElementById('btn-keep').classList.add('hidden');
         }
 
-        // 行動階段：所有人看到標準專案與結束回合（但只有輪到的人可以點）
         if (roomData.phase === 'action') {
             document.getElementById('btn-project').classList.remove('hidden');
             document.getElementById('btn-pass').classList.remove('hidden');
@@ -577,7 +694,14 @@
             document.getElementById('btn-pass').classList.add('hidden');
         }
 
-        // 玩家面板
+        if (placingMode) {
+            document.getElementById('btn-cancel').classList.remove('hidden');
+            document.getElementById('btn-pass').classList.add('hidden');
+            document.getElementById('btn-project').classList.add('hidden');
+        } else {
+            document.getElementById('btn-cancel').classList.add('hidden');
+        }
+
         const pBoard = document.getElementById('players-board');
         pBoard.innerHTML = '';
         roomData.players.forEach((p, idx) => {
@@ -598,8 +722,9 @@
             pBoard.appendChild(div);
         });
 
-        // 狀態文字
-        if (roomData.phase === 'action') {
+        if (placingMode) {
+            document.getElementById('turn-indicator').innerText = `請在地圖上點擊放置：${placingMode.type === 'ocean' ? '海洋' : placingMode.type === 'forest' ? '綠化' : '城市'}`;
+        } else if (roomData.phase === 'action') {
             document.getElementById('turn-indicator').innerText = `行動階段 - 輪到：${roomData.players[roomData.turnIndex].name}`;
         } else if (roomData.phase === 'research') {
             document.getElementById('turn-indicator').innerText = `開發階段 - 請選卡後按保留`;
@@ -607,7 +732,6 @@
             document.getElementById('turn-indicator').innerText = `等待中...`;
         }
 
-        // 手牌
         const handArea = document.getElementById('hand-cards');
         handArea.innerHTML = '';
         
@@ -625,11 +749,14 @@
                 const el = document.createElement('div');
                 el.className = `card ${card.type}`;
                 el.innerHTML = `<div class="title">${card.name}</div><div class="cost">💰 ${card.cost}</div><div class="text">${card.text}</div>`;
-                if (roomData.phase === 'action' && isMyTurn) el.onclick = () => playCard(i);
+                if (roomData.phase === 'action' && isMyTurn && !placingMode) el.onclick = () => playCard(i);
                 else el.style.opacity = 0.5;
                 handArea.appendChild(el);
             });
         }
+
+        const logList = document.getElementById('log-list');
+        logList.innerHTML = roomData.logs.slice().reverse().map(log => `<div class="log-item">${log}</div>`).join('');
 
         renderBoard();
     }
@@ -651,18 +778,19 @@
                 const xOff = (cell.r % 2) * (w / 2);
                 hex.style.left = (cell.c * w + xOff) + 'px';
                 hex.style.top = (cell.r * (h * 0.75)) + 'px';
+                hex.onclick = () => window.onHexClick(cell.id);
                 boardEl.appendChild(hex);
             });
             boardEl.style.width = `${boardW}px`;
             boardEl.style.height = `${boardH}px`;
-            
             atmosEl.style.width = `${boardW}px`;
             atmosEl.style.height = `${boardH}px`;
         }
 
+        // ★ 改用 offsetWidth / offsetHeight，因為 flex 排版可能導致 clientHeight 算錯
         const padding = 40;
-        const scaleX = (container.clientWidth - padding) / boardW;
-        const scaleY = (container.clientHeight - padding) / boardH;
+        const scaleX = (container.offsetWidth - padding) / boardW;
+        const scaleY = (container.offsetHeight - padding) / boardH;
         let scale = Math.min(scaleX, scaleY);
         if (scale > 1.3) scale = 1.3;
         
@@ -671,7 +799,11 @@
         roomData.board.forEach(cell => {
             const hex = document.getElementById(`hex-${cell.id}`);
             if(!hex) return;
+            
+            let isTarget = hex.classList.contains('valid-target');
             hex.className = 'hex';
+            if (isTarget) hex.classList.add('valid-target');
+
             if (cell.isReservedOcean && cell.type === 'empty') hex.classList.add('ocean-reserved');
             if (cell.type === 'ocean') hex.classList.add('ocean');
             if (cell.type === 'forest') hex.classList.add('forest');
@@ -679,6 +811,10 @@
             
             hex.innerText = cell.type === 'empty' ? '' : cell.type.toUpperCase();
         });
+    }
+
+    window.toggleHistory = function() {
+        document.getElementById('history-panel').classList.toggle('active');
     }
 
     window.addEventListener('resize', () => { if (roomData) renderBoard(); });
