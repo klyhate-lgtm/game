@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>烏托邦引擎 (Utopia Engine) - 3rd Edition</title>
+<style>
+    :root {
+        --bg-parchment: #f4ecd8;
+        --text-dark: #2c1e16;
+        --text-light: #5a4232;
+        --accent-gold: #b8860b;
+        --accent-red: #8b0000;
+        --accent-blue: #2c3e50;
+        --border-color: #8c6b4a;
+        --shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+    body {
+        margin: 0; padding: 0;
+        font-family: 'Georgia', 'Times New Roman', serif;
+        background-color: var(--bg-parchment);
+        background-image: 
+            radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4) 0%, transparent 60%),
+            url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100" height="100" filter="url(%23n)"/></svg>');
+        color: var(--text-dark);
+        min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden;
+    }
+
+    /* 頂部狀態列 */
+    #top-bar {
+        position: sticky; top: 0; z-index: 100;
+        background: rgba(244, 236, 216, 0.95);
+        border-bottom: 3px solid var(--border-color);
+        padding: 8px 12px;
+        display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+        box-shadow: var(--shadow); backdrop-filter: blur(4px);
+    }
+
+    .status-group { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 14px; }
+
+    .time-track { display: flex; gap: 2px; flex-wrap: wrap; max-width: 200px;}
+    .day-box {
+        width: 18px; height: 20px; border: 1px solid var(--text-dark);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 9px; background: #fff; border-radius: 2px;
+    }
+    .day-box.event { background: #e0e0e0; }
+    .day-box.crossed { background: #333; color: #fff; text-decoration: line-through; }
+    .day-box.skull { color: var(--accent-red); font-weight: bold; }
+
+    .hp-vial { display: flex; gap: 2px; }
+    .hp-pip { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--text-dark); background: #fff; }
+    .hp-pip.filled { background: var(--accent-red); }
+
+    .god-hand { display: flex; gap: 4px; align-items: center; }
+    .energy-pip { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--text-dark); background: #fff; }
+    .energy-pip.filled { background: var(--accent-gold); }
+    .btn-god-hand { font-size: 10px; padding: 2px 6px; background: var(--accent-gold); border: none; border-radius: 4px; cursor: pointer; color: #000; font-weight: bold; margin-left: 4px;}
+    .btn-god-hand:disabled { background: #999; cursor: not-allowed; }
+
+    /* 主畫面 */
+    #game-area { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 80px; }
+
+    /* 地圖區域 */
+    .map-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    @media (min-width: 768px) { .map-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .region-card {
+        background: rgba(255, 255, 255, 0.6); border: 2px solid var(--border-color);
+        border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1); position: relative; transition: transform 0.2s; cursor: pointer;
+    }
+    .region-card:hover { transform: translateY(-2px); box-shadow: 4px 4px 10px rgba(0,0,0,0.2); }
+    .region-card.disabled { opacity: 0.6; cursor: not-allowed; filter: grayscale(0.5); }
+    
+    .region-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 14px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    .region-tracker { display: flex; gap: 2px; }
+    .tracker-pip { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #666; font-size: 8px; display: flex; align-items: center; justify-content: center; }
+    .tracker-pip.marked { background: #555; color: #fff; }
+    .tracker-pip.minus { color: red; font-weight: bold; }
+    .region-info { font-size: 12px; color: var(--text-light); line-height: 1.3; }
+    .region-info span { font-weight: bold; color: var(--text-dark); }
+    
+    .region-events { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; flex-wrap: wrap; justify-content: flex-end; max-width: 60%;}
+    .event-icon { font-size: 12px; background: var(--text-dark); color: #fff; border-radius: 4px; padding: 1px 4px; }
+
+    /* 底部導航 */
+    #bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(44, 30, 22, 0.95); display: flex; justify-content: space-around; padding: 8px; z-index: 100; border-top: 2px solid var(--accent-gold); }
+    .nav-btn { background: none; border: none; color: var(--bg-parchment); font-family: inherit; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: background 0.2s; }
+    .nav-btn:hover { background: rgba(255,255,255,0.1); }
+    .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .nav-btn i { font-size: 18px; font-style: normal; }
+
+    /* 彈窗/面板 */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 200; display: none; justify-content: center; align-items: center; padding: 16px; }
+    .modal-overlay.active { display: flex; }
+    .modal-content { background: var(--bg-parchment); border: 3px solid var(--border-color); border-radius: 12px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; display: flex; flex-direction: column; gap: 12px; }
+    .modal-title { font-size: 20px; font-weight: bold; text-align: center; color: var(--text-dark); border-bottom: 2px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px; }
+    .modal-close { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: var(--text-dark); background: none; border: none; }
+
+    /* 按鈕 */
+    .btn { background: var(--accent-blue); color: #fff; border: 2px solid #1a252f; border-radius: 6px; padding: 8px 16px; font-family: inherit; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .btn:hover { background: #3e5c76; transform: translateY(-1px); }
+    .btn:active { transform: translateY(1px); box-shadow: none; }
+    .btn:disabled { background: #888; border-color: #555; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--accent-gold); border-color: #8c6b4a; color: #000; }
+    .btn-primary:hover { background: #d4a017; }
+    .btn-danger { background: var(--accent-red); border-color: #5a0000; }
+    .btn-danger:hover { background: #a00000; }
+    .btn-small { padding: 4px 8px; font-size: 12px; }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+    /* 骰子與格子 */
+    .grid-container { display: flex; flex-direction: column; gap: 16px; align-items: center; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px; }
+    .dice-pool { display: flex; gap: 8px; min-height: 50px; padding: 8px; background: rgba(255,255,255,0.5); border-radius: 8px; border: 1px dashed #999; align-items: center; justify-content: center; flex-wrap: wrap; }
+    .die { width: 40px; height: 40px; background: #fff; border: 2px solid var(--text-dark); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 2px 2px 0 rgba(0,0,0,0.2); transition: transform 0.1s; }
+    .die:hover { transform: scale(1.1); }
+
+    .number-grid { display: flex; flex-direction: column; gap: 8px; }
+    .number-row { display: flex; gap: 8px; justify-content: center; }
+    .number-cell { width: 50px; height: 50px; background: #fff; border: 2px solid var(--text-dark); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; cursor: pointer; border-radius: 4px; }
+    .number-cell.filled { background: #e8e8e8; }
+    .number-cell.placeholder { color: #ccc; font-size: 14px; }
+    .number-cell.highlight { border-color: var(--accent-gold); box-shadow: 0 0 8px var(--accent-gold); }
+    
+    .minus-sign { font-size: 24px; font-weight: bold; display: flex; align-items: center; }
+    .equals-row { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 20px; font-weight: bold; }
+    .result-box { width: 80px; height: 40px; background: #fff; border: 2px solid var(--accent-gold); display: flex; align-items: center; justify-content: center; border-radius: 4px; }
+
+    /* 日誌 */
+    #log-panel { background: rgba(0,0,0,0.8); color: #fff; padding: 8px; border-radius: 6px; font-size: 12px; max-height: 120px; overflow-y: auto; font-family: monospace; }
+    .log-entry { margin-bottom: 4px; border-bottom: 1px solid #444; padding-bottom: 2px;}
+
+    /* 故事文字 */
+    .story-text { font-size: 14px; line-height: 1.6; text-align: justify; color: var(--text-dark); background: rgba(255,255,255,0.5); padding: 12px; border-radius: 6px; border-left: 4px solid var(--accent-gold); }
+
+    /* Toast */
+    #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.85); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 300; text-align: center; max-width: 90%; }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* 幫助文件樣式 */
+    .help-section h3 { margin-bottom: 4px; color: var(--accent-red); }
+    .help-section p { margin-top: 0; margin-bottom: 12px; font-size: 14px; line-height: 1.5; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
+
+    /* 廢紙簍 */
+    .wastebasket { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 8px; background: rgba(0,0,0,0.1); border-radius: 8px; min-height: 60px; border: 1px dashed #666; }
+    .waste-slot { width: 30px; height: 30px; background: rgba(255,255,255,0.3); border: 1px solid #999; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 4px; cursor: pointer;}
+    .waste-slot.filled { background: #fff; border-color: var(--text-dark); }
+
+    .stats-panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 12px; text-align: center; }
+    .stat-box { background: rgba(255,255,255,0.6); border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; }
+    .stat-value { font-size: 16px; font-weight: bold; color: var(--accent-blue); }
+    
+    .compact-list { display: flex; flex-wrap: wrap; gap: 4px; font-size: 12px; }
+    .compact-item { border: 1px solid #ccc; padding: 2px 6px; border-radius: 4px; background: #fff; }
+</style>
+</head>
+<body>
+
+    <!-- 頂部狀態列 -->
+    <div id="top-bar">
+        <div class="status-group" title="時間軌：跨過骷髏即失敗">
+            <span>⏳ 時間</span>
+            <div class="time-track" id="time-track"></div>
+        </div>
+        <div class="status-group" title="生命值：滿6點昏迷，超過6點死亡">
+            <span>❤️ 生命</span>
+            <div class="hp-vial" id="hp-vial"></div>
+        </div>
+        <div class="status-group" title="神之手：消耗3能量可推遲1天末日">
+            <span>✋ 神手</span>
+            <div class="god-hand" id="god-hand"></div>
+            <button class="btn-god-hand" onclick="useGodHand()" id="god-hand-btn">推遲(3)</button>
+        </div>
+    </div>
+
+    <!-- 主遊戲區域 -->
+    <div id="game-area">
+        <div class="map-grid" id="map-grid"></div>
+        <div id="log-panel"></div>
+    </div>
+
+    <!-- 底部導航 -->
+    <div id="bottom-nav">
+        <button class="nav-btn" onclick="openWorkshop()"><i>🏠</i>工坊</button>
+        <button class="nav-btn" onclick="openHelp()"><i>📖</i>說明</button>
+        <button class="nav-btn" onclick="openStats()"><i>📊</i>狀態</button>
+        <button class="nav-btn" onclick="saveGame()"><i>💾</i>存檔</button>
+        <button class="nav-btn" onclick="loadGame()"><i>📂</i>讀檔</button>
+        <button class="nav-btn" onclick="toggleSound()" id="sound-btn"><i>🔊</i>音效</button>
+    </div>
+
+    <!-- 通用彈窗 -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-content" id="modal-content">
+            <button class="modal-close" onclick="closeModal()">×</button>
+            <div class="modal-title" id="modal-title">標題</div>
+            <div id="modal-body"></div>
+            <div class="btn-group" id="modal-actions" style="margin-top: 12px;"></div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        // --- 音效系統 ---
+        let soundEnabled = true;
+        let audioCtx = null;
+        function playClick() {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+            } catch(e) {}
+        }
+        function playDice() {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                for (let i=0; i<3; i++) {
+                    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                    osc.type = 'square'; osc.frequency.setValueAtTime(100 + Math.random()*200, audioCtx.currentTime + i*0.05);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime + i*0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i*0.05 + 0.04);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + i*0.05); osc.stop(audioCtx.currentTime + i*0.05 + 0.05);
+                }
+            } catch(e) {}
+        }
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-btn').innerHTML = soundEnabled ? '<i>🔊</i>音效' : '<i>🔇</i>靜音';
+            if (soundEnabled) playClick();
+        }
+
+        // --- 資料定義 ---
+        const REGIONS = [
+            { id: 'halbeard', name: '戟峰', comp: '銀', artifact: '平衡之印', treasure: '冰霜鎧甲', icon: '⛰️' },
+            { id: 'greatwild', name: '大荒野', comp: '石英', artifact: '赫爾墨斯之鏡', treasure: '伊奧斯手鐲', icon: '🌲' },
+            { id: 'rootmarsh', name: '根纏沼澤', comp: '樹膠', artifact: '虛空之門', treasure: '微光月紗', icon: '🌿' },
+            { id: 'glassrock', name: '玻璃岩峽谷', comp: '硅石', artifact: '黃金機殼', treasure: '無限蠕蟲之鱗', icon: '🏜️' },
+            { id: 'ruinedcity', name: '遠古廢墟之城', comp: '蠟', artifact: '探視透鏡', treasure: '遠古紀錄', icon: '🏛️' },
+            { id: 'fierymaw', name: '熾熱巨口', comp: '鉛', artifact: '水晶電池', treasure: '熔火碎片', icon: '🌋' }
+        ];
+
+        const ARTIFACTS = {
+            seal: { name: '平衡之印', region: '戟峰', effect: '每局一次，可忽略一個區域的所有事件。' },
+            mirror: { name: '赫爾墨斯之鏡', region: '大荒野', effect: '戟峰與熾熱巨口的搜尋結果可 -10。' },
+            voidgate: { name: '虛空之門', region: '根纏沼澤', effect: '昏迷時只需 4 天恢復（而非 6 天）。' },
+            chassis: { name: '黃金機殼', region: '玻璃岩峽谷', effect: '對抗靈體（S）時，每顆骰子 +1。' },
+            lens: { name: '探視透鏡', region: '遠古廢墟之城', effect: '玻璃岩峽谷與根纏沼澤的搜尋結果可 -10。' },
+            battery: { name: '水晶電池', region: '熾熱巨口', effect: '花費 3 個零件可為使用過的工具腰帶物品充能。' }
+        };
+
+        const TOOLS = {
+            dowsing: { name: '探測杖', used: false, effect: '搜尋結果 11-99 時，可改為 1。' },
+            paralysis: { name: '麻痺魔杖', used: false, effect: '戰鬥中每顆骰子 +2（上限 6）。' },
+            focus: { name: '專注護符', used: false, effect: '啟動神器時立刻 +2 能量。' }
+        };
+
+        const LINKS = [
+            { id: 'link1', name: '鏡 ↔ 門', req: '硅石', artA: 'mirror', artB: 'voidgate', value: 0, completed: false },
+            { id: 'link2', name: '門 ↔ 殼', req: '鉛', artA: 'voidgate', artB: 'chassis', value: 0, completed: false },
+            { id: 'link3', name: '殼 ↔ 鏡', req: '蠟', artA: 'chassis', artB: 'lens', value: 0, completed: false },
+            { id: 'link4', name: '鏡 ↔ 印', req: '銀', artA: 'lens', artB: 'seal', value: 0, completed: false },
+            { id: 'link5', name: '印 ↔ 池', req: '石英', artA: 'seal', artB: 'battery', value: 0, completed: false },
+            { id: 'link6', name: '池 ↔ 鏡', req: '樹膠', artA: 'battery', artB: 'mirror', value: 0, completed: false }
+        ];
+
+        const MONSTERS = {
+            '戟峰': [ { name: '雪兔', atk: [1,1], patk: [5,6] }, { name: '冰霜狼', atk: [1,1], patk: [6,6] }, { name: '冰霜巨魔', atk: [1,2], patk: [6,6] }, { name: '冰巨人', atk: [1,3], patk: [6,6] }, { name: '寒冬之怒', atk: [1,4], patk: [6,6] } ],
+            '大荒野': [ { name: '流氓盜賊', atk: [1,1], patk: [5,6] }, { name: '烏鴉毯', atk: [1,1], patk: [6,6] }, { name: '角背野牛', atk: [1,2], patk: [6,6] }, { name: '草背巨魔', atk: [1,3], patk: [6,6] }, { name: '雷霆之王', atk: [1,4], patk: [6,6] } ],
+            '根纏沼澤': [ { name: '沼澤史萊姆', atk: [1,1], patk: [5,6] }, { name: '毒蛇', atk: [1,1], patk: [6,6] }, { name: '泥沼怪', atk: [1,2], patk: [6,6] }, { name: '九頭蛇', atk: [1,3], patk: [6,6] }, { name: '沼澤領主', atk: [1,4], patk: [6,6] } ],
+            '玻璃岩峽谷': [ { name: '岩蜥', atk: [1,1], patk: [5,6] }, { name: '沙蠍', atk: [1,1], patk: [6,6] }, { name: '石像鬼', atk: [1,2], patk: [6,6] }, { name: '沙蟲', atk: [1,3], patk: [6,6] }, { name: '無限蠕蟲', atk: [1,4], patk: [6,6] } ],
+            '遠古廢墟之城': [ { name: '廢墟老鼠', atk: [1,1], patk: [5,6] }, { name: '幽靈 (S)', atk: [1,1], patk: [6,6] }, { name: '骷髏戰士', atk: [1,2], patk: [6,6] }, { name: '死靈法師', atk: [1,3], patk: [6,6] }, { name: '遠古巫妖', atk: [1,4], patk: [6,6] } ],
+            '熾熱巨口': [ { name: '火蟲', atk: [1,1], patk: [5,6] }, { name: '熔岩犬', atk: [1,1], patk: [6,6] }, { name: '火元素', atk: [1,2], patk: [6,6] }, { name: '熔岩巨人', atk: [1,3], patk: [6,6] }, { name: '炎魔', atk: [1,4], patk: [6,6] } ]
+        };
+
+        let state = {};
+
+        function initGame() {
+            state = {
+                phase: 'MAP', // MAP, SEARCH, COMBAT, ACTIVATION, LINKING, FINAL
+                time: 15,
+                hp: 0,
+                godHand: 0,
+                components: { '銀':0, '石英':0, '硅石':0, '樹膠':0, '蠟':0, '鉛':0 },
+                artifacts: {
+                    seal: { found: false, activated: false, energy: 0 },
+                    mirror: { found: false, activated: false, energy: 0 },
+                    voidgate: { found: false, activated: false, energy: 0 },
+                    chassis: { found: false, activated: false, energy: 0 },
+                    lens: { found: false, activated: false, energy: 0 },
+                    battery: { found: false, activated: false, energy: 0 }
+                },
+                treasures: { '冰霜鎧甲': false, '伊奧斯手鐲': false, '微光月紗': false, '無限蠕蟲之鱗': false, '遠古紀錄': false, '熔火碎片': false },
+                tools: JSON.parse(JSON.stringify(TOOLS)),
+                searchTrackers: {
+                    '戟峰': [0,0,0,0,0,0], '大荒野': [0,0,0,0,0,0], '根纏沼澤': [0,0,0,0,0,0],
+                    '玻璃岩峽谷': [0,0,0,0,0,0], '遠古廢墟之城': [0,0,0,0,0,0], '熾熱巨口': [0,0,0,0,0,0]
+                },
+                searchBoxes: {}, // 記錄各區域已填滿的格子數
+                links: JSON.parse(JSON.stringify(LINKS)),
+                events: {},
+                logs: [],
+                currentRegion: null,
+                currentMonster: null,
+                tempDice: [],
+                usedToolsThisAction: {},
+                gameOver: false
+            };
+            REGIONS.forEach(r => state.searchBoxes[r.name] = 0);
+            addLog("遊戲開始！末日將在第 15 天降臨。");
+            updateUI();
+            showIntroModal();
+        }
+
+        function addLog(msg) {
+            state.logs.push(msg);
+            if (state.logs.length > 50) state.logs.shift();
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const panel = document.getElementById('log-panel');
+            if (!panel) return;
+            panel.innerHTML = state.logs.slice().reverse().map(l => `<div class="log-entry">> ${l}</div>`).join('');
+        }
+
+        function updateUI() {
+            if (state.gameOver) return;
+            
+            // 時間
+            const timeTrack = document.getElementById('time-track');
+            timeTrack.innerHTML = '';
+            for (let i = 1; i <= 15; i++) {
+                const box = document.createElement('div');
+                box.className = 'day-box';
+                if ([2,4,6,8,10,12,14].includes(i)) box.classList.add('event');
+                if (i === 15) box.classList.add('skull');
+                if (i > 15 - state.time) box.classList.add('crossed');
+                box.textContent = i;
+                timeTrack.appendChild(box);
+            }
+            
+            // 生命
+            const hpVial = document.getElementById('hp-vial');
+            hpVial.innerHTML = '';
+            for (let i = 1; i <= 6; i++) {
+                const pip = document.createElement('div');
+                pip.className = 'hp-pip';
+                if (i <= state.hp) pip.classList.add('filled');
+                hpVial.appendChild(pip);
+            }
+            
+            // 神手
+            const godHand = document.getElementById('god-hand');
+            godHand.innerHTML = '';
+            for (let i = 1; i <= 10; i++) {
+                const pip = document.createElement('div');
+                pip.className = 'energy-pip';
+                if (i <= state.godHand) pip.classList.add('filled');
+                godHand.appendChild(pip);
+            }
+            document.getElementById('god-hand-btn').disabled = state.godHand < 3 || state.time <= 1;
+            
+            renderMap();
+        }
+
+        function renderMap() {
+            const grid = document.getElementById('map-grid');
+            grid.innerHTML = '';
+            
+            REGIONS.forEach(reg => {
+                const card = document.createElement('div');
+                card.className = 'region-card';
+                card.onclick = () => startSearch(reg.id);
+                
+                const artifactKey = Object.keys(ARTIFACTS).find(k => ARTIFACTS[k].region === reg.name);
+                const artState = state.artifacts[artifactKey];
+                const tracker = state.searchTrackers[reg.name];
+                
+                let trackerHTML = '<div class="region-tracker">';
+                tracker.forEach((val, idx) => {
+                    const isMinus = [1,3,5].includes(idx);
+                    const marked = val !== 0;
+                    trackerHTML += `<div class="tracker-pip ${marked?'marked':''} ${isMinus&&!marked?'minus':''}">${isMinus?'-1':''}</div>`;
+                });
+                trackerHTML += '</div>';
+
+                const events = state.events[reg.name] || [];
+                let eventHTML = '';
+                if (events.length > 0) {
+                    eventHTML = `<div class="region-events">${events.map(e => `<span class="event-icon" title="${e.name}">${e.icon}</span>`).join('')}</div>`;
+                }
+
+                card.innerHTML = `
+                    ${eventHTML}
+                    <div class="region-header">
+                        <span>${reg.icon} ${reg.name}</span>
+                        ${trackerHTML}
+                    </div>
+                    <div class="region-info">
+                        <div>零件：<span>${reg.comp}</span></div>
+                        <div>神器：<span style="color:${artState.found?'green':'inherit'}">${reg.artifact}</span> ${artState.found ? (artState.activated ? '✅' : '📜') : ''}</div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- 彈窗與控制 ---
+        function openModal(title, bodyHTML, actions, closable=true) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-body').innerHTML = bodyHTML;
+            const actionsDiv = document.getElementById('modal-actions');
+            actionsDiv.innerHTML = '';
+            actions.forEach(act => {
+                const btn = document.createElement('button');
+                btn.className = `btn ${act.className || ''}`;
+                btn.innerText = act.label;
+                btn.onclick = () => { playClick(); act.action(); };
+                if (act.disabled) btn.disabled = true;
+                actionsDiv.appendChild(btn);
+            });
+            document.querySelector('.modal-close').style.display = closable ? 'block' : 'none';
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('modal-overlay').classList.remove('active'); }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // --- 神之手 ---
+        function useGodHand() {
+            if (state.godHand < 3) { showToast("能量不足！"); return; }
+            if (state.time <= 1) { showToast("無法再推遲！"); return; }
+            playClick();
+            state.godHand -= 3;
+            state.time += 1; // 推遲一天，代表時間軌多一格
+            addLog("使用神之手，末日推遲了一天！");
+            updateUI();
+        }
+
+        // --- 開場與說明 ---
+        function showIntroModal() {
+            const body = `
+                <div class="story-text">
+                    <p>末日即將降臨。神之手的能量已耗盡，巫師們的爭鬥無法帶來希望。</p>
+                    <p>你是才華洋溢的工匠伊索多羅斯，被賦予了重構「烏托邦引擎」的使命。這是一個由六件強大「神器」組成的裝置，曾在千年前維持著完美的社會。</p>
+                    <p>你只有 <strong>15 天</strong> 的時間。穿越荒野、尋找神器、啟動它們並連結在一起。如果失敗，世界將被毀滅。</p>
+                </div>
+                <p style="text-align:center; margin-top:16px; font-weight:bold;">準備好拯救世界了嗎？</p>
+            `;
+            openModal('📜 烏托邦引擎 (Utopia Engine)', body, [
+                { label: '📖 查看詳細規則', className: 'btn-primary', action: openHelp },
+                { label: '⚔️ 開始遊戲', className: 'btn-danger', action: () => { closeModal(); state.phase='MAP'; updateUI(); } }
+            ], false);
+        }
+
+        function openHelp() {
+            const helpHTML = `
+                <div class="help-section">
+                    <h3>🎯 遊戲目標</h3>
+                    <p>在時間軌跑到第 15 天（骷髏圖示）之前，找到 6 件神器、啟動它們，並將它們連結起來，最後完成「最終啟動」。</p>
+                    
+                    <h3>🔍 搜尋階段</h3>
+                    <p>點擊地圖上的區域進行搜尋。每次搜尋擲 3 次骰（共 6 個數字），將數字填入上方三位數與下方三位數的格子中，相減取絕對值。<br>
+                    <strong>0</strong>：完美！獲得已啟動的神器，神之手 +2 能量。<br>
+                    <strong>1-10</strong>：獲得未啟動的神器。<br>
+                    <strong>11-99</strong>：獲得該區域的零件。<br>
+                    <strong>100 以上或負數</strong>：遭遇怪物！</p>
+                    <p>每次搜尋會標記一個進度圈，標記到 <strong>-1</strong> 的圈時會消耗 1 天。若填滿該區的「6 個搜尋格子」，可額外花 1 天直接獲得該區神器。</p>
+                    <p><strong>注意：</strong>離開當前區域（去別區或回工坊）時，該區的搜尋進度會全部清空！</p>
+                    
+                    <h3>⚔️ 戰鬥階段</h3>
+                    <p>擲 2d6。若骰子落在怪物攻擊範圍，你會扣血；若落在你的攻擊範圍，怪物會受傷。同時擊中時，怪物先結算。擊敗怪物後可擲骰判定是否掉落零件或寶藏。</p>
+                    
+                    <h3>🏠 工坊階段</h3>
+                    <p>回到工坊可以「啟動神器」、「連結神器」或「休息」。<br>
+                    <strong>啟動</strong>：擲 4 次骰，上下相減。差值 4 得 1 能量，5 得 2 能量，0 可重置該格，負數扣血並鎖定。滿 4 能量即啟動。<br>
+                    <strong>連結</strong>：消耗零件，擲 3 次骰，上下相減。目標越小越好。若出現負數，會扣血並消耗額外零件。必須將數字填入格子或廢紙簍。</p>
+                </div>
+            `;
+            openModal('📖 遊戲說明', helpHTML, [{ label: '我準備好了，開始遊戲', className: 'btn-primary', action: closeModal }]);
+        }
+
+        // --- 搜尋 ---
+        let searchState = null;
+
+        function startSearch(regionId) {
+            if (state.gameOver) return;
+            // 切換地點懲罰
+            if (state.currentRegion && state.currentRegion !== regionId) {
+                state.searchTrackers[state.currentRegion] = [0,0,0,0,0,0];
+                state.searchBoxes[state.currentRegion] = 0;
+                addLog(`離開 ${state.currentRegion}，搜尋進度已清空。`);
+            }
+            state.currentRegion = regionId;
+            state.phase = 'SEARCH';
+            
+            const reg = REGIONS.find(r => r.id === regionId);
+            searchState = { grid: Array(6).fill(null), rolls: 0, dice: [] };
+            
+            const body = `
+                <div style="text-align:center; margin-bottom:12px;">
+                    <h3>${reg.icon} ${reg.name}</h3>
+                    <p>零件：<strong>${reg.comp}</strong> | 神器：<strong>${reg.artifact}</strong></p>
+                </div>
+                <div class="dice-pool" id="dice-pool"><span style="color:#999;">點擊「擲骰」開始</span></div>
+                <div class="grid-container">
+                    <div class="number-grid">
+                        <div class="number-row" id="search-row-top">
+                            ${[0,1,2].map(i => `<div class="number-cell placeholder" onclick="placeSearchDie(${i})">${['百','十','個'][i]}</div>`).join('')}
+                        </div>
+                        <div class="minus-sign">-</div>
+                        <div class="number-row" id="search-row-bottom">
+                            ${[3,4,5].map(i => `<div class="number-cell placeholder" onclick="placeSearchDie(${i})">${['百','十','個'][i-3]}</div>`).join('')}
+                        </div>
+                    </div>
+                    <div class="equals-row"><span>=</span><div class="result-box" id="search-result">?</div></div>
+                </div>
+                <div class="btn-group" style="margin-top:12px;">
+                    <button class="btn btn-primary" id="roll-search-btn" onclick="rollSearchDice()">🎲 擲骰 (0/3)</button>
+                    <button class="btn" onclick="returnToMap()">返回地圖</button>
+                </div>
+            `;
+            openModal('搜尋區域', body, [], true);
+            updateSearchUI();
+        }
+
+        function rollSearchDice() {
+            if (searchState.rolls >= 3) return;
+            playDice();
+            searchState.rolls++;
+            searchState.dice.push(Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1);
+            updateSearchUI();
+        }
+
+        function placeSearchDie(idx) {
+            if (searchState.dice.length === 0 || searchState.grid[idx] !== null) return;
+            playClick();
+            searchState.grid[idx] = searchState.dice.shift();
+            updateSearchUI();
+        }
+
+        function updateSearchUI() {
+            const pool = document.getElementById('dice-pool');
+            if (!pool) return;
+            pool.innerHTML = searchState.dice.length > 0 
+                ? searchState.dice.map(d => `<div class="die">${d}</div>`).join('') 
+                : (searchState.grid.includes(null) ? '<span style="color:#999;">請將骰子放入格子</span>' : '<span style="color:green; font-weight:bold;">所有數字已填滿！</span>');
+
+            const cells = document.querySelectorAll('.number-cell');
+            for (let i = 0; i < 6; i++) {
+                if (cells[i]) {
+                    if (searchState.grid[i] !== null) {
+                        cells[i].innerText = searchState.grid[i];
+                        cells[i].classList.remove('placeholder'); cells[i].classList.add('filled');
+                    } else {
+                        cells[i].innerText = i < 3 ? ['百','十','個'][i] : ['百','十','個'][i-3];
+                        cells[i].classList.add('placeholder'); cells[i].classList.remove('filled');
+                    }
+                }
+            }
+
+            const rollBtn = document.getElementById('roll-search-btn');
+            if (rollBtn) {
+                rollBtn.innerText = `🎲 擲骰 (${searchState.rolls}/3)`;
+                rollBtn.disabled = searchState.rolls >= 3 || searchState.dice.length > 0;
+            }
+
+            if (!searchState.grid.includes(null)) {
+                const top = searchState.grid[0]*100 + searchState.grid[1]*10 + searchState.grid[2];
+                const bottom = searchState.grid[3]*100 + searchState.grid[4]*10 + searchState.grid[5];
+                const result = top - bottom;
+                document.getElementById('search-result').innerText = result;
+                setTimeout(() => resolveSearch(result), 500);
+            }
+        }
+
+        function resolveSearch(result) {
+            let absResult = Math.abs(result);
+            const regionName = state.currentRegion;
+            const reg = REGIONS.find(r => r.id === regionName);
+            let isEncounter = absResult >= 100;
+            
+            // 事件加成
+            const events = state.events[regionName] || [];
+            if (events.some(e => e.type === 'goodFortune')) {
+                absResult = Math.max(0, absResult - 10);
+                addLog(`[好運] 結果減少 10。`);
+            }
+
+            // 紀錄搜尋格子
+            state.searchBoxes[regionName]++;
+            if (state.searchBoxes[regionName] >= 6) {
+                addLog(`填滿了 ${regionName} 的所有搜尋格！`);
+            }
+
+            // 更新進度軌
+            const tracker = state.searchTrackers[regionName];
+            const unmarkedIdx = tracker.findIndex(t => t === 0);
+            if (unmarkedIdx !== -1) {
+                tracker[unmarkedIdx] = 1;
+                if ([1,3,5].includes(unmarkedIdx)) {
+                    let lost = events.some(e => e.type === 'foulWeather') ? 2 : 1;
+                    advanceTime(lost);
+                    addLog(`標記 -1 進度，失去 ${lost} 天。`);
+                }
+            }
+
+            let msg = '';
+            let btnAction = () => { closeModal(); state.phase='MAP'; };
+            let btnText = '返回地圖';
+
+            const artKey = Object.keys(ARTIFACTS).find(k => ARTIFACTS[k].region === reg.name);
+
+            if (isEncounter) {
+                msg = `遭遇怪物！搜尋結果絕對值 ${absResult}。`;
+                btnText = '進入戰鬥';
+                let lvl = Math.min(5, Math.floor(absResult / 100));
+                if (events.some(e => e.type === 'activeMonsters')) { lvl = Math.min(5, lvl + 2); addLog("活躍怪物事件：等級 +2！"); }
+                btnAction = () => { closeModal(); startCombat(regionName, lvl); };
+            } else if (result === 0) {
+                if (state.artifacts[artKey].found) {
+                    state.components[reg.comp] = Math.min(3, (state.components[reg.comp]||0) + 2);
+                    msg = `完美搜尋！重複獲得神器，轉化為 2 個 ${reg.comp}。`;
+                } else {
+                    state.artifacts[artKey].found = true; state.artifacts[artKey].activated = true; state.artifacts[artKey].energy = 4;
+                    state.godHand = Math.min(10, state.godHand + 2);
+                    msg = `完美搜尋！找到並啟動了 ${ARTIFACTS[artKey].name}，神之手 +2 能量！`;
+                }
+                addLog(msg);
+            } else if (absResult >= 1 && absResult <= 10) {
+                if (state.artifacts[artKey].found) {
+                    state.components[reg.comp] = Math.min(3, (state.components[reg.comp]||0) + 1);
+                    msg = `找到未啟動神器。重複獲得，轉化為 1 個 ${reg.comp}。`;
+                } else {
+                    state.artifacts[artKey].found = true;
+                    msg = `找到未啟動的神器：${ARTIFACTS[artKey].name}！`;
+                }
+                addLog(msg);
+            } else {
+                if (state.tools.dowsing.used) {
+                    // 如果有探測杖且符合條件
+                }
+                if ((state.components[reg.comp]||0) < 3) {
+                    state.components[reg.comp] = (state.components[reg.comp]||0) + 1;
+                    msg = `找到零件：${reg.comp}。`;
+                } else {
+                    msg = `${reg.comp} 已滿，丟棄。`;
+                }
+                addLog(msg);
+            }
+
+            updateUI();
+            
+            // 額外選項：使用探測杖
+            let extraActions = [];
+            if (absResult >= 11 && absResult <= 99 && !state.tools.dowsing.used) {
+                extraActions.push({
+                    label: '使用探測杖 (改為 1)',
+                    className: 'btn-primary',
+                    action: () => {
+                        state.tools.dowsing.used = true;
+                        state.components[reg.comp] = Math.min(3, (state.components[reg.comp]||0) + 1);
+                        addLog(`使用探測杖，改為找到 1 個 ${reg.comp}。`);
+                        closeModal(); state.phase='MAP';
+                        updateUI();
+                    }
+                });
+            }
+
+            openModal('搜尋結果', `<p style="text-align:center;font-size:18px;">${msg}</p>`, [
+                ...extraActions,
+                { label: btnText, className: 'btn-primary', action: btnAction }
+            ]);
+        }
+
+        function returnToMap() {
+            if (state.currentRegion) {
+                state.searchTrackers[state.currentRegion] = [0,0,0,0,0,0];
+                state.searchBoxes[state.currentRegion] = 0;
+                addLog(`離開 ${state.currentRegion}，搜尋進度已清空。`);
+            }
+            state.phase = 'MAP';
+            closeModal();
+            updateUI();
+        }
+
+        // --- 戰鬥 ---
+        let combatState = null;
+
+        function startCombat(region, level) {
+            state.phase = 'COMBAT';
+            state.currentRegion = region;
+            state.currentMonster = { ...MONSTERS[region][level-1], level: level, hp: 1 };
+            combatState = { log: [], paralysis: false };
+            updateCombatUI();
+        }
+
+        function updateCombatUI() {
+            const monster = state.currentMonster;
+            const body = `
+                <div style="text-align:center; margin-bottom:12px;">
+                    <h3 style="color:var(--accent-red);">遭遇：${monster.name} (等級 ${monster.level})</h3>
+                    <p>怪物攻擊範圍：<strong>${monster.atk.join('-')}</strong> | 你的攻擊範圍：<strong>${monster.patk.join('-')}</strong></p>
+                </div>
+                <div class="dice-pool" id="combat-dice-pool" style="min-height:60px;">
+                    ${combatState.log.map(l => `<div style="font-size:12px;color:#555;">${l}</div>`).join('') || '<span style="color:#999;">點擊擲骰</span>'}
+                </div>
+                <div class="btn-group" style="margin-top:12px;">
+                    <button class="btn btn-danger" id="roll-combat-btn" onclick="rollCombatDice()">⚔️ 擲骰攻擊</button>
+                    ${!state.tools.paralysis.used && !combatState.paralysis ? `<button class="btn btn-primary" onclick="useParalysis()">使用麻痺魔杖</button>` : ''}
+                </div>
+            `;
+            openModal('戰鬥', body, [], false);
+        }
+
+        function useParalysis() {
+            state.tools.paralysis.used = true;
+            combatState.paralysis = true;
+            addLog("使用麻痺魔杖！戰鬥中每顆骰子 +2。");
+            updateCombatUI();
+        }
+
+        function rollCombatDice() {
+            playDice();
+            let d1 = Math.floor(Math.random() * 6) + 1;
+            let d2 = Math.floor(Math.random() * 6) + 1;
+            
+            if (combatState.paralysis) {
+                d1 = Math.min(6, d1 + 2); d2 = Math.min(6, d2 + 2);
+            }
+            if (state.artifacts.chassis.activated && state.currentMonster.name.includes('(S)')) {
+                d1 = Math.min(6, d1 + 1); d2 = Math.min(6, d2 + 1);
+            }
+            
+            const monster = state.currentMonster;
+            let damageTaken = 0;
+            let hitMonster = false;
+            
+            if (d1 >= monster.atk[0] && d1 <= monster.atk[1]) damageTaken++;
+            if (d2 >= monster.atk[0] && d2 <= monster.atk[1]) damageTaken++;
+            
+            let pMin = monster.patk[0];
+            let pMax = monster.patk[1];
+            if (state.treasures['熔火碎片']) pMin = Math.max(1, pMin - 1);
+            
+            if (d1 >= pMin && d1 <= pMax) hitMonster = true;
+            if (d2 >= pMin && d2 <= pMax) hitMonster = true;
+            
+            combatState.log.unshift(`擲出：${d1}, ${d2}`);
+            
+            if (hitMonster) {
+                combatState.log.unshift("你擊中了怪物！");
+                if (damageTaken > 0) {
+                    combatState.log.unshift(`但怪物也造成 ${damageTaken} 點傷害！`);
+                    state.hp += damageTaken;
+                }
+                updateUI();
+                setTimeout(() => resolveCombat(), 800);
+            } else {
+                if (damageTaken > 0) {
+                    combatState.log.unshift(`怪物造成 ${damageTaken} 點傷害！`);
+                    state.hp += damageTaken;
+                } else {
+                    combatState.log.unshift("雙方皆未擊中。");
+                }
+                updateUI();
+                
+                if (state.hp >= 6) {
+                    setTimeout(handleUnconscious, 800);
+                } else {
+                    updateCombatUI();
+                }
+            }
+        }
+
+        function resolveCombat() {
+            addLog(`擊敗了 ${state.currentMonster.name}！`);
+            const dropRoll = Math.floor(Math.random() * 6) + 1;
+            const level = state.currentMonster.level;
+            const reg = REGIONS.find(r => r.name === state.currentRegion);
+            
+            let dropMsg = `掉落判定：擲出 ${dropRoll} (等級 ${level})。`;
+            if (dropRoll <= level) {
+                if (level === 5 && !state.treasures[reg.treasure]) {
+                    state.treasures[reg.treasure] = true;
+                    dropMsg += ` 獲得傳說寶藏：${reg.treasure}！`;
+                } else {
+                    if ((state.components[reg.comp] || 0) < 3) {
+                        state.components[reg.comp] = (state.components[reg.comp] || 0) + 1;
+                        dropMsg += ` 獲得零件：${reg.comp}。`;
+                    } else {
+                        dropMsg += ` ${reg.comp} 已滿，丟棄。`;
+                    }
+                }
+            } else {
+                dropMsg += ` 沒有掉落物品。`;
+            }
+            
+            updateUI();
+            setTimeout(() => {
+                openModal('戰鬥勝利', `<p style="text-align:center;font-size:16px;">${dropMsg}</p>`, [
+                    { label: '返回地圖', className: 'btn-primary', action: () => { closeModal(); state.phase='MAP'; } }
+                ]);
+            }, 500);
+        }
+
+        function handleUnconscious() {
+            if (state.hp > 6) { gameOver('死亡', '你因傷勢過重而死亡。'); return; }
+            addLog("你昏迷了！被傳送回工坊。");
+            let daysLost = state.artifacts.voidgate.activated ? 4 : 6;
+            
+            advanceTime(daysLost);
+            state.hp = 0;
+            Object.keys(state.searchTrackers).forEach(k => {
+                state.searchTrackers[k] = [0,0,0,0,0,0];
+                state.searchBoxes[k] = 0;
+            });
+            state.phase = 'MAP';
+            updateUI();
+            
+            openModal('昏迷', `<p style="text-align:center;">你失去了意識，醒來時已過了 ${daysLost} 天。所有區域搜尋進度已重置。</p>`, [
+                { label: '繼續', className: 'btn-primary', action: () => { closeModal(); openWorkshop(); } }
+            ]);
+        }
+
+        // --- 工坊 ---
+        function openWorkshop() {
+            if (state.gameOver) return;
+            if (state.currentRegion) {
+                state.searchTrackers[state.currentRegion] = [0,0,0,0,0,0];
+                state.searchBoxes[state.currentRegion] = 0;
+                addLog(`回到工坊，${state.currentRegion} 搜尋進度已清空。`);
+                state.currentRegion = null;
+            }
+            state.phase = 'WORKSHOP';
+            updateUI();
+
+            let artifactHTML = Object.keys(ARTIFACTS).map(k => {
+                const a = ARTIFACTS[k]; const s = state.artifacts[k];
+                if (!s.found) return '';
+                return `<div style="border:1px solid #ccc; padding:4px; margin-bottom:4px; font-size:12px; display:flex; justify-content:space-between; align-items:center;">
+                    <div><strong>${a.name}</strong> ${s.activated ? '✅ 已啟動' : `(能量: ${s.energy}/4)`}</div>
+                    ${!s.activated ? `<button class="btn btn-small btn-primary" onclick="startActivation('${k}')">啟動</button>` : ''}
+                </div>`;
+            }).join('');
+
+            let linkHTML = state.links.map((l, i) => {
+                const keyA = Object.keys(ARTIFACTS).find(k => ARTIFACTS[k].name === l.artA === 'mirror' ? '赫爾墨斯之鏡' : l.artA);
+                const artA = Object.values(ARTIFACTS).find(a => a.name === l.artA);
+                const artB = Object.values(ARTIFACTS).find(a => a.name === l.artB);
+                const keyA2 = Object.keys(ARTIFACTS).find(k => ARTIFACTS[k].name === artA?.name);
+                const keyB = Object.keys(ARTIFACTS).find(k => ARTIFACTS[k].name === artB?.name);
+                const canLink = state.artifacts[keyA2]?.found && state.artifacts[keyB]?.found;
+                
+                if (!canLink && !l.completed) return '';
+                return `<div style="border:1px solid #ccc; padding:4px; margin-bottom:4px; font-size:12px; display:flex; justify-content:space-between; align-items:center;">
+                    <div><strong>${l.name}</strong> (需求: ${l.req}) ${l.completed ? `✅ 數值: ${l.value}` : ''}</div>
+                    ${!l.completed ? `<button class="btn btn-small btn-primary" onclick="startLinking(${i})">連結</button>` : ''}
+                </div>`;
+            }).join('');
+
+            const body = `
+                <div class="stats-panel" style="margin-bottom:12px;">
+                    ${REGIONS.map(r => `<div class="stat-box">${r.comp}: <span class="stat-value">${state.components[r.comp]||0}/3</span></div>`).join('')}
+                </div>
+                <h3>⚙️ 神器</h3>
+                <div style="max-height:120px; overflow-y:auto; margin-bottom:12px;">${artifactHTML || '尚未找到任何神器'}</div>
+                <h3>🔗 連結</h3>
+                <div style="max-height:120px; overflow-y:auto; margin-bottom:12px;">${linkHTML || '尚未滿足連結條件'}</div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="closeModal(); state.phase='MAP';">🌲 返回荒野</button>
+                    <button class="btn" onclick="rest()">🛌 休息 (恢復生命)</button>
+                    ${state.links.every(l => l.completed) && Object.values(state.artifacts).every(a => a.activated) ? `<button class="btn btn-danger" onclick="startFinalActivation()">🌟 最終啟動</button>` : ''}
+                </div>
+            `;
+            openModal('🏠 工坊', body, [], true);
+        }
+
+        function rest() {
+            playClick();
+            if (state.hp === 0) { showToast("你沒有受傷。"); return; }
+            // 工坊休息：每天回1，滿3天額外+1 (簡化為一鍵回滿並扣除相應天數)
+            let days = state.hp; 
+            if (days >= 3) days -= 1; // 額外恢復
+            advanceTime(days);
+            state.hp = 0;
+            addLog(`在工坊休息了 ${days} 天，生命值全滿。`);
+            updateUI(); closeModal(); openWorkshop();
+        }
+
+        // --- 啟動 ---
+        let actState = null;
+
+        function startActivation(artifactKey) {
+            state.phase = 'ACTIVATION';
+            state.currentArtifact = artifactKey;
+            actState = { grid: Array(4).fill(null).map(() => [null, null]), dice: [], rolls: 0, attempt: 1 };
+            updateActivationUI();
+        }
+
+        function updateActivationUI() {
+            const a = ARTIFACTS[state.currentArtifact];
+            const s = state.artifacts[state.currentArtifact];
+            
+            let boxesHTML = '';
+            for (let i = 0; i < 4; i++) {
+                const top = actState.grid[i][0]; const bot = actState.grid[i][1];
+                let status = '';
+                if (top !== null && bot !== null) {
+                    const diff = top - bot;
+                    if (diff === 4) status = '1⚡'; else if (diff === 5) status = '2⚡';
+                    else if (diff === 0) status = '可重置'; else if (diff < 0) status = '❌鎖定(-1血)';
+                    else status = '❌鎖定';
+                }
+                boxesHTML += `
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                        <div class="number-cell" onclick="placeActDie(${i}, 0)">${top!==null?top:'_'}</div>
+                        <div class="number-cell" onclick="placeActDie(${i}, 1)">${bot!==null?bot:'_'}</div>
+                        <div style="font-size:10px; font-weight:bold; color:${status.includes('❌')?'red':'green'}">${status}</div>
+                    </div>
+                `;
+            }
+
+            const body = `
+                <div style="text-align:center; margin-bottom:12px;">
+                    <h3>啟動：${a.name}</h3>
+                    <p>當前能量：<strong>${s.energy}/4</strong> | 第 ${actState.attempt} 次嘗試</p>
+                </div>
+                <div class="dice-pool" id="act-dice-pool">
+                    ${actState.dice.map(d => `<div class="die">${d}</div>`).join('') || '<span style="color:#999;">點擊擲骰</span>'}
+                </div>
+                <div style="display:flex; justify-content:center; gap:12px; margin:12px 0;">
+                    ${boxesHTML}
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="rollActDice()" ${actState.rolls>=4?'disabled':''}>🎲 擲骰 (${actState.rolls}/4)</button>
+                    ${!state.tools.focus.used ? `<button class="btn" onclick="useFocus()">使用專注護符</button>` : ''}
+                    <button class="btn" onclick="closeModal(); openWorkshop();">返回</button>
+                </div>
+            `;
+            openModal('啟動神器', body, [], false);
+        }
+
+        function useFocus() {
+            state.tools.focus.used = true;
+            state.artifacts[state.currentArtifact].energy += 2;
+            addLog("使用專注護符，能量 +2。");
+            updateActivationUI();
+            checkActivation();
+        }
+
+        function rollActDice() {
+            if (actState.rolls >= 4) return;
+            playDice();
+            actState.rolls++;
+            actState.dice.push(Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1);
+            updateActivationUI();
+        }
+
+        function placeActDie(boxIdx, row) {
+            if (actState.dice.length === 0) return;
+            if (actState.grid[boxIdx][row] !== null) {
+                // 如果差值為0，允許重置
+                const top = actState.grid[boxIdx][0]; const bot = actState.grid[boxIdx][1];
+                if (top !== null && bot !== null && top - bot === 0) {
+                    actState.grid[boxIdx] = [null, null];
+                    addLog("重置了該格。");
+                    updateActivationUI();
+                }
+                return;
+            }
+            playClick();
+            actState.grid[boxIdx][row] = actState.dice.shift();
+            updateActivationUI();
+            checkActivation();
+        }
+
+        function checkActivation() {
+            if (actState.grid.every(b => b[0] !== null && b[1] !== null)) {
+                // 計算本輪能量和傷害
+                let gained = 0; let dmg = 0;
+                for (let i = 0; i < 4; i++) {
+                    const diff = actState.grid[i][0] - actState.grid[i][1];
+                    if (diff === 4) gained += 1;
+                    else if (diff === 5) gained += 2;
+                    else if (diff < 0) dmg++;
+                }
+                state.hp += dmg;
+                state.artifacts[state.currentArtifact].energy += gained;
+                addLog(`本輪獲得 ${gained} 能量${dmg>0?`，受到 ${dmg} 點傷害`:''}。`);
+                updateUI();
+                
+                if (state.hp >= 6) {
+                    // 昏迷清除進度
+                    state.artifacts[state.currentArtifact].energy = 0;
+                    handleUnconscious();
+                    return;
+                }
+
+                if (state.artifacts[state.currentArtifact].energy >= 4) {
+                    state.artifacts[state.currentArtifact].activated = true;
+                    if (state.artifacts[state.currentArtifact].energy > 4) {
+                        state.godHand = Math.min(10, state.godHand + (state.artifacts[state.currentArtifact].energy - 4));
+                    }
+                    addLog(`成功啟動 ${ARTIFACTS[state.currentArtifact].name}！`);
+                    updateUI(); setTimeout(() => { closeModal(); openWorkshop(); }, 800);
+                } else {
+                    if (actState.attempt === 1) {
+                        actState.attempt = 2; actState.grid = Array(4).fill(null).map(() => [null, null]);
+                        actState.dice = []; actState.rolls = 0;
+                        advanceTime(1);
+                        updateUI(); setTimeout(updateActivationUI, 500);
+                    } else {
+                        advanceTime(1);
+                        state.artifacts[state.currentArtifact].activated = true;
+                        state.artifacts[state.currentArtifact].energy = 4;
+                        addLog(`第二次嘗試失敗，消耗 1 天自動啟動。`);
+                        updateUI(); setTimeout(() => { closeModal(); openWorkshop(); }, 500);
+                    }
+                }
+            }
+        }
+
+        // --- 連結 ---
+        let linkState = null;
+
+        function startLinking(linkIdx) {
+            const link = state.links[linkIdx];
+            if (link.completed) return;
+            if ((state.components[link.req] || 0) <= 0) { showToast(`沒有足夠的 ${link.req} 零件！`); return; }
+            
+            state.phase = 'LINKING';
+            state.currentLink = linkIdx;
+            linkState = { grid: Array(3).fill(null).map(() => [null, null]), waste: Array(6).fill(null), dice: [], rolls: 0 };
+            updateLinkingUI();
+        }
+
+        function updateLinkingUI() {
+            const link = state.links[state.currentLink];
+            let boxesHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const top = linkState.grid[i][0]; const bot = linkState.grid[i][1];
+                let diff = '-';
+                if (top !== null && bot !== null) diff = top - bot;
+                boxesHTML += `
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                        <div class="number-cell" onclick="placeLinkDie(${i}, 0)">${top!==null?top:'_'}</div>
+                        <div class="number-cell" onclick="placeLinkDie(${i}, 1)">${bot!==null?bot:'_'}</div>
+                        <div style="font-size:10px; font-weight:bold; color:${diff<0?'red':'black'}">${diff!=='-'?(diff<0?`負(${diff})`:diff):''}</div>
+                    </div>
+                `;
+            }
+
+            let wasteHTML = '';
+            for (let i = 0; i < 6; i++) {
+                wasteHTML += `<div class="waste-slot ${linkState.waste[i]!==null?'filled':''}" onclick="placeWasteDie(${i})">${linkState.waste[i]!==null?linkState.waste[i]:''}</div>`;
+            }
+
+            const body = `
+                <div style="text-align:center; margin-bottom:12px;">
+                    <h3>連結：${link.name}</h3>
+                    <p>需求零件：<strong>${link.req}</strong> (剩餘: ${state.components[link.req]||0})</p>
+                </div>
+                <div class="dice-pool" id="link-dice-pool">
+                    ${linkState.dice.map(d => `<div class="die">${d}</div>`).join('') || '<span style="color:#999;">點擊擲骰</span>'}
+                </div>
+                <div style="display:flex; justify-content:center; gap:12px; margin:12px 0;">${boxesHTML}</div>
+                <div style="text-align:center; margin-bottom:12px;">
+                    <p>廢紙簍 (滿了必須填入格子)：</p>
+                    <div class="wastebasket">${wasteHTML}</div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="rollLinkDice()" ${linkState.rolls>=3?'disabled':''}>🎲 擲骰 (${linkState.rolls}/3)</button>
+                    <button class="btn" onclick="closeModal(); openWorkshop();">取消</button>
+                </div>
+            `;
+            openModal('連結神器', body, [], false);
+        }
+
+        function rollLinkDice() {
+            if (linkState.rolls >= 3) return;
+            playDice();
+            linkState.rolls++;
+            linkState.dice.push(Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1);
+            updateLinkingUI();
+        }
+
+        function placeLinkDie(boxIdx, row) {
+            if (linkState.dice.length === 0 || linkState.grid[boxIdx][row] !== null) return;
+            playClick();
+            linkState.grid[boxIdx][row] = linkState.dice.shift();
+            updateLinkingUI(); checkLinking();
+        }
+
+        function placeWasteDie(wasteIdx) {
+            if (linkState.dice.length === 0 || linkState.waste[wasteIdx] !== null) return;
+            playClick();
+            linkState.waste[wasteIdx] = linkState.dice.shift();
+            updateLinkingUI(); checkLinking();
+        }
+
+        function checkLinking() {
+            if (linkState.grid.every(b => b[0] !== null && b[1] !== null)) {
+                // 結算
+                const link = state.links[state.currentLink];
+                let total = 0; let hasNeg = false; let dmg = 0;
+                for (let i = 0; i < 3; i++) {
+                    const diff = linkState.grid[i][0] - linkState.grid[i][1];
+                    if (diff < 0) { hasNeg = true; dmg++; total += 2; }
+                    else { total += diff; }
+                }
+                
+                state.hp += dmg;
+                
+                if (hasNeg) {
+                    if ((state.components[link.req] || 0) > 0) {
+                        state.components[link.req]--;
+                        addLog(`連結產生負數！消耗額外 ${link.req} 抵銷。`);
+                    } else {
+                        addLog(`連結失敗！沒有額外零件，進度作廢。`);
+                        updateUI(); setTimeout(() => { closeModal(); openWorkshop(); }, 1000);
+                        return;
+                    }
+                }
+                state.components[link.req]--;
+                link.completed = true; link.value = total;
+                addLog(`成功連結 ${link.name}！數值：${total}。`);
+                updateUI(); setTimeout(() => { closeModal(); openWorkshop(); }, 800);
+            }
+        }
+
+        // --- 最終啟動 ---
+        let finalDiff = 0;
+
+        function startFinalActivation() {
+            if (state.gameOver) return;
+            state.phase = 'FINAL';
+            finalDiff = state.links.reduce((sum, l) => sum + l.value, 0);
+            
+            const body = `
+                <div style="text-align:center;">
+                    <h3>🌟 最終啟動</h3>
+                    <p>最終難度：<strong>${finalDiff}</strong> | 當前生命值：<strong>${6 - state.hp}</strong></p>
+                    <p style="font-size:12px; color:#666;">消耗生命值可降低難度。生命值降至 0 不會昏迷。</p>
+                </div>
+                <div style="display:flex; gap:8px; justify-content:center; margin:12px 0;">
+                    <button class="btn btn-danger" onclick="spendHP(1)">消耗 1 生命</button>
+                    <button class="btn btn-danger" onclick="spendHP(3)">消耗 3 生命</button>
+                </div>
+                <div class="equals-row"><span>調整後難度：</span><div class="result-box" id="final-difficulty">${finalDiff}</div></div>
+                <div class="btn-group" style="margin-top:12px;">
+                    <button class="btn btn-primary" onclick="executeFinalRoll()">🎲 擲骰！</button>
+                </div>
+            `;
+            openModal('最終啟動', body, [], false);
+        }
+
+        function spendHP(amount) {
+            let currentMax = 6 - state.hp;
+            if (currentMax <= 0) { showToast("沒有生命值可以消耗了！"); return; }
+            const actual = Math.min(amount, currentMax);
+            state.hp += actual; finalDiff -= actual;
+            if (finalDiff < 0) finalDiff = 0;
+            document.getElementById('final-difficulty').innerText = finalDiff;
+            updateUI();
+        }
+
+        function executeFinalRoll() {
+            playDice();
+            const total = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
+            if (total >= finalDiff) {
+                gameOver('勝利', `你擲出了 ${total} (難度 ${finalDiff})！烏托邦引擎發出耀眼的光芒，末日被阻止了！`);
+            } else {
+                addLog(`最終啟動失敗！擲出 ${total}，難度 ${finalDiff}。`);
+                state.hp++; advanceTime(1); updateUI();
+                if (state.hp >= 6) gameOver('死亡', '你因啟動失敗而力竭身亡。');
+                else { showToast(`失敗！受到 1 點傷害，失去 1 天。請再試一次。`); document.getElementById('final-difficulty').innerText = finalDiff; }
+            }
+        }
+
+        // --- 時間與事件 ---
+        function advanceTime(days) {
+            state.time -= days;
+            if (state.time <= 0) { gameOver('末日', '時間耗盡，末日降臨，世界毀滅。'); return; }
+            
+            const currentDay = 15 - state.time;
+            for (let d = 1; d <= days; d++) {
+                const checkDay = currentDay - days + d;
+                if ([2,4,6,8,10,12,14].includes(checkDay)) triggerEvents();
+            }
+            updateUI();
+        }
+
+        function triggerEvents() {
+            addLog("事件日！觸發事件。");
+            state.events = {};
+            const evTypes = [
+                { type: 'activeMonsters', icon: '👹', name: '活躍怪物' },
+                { type: 'fleetingVision', icon: '✨', name: '轉瞬幻象' },
+                { type: 'goodFortune', icon: '🍀', name: '好運' },
+                { type: 'foulWeather', icon: '🌧️', name: '惡劣天氣' }
+            ];
+            evTypes.forEach(ev => {
+                const regionName = REGIONS[Math.floor(Math.random() * 6)].name;
+                if (!state.events[regionName]) state.events[regionName] = [];
+                state.events[regionName].push(ev);
+                addLog(`事件：${regionName} 發生 ${ev.name}。`);
+            });
+        }
+
+        // --- 遊戲結束與輔助 ---
+        function gameOver(type, message) {
+            state.gameOver = true;
+            let score = 0;
+            Object.values(state.artifacts).forEach(a => { if (a.found) score += 10; if (a.activated) score += 5; });
+            state.links.forEach(l => { if (l.completed) score += 5; });
+            score += state.time * 5;
+            score += Object.values(state.treasures).filter(t => t).length * 20;
+            if (type === '勝利') score += 50;
+            
+            const body = `<div style="text-align:center;"><h2 style="color:${type==='勝利'?'green':'red'}">${type}</h2><p>${message}</p><p>最終得分：<strong style="font-size:24px;">${score}</strong></p></div>`;
+            openModal('遊戲結束', body, [{ label: '重新開始', className: 'btn-primary', action: () => { closeModal(); initGame(); } }], false);
+        }
+
+        function openStats() {
+            const body = `
+                <div class="stats-panel">
+                    <div class="stat-box">生命值<br><span class="stat-value">${6-state.hp}/6</span></div>
+                    <div class="stat-box">剩餘天數<br><span class="stat-value">${state.time}</span></div>
+                    <div class="stat-box">神之手<br><span class="stat-value">${state.godHand}/10</span></div>
+                </div>
+                <h3>零件庫存</h3>
+                <div class="stats-panel">${REGIONS.map(r => `<div class="stat-box">${r.comp}<br><span class="stat-value">${state.components[r.comp]||0}</span></div>`).join('')}</div>
+                <h3>工具腰帶</h3>
+                <div class="compact-list">${Object.values(TOOLS).map(t => `<div class="compact-item">${t.used?'❌':'✅'} ${t.name}</div>`).join('')}</div>
+                <h3>傳說寶藏</h3>
+                <div class="compact-list">${Object.keys(state.treasures).filter(k=>state.treasures[k]).map(k => `<div class="compact-item">⭐ ${k}</div>`).join('') || '尚未獲得'}</div>
+            `;
+            openModal('📊 狀態面板', body, [{ label: '關閉', className: 'btn', action: closeModal }]);
+        }
+
+        function saveGame() { localStorage.setItem('utopiaSave', JSON.stringify(state)); showToast("已存檔！"); }
+        function loadGame() {
+            const s = localStorage.getItem('utopiaSave');
+            if (s) { state = JSON.parse(s); closeModal(); updateUI(); showToast("已讀取！"); }
+            else showToast("找不到存檔！");
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>
