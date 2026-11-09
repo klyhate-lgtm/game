@@ -86,8 +86,20 @@ body::after {
   transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
   aspect-ratio: 3/4; display: flex; flex-direction: column; user-select: none;
 }
-.card:hover:not(.resolved-card) { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(201,168,76,0.2); }
-.card:active:not(.resolved-card) { transform: scale(0.97); }
+.card:hover:not(.resolved-card):not(.needs-resolve) { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(201,168,76,0.2); }
+.card:active:not(.resolved-card):not(.needs-resolve) { transform: scale(0.97); }
+
+/* 待結算的當前卡牌（強烈發光） */
+.card.needs-resolve {
+  border-color: var(--gold-bright);
+  z-index: 2;
+  animation: needsResolveGlow 1.5s ease-in-out infinite;
+  cursor: pointer;
+}
+@keyframes needsResolveGlow {
+  0%, 100% { box-shadow: 0 0 0 2px var(--gold-bright), 0 0 15px rgba(240,214,138,0.4); transform: scale(1); }
+  50% { box-shadow: 0 0 0 4px var(--gold-bright), 0 0 30px rgba(240,214,138,0.8); transform: scale(1.02); }
+}
 
 /* 已探索完畢的卡牌 */
 .card.resolved-card { opacity: 0.5; filter: grayscale(0.6); cursor: default; border-color: rgba(201,168,76,0.2); }
@@ -98,8 +110,7 @@ body::after {
   text-shadow: 0 0 10px rgba(0,0,0,0.8); pointer-events: none;
 }
 
-.card.current { border-color: var(--gold-bright); box-shadow: 0 0 0 2px var(--gold-bright), 0 0 20px rgba(240,214,138,0.3); animation: currentGlow 2s ease-in-out infinite; }
-@keyframes currentGlow { 0%, 100% { box-shadow: 0 0 0 2px var(--gold-bright), 0 0 20px rgba(240,214,138,0.3); } 50% { box-shadow: 0 0 0 2px var(--gold-bright), 0 0 30px rgba(240,214,138,0.6); } }
+.card.current:not(.needs-resolve) { border-color: var(--gold-bright); box-shadow: 0 0 0 2px var(--gold-bright); }
 .card.revealed { border-color: rgba(201,168,76,0.6); }
 .card.hidden-card { background: repeating-linear-gradient(135deg, #1a1512, #1a1512 6px, #221a16 6px, #221a16 12px); border-color: rgba(201,168,76,0.2); }
 .card.hidden-card .card-art { opacity: 0.3; }
@@ -310,8 +321,8 @@ body::after {
     <h3>🕹️ 操作步驟</h3>
     <ol>
       <li>選擇一位角色（騎士、盜賊、法師、牧師）。</li>
-      <li>進入地牢後，點擊發光的房間卡進行探索與結算。</li>
-      <li>遇到怪物或 Boss 時，會自動進入戰鬥流程。</li>
+      <li>進入地牢後，必須先點擊發光的<strong>當前房間</strong>進行結算。</li>
+      <li>結算完畢後，才能選擇相鄰的右邊或下面房間。</li>
       <li>每進入一層新樓層，消耗 1 🍖食物；若沒有食物則失去 3 ❤️生命。</li>
       <li>經驗值滿 6 點升到 2 級（2 顆角色骰），滿 18 點升到 3 級（3 顆角色骰）。</li>
     </ol>
@@ -501,13 +512,22 @@ function generateRoomSVG(type, opts = {}) {
 function renderDungeon() {
   const gridEl = document.getElementById('dungeon-grid');
   gridEl.innerHTML = '';
+  const curIdx = GameState.currentPos.row * 3 + GameState.currentPos.col;
+  const curCard = GameState.grid[curIdx];
+
   GameState.grid.forEach((card, i) => {
     const div = document.createElement('div');
-    const isCurrent = GameState.currentPos.row * 3 + GameState.currentPos.col === i;
+    const isCurrent = curIdx === i;
     const isResolved = card.resolved;
+    const needsResolve = isCurrent && !isResolved;
 
-    div.className = `card ${card.revealed ? 'revealed' : 'hidden-card'} ${card.type==='boss'?'boss-card':''} ${isCurrent?'current':''} ${isResolved?'resolved-card':''}`;
+    // 構建 Class
+    div.className = `card ${card.revealed ? 'revealed' : 'hidden-card'} ${card.type==='boss'?'boss-card':''}`;
+    if (needsResolve) div.classList.add('needs-resolve');
+    else if (isCurrent) div.classList.add('current');
+    if (isResolved) div.classList.add('resolved-card');
 
+    // 卡牌圖案
     const artDiv = document.createElement('div');
     artDiv.className = 'card-art';
     let opts = {};
@@ -516,6 +536,7 @@ function renderDungeon() {
     artDiv.innerHTML = generateRoomSVG(card.type, opts);
     div.appendChild(artDiv);
 
+    // 卡牌標籤
     const label = document.createElement('div');
     label.className = 'card-label';
     let name = card.revealed ? (card.type==='monster' ? card.monster.name : (card.type==='boss' ? card.boss.name : ROOM_TYPES[card.type].name)) : '？？？';
@@ -523,7 +544,8 @@ function renderDungeon() {
     label.innerHTML = `<span class="name">${name}</span><span class="effect">${eff}</span>`;
     div.appendChild(label);
 
-    if (!isCurrent && !isResolved && card.revealed && canMoveTo(i)) {
+    // 如果當前房間已結算，且這格可移動，顯示路徑標記
+    if (curCard.resolved && !isCurrent && !isResolved && card.revealed && canMoveTo(i)) {
       const m = document.createElement('div');
       m.className = 'card-path-marker'; m.textContent = '👣';
       div.appendChild(m);
@@ -587,17 +609,24 @@ function canMoveTo(idx) {
 
 function onCardClick(idx) {
   if (GameState.phase !== 'EXPLORING') return;
-  
+
   const card = GameState.grid[idx];
   const curIdx = GameState.currentPos.row * 3 + GameState.currentPos.col;
+  const curCard = GameState.grid[curIdx];
 
-  // 點擊當前房間
-  if (idx === curIdx) {
-    if (!card.resolved) {
-      resolveRoom(); // 如果當前房間還沒結算，觸發結算
+  // 核心修正：如果當前房間還沒結算，強制阻止移動，提示點擊當前房間
+  if (!curCard.resolved) {
+    if (idx === curIdx) {
+      resolveRoom(); // 點擊當前格，觸發結算
     } else {
-      showToast('此房間已探索完畢，請選擇右邊或下面的相鄰房間。', 'info');
+      showToast('請先點擊發光的當前房間進行結算！', 'warning');
     }
+    return;
+  }
+
+  // 如果已結算，點擊當前房間提示已結算
+  if (idx === curIdx) {
+    showToast('此房間已探索完畢，請選擇右邊或下面的相鄰房間。', 'info');
     return;
   }
 
