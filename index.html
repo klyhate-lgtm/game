@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>🌸 WEB桌遊</title>
+<script async src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap');
 
@@ -228,7 +229,6 @@
   /* ============ 點擊計數設定 ============ */
   const NS = 'klyhate-lgtm-games';
 
-  // 兩套免費計數 API，哪個能用就鎖定哪個（避免重複計數）
   const APIS = [
     {
       name: 'abacus',
@@ -244,9 +244,41 @@
     }
   ];
 
-  let lockedApi = null;   // 已確認可用的 API
+  let lockedApi = null;
 
-  // 檔名 → 安全的計數 key（中文檔名也能用）
+  /* ============ 簡繁轉換 ============ */
+  const openccReady = new Promise(resolve => {
+    if (window.OpenCC) return resolve(window.OpenCC);
+    const timer = setInterval(() => {
+      if (window.OpenCC) { clearInterval(timer); resolve(window.OpenCC); }
+    }, 100);
+    setTimeout(() => { clearInterval(timer); resolve(window.OpenCC || null); }, 5000);
+  });
+
+  let toTW = null;   // 簡 → 繁
+  let toCN = null;   // 繁 → 簡
+
+  async function initOpenCC() {
+    const OpenCC = await openccReady;
+    if (!OpenCC) return;
+    try {
+      toTW = OpenCC.Converter({ from: 'cn', to: 'tw' });
+      toCN = OpenCC.Converter({ from: 'tw', to: 'cn' });
+    } catch (e) {
+      console.warn('OpenCC 初始化失敗', e);
+    }
+  }
+
+  // 回傳一個字串的「原文 / 繁體 / 簡體」變體（去重、小寫）
+  function variants(str) {
+    const lower = String(str).toLowerCase();
+    const arr = [lower];
+    if (toTW) arr.push(toTW(lower));
+    if (toCN) arr.push(toCN(lower));
+    return [...new Set(arr)];
+  }
+
+  /* ============ 工具 ============ */
   function hashKey(str) {
     let h = 5381;
     for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
@@ -271,7 +303,7 @@
     }
   }
 
-  // 讀取次數：null = 完全取不到
+  /* ============ 計數 ============ */
   async function readCount(key) {
     const list = lockedApi ? [lockedApi] : APIS;
     for (const api of list) {
@@ -287,7 +319,6 @@
     return null;
   }
 
-  // 點擊 +1
   async function bumpCount(key) {
     const list = lockedApi ? [lockedApi] : APIS;
     for (const api of list) {
@@ -305,10 +336,11 @@
   let gamesLoaded = false;
 
   function applyFilter() {
-    const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+    const raw = document.getElementById('searchInput').value.trim().toLowerCase();
+    const qList = raw ? variants(raw) : [];
     let visible = 0;
     cardEls.forEach(el => {
-      const match = !q || el.dataset.search.includes(q);
+      const match = !raw || qList.some(q => el.dataset.search.includes(q));
       el.style.display = match ? '' : 'none';
       if (match) visible++;
     });
@@ -331,7 +363,10 @@
       const a = document.createElement('a');
       a.href = encodeURI(game.file);
       a.className = 'game-card';
-      a.dataset.search = `${game.title} ${game.file}`.toLowerCase();
+
+      // 🔑 搜尋索引：標題 + 檔名，各自展開成原文 / 繁體 / 簡體
+      a.dataset.search = variants(`${game.title} ${game.file}`).join(' ');
+
       a.innerHTML = `
         <div class="game-info">
           <div class="game-title">🎮 ${escapeHTML(game.title)}${badge}</div>
@@ -343,7 +378,6 @@
         </div>
       `;
 
-      // 點擊：送 +1，並先樂觀更新畫面上的數字
       a.addEventListener('click', () => {
         bumpCount(key);
         const el = document.getElementById(`views-${key}`);
@@ -357,7 +391,6 @@
       menu.appendChild(a);
       cardEls.push(a);
 
-      // 非同步讀取次數
       readCount(key).then(v => {
         const el = document.getElementById(`views-${key}`);
         if (!el) return;
@@ -379,6 +412,9 @@
     const logBoard = document.getElementById('logBoard');
     const logList = document.getElementById('logList');
 
+    // 先等 OpenCC 就緒（最多等 5 秒，失敗就退回原文比對）
+    await initOpenCC();
+
     try {
       const response = await fetch('games.json', { cache: 'no-store' });
       if (!response.ok) throw new Error('找不到 games.json');
@@ -386,7 +422,6 @@
       const games = await response.json();
       logList.innerHTML = '';
 
-      // 1. 冒險者手札：新增 / 更新（第幾版）
       games.slice(0, 3).forEach(game => {
         const li = document.createElement('li');
         if (game.changeType === 'new') {
@@ -398,7 +433,6 @@
       });
       if (games.length > 0) logBoard.style.display = 'block';
 
-      // 2. 遊戲卡片
       renderGames(games);
 
     } catch (error) {
@@ -407,7 +441,6 @@
     }
   }
 
-  // 搜尋事件
   document.getElementById('searchInput').addEventListener('input', applyFilter);
 
   loadGames();
