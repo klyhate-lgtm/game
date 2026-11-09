@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>殖民火星 - 多人連線終極版 (自訂UI與擴充牌庫)</title>
+<title>殖民火星 - 多人連線終極版 (10張首抽)</title>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -219,7 +219,7 @@
         <p><b>🎯 勝利條件</b><br>氧氣達 14%、溫度達 8°C、放置 9 個海洋板塊。達成後立即結算分數。</p>
         <p><b>🕹️ 回合流程（總共 14 世代）</b></p>
         <ul style="margin-left: 20px; margin-bottom: 15px;">
-            <li><b>開發階段</b>：每人抽 4 張牌，點擊想買的卡（每張 3 M€），按下「保留」。</li>
+            <li><b>開發階段</b>：每世代抽 4 張牌（第一世代抽 10 張），點擊想買的卡（每張 3 M€），按下「保留」。</li>
             <li><b>行動階段</b>：嚴格輪流制，每次輪到你只能執行 <b>1~2 個行動</b>。做完按「結束回合」換人。<b>誰先結束回合，下一世代誰就先手！</b></li>
             <li><b>生產階段</b>：所有人 Pass 後自動觸發。獲得「TR + 金錢產量」的資金，動物也會繁殖。</li>
         </ul>
@@ -271,7 +271,6 @@
     </div>
 </div>
 
-<!-- ★ 自訂確認彈窗 -->
 <div id="modal-confirm" class="modal">
     <div class="modal-content">
         <h3 style="color:var(--mars-orange); margin-bottom:15px;" id="confirm-title">確認</h3>
@@ -363,7 +362,6 @@
 
     const PLAYER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f'];
 
-    // ★ 擴充公司 (6家)
     const companies = [
         { id: 'c1', name: '生態學線', desc: '起始 20 M€，植物+1。\n被動：放置綠化時，獲得 1 植物。', mc: 20, prod: { plant: 1 } },
         { id: 'c2', name: '採礦公會', desc: '起始 14 M€，鋼鐵+1。\n被動：放置城市時，獲得 2 鋼鐵。', mc: 14, prod: { steel: 1 } },
@@ -471,7 +469,7 @@
             mc: 0, steel: 0, titan: 0, plant: 0, energy: 0, heat: 0, animals: 0,
             prod: { mc: 0, steel: 0, titan: 0, plant: 0, energy: 0, heat: 0 },
             tr: 14, passed: false, hand: [], draft: [], activeCards: [], usedActiveCards: [], company: null,
-            usedInventrixThisGen: false // 發明競爭專用
+            usedInventrixThisGen: false
         };
     }
 
@@ -548,7 +546,9 @@
         const { db, doc, updateDoc } = window.FB;
         
         let updatedPlayers = roomData.players.map(p => {
-            p.draft = [generateCard(), generateCard(), generateCard(), generateCard()];
+            // ★ 第一世代抽 10 張牌
+            p.draft = [];
+            for(let i=0; i<10; i++) p.draft.push(generateCard());
             p.hand = [];
             p.activeCards = [];
             p.usedActiveCards = [];
@@ -556,7 +556,7 @@
             return p;
         });
         
-        let newLogs = [...roomData.logs, `遊戲開始！`];
+        let newLogs = [...roomData.logs, `遊戲開始！每人抽 10 張卡牌。`];
         await updateDoc(doc(db, "rooms", currentRoomId), {
             status: 'playing', phase: 'research', players: updatedPlayers, logs: newLogs
         });
@@ -617,7 +617,6 @@
         if (!me.company) { openCompanySelect(); return; }
         if (me.mc < localSelectedCards.length * 3) return UI.toast("金錢不足！");
         
-        // ★ 使用自訂彈窗
         const isConfirmed = await showConfirm("保留卡牌", `確定花費 ${localSelectedCards.length * 3} M€ 保留這些卡牌嗎？`);
         if (!isConfirmed) return;
 
@@ -696,7 +695,7 @@
             targetCell.ownerId = currentUser.uid; 
             targetCell.isNeutral = false; 
 
-            // ★ 公司被動技能觸發
+            // 公司被動技能觸發
             if (placingMode.type === 'forest' && p.company === '生態學線') {
                 p.plant += 1;
                 newLogs.push(`🌱 ${p.name} 觸發公司被動：獲得 1 植物。`);
@@ -1128,7 +1127,9 @@
                         newLogs.push(`🐾 ${p.name} 的動物繁殖了 ${animalCards.length} 隻。`);
                     }
 
-                    p.passed = false; p.draft = [generateCard(), generateCard(), generateCard(), generateCard()];
+                    p.passed = false; 
+                    // ★ 後續世代抽 4 張
+                    p.draft = [generateCard(), generateCard(), generateCard(), generateCard()];
                     p.usedActiveCards = []; 
                     p.usedInventrixThisGen = false;
                     return p;
@@ -1152,7 +1153,6 @@
     // --- 卡牌池 (擴充至近 50 張) ---
     function generateCard() {
         const pool = [
-            // 太空卡
             { name: "小行星", cost: 14, effect: "temp", text: "溫度+1", type: "event", vp: 0, tags: ['太空'] },
             { name: "水資源", cost: 18, effect: "ocean", text: "放置海洋", type: "event", vp: 0, tags: ['太空'] },
             { name: "巨冰小行星", cost: 36, effect: "ocean", text: "放置海洋", type: "event", vp: 0, reqTemp: -10, tags: ['太空'] },
@@ -1160,14 +1160,12 @@
             { name: "太空電梯", cost: 25, effect: "steelProd", value: 2, text: "鋼鐵產量+2", type: "auto", vp: 0, tags: ['太空', '建築'] },
             { name: "軌道衛星", cost: 16, effect: "energyProd", value: 2, text: "電力產量+2", type: "auto", vp: 0, tags: ['太空', '科學'] },
 
-            // 建築卡
             { name: "城市建設", cost: 25, effect: "city", text: "放置城市", type: "auto", vp: 0, tags: ['建築'] },
             { name: "採礦業", cost: 8, effect: "steelProd", value: 1, text: "鋼鐵產量+1", type: "auto", vp: 0, tags: ['建築'] },
             { name: "鋼鐵廠", cost: 18, effect: "steelProd", value: 2, text: "鋼鐵產量+2", type: "auto", vp: 0, tags: ['建築'] },
             { name: "工業中心", cost: 20, effect: "mcProd", value: 1, text: "金錢產量+1", type: "auto", vp: 0, tags: ['建築'] },
             { name: "採礦權", cost: 12, effect: "steelProd", value: 1, text: "鋼鐵產量+1", type: "auto", vp: 0, tags: ['建築'] },
 
-            // 植物卡
             { name: "自然保護區", cost: 23, effect: "forest", text: "放置綠化", type: "auto", vp: 1, reqOxy: 4, tags: ['植物'] },
             { name: "苔蘚", cost: 8, effect: "forest", text: "放置綠化", type: "auto", vp: 0, reqOxy: 3, tags: ['植物'] },
             { name: "苔原植物", cost: 10, effect: "plantProd", value: 1, text: "植物產量+1", type: "auto", vp: 0, tags: ['植物'] },
@@ -1175,27 +1173,23 @@
             { name: "樹木農場", cost: 15, effect: "plantProd", value: 2, text: "植物產量+2", type: "auto", vp: 0, reqTemp: -10, tags: ['植物'] },
             { name: "地衣", cost: 6, effect: "plantProd", value: 1, text: "植物產量+1", type: "auto", vp: 0, reqOxy: 2, tags: ['植物'] },
 
-            // 能源卡
             { name: "太陽能發電", cost: 11, effect: "mcProd", value: 1, text: "金錢產量+1", type: "auto", vp: 0, tags: ['能源'] },
             { name: "地熱能", cost: 13, effect: "energyProd", value: 1, text: "電力產量+1", type: "auto", vp: 0, tags: ['能源'] },
             { name: "核能發電", cost: 22, effect: "energyProd", value: 3, text: "電力產量+3", type: "auto", vp: 0, tags: ['能源', '建築'] },
             { name: "風力發電", cost: 14, effect: "energyProd", value: 1, text: "電力產量+1", type: "auto", vp: 0, reqTemp: -10, tags: ['能源'] },
             { name: "能量轉換器", cost: 12, effect: "convertEnergyToSteel", text: "打出時：2 電力換 4 鋼鐵", type: "auto", vp: 0, tags: ['能源'] },
 
-            // 科學卡
             { name: "深井熱力", cost: 15, effect: "temp", text: "溫度+1", type: "auto", vp: 1, tags: ['科學'] },
             { name: "放射性同位素", cost: 14, effect: "heatProd", value: 2, text: "熱能產量+2", type: "auto", vp: 0, tags: ['科學'] },
             { name: "基因修復", cost: 18, effect: "mcProd", value: 1, text: "金錢產量+1", type: "auto", vp: 1, tags: ['科學', '植物'] },
             { name: "實驗室", cost: 12, effect: "drawCards", value: 2, text: "打出時抽 2 張牌", type: "auto", vp: 0, tags: ['科學'] },
             { name: "研究與發展", cost: 10, effect: "drawCards", value: 1, text: "打出時抽 1 張牌", type: "auto", vp: 0, tags: ['科學'] },
 
-            // 地球卡
             { name: "地球移民", cost: 15, effect: "mcProd", value: 1, text: "金錢產量+1", type: "auto", vp: 0, tags: ['地球'] },
             { name: "地球企業", cost: 20, effect: "city", text: "放置城市", type: "auto", vp: 0, tags: ['地球', '建築'] },
             { name: "地球工業", cost: 18, effect: "steelProd", value: 1, text: "鋼鐵產量+1", type: "auto", vp: 0, tags: ['地球', '建築'] },
             { name: "媒體集團", cost: 16, effect: "mcProd", value: 1, text: "金錢產量+1", type: "auto", vp: 0, tags: ['地球'] },
 
-            // 藍卡 (主動與折扣)
             { name: "研究實驗室", cost: 15, type: "active", activeEffect: "draw", activeCost: 2, text: "行動：支付 2 M€ 抽 1 張牌", tags: ['科學'] },
             { name: "商業中心", cost: 18, type: "active", activeEffect: "mc", activeCost: 0, text: "行動：獲得 3 M€", tags: ['建築'] },
             { name: "地熱發電站", cost: 20, type: "active", activeEffect: "temp", activeCost: 5, text: "行動：支付 5 M€ 升溫 1°C", tags: ['科學'] },
@@ -1204,14 +1198,12 @@
             { name: "太空港", cost: 18, type: "active", activeEffect: "discountSpace", activeCost: 0, text: "被動：打出太空卡少付 2 M€", tags: ['太空'] },
             { name: "鋼鐵廠擴建", cost: 14, type: "active", activeEffect: "mc", activeCost: 1, text: "行動：支付 1 M€ 得 2 鋼鐵", tags: ['建築'] },
 
-            // 動物卡 (橘卡)
             { name: "牲畜", cost: 12, effect: "animalProd", value: 1, text: "被動：每回合 +1 動物", type: "animal", vp: 0, tags: ['植物'] },
             { name: "寵物", cost: 10, effect: "animalProd", value: 0, text: "被動：每回合 +1 動物", type: "animal", vp: 0 },
             { name: "生態園", cost: 20, effect: "animalProd", value: 2, text: "被動：每回合 +2 動物", type: "animal", vp: 1, tags: ['植物'] },
             { name: "鳥類", cost: 14, effect: "animalProd", value: 1, text: "被動：每回合 +1 動物", type: "animal", vp: 0, reqOxy: 6 },
             { name: "魚類", cost: 16, effect: "animalProd", value: 1, text: "被動：每回合 +1 動物", type: "animal", vp: 0, reqOceans: 3 },
 
-            // 攻擊卡
             { name: "掠奪者", cost: 12, effect: "attackPlant", value: 3, text: "選擇對手，奪取 3 植物", type: "event", vp: 0, requiresTarget: true },
             { name: "網路攻擊", cost: 15, effect: "attackMC", value: 5, text: "選擇對手，偷取 5 M€", type: "event", vp: 0, requiresTarget: true },
             { name: "資源駭客", cost: 10, effect: "attackSteel", value: 4, text: "選擇對手，偷取 4 鋼鐵", type: "event", vp: 0, requiresTarget: true },
