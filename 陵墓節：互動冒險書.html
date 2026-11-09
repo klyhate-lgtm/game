@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>陵墓節：互動冒險書</title>
+<style>
+:root{--parch:#e8d9b5;--parch2:#d8c18d;--ink:#2b2115;--gold:#b8862e;}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#1b140d;color:var(--ink);font-family:"Georgia","Noto Serif TC",serif}
+body{min-height:100vh;background:radial-gradient(circle at 20% 10%,rgba(255,230,160,.18),transparent 30%),radial-gradient(circle at 80% 80%,rgba(120,70,30,.22),transparent 35%),repeating-linear-gradient(0deg,rgba(80,50,20,.05) 0 2px,transparent 2px 5px),#2a1d12;padding-bottom:86px}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;box-shadow:inset 0 0 180px 60px rgba(0,0,0,.75)}
+#app{max-width:1180px;margin:0 auto;min-height:100vh;background:linear-gradient(135deg,var(--parch),var(--parch2));border-left:1px solid #8b6c3d;border-right:1px solid #8b6c3d}
+#topbar{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;background:linear-gradient(#3a2818,#24170e);color:#f6e7c1;border-bottom:2px solid var(--gold);box-shadow:0 3px 14px rgba(0,0,0,.45)}
+.stat{background:rgba(255,255,255,.07);border:1px solid rgba(255,220,150,.25);border-radius:999px;padding:4px 10px;font-size:14px;white-space:nowrap}
+#main{display:grid;grid-template-columns:1fr 300px;gap:14px;padding:14px}
+@media(max-width:860px){#main{grid-template-columns:1fr}}
+#scene{grid-column:1/-1;height:190px;border:2px solid #8b6c3d;border-radius:10px;overflow:hidden;background:#0d141c;position:relative;box-shadow:inset 0 0 40px #000}
+#svgScene{width:100%;height:100%;display:block}
+#storyPanel{background:rgba(255,250,235,.72);border:2px solid #8b6c3d;border-radius:10px;padding:14px;min-height:300px;box-shadow:0 6px 20px rgba(60,35,10,.25)}
+#story{white-space:pre-wrap;line-height:1.75;font-size:17px;color:#21170d;min-height:180px;cursor:pointer}
+#choices{display:flex;flex-direction:column;gap:9px;margin-top:14px}
+button{font-family:inherit;cursor:pointer}
+.choice,.navbtn,.modal button{border:1px solid #6e4c24;background:linear-gradient(#f7e8c4,#dcc18b);color:#24170d;border-radius:8px;padding:11px 13px;font-size:15px;text-align:left;box-shadow:0 2px 0 #8b6c3d;transition:.15s}
+.choice:hover,.navbtn:hover,.modal button:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.choice:active,.navbtn:active,.modal button:active{transform:translateY(1px);box-shadow:0 0 0 #8b6c3d}
+#sidePanel{display:flex;flex-direction:column;gap:10px}
+.panel{background:rgba(255,248,230,.72);border:2px solid #8b6c3d;border-radius:10px;padding:10px}
+.panel h3{margin:0 0 8px;font-size:15px;color:#4a2e14;border-bottom:1px solid #b99a64;padding-bottom:5px}
+.chipRow{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:3px 7px;border-radius:999px;background:#3a2818;color:#ffe2a1;font-size:12px;border:1px solid var(--gold)}
+.muted{color:#7b6748;font-size:13px}
+ul.clean{list-style:none;margin:0;padding:0;max-height:150px;overflow:auto;font-size:13px}
+ul.clean li{padding:3px 0;border-bottom:1px dotted #c6ad80}
+#bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;gap:4px;padding:8px max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));background:linear-gradient(#2a1b10,#120c07);border-top:2px solid var(--gold)}
+.navbtn{font-size:12px;padding:8px 9px;text-align:center;border-radius:8px;min-width:52px}
+#modal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);padding:16px}
+#modal.hidden{display:none}
+.modal-content{max-width:760px;width:100%;max-height:86vh;overflow:auto;background:linear-gradient(135deg,#f4e6c3,#dcc18b);border:3px double #6e4c24;border-radius:12px;padding:18px;box-shadow:0 20px 80px #000;color:#22160c}
+.modal h2{margin:0 0 10px;font-size:22px;color:#4a2e14;border-bottom:2px solid var(--gold);padding-bottom:8px}
+.modalBody{font-size:15px;line-height:1.7}
+.modalBody h3{color:#5b3516;margin:14px 0 6px}
+.modalActions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+#toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:#1d130b;color:#ffe4a6;border:1px solid var(--gold);padding:10px 16px;border-radius:999px;z-index:200;transition:.25s;max-width:90vw;text-align:center;font-size:14px}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:520px){#topbar{font-size:12px;gap:5px;padding:6px}.stat{font-size:12px;padding:3px 7px}#story{font-size:16px}#scene{height:150px}.navbtn{font-size:11px;padding:7px 5px;min-width:46px}}
+.twinkle{animation:tw 2.6s infinite alternate}@keyframes tw{from{opacity:.25}to{opacity:1}}
+.mist{animation:mist 9s linear infinite}@keyframes mist{from{transform:translateX(-20px)}to{transform:translateX(20px)}}
+.flag{animation:flag 3s ease-in-out infinite alternate}@keyframes flag{from{transform:skewY(-2deg)}to{transform:skewY(2deg)}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="stat">❤️ <span id="hp">11</span>/<span id="maxHp">11</span></div>
+    <div class="stat">🪙 <span id="gold">0</span></div>
+    <div class="stat">📅 第<span id="day">1</span>天</div>
+    <div class="stat">⏳ <span id="time">0</span>/5</div>
+    <div class="stat">🎒 <span id="invCount">0</span></div>
+    <div class="stat">🔖 <span id="eventCount">0</span></div>
+  </header>
+  <main id="main">
+    <section id="scene"><svg id="svgScene" viewBox="0 0 900 190" preserveAspectRatio="xMidYMid slice"></svg></section>
+    <section id="storyPanel"><div id="story">準備冒險書……</div><div id="choices"></div></section>
+    <aside id="sidePanel">
+      <div class="panel"><h3>🔖 事件追蹤</h3><div id="eventsList" class="chipRow"><span class="muted">尚無</span></div></div>
+      <div class="panel"><h3>🎒 物品欄</h3><ul id="inventoryList" class="clean"><li class="muted">尚無</li></ul></div>
+      <div class="panel"><h3>🧭 歷史紀錄</h3><ul id="historyList" class="clean"><li class="muted">尚無</li></ul></div>
+      <div class="panel"><h3>🏆 成就</h3><ul id="achievementList" class="clean"><li class="muted">尚無</li></ul></div>
+    </aside>
+  </main>
+  <nav id="bottomNav">
+    <button class="navbtn" onclick="openManual()">說明</button>
+    <button class="navbtn" onclick="saveGame()">存檔</button>
+    <button class="navbtn" onclick="loadGame()">讀檔</button>
+    <button class="navbtn" onclick="openHistory()">歷史</button>
+    <button class="navbtn" onclick="openAchievements()">成就</button>
+    <button class="navbtn" id="soundBtn" onclick="toggleSound()">音效：開</button>
+    <button class="navbtn" onclick="resetGame()">重置</button>
+  </nav>
+</div>
+<div id="modal" class="hidden"><div class="modal-content"><h2 id="modalTitle"></h2><div id="modalBody" class="modalBody"></div><div id="modalActions" class="modalActions"></div></div></div>
+<div id="toast"></div>
+
+<!-- ============================================================
+     冒險資料（JSON）：日後只需改這裡，就能新增條目、任務、結局
+     新增條目：在 entries 加 key（字串 id），text + choices
+     新增效果：choices[].effect 用 "type:args"，並在 ACTIONS 註冊
+     ============================================================ -->
+<script type="application/json" id="advData">
+{
+  "meta": {"title":"陵墓節：互動冒險書","version":"1.0","start":"0000"},
+
+  "items": {
+    "boarding_pass": "登船牌",
+    "mahogany_wand": "紅木魔杖",
+    "dagger": "帶鞘匕首",
+    "letters": "一包信件",
+    "silver_15": "15 枚銀幣",
+    "necklace": "納明丁榮譽項鍊",
+    "shell_charm": "貝殼護身符",
+    "potion": "治療藥水"
+  },
+
+  "events": {
+    "003":"第一場戰鬥","005":"擦鞋匠是干擾者","008":"找到搬運工屍體",
+    "015":"挫敗扒竊","017":"西姆斯與海盜血緣","022":"哈維恩看到扒手",
+    "027":"明輪罩鬧鬼","028":"燒毀漁船","029":"提亞空魔杖鞘",
+    "030":"牧師打信號","034":"石碑找回",
+    "130":"決鬥任務","137":"藥物任務","142":"胸針任務","126":"舊情人任務",
+    "150":"戰士夥伴","160":"牧師夥伴","166":"盜賊夥伴","174":"法師夥伴",
+    "190":"冬至","204":"秋分","218":"夏至","237":"春分"
+  },
+
+  "missions": {
+    "duel":     {"event":"130","name":"決鬥審判","intro":"0162"},
+    "medicine": {"event":"137","name":"拉本靈藥","intro":"0023"},
+    "brooch":   {"event":"142","name":"光明希望之星","intro":"0039"},
+    "lover":    {"event":"126","name":"舊情人羅賓","intro":"0056"}
+  },
+
+  "companions": {
+    "warrior": {"event":"150","name":"戰士"},
+    "priest":  {"event":"160","name":"牧師"},
+    "rogue":   {"event":"166","name":"盜賊"},
+    "mage":    {"event":"174","name":"法師"}
+  },
+
+  "seasons": {
+    "winter": {"event":"190","name":"冬至","festival":"最長之夜"},
+    "autumn": {"event":"204","name":"秋分","festival":"金色之秋"},
+    "summer": {"event":"218","name":"夏至","festival":"日落節"},
+    "spring": {"event":"237","name":"春分","festival":"重生"}
+  },
+
+  "clues": {
+    "shoe":{"event":"005","name":"擦鞋匠"},
+    "wizard":{"event":"029","name":"提亞空魔杖鞘"},
+    "priest":{"event":"017","name":"西姆斯血緣"},
+    "guard":{"event":"027","name":"明輪罩"},
+    "body":{"event":"008","name":"船底艙屍體"},
+    "purser":{"event":"033","name":"事務長可疑"}
+  },
+
+  "entries": {
+    "0000": {
+      "scene":"ship","type":"story",
+      "text":"0000\n渡輪的隊伍排得很長，蜿蜒繞過城市色彩斑斕的濱水建築，穿過一排排集市攤位，一直延伸到長長碼頭盡頭。午後陽光漸暖，你終於走到「壯麗號」的登船跳板前。\n\n隊伍突然停了下來。船員把你和其他乘客領到一旁，替豪華乘客的行李搬運工騰出道路。\n\n「快到了，」你身後的半獸人賈拉尼說，「我每年都去切斯特拉爾。你今年去那兒是為了什麼？」\n\n你考慮過無視這個問題。答案實在太過私人……\n\n▶ 選擇主要任務。",
+      "choices":[
+        {"label":"▶ 0162 決鬥：去會見憎恨的敵人","effect":"mission:duel"},
+        {"label":"▶ 0023 藥物：去安伯林神廟求靈藥","effect":"mission:medicine"},
+        {"label":"▶ 0039 胸針：找回家族失竊胸針","effect":"mission:brooch"},
+        {"label":"▶ 0056 舊情人：去前情人家表白","effect":"mission:lover"}
+      ]
+    },
+
+    "0162": {"scene":"ship","type":"mission_intro","mission":"duel",
+      "text":"0162\n一年前，你同意在檔案管理員廣場進行決鬥。在切斯特拉爾中央公園，在城市大法官和那棵高大橡樹的見證下，你將殺死津·塔戈。\n\n這個龍裔必須死。他人脈太廣，其罪行無法被定罪。其中一位致殘後被拋棄的人，是你的叔叔。\n\n如今尋求正義的唯一希望，是這座城市古老的決鬥審判法。指定的日子越來越近了。",
+      "choices":[{"label":"繼續","goto":"0076"}]},
+    "0023": {"scene":"ship","type":"mission_intro","mission":"medicine",
+      "text":"0023\n你的目的地是安伯林神廟，這是一座供奉多位治癒之神的地方。廟裡的牧師掌握著製作拉本靈藥（Raben Panacea）的秘密，這種靈藥能治癒正在威脅你家鄉的疾病。\n\n你帶著鎮議會的介紹信前往切斯特拉爾，有權與神廟協商生產足夠的藥物。這並非易事——神廟規模不大，牧師們還有其他事務要處理。\n\n如果成功，你將拯救家鄉數百人的生命，還有你年邁的導師梅茲。",
+      "choices":[{"label":"繼續","goto":"0076"}]},
+    "0039": {"scene":"ship","type":"mission_intro","mission":"brooch",
+      "text":"0039\n「光明希望之星」是一枚鑲嵌寶石的胸針。這件著名寶物曾屬於你的家族，但十年前被盜。傳說你家族的命運與這枚胸針緊密相連。\n\n最近有傳言說，切斯特拉爾的貴族福斯科拉夫人在活動中佩戴過它。\n\n你前往這座城市，就是為了奪回這件珍寶。",
+      "choices":[{"label":"繼續","goto":"0076"}]},
+    "0056": {"scene":"ship","type":"mission_intro","mission":"lover",
+      "text":"0056\n你依然愛著羅賓·馮特茲。一年多前，羅賓被召回切斯特拉爾的家族宅邸。當時你不願搬走，於是結束了這段關係。\n\n現在，你後悔了。沒有羅賓的日子變得不同。\n\n你不知道再次見到羅賓會發生什麼——或許這份思念是相互的；如果不是，至少你能得到一個答案。",
+      "choices":[{"label":"繼續","goto":"0076"}]},
+
+    "0076": {"scene":"ship","type":"story",
+      "text":"0076\n你用最簡單的語言向賈拉尼簡要講述了事情原委，她似乎對此感到滿意。\n\n船長突然喊道：「讓一讓！給斯圖弗頓勳爵讓路！」\n\n斯圖弗頓勳爵走到隊伍最前面，卻在你附近停下——他的行李搬運工堵住了跳板。\n\n「別去！」小個子女人說，「聽聽靈魂的警告！」\n\n「胡說！」斯圖弗頓勳爵回應道，「你姐姐根本不是真正的靈媒。再說，活人比死人危險多了。」\n\n你知道覺醒節每年舉行一次，但舉辦季節各不相同。今年……\n\n▶ 選擇季節。",
+      "choices":[
+        {"label":"0090 冬至前後","effect":"season:winter"},
+        {"label":"0114 秋分前後","effect":"season:autumn"},
+        {"label":"0099 夏至前後","effect":"season:summer"},
+        {"label":"0121 春分前後","effect":"season:spring"}
+      ]
+    },
+
+    "0169": {"scene":"ship","type":"story",
+      "text":"0169\n斯圖弗頓勳爵終於登船後，隊伍又開始移動。你來到碼頭盡頭的檢票員面前。你的票對應的是一個帶三層鋪位的艙室，你和矮人朋友阿貝拉爾德分攤了房間費用。\n\n阿貝拉爾德前往切斯特拉爾有自己的原因，他對調查這座城市著名的鬼魂群體非常感興趣。\n\n你是在……的時候認識阿貝拉爾德的。\n\n▶ 選擇夥伴職業。",
+      "choices":[
+        {"label":"0003 小時候：惡霸恐嚇你時他挺身而出","effect":"companion:warrior"},
+        {"label":"0024 借錢：你借錢給他完成牧師學業","effect":"companion:priest"},
+        {"label":"0057 盜竊：你受雇盜竊倉庫時認識他","effect":"companion:rogue"},
+        {"label":"0065 雇用：你想雇一名巫師時認識他","effect":"companion:mage"}
+      ]
+    },
+
+    "0077": {"scene":"ship","type":"story","onEnter":"item:boarding_pass",
+      "text":"檢票員把你的票放進保險箱，遞給你一張登船牌和一把房間鑰匙。\n\n你登船時，聽到檢票員正和賈拉尼爭吵。她想要更大的艙室，但渡輪已經超額預訂。\n\n你抵達露天甲板時，才發現他說的是實話。頂層非常擁擠。\n\n▶ 0115 繼續",
+      "choices":[{"label":"繼續","goto":"0115"}]},
+
+    "0115": {"scene":"ship","type":"story",
+      "text":"0115\n更多乘客湧上你身後的甲板，迫使你離開跳板。人群不斷擠壓，你想找個不那麼擁擠的地方。\n\n▶ 進行 DC 8 力量（運動）檢定。",
+      "choices":[
+        {"label":"力量（運動）DC 8","effect":"check:str:8:0115_pass:0095"},
+        {"label":"慢慢跟人群（耗 1 時段）","effect":"time:1","goto":"0095"}
+      ]
+    },
+    "0115_pass": {"scene":"ship","type":"story",
+      "text":"你成功擠過人群。\n\n行進中，你注意到一個女孩迅速靠近，似乎想扒你的口袋；目光交會時她立刻轉身融入人群。\n\n（事件 #015。）\n\n▶ 0172 繼續",
+      "choices":[{"label":"繼續","goto":"0172"}]},
+    "0095": {"scene":"ship","type":"story",
+      "text":"0095\n你無法擺脫樓梯間乘客的擁擠。最終人群開始散去。\n\n▶ 0172 繼續",
+      "choices":[{"label":"繼續","goto":"0172"}]},
+
+    "0172": {"scene":"ship","type":"story",
+      "text":"0172\n你走進樓梯間，聽到兩聲響亮的船鳴。渡輪啟航，駛入萊克瓦河。\n\n樓梯間可通往四層甲板：露天甲板（頂層）、慶典甲板（豪華艙室）、乘客甲板（經濟艙）、統艙甲板（船員吊床與貨物）。\n\n▶ 選擇前往哪一層。",
+      "choices":[
+        {"label":"0139 露天甲板（頂層）","goto":"0139"},
+        {"label":"0173 慶典甲板（豪華艙室）","goto":"0173"},
+        {"label":"0010 乘客甲板（經濟艙）","goto":"0010"},
+        {"label":"0027 統艙甲板（貨物）","goto":"0027"}
+      ]
+    },
+
+    "0139": {"scene":"ship","type":"story",
+      "text":"0139\n露天甲板上的人群比航行第一天稀疏了一些。\n\n你四處尋找可疑人員。樓梯間旁一個擦鞋的小男孩可能是目擊者，但吸引你注意的是船前部躺椅上一名金髮精靈——她那件帶有星星圖案的巫師長袍和頭髮一樣金黃。\n\n▶ 選擇調查對象。",
+      "choices":[
+        {"label":"詢問精靈巫師提亞","goto":"0119"},
+        {"label":"詢問擦鞋匠諾蘭","goto":"0028"},
+        {"label":"返回樓梯間","goto":"0172"}
+      ]
+    },
+
+    "0119": {"scene":"ship","type":"story","onEnter":"event:029","effect":"time:1",
+      "text":"金髮精靈巫師提亞坐在躺椅上。她的腰帶掛著塞滿材料的法術袋，旁邊卻有一個空的魔杖鞘（事件 #029）。\n\n▶ 選擇問題。",
+      "choices":[
+        {"label":"詢問她是否看到可疑情況","effect":"clue:wizard","goto":"tia_seen"},
+        {"label":"返回露天甲板","goto":"0139"}
+      ]
+    },
+    "tia_seen": {"scene":"ship","type":"story",
+      "text":"「很多人類，」她平淡地說，「在我看來，他們都很可疑。」\n\n片刻後補充：「我昨晚看到一艘漁船。船是空的，在漂流，而且看起來被燒焦了。」\n\n（事件 #028·線索：燒毀漁船。）\n\n▶ 繼續",
+      "choices":[{"label":"返回提亞","goto":"0119"}]},
+
+    "0028": {"scene":"ship","type":"story",
+      "text":"0028\n有幾位乘客在等著這個年輕擦鞋匠服務，每個人都準備好付一枚銀幣。\n\n▶ 支付 1 枚銀幣讓諾蘭回答。",
+      "choices":[
+        {"label":"支付 1 枚銀幣","require":{"gold":1},"hint":"需要 1 枚金幣（銀幣等值）。","effect":"gold:-1;event:005;event:030;clue:shoe;time:1","goto":"noland_answers"},
+        {"label":"不付錢，直接詢問","goto":"noland_free"},
+        {"label":"返回露天甲板","goto":"0139"}
+      ]
+    },
+    "noland_answers": {"scene":"ship","type":"story",
+      "text":"諾蘭很高興能獲得報酬。\n\n「可疑情況？有啊，我看到那邊有個穿牧師長袍的人，他試圖點燃一盞燈，說『是為了儀式』。船上禁止明火！結果有些乘客堅持要繼續，甲板水手只好跑去拿封閉燈籠。但我覺得那個牧師在朝岸邊打信號。」\n\n（事件 #005·#030·線索：擦鞋匠。）\n\n▶ 繼續",
+      "choices":[{"label":"返回露天甲板","goto":"0139"}]},
+    "noland_free": {"scene":"ship","type":"story",
+      "text":"諾蘭回答了所有問題，並堅稱他沒有看到任何與調查相關的線索。\n\n▶ 繼續",
+      "choices":[{"label":"返回露天甲板","goto":"0139"}]},
+
+    "0010": {"scene":"ship","type":"story",
+      "text":"0010\n乘客甲板的休息室裡，十幾名乘客圍著小桌子玩骰子遊戲。一位身著長袍的牧師站在賭桌旁，向幾位聽眾佈道。弗娜典獄長也在這裡執行日常巡邏。\n\n▶ 選擇調查對象。",
+      "choices":[
+        {"label":"詢問牧師西姆斯","goto":"0180"},
+        {"label":"與弗娜典獄長交談","goto":"0091"},
+        {"label":"進入艙室短休息（恢復 HP，推進 1 時段）","effect":"heal:full;time:1","goto":"0010"},
+        {"label":"返回樓梯間","goto":"0172"}
+      ]
+    },
+
+    "0180": {"scene":"ship","type":"story",
+      "text":"西姆斯助手是乘客甲板休息室的常客。儘管他宣揚反對與死者交流，但語氣並不張揚。\n\n▶ 選擇問題。",
+      "choices":[
+        {"label":"詢問他昨晚在哪裡","effect":"event:017;clue:priest;time:1","goto":"priest_where"},
+        {"label":"就他「眼熟的容貌」與祭司對質","effect":"event:017;clue:priest;time:1","goto":"priest_face"},
+        {"label":"返回乘客甲板","goto":"0010"}
+      ]
+    },
+    "priest_where": {"scene":"ship","type":"story",
+      "text":"牧師告訴你，他還在露天甲板上與一群信徒進行了一個多小時的宗教儀式。\n\n阿貝拉爾德低聲警告：「那個儀式很可疑，我從沒聽說過任何河神有夜間儀式。」\n\n（事件 #017·線索：西姆斯牧師。）\n\n▶ 繼續",
+      "choices":[{"label":"返回西姆斯","goto":"0180"}]},
+    "priest_face": {"scene":"ship","type":"story",
+      "text":"牧師承認他可能與海盜船長阿曼德·萊赫·克雷斯有血緣關係。\n\n「我們都出生在同一個河邊村莊。」\n\n附近一位女乘客驚呼：「哦，我知道那個村莊！現在所有海盜都住在那裡！」\n\n（事件 #017·線索：西姆斯牧師。）\n\n▶ 繼續",
+      "choices":[{"label":"返回西姆斯","goto":"0180"}]},
+
+    "0091": {"scene":"ship","type":"story","effect":"event:027;clue:guard;time:1",
+      "text":"弗娜典獄長正在乘客甲板巡邏。\n\n「昨晚的報告和以前一樣，只是無稽之談。一個新船員說她在明輪罩裡看到了萊赫·克雷斯的幽靈之光。你們可以去調查，但我保證那裡什麼都沒有。」\n\n（事件 #027·線索：明輪罩。）\n\n▶ 繼續",
+      "choices":[{"label":"返回乘客甲板","goto":"0010"}]},
+
+    "0173": {"scene":"ship","type":"story",
+      "text":"0173\n慶典甲板的裝飾比船上其他地方更好。這一層的艙室和客廳僅限貴族及其隨從使用。\n\n你的目光被貴族休息室裡那個留著濃密鬍子的半精靈吸引——他正在玩牌。這個半精靈似乎是一名職業賭徒。\n\n賈拉尼也在這裡，她為斯圖弗頓勳爵辦各種差事。\n\n▶ 選擇調查對象。",
+      "choices":[
+        {"label":"詢問賭徒哈維恩","goto":"0120"},
+        {"label":"詢問事務長托門茨","goto":"0006"},
+        {"label":"返回樓梯間","goto":"0172"}
+      ]
+    },
+
+    "0120": {"scene":"ship","type":"story",
+      "text":"這位半精靈賭徒名叫哈維恩。走近後，你能聞到他鬍子蠟的甜味。\n\n▶ 選擇問題。",
+      "choices":[
+        {"label":"詢問他是否看到任何可疑情況","effect":"event:022;time:1","goto":"havier_seen"},
+        {"label":"返回慶典甲板","goto":"0173"}
+      ]
+    },
+    "havier_seen": {"scene":"ship","type":"story",
+      "text":"「可疑情況？有，」哈維恩的眼睛左右掃視著房間。\n\n「船上有很多帶武器的人。但我也注意到很多人攜帶隱藏武器。還有一件事，看好你們的錢包。我在那個舷窗旁邊看到一個女孩偷了一個錢包，船上有扒手在活動。」\n\n（事件 #022。）\n\n▶ 繼續",
+      "choices":[{"label":"返回哈維恩","goto":"0120"}]},
+
+    "0006": {"scene":"ship","type":"story",
+      "text":"事務長在一間小辦公室工作。這位年長男人的名牌上寫著「托門茨」。\n\n▶ 選擇問題。",
+      "choices":[
+        {"label":"詢問他昨晚在哪裡","effect":"time:1","goto":"purser_where"},
+        {"label":"仔細觀察事務長","effect":"time:1","goto":"purser_scrutiny"},
+        {"label":"返回慶典甲板","goto":"0173"}
+      ]
+    },
+    "purser_where": {"scene":"ship","type":"story",
+      "text":"托門茨用手捋了捋他短短的白髮。\n\n「我當然在工作。我們每晚都會停靠一次，裝載補給品。我幾乎一整晚都在核對貨單和記錄庫存。」\n\n▶ 繼續",
+      "choices":[{"label":"返回事務長","goto":"0006"}]},
+    "purser_scrutiny": {"scene":"ship","type":"story",
+      "text":"你仔細觀察事務長。他對回答問題感到緊張，語氣和肢體語言都很不自然，但你不確定原因。\n\n（規則：被動洞察 13 以上可看穿他。本版被動洞察為 12，因此無法取得事件 #033。）\n\n▶ 繼續",
+      "choices":[{"label":"返回事務長","goto":"0006"}]},
+
+    "0027": {"scene":"ship","type":"story",
+      "text":"0027\n樓梯間底部通往統艙甲板。一名皮膚黝黑的矮人守衛著通往甲板其餘區域的門，他名叫西爾維斯特倫。\n\n▶ 選擇調查。",
+      "choices":[
+        {"label":"審問守衛西爾維斯特倫","goto":"guard_talk"},
+        {"label":"下到船底艙（戰鬥）","effect":"combat_start","goto":"0123"},
+        {"label":"返回樓梯間","goto":"0172"}
+      ]
+    },
+    "guard_talk": {"scene":"ship","type":"story","onEnter":"event:027",
+      "text":"西爾維斯特倫告訴你，他在午夜過後一小時才開始值班。\n\n「我大部分時間都在這扇門後的吊床上，總覺得露天甲板不太對勁。」\n\n▶ 繼續",
+      "choices":[{"label":"返回統艙甲板","goto":"0027"}]},
+
+    "0123": {"scene":"combat","type":"combat",
+      "text":"0123\n鼠群被擊敗。你搜查搬運工的屍體：腰帶上掛著帶鞘匕首；束腰外衣裡有一包斯圖弗頓勳爵的通信；他緊握的手中還有一根紅木巫師魔杖。\n\n（事件 #008·線索：船底艙屍體。）\n\n▶ 返回調查選單。",
+      "onEnter":"event:008;clue:body;item:mahogany_wand;item:letters;item:dagger;time:1",
+      "choices":[
+        {"label":"向弗娜典獄長報告（至少 2 條線索）","require":{"cluesMin":2},"hint":"需至少 2 條線索。","goto":"report"},
+        {"label":"繼續調查","goto":"0027"}
+      ]
+    },
+
+    "report": {"scene":"ship","type":"report",
+      "text":"你把線索整理給弗娜典獄長。她攤開筆記本：「你認為誰是犯人？」\n\n▶ 選擇要指控的對象。",
+      "choices":[
+        {"label":"指控精靈巫師提亞（需 屍體 + 空魔杖鞘）","require":{"clues":["body","wizard"]},"hint":"缺少證據：需先取得 #008 與 #029。","effect":"ending:success"},
+        {"label":"指控事務長托門茨（需 可疑線索）","require":{"clues":["purser"]},"hint":"你沒有足夠的事務長證據。","effect":"ending:wrong"},
+        {"label":"報告失蹤搬運工（需 屍體）","require":{"clues":["body"]},"hint":"尚未找到搬運工。","effect":"ending:partial"},
+        {"label":"返回繼續調查","goto":"0027"}
+      ]
+    }
+  },
+
+  "endings": {
+    "success": {"achievement":"success","gold":50,"items":["necklace","shell_charm"],
+      "text":"你指出提亞利用搬運工從保險箱偷出石碑，並在船底艙殺人滅口。弗娜典獄長派甲板水手搜查提亞艙室，果然找回石碑。\n\n【序章成功結局】\n獲得 50 金幣、納明丁榮譽項鍊、貝殼護身符。\n\n▶ 前往切斯特拉爾主冒險。"},
+    "wrong": {"achievement":"wrong",
+      "text":"弗娜典獄長調查後發現他確實與扒手集團有關，但失竊石碑並非他所為。真正的犯人有了警覺。\n\n【錯誤指控結局】\n你仍抵達切斯特拉爾，但留下遺憾。"},
+    "partial": {"achievement":"partial","gold":10,
+      "text":"你報告搬運工下落。弗娜封鎖現場，但石碑未找回。\n\n【部分真相結局】\n獲得 10 金幣。"},
+    "death": {"achievement":"death",
+      "text":"你被紅眼鼠群撲倒。船底艙的污水漫過膝蓋，黑暗吞沒視線。\n\n【死亡結局】\n壯麗號短暫停靠，馬車將你逆流送回哈利茲堡。冒險在此結束。"}
+  }
+}
+</script>
+
+<script>
+/* ============ 載入資料 ============ */
+const DATA = JSON.parse(document.getElementById('advData').textContent);
+const $=id=>document.getElementById(id);
+const SAVE_KEY='festivalTombs_v4', ACH_KEY='festivalTombsAch_v4';
+const ACH_NAMES={success:'序章破案：正確指控提亞',wrong:'錯誤指控：真相未明',partial:'部分真相：只有搬運工',death:'船底艙死亡'};
+function fresh(){return{phase:'manual',entry:'0000',hp:11,maxHp:11,gold:0,day:1,time:0,events:[],inventory:[],history:[],achievements:[],sound:true,clues:{},mission:null,companion:null,season:null,combat:null};}
+let state=fresh();
+state.achievements=JSON.parse(localStorage.getItem(ACH_KEY)||'[]');
+
+/* ============ 工具 ============ */
+function d20(m=0){return Math.floor(Math.random()*20)+1+m;}
+function rnd(n){return Math.floor(Math.random()*n)+1;}
+function has(id){return state.events.includes(String(id));}
+function mark(id){id=String(id);if(!has(id))state.events.push(id);}
+function item(key){const n=DATA.items[key];if(n&&!state.inventory.includes(n))state.inventory.push(n);}
+function hist(t){state.history.push(`[${state.day}天·${state.time}時] ${t}`);if(state.history.length>150)state.history.shift();}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),2400);}
+function sfx(t='click'){if(!state.sound)return;try{const c=window._ac||(window._ac=new(window.AudioContext||window.webkitAudioContext)());const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value={click:440,hit:160,win:660,lose:110,dice:300}[t]||440;g.gain.setValueAtTime(.045,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.13);o.start();o.stop(c.currentTime+.13);}catch(e){}}
+
+/* ============ 打字機 ============ */
+let tmr=null,full='';
+function story(t){full=t||'';const el=$('story');el.textContent='';clearInterval(tmr);let i=0;el.onclick=()=>{clearInterval(tmr);el.textContent=full;};tmr=setInterval(()=>{if(i>=full.length){clearInterval(tmr);return;}el.textContent+=full[i++];},14);}
+
+/* ============ 狀態更新 ============ */
+function stats(){$('hp').textContent=Math.max(0,state.hp);$('maxHp').textContent=state.maxHp;$('gold').textContent=state.gold;$('day').textContent=state.day;$('time').textContent=state.time;$('invCount').textContent=state.inventory.length;$('eventCount').textContent=state.events.length;$('soundBtn').textContent='音效：'+(state.sound?'開':'關');}
+function side(){
+  $('eventsList').innerHTML=state.events.length?state.events.map(e=>`<span class="chip">#${e}</span>`).join(''):'<span class="muted">尚無</span>';
+  $('inventoryList').innerHTML=state.inventory.length?state.inventory.map(i=>`<li>${i}</li>`).join(''):'<li class="muted">尚無</li>';
+  $('historyList').innerHTML=state.history.length?state.history.slice(-30).reverse().map(h=>`<li>${h}</li>`).join(''):'<li class="muted">尚無</li>';
+  $('achievementList').innerHTML=state.achievements.length?state.achievements.map(a=>`<li>🏆 ${ACH_NAMES[a]||a}</li>`).join(''):'<li class="muted">尚無</li>';
+}
+
+/* ============ SVG ============ */
+function svg(type='ship'){
+  const stars=Array.from({length:26},(_,i)=>{const x=(i*67)%900,y=(i*31)%108,r=i%3===0?1.6:1;return`<circle cx="${x}" cy="${y}" r="${r}" fill="#ffe9a8" class="twinkle" style="animation-delay:${(i%7)*.3}s"/>`;}).join('');
+  const base=`<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07111d"/><stop offset="1" stop-color="#1d3147"/></linearGradient><linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16364a"/><stop offset="1" stop-color="#071018"/></linearGradient></defs><rect width="900" height="190" fill="url(#sky)"/>${stars}<rect y="128" width="900" height="62" fill="url(#water)"/><path d="M0 130 Q80 122 160 130 T320 130 T480 130 T640 130 T800 130 T900 128 V190 H0Z" fill="#0b1d28" opacity=".8"/>`;
+  if(type==='combat')return base+`<rect y="145" width="900" height="45" fill="#1b120b"/><path d="M0 150 Q120 138 240 150 T480 150 T720 150 T900 148 V190 H0Z" fill="#382313"/><g class="mist"><ellipse cx="450" cy="165" rx="260" ry="18" fill="#7ea88c" opacity=".18"/></g><text x="640" y="40" fill="#ffd27a" font-size="16" font-family="serif">船底艙·紅眼鼠群</text>`;
+  if(type==='city')return base+`<rect y="118" width="900" height="72" fill="#24170e"/>${[80,170,280,390,520,650,780].map((x,i)=>`<rect x="${x}" y="${58+(i%3)*14}" width="${70+i*4}" height="${92-(i%3)*14}" fill="#3b2a1b" stroke="#7d5b31"/><rect x="${x+10}" y="${74+(i%3)*14}" width="12" height="16" fill="#ffd27a" class="twinkle"/><rect x="${x+30}" y="${74+(i%3)*14}" width="12" height="16" fill="#ffd27a" class="twinkle" style="animation-delay:.4s"/>`).join('')}<text x="620" y="36" fill="#ffe1a0" font-size="16" font-family="serif">切斯特拉爾·覺醒節</text>`;
+  return base+`<path d="M170 132 L730 132 L660 172 L240 172Z" fill="#5c3a1d" stroke="#c99a4a"/><rect x="310" y="88" width="280" height="44" fill="#6e4a25" stroke="#c99a4a"/><rect x="350" y="96" width="30" height="22" fill="#ffd27a" class="twinkle"/><rect x="400" y="96" width="30" height="22" fill="#ffd27a" class="twinkle" style="animation-delay:.5s"/><rect x="450" y="96" width="30" height="22" fill="#ffd27a" class="twinkle" style="animation-delay:.9s"/><path d="M280 80 L450 45 L620 80" fill="none" stroke="#c99a4a" stroke-width="4"/><path class="flag" d="M450 45 L450 15 L500 28 L450 40" fill="#7a2e22"/><g class="mist"><ellipse cx="450" cy="150" rx="280" ry="16" fill="#8fb7c9" opacity=".18"/></g><text x="580" y="36" fill="#ffe1a0" font-size="16" font-family="serif">壯麗號·萊克瓦河</text>`;
+}
+
+/* ============ 效果執行（從 JSON 的 effect 字串解析） ============ */
+const ACTIONS = {
+  mission:   (key)=>{const m=DATA.missions[key];if(!m)return;mark(m.event);state.mission={key,...m};hist('任務：'+m.name);},
+  season:    (key)=>{const s=DATA.seasons[key];if(!s)return;mark(s.event);state.season={key,...s};hist('季節：'+s.name);},
+  companion: (key)=>{const c=DATA.companions[key];if(!c)return;mark(c.event);state.companion={key,...c};hist('夥伴：'+c.name);},
+  clue:      (key)=>{state.clues[key]=true;const c=DATA.clues[key];if(c)mark(c.event);hist('線索：'+(c?c.name:key));},
+  event:     (id)=>mark(id),
+  item:      (key)=>item(key),
+  gold:      (n)=>{state.gold+=parseInt(n,10)||0;},
+  time:      (n)=>{state.time=Math.min(5,state.time+(parseInt(n,10)||0));},
+  heal:      (mode)=>{if(mode==='full')state.hp=state.maxHp;},
+  check:     (ability,dc,pass,fail)=>{
+                const mod = ability==='str'?2 : ability==='dex'?2 : 0;
+                const r=d20(mod); sfx('dice');
+                toast(`檢定 d20+${mod}=${r}（DC ${dc}）`);
+                go(r>=dc?pass:fail);
+                return true; // 表示 effect 已自行跳轉
+             },
+  combat_start: ()=>{ state.combat={enemyHp:24,enemyMax:24,round:1,enemyAttack:3,enemyDmg:'1d6'}; mark('003'); hist('進入船底艙'); combatRender(); return true; },
+  ending:    (key)=>{const e=DATA.endings[key];if(!e)return;if(e.gold)state.gold+=e.gold;if(e.items)e.items.forEach(k=>item(k));state.phase='ended';if(e.achievement&&!state.achievements.includes(e.achievement)){state.achievements.push(e.achievement);localStorage.setItem(ACH_KEY,JSON.stringify(state.achievements));}setEndingText(e.text);return true;}
+};
+
+function runEffects(str){
+  if(!str)return false;
+  const parts=String(str).split(';').map(s=>s.trim()).filter(Boolean);
+  let redirected=false;
+  for(const p of parts){
+    const [type,...args]=p.split(':');
+    if(!ACTIONS[type]){console.warn('未知 effect:',type);continue;}
+    if(ACTIONS[type](...args)){redirected=true;break;}
+  }
+  return redirected;
+}
+
+/* ============ 渲染 ============ */
+function go(id){
+  state.entry=id;
+  const e=DATA.entries[id];
+  if(!e){story('缺少條目 '+id);choices([{label:'重新開始',do:resetGame}]);return;}
+  if(e.type==='combat'){combatRender();return;}
+  if(e.onEnter)runEffects(e.onEnter);
+  $('svgScene').innerHTML=svg(e.scene||'ship');
+  story(e.text||'');
+  renderChoices(e.choices||[]);
+  stats();side();
+}
+function renderChoices(list){
+  const b=$('choices');b.innerHTML='';
+  list.forEach(o=>{
+    const btn=document.createElement('button');
+    btn.className='choice';
+    btn.textContent=o.label;
+    btn.onclick=()=>{
+      sfx('click');
+      if(o.require&&!checkRequire(o.require)){toast(o.hint||'條件不足');return;}
+      if(o.effect){const handled=runEffects(o.effect);stats();side();if(handled)return;}
+      if(o.goto)go(o.goto);
+      else{stats();side();}
+    };
+    b.appendChild(btn);
+  });
+}
+function checkRequire(req){
+  if(req.gold&&state.gold<req.gold)return false;
+  if(req.cluesMin&&Object.keys(state.clues).filter(k=>state.clues[k]).length<req.cluesMin)return false;
+  if(req.clues&&!req.clues.every(k=>state.clues[k]))return false;
+  return true;
+}
+
+/* ============ 戰鬥 ============ */
+function combatRender(){
+  const c=state.combat;if(!c){go(state.entry);return;}
+  $('svgScene').innerHTML=svg('combat');
+  story(`【戰鬥：船底艙】\n鼠群 HP：${Math.max(0,c.enemyHp)}/${c.enemyMax}\n你的 HP：${Math.max(0,state.hp)}/${state.maxHp}\n回合：${c.round}\n\n濕滑油膩的甲板覆蓋浮渣。鼠群朝你和阿貝拉爾德游來。`);
+  choices([
+    {label:'攻擊鼠群（d20+4，命中 1d8+2）',do:()=>{sfx('dice');const h=d20(4);if(h>=10){const d=1+rnd(8)+1;state.combat.enemyHp-=d;sfx('hit');toast(`命中！造成 ${d} 點傷害。`);if(state.combat.enemyHp<=0){state.combat=null;go('0123');return;}}else toast(`未命中（${h}）。`);enemyTurn();}},
+    {label:'逃跑（DC 10 敏捷）',do:()=>{sfx('dice');const r=d20(2);toast(`敏捷：${r}（DC 10）`);if(r>=10){state.combat=null;hist('逃離鼠群');go('0123');}else{toast('逃跑失敗！');enemyTurn();}}},
+    {label:'使用治療藥水（若持有）',do:()=>{const k=DATA.items.potion;if(state.inventory.includes(k)){state.inventory.splice(state.inventory.indexOf(k),1);const h=2+rnd(4)+rnd(4);state.hp=Math.min(state.maxHp,state.hp+h);toast('恢復 '+h+' 點。');stats();combatRender();}else toast('沒有治療藥水。');}}
+  ]);
+  stats();
+}
+function enemyTurn(){
+  const c=state.combat;if(!c)return;
+  const h=d20(c.enemyAttack);
+  if(h>=14){const d=1+rnd(6);state.hp-=d;sfx('hit');toast(`鼠群咬中你，受到 ${d} 點傷害。`);}
+  else toast(`鼠群撲空（${h}）。`);
+  if(state.hp<=0){showEnding('death');return;}
+  state.combat.round++;stats();combatRender();
+}
+
+/* ============ 結局 ============ */
+function showEnding(key){
+  const e=DATA.endings[key];if(!e)return;
+  state.phase='ended';
+  if(e.gold)state.gold+=e.gold;
+  if(e.items)e.items.forEach(k=>item(k));
+  if(e.achievement&&!state.achievements.includes(e.achievement)){
+    state.achievements.push(e.achievement);
+    localStorage.setItem(ACH_KEY,JSON.stringify(state.achievements));
+  }
+  hist('結局：'+key);
+  stats();side();
+  setEndingText(e.text);
+}
+function setEndingText(text){
+  story(text);
+  choices([
+    {label:'🔄 重新開始',do:resetGame},
+    {label:'🏆 成就',do:openAchievements},
+    {label:'🧭 歷史',do:openHistory}
+  ]);
+}
+
+/* ============ 選項小工具（戰鬥用） ============ */
+function choices(list){const b=$('choices');b.innerHTML='';list.forEach(o=>{const btn=document.createElement('button');btn.className='choice';btn.textContent=o.label;btn.onclick=()=>{sfx('click');if(o.check&&!o.check()){toast(o.hint||'條件不足');return;}if(o.do)o.do();if(o.goto)go(o.goto);};b.appendChild(btn);});}
+
+/* ============ 音效開關 ============ */
+function toggleSound(){state.sound=!state.sound;$('soundBtn').textContent='音效：'+(state.sound?'開':'關');if(state.sound)sfx('click');}
+
+/* ============ 說明 / 歷史 / 成就 / 存讀檔 ============ */
+function openManual(){
+  state.phase='manual';stats();
+  $('modalTitle').textContent='📖 陵墓節：新手說明';
+  $('modalBody').innerHTML=`
+  <h3>🎯 遊戲目標</h3><p>你是前往切斯特拉爾參加「覺醒節」的冒險者。序章中要調查「壯麗號」渡輪上失竊的納明丁石碑。收集足夠線索後，向 <b>弗娜典獄長</b> 報告並選出正確犯人。</p>
+  <h3>👀 看懂畫面</h3><p>畫面最上方：❤️生命、🪙金幣、📅第N天、⏳時段0/5、🎒物品數、🔖事件數。中間是故事文字（點擊可立即顯示），下方是選項按鈕。右側是事件追蹤、物品欄、歷史紀錄、成就。</p>
+  <h3>🕹️ 操作步驟</h3><p>1. 0000 選任務 → 2. 選季節 → 3. 選夥伴 → 4. 登船 → 5. 調查證人收集線索 → 6. 可下船底艙戰鬥 → 7. 向弗娜報告。</p>
+  <h3>⚙️ 特殊機制</h3><p>事件追蹤自動標記 #005、#008 等；某些結局需特定事件組合。長休息恢復生命、時間歸零、日期+1。底部導航列可存檔／讀檔。</p>
+  <h3>💡 小訣竅</h3><p>按鈕若看起來變淡仍可點；系統會用提示告訴你缺少什麼，而不是鎖死按鈕。</p>`;
+  $('modalActions').innerHTML='';
+  const b=document.createElement('button');b.textContent='我準備好了，開始遊戲';
+  b.onclick=()=>{sfx('click');closeModal();state.phase='playing';hist('開始遊戲');go(DATA.meta.start);};
+  $('modalActions').appendChild(b);
+  $('modal').classList.remove('hidden');
+}
+function closeModal(){$('modal').classList.add('hidden');}
+function openHistory(){const h=state.history.length?'<ol>'+state.history.slice().reverse().map(x=>`<li>${x}</li>`).join('')+'</ol>':'<p>尚無紀錄。</p>';$('modalTitle').textContent='🧭 歷史紀錄';$('modalBody').innerHTML=h;$('modalActions').innerHTML='';const b=document.createElement('button');b.textContent='關閉';b.onclick=closeModal;$('modalActions').appendChild(b);$('modal').classList.remove('hidden');}
+function openAchievements(){const h=state.achievements.length?'<ul>'+state.achievements.map(a=>`<li>🏆 ${ACH_NAMES[a]||a}</li>`).join('')+'</ul>':'<p>尚未解鎖成就。</p>';$('modalTitle').textContent='🏆 成就';$('modalBody').innerHTML=h;$('modalActions').innerHTML='';const b=document.createElement('button');b.textContent='關閉';b.onclick=closeModal;$('modalActions').appendChild(b);$('modal').classList.remove('hidden');}
+function saveGame(){localStorage.setItem(SAVE_KEY,JSON.stringify(state));toast('已存檔。');}
+function loadGame(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw){toast('沒有存檔。');return;}const o=JSON.parse(raw);state={...fresh(),...o};state.events=o.events||[];state.inventory=o.inventory||[];state.history=o.history||[];state.achievements=o.achievements||[];state.clues=o.clues||{};state.phase=o.phase==='ended'?'ended':'playing';closeModal();if(state.phase==='ended'){setEndingText('已讀取結局存檔。');}else go(state.entry);toast('已讀取存檔。');}catch(e){toast('讀檔失敗。');}}
+function resetGame(){if(!confirm('確定重置？成就會保留。'))return;const a=state.achievements.slice();state=fresh();state.achievements=a;closeModal();stats();side();hist('重置遊戲');openManual();}
+
+/* ============ 初始化 ============ */
+stats();side();$('svgScene').innerHTML=svg('ship');story('正在翻開古老的冒險書……');openManual();
+</script>
+</body>
+</html>
