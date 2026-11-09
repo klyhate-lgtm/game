@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>殖民火星 - 多人連線終極版 (回合順位與互動)</title>
+<title>殖民火星 - 多人連線終極版 (自訂UI與擴充牌庫)</title>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -59,10 +59,10 @@
     #lobby-screen { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; }
     #game-screen { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
     
-    #top-bar { display: flex; justify-content: space-between; padding: 8px 15px; background: var(--panel-bg); border-bottom: 2px solid var(--mars-red); font-size: 13px; flex-wrap: wrap; gap: 10px; }
+    #top-bar { display: flex; justify-content: space-between; padding: 8px 15px; background: var(--panel-bg); border-bottom: 2px solid var(--mars-red); font-size: 13px; flex-wrap: wrap; gap: 10px; z-index: 30; }
     .global-stat span { color: var(--mars-orange); font-weight: bold; }
 
-    #players-board { display: flex; gap: 8px; padding: 10px; overflow-x: auto; background: rgba(0,0,0,0.6); }
+    #players-board { display: flex; gap: 8px; padding: 10px; overflow-x: auto; background: rgba(0,0,0,0.6); z-index: 10; }
     .player-card { flex: 1; min-width: 160px; padding: 8px; border: 1px solid #555; border-radius: 6px; background: #1a1a1a; font-size: 11px; transition: 0.3s; position: relative; }
     .player-card.active { border-color: var(--mars-orange); box-shadow: 0 0 15px var(--mars-orange); }
     .player-card.me { background: #1f2a1f; border-color: var(--mars-green); }
@@ -204,7 +204,10 @@
     </div>
 
     <div id="history-panel">
-        <h3 style="color:var(--mars-orange); margin-bottom:10px;">歷史紀錄</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="color:var(--mars-orange); margin:0;">歷史紀錄</h3>
+            <button onclick="toggleHistory()" style="padding:4px 8px; font-size:12px; background:#555;">關閉</button>
+        </div>
         <div id="log-list"></div>
     </div>
 </div>
@@ -268,6 +271,18 @@
     </div>
 </div>
 
+<!-- ★ 自訂確認彈窗 -->
+<div id="modal-confirm" class="modal">
+    <div class="modal-content">
+        <h3 style="color:var(--mars-orange); margin-bottom:15px;" id="confirm-title">確認</h3>
+        <p id="confirm-text" style="margin-bottom:20px; font-size:16px;"></p>
+        <div style="display:flex; gap:10px; justify-content:center;">
+            <button onclick="resolveConfirm(true)" style="background:var(--mars-green);">確定</button>
+            <button onclick="resolveConfirm(false)" style="background:#555;">取消</button>
+        </div>
+    </div>
+</div>
+
 <div id="modal-gameover" class="modal">
     <div class="modal-content">
         <h2 style="color:var(--mars-orange); margin-bottom:20px;">🏆 火星改造完成！</h2>
@@ -315,6 +330,23 @@
         }
     };
 
+    let confirmResolver = null;
+    function showConfirm(title, text) {
+        return new Promise((resolve) => {
+            confirmResolver = resolve;
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-text').innerText = text;
+            UI.toggleModal('modal-confirm');
+        });
+    }
+    function resolveConfirm(val) {
+        if (confirmResolver) {
+            confirmResolver(val);
+            confirmResolver = null;
+        }
+        UI.toggleModal('modal-confirm');
+    }
+
     let currentUser = null;
     let myName = "";
     let currentRoomId = "";
@@ -331,11 +363,14 @@
 
     const PLAYER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f'];
 
+    // ★ 擴充公司 (6家)
     const companies = [
         { id: 'c1', name: '生態學線', desc: '起始 20 M€，植物+1。\n被動：放置綠化時，獲得 1 植物。', mc: 20, prod: { plant: 1 } },
         { id: 'c2', name: '採礦公會', desc: '起始 14 M€，鋼鐵+1。\n被動：放置城市時，獲得 2 鋼鐵。', mc: 14, prod: { steel: 1 } },
         { id: 'c3', name: '托爾蓋特', desc: '起始 14 M€，熱能+2。\n被動：打出能源卡時，少付 3 M€。', mc: 14, prod: { heat: 2 } },
-        { id: 'c4', name: '土星系統', desc: '起始 30 M€，無額外產量。\n被動：打出太空卡時，獲得 1 M€。', mc: 30, prod: {} }
+        { id: 'c4', name: '土星系統', desc: '起始 30 M€，無額外產量。\n被動：打出太空卡時，獲得 1 M€。', mc: 30, prod: {} },
+        { id: 'c5', name: '聯合國火星計畫', desc: '起始 24 M€，金錢+1。\n被動：打出地球卡時，獲得 1 M€。', mc: 24, prod: { mc: 1 } },
+        { id: 'c6', name: '發明競爭', desc: '起始 18 M€，電力+1。\n被動：放置板塊時，抽 1 張牌 (每回合限一次)。', mc: 18, prod: { energy: 1 } }
     ];
 
     const allMilestones = [
@@ -435,7 +470,8 @@
             id: uid, name: name, color: PLAYER_COLORS[index % 4],
             mc: 0, steel: 0, titan: 0, plant: 0, energy: 0, heat: 0, animals: 0,
             prod: { mc: 0, steel: 0, titan: 0, plant: 0, energy: 0, heat: 0 },
-            tr: 14, passed: false, hand: [], draft: [], activeCards: [], usedActiveCards: [], company: null
+            tr: 14, passed: false, hand: [], draft: [], activeCards: [], usedActiveCards: [], company: null,
+            usedInventrixThisGen: false // 發明競爭專用
         };
     }
 
@@ -516,6 +552,7 @@
             p.hand = [];
             p.activeCards = [];
             p.usedActiveCards = [];
+            p.usedInventrixThisGen = false;
             return p;
         });
         
@@ -579,7 +616,10 @@
         if (!me) return;
         if (!me.company) { openCompanySelect(); return; }
         if (me.mc < localSelectedCards.length * 3) return UI.toast("金錢不足！");
-        if (!confirm(`確定花費 ${localSelectedCards.length * 3} M€ 保留這些卡牌嗎？`)) return;
+        
+        // ★ 使用自訂彈窗
+        const isConfirmed = await showConfirm("保留卡牌", `確定花費 ${localSelectedCards.length * 3} M€ 保留這些卡牌嗎？`);
+        if (!isConfirmed) return;
 
         const { db, doc, runTransaction } = window.FB;
         const roomRef = doc(db, "rooms", currentRoomId);
@@ -656,7 +696,7 @@
             targetCell.ownerId = currentUser.uid; 
             targetCell.isNeutral = false; 
 
-            // 被動技能觸發
+            // ★ 公司被動技能觸發
             if (placingMode.type === 'forest' && p.company === '生態學線') {
                 p.plant += 1;
                 newLogs.push(`🌱 ${p.name} 觸發公司被動：獲得 1 植物。`);
@@ -664,6 +704,11 @@
             if (placingMode.type === 'city' && p.company === '採礦公會') {
                 p.steel += 2;
                 newLogs.push(`⚙️ ${p.name} 觸發公司被動：獲得 2 鋼鐵。`);
+            }
+            if (p.company === '發明競爭' && !p.usedInventrixThisGen) {
+                p.hand.push(generateCard());
+                p.usedInventrixThisGen = true;
+                newLogs.push(`🔬 ${p.name} 觸發公司被動：放置板塊抽 1 張牌。`);
             }
 
             // 結算周遭獎勵
@@ -695,7 +740,6 @@
                 newLogs.push(`${p.name} 獲得周遭版圖獎勵：${totalRewardText}`);
             }
 
-            // 本格獎勵
             if (targetCell.reward) {
                 let rw = targetCell.reward;
                 newLogs.push(`${p.name} 獲得了版圖獎勵：${rw.text}`);
@@ -737,6 +781,7 @@
         const card = me.hand[handIndex];
         if (card.reqOxy !== undefined && roomData.oxygen < card.reqOxy) return UI.toast(`需要氧氣 ${card.reqOxy}% 才能打出！`);
         if (card.reqTemp !== undefined && roomData.temp < card.reqTemp) return UI.toast(`需要溫度 ${card.reqTemp}°C 才能打出！`);
+        if (card.reqOceans !== undefined && roomData.oceans < card.reqOceans) return UI.toast(`需要 ${card.reqOceans} 個海洋才能打出！`);
 
         if (card.requiresTarget) {
             pendingCardIndex = handIndex;
@@ -776,11 +821,9 @@
         const me = roomData.players.find(p => p.id === currentUser.uid);
         const card = me.hand[handIndex];
 
-        // 計算折抵與折扣
         let discount = 0;
         if (me.company === '托爾蓋特' && card.tags && card.tags.includes('能源')) discount = 3;
         
-        // 檢查是否有藍卡提供折扣 (例如：地球辦公室)
         me.activeCards.forEach(c => {
             if (c.activeEffect === 'discountEarth' && card.tags && card.tags.includes('地球')) discount += 3;
             if (c.activeEffect === 'discountSpace' && card.tags && card.tags.includes('太空')) discount += 2;
@@ -817,6 +860,7 @@
                 p.hand.splice(handIndex, 1);
                 
                 if (p.company === '土星系統' && card.tags && card.tags.includes('太空')) p.mc += 1;
+                if (p.company === '聯合國火星計畫' && card.tags && card.tags.includes('地球')) p.mc += 1;
 
                 if (card.type === 'active' || card.type === 'animal') {
                     p.activeCards.push(card);
@@ -838,6 +882,10 @@
                             let amt = Math.min(card.value, targetP.steel);
                             targetP.steel -= amt; p.steel += amt;
                             newLogs.push(`⚔️ ${p.name} 偷取了 ${targetP.name} 的 ${amt} 鋼鐵。`);
+                        } else if (card.effect === 'attackHeat') {
+                            let amt = Math.min(card.value, targetP.heat);
+                            targetP.heat -= amt; p.heat += amt;
+                            newLogs.push(`⚔️ ${p.name} 奪取了 ${targetP.name} 的 ${amt} 熱能。`);
                         }
                     }
                 }
@@ -854,6 +902,10 @@
                     let convertAmt = Math.min(2, p.energy);
                     p.energy -= convertAmt; p.steel += convertAmt * 2;
                     newLogs.push(`🔄 ${p.name} 將 ${convertAmt} 電力轉換為 ${convertAmt*2} 鋼鐵。`);
+                }
+                if (card.effect === 'drawCards') {
+                    for(let i=0; i<card.value; i++) p.hand.push(generateCard());
+                    newLogs.push(`🃏 ${p.name} 抽了 ${card.value} 張牌。`);
                 }
                 
                 let newActionsLeft = data.actionsLeft - 1;
@@ -1034,7 +1086,7 @@
         UI.toggleModal('modal-awards');
     }
 
-    // --- 回合結束 (加入順位機制) ---
+    // --- 回合結束 ---
     window.passTurn = async function() {
         const me = roomData.players.find(p => p.id === currentUser.uid);
         if (!me || me.id !== roomData.players[roomData.turnIndex].id) return UI.toast("還沒輪到你！");
@@ -1051,7 +1103,6 @@
             
             players[currentIdx].passed = true;
             
-            // ★ 紀錄 Pass 的順序
             let passOrder = data.passOrder || [];
             passOrder.push(players[currentIdx].id);
 
@@ -1079,13 +1130,13 @@
 
                     p.passed = false; p.draft = [generateCard(), generateCard(), generateCard(), generateCard()];
                     p.usedActiveCards = []; 
+                    p.usedInventrixThisGen = false;
                     return p;
                 });
                 
                 if (data.gen >= 14) {
                     transaction.update(roomRef, { status: 'ended', players: players, logs: newLogs });
                 } else {
-                    // ★ 依據 Pass 順序決定下一世代先手玩家
                     let nextTurnIndex = players.findIndex(p => p.id === passOrder[0]);
                     newLogs.push(`第 ${data.gen + 1} 世代由 ${players[nextTurnIndex].name} 先手！`);
                     
@@ -1098,45 +1149,73 @@
         Audio.success();
     }
 
-    // --- 卡牌池 ---
+    // --- 卡牌池 (擴充至近 50 張) ---
     function generateCard() {
         const pool = [
+            // 太空卡
             { name: "小行星", cost: 14, effect: "temp", text: "溫度+1", type: "event", vp: 0, tags: ['太空'] },
             { name: "水資源", cost: 18, effect: "ocean", text: "放置海洋", type: "event", vp: 0, tags: ['太空'] },
-            { name: "自然保護區", cost: 23, effect: "forest", text: "放置綠化", type: "auto", vp: 1, reqOxy: 4, tags: ['植物'] },
+            { name: "巨冰小行星", cost: 36, effect: "ocean", text: "放置海洋", type: "event", vp: 0, reqTemp: -10, tags: ['太空'] },
+            { name: "木星飛船", cost: 22, effect: "mcProd", value: 2, text: "金錢產量+2", type: "auto", vp: 1, tags: ['太空', '木星'] },
+            { name: "太空電梯", cost: 25, effect: "steelProd", value: 2, text: "鋼鐵產量+2", type: "auto", vp: 0, tags: ['太空', '建築'] },
+            { name: "軌道衛星", cost: 16, effect: "energyProd", value: 2, text: "電力產量+2", type: "auto", vp: 0, tags: ['太空', '科學'] },
+
+            // 建築卡
             { name: "城市建設", cost: 25, effect: "city", text: "放置城市", type: "auto", vp: 0, tags: ['建築'] },
+            { name: "採礦業", cost: 8, effect: "steelProd", value: 1, text: "鋼鐵產量+1", type: "auto", vp: 0, tags: ['建築'] },
+            { name: "鋼鐵廠", cost: 18, effect: "steelProd", value: 2, text: "鋼鐵產量+2", type: "auto", vp: 0, tags: ['建築'] },
+            { name: "工業中心", cost: 20, effect: "mcProd", value: 1, text: "金錢產量+1", type: "auto", vp: 0, tags: ['建築'] },
+            { name: "採礦權", cost: 12, effect: "steelProd", value: 1, text: "鋼鐵產量+1", type: "auto", vp: 0, tags: ['建築'] },
+
+            // 植物卡
+            { name: "自然保護區", cost: 23, effect: "forest", text: "放置綠化", type: "auto", vp: 1, reqOxy: 4, tags: ['植物'] },
+            { name: "苔蘚", cost: 8, effect: "forest", text: "放置綠化", type: "auto", vp: 0, reqOxy: 3, tags: ['植物'] },
+            { name: "苔原植物", cost: 10, effect: "plantProd", value: 1, text: "植物產量+1", type: "auto", vp: 0, tags: ['植物'] },
+            { name: "生物量燃燒", cost: 4, effect: "mcProd", value: 2, text: "金錢產量+2", type: "auto", vp: 0, tags: ['植物'] },
+            { name: "樹木農場", cost: 15, effect: "plantProd", value: 2, text: "植物產量+2", type: "auto", vp: 0, reqTemp: -10, tags: ['植物'] },
+            { name: "地衣", cost: 6, effect: "plantProd", value: 1, text: "植物產量+1", type: "auto", vp: 0, reqOxy: 2, tags: ['植物'] },
+
+            // 能源卡
             { name: "太陽能發電", cost: 11, effect: "mcProd", value: 1, text: "金錢產量+1", type: "auto", vp: 0, tags: ['能源'] },
             { name: "地熱能", cost: 13, effect: "energyProd", value: 1, text: "電力產量+1", type: "auto", vp: 0, tags: ['能源'] },
-            { name: "生物量燃燒", cost: 4, effect: "mcProd", value: 2, text: "金錢產量+2", type: "auto", vp: 0, tags: ['植物'] },
-            { name: "巨冰小行星", cost: 36, effect: "ocean", text: "放置海洋", type: "event", vp: 0, reqTemp: -10, tags: ['太空'] },
-            { name: "深井熱力", cost: 15, effect: "temp", text: "溫度+1", type: "auto", vp: 1, tags: ['科學'] },
-            { name: "苔蘚", cost: 8, effect: "forest", text: "放置綠化", type: "auto", vp: 0, reqOxy: 3, tags: ['植物'] },
-            { name: "採礦業", cost: 8, effect: "steelProd", value: 1, text: "鋼鐵產量+1", type: "auto", vp: 0, tags: ['建築'] },
-            { name: "苔原植物", cost: 10, effect: "plantProd", value: 1, text: "植物產量+1", type: "auto", vp: 0, tags: ['植物'] },
-            { name: "放射性同位素", cost: 14, effect: "heatProd", value: 2, text: "熱能產量+2", type: "auto", vp: 0, tags: ['科學'] },
+            { name: "核能發電", cost: 22, effect: "energyProd", value: 3, text: "電力產量+3", type: "auto", vp: 0, tags: ['能源', '建築'] },
+            { name: "風力發電", cost: 14, effect: "energyProd", value: 1, text: "電力產量+1", type: "auto", vp: 0, reqTemp: -10, tags: ['能源'] },
             { name: "能量轉換器", cost: 12, effect: "convertEnergyToSteel", text: "打出時：2 電力換 4 鋼鐵", type: "auto", vp: 0, tags: ['能源'] },
-            
-            // 藍卡 (包含折扣與不同行動)
+
+            // 科學卡
+            { name: "深井熱力", cost: 15, effect: "temp", text: "溫度+1", type: "auto", vp: 1, tags: ['科學'] },
+            { name: "放射性同位素", cost: 14, effect: "heatProd", value: 2, text: "熱能產量+2", type: "auto", vp: 0, tags: ['科學'] },
+            { name: "基因修復", cost: 18, effect: "mcProd", value: 1, text: "金錢產量+1", type: "auto", vp: 1, tags: ['科學', '植物'] },
+            { name: "實驗室", cost: 12, effect: "drawCards", value: 2, text: "打出時抽 2 張牌", type: "auto", vp: 0, tags: ['科學'] },
+            { name: "研究與發展", cost: 10, effect: "drawCards", value: 1, text: "打出時抽 1 張牌", type: "auto", vp: 0, tags: ['科學'] },
+
+            // 地球卡
+            { name: "地球移民", cost: 15, effect: "mcProd", value: 1, text: "金錢產量+1", type: "auto", vp: 0, tags: ['地球'] },
+            { name: "地球企業", cost: 20, effect: "city", text: "放置城市", type: "auto", vp: 0, tags: ['地球', '建築'] },
+            { name: "地球工業", cost: 18, effect: "steelProd", value: 1, text: "鋼鐵產量+1", type: "auto", vp: 0, tags: ['地球', '建築'] },
+            { name: "媒體集團", cost: 16, effect: "mcProd", value: 1, text: "金錢產量+1", type: "auto", vp: 0, tags: ['地球'] },
+
+            // 藍卡 (主動與折扣)
             { name: "研究實驗室", cost: 15, type: "active", activeEffect: "draw", activeCost: 2, text: "行動：支付 2 M€ 抽 1 張牌", tags: ['科學'] },
             { name: "商業中心", cost: 18, type: "active", activeEffect: "mc", activeCost: 0, text: "行動：獲得 3 M€", tags: ['建築'] },
             { name: "地熱發電站", cost: 20, type: "active", activeEffect: "temp", activeCost: 5, text: "行動：支付 5 M€ 升溫 1°C", tags: ['科學'] },
             { name: "氧氣工廠", cost: 22, type: "active", activeEffect: "oxygen", activeCost: 6, text: "行動：支付 6 M€ 氧氣+1%", tags: ['科學', '建築'] },
             { name: "地球辦公室", cost: 12, type: "active", activeEffect: "discountEarth", activeCost: 0, text: "被動：打出地球卡少付 3 M€", tags: ['地球'] },
             { name: "太空港", cost: 18, type: "active", activeEffect: "discountSpace", activeCost: 0, text: "被動：打出太空卡少付 2 M€", tags: ['太空'] },
+            { name: "鋼鐵廠擴建", cost: 14, type: "active", activeEffect: "mc", activeCost: 1, text: "行動：支付 1 M€ 得 2 鋼鐵", tags: ['建築'] },
 
-            // 動物卡
+            // 動物卡 (橘卡)
             { name: "牲畜", cost: 12, effect: "animalProd", value: 1, text: "被動：每回合 +1 動物", type: "animal", vp: 0, tags: ['植物'] },
             { name: "寵物", cost: 10, effect: "animalProd", value: 0, text: "被動：每回合 +1 動物", type: "animal", vp: 0 },
             { name: "生態園", cost: 20, effect: "animalProd", value: 2, text: "被動：每回合 +2 動物", type: "animal", vp: 1, tags: ['植物'] },
-            
+            { name: "鳥類", cost: 14, effect: "animalProd", value: 1, text: "被動：每回合 +1 動物", type: "animal", vp: 0, reqOxy: 6 },
+            { name: "魚類", cost: 16, effect: "animalProd", value: 1, text: "被動：每回合 +1 動物", type: "animal", vp: 0, reqOceans: 3 },
+
             // 攻擊卡
             { name: "掠奪者", cost: 12, effect: "attackPlant", value: 3, text: "選擇對手，奪取 3 植物", type: "event", vp: 0, requiresTarget: true },
             { name: "網路攻擊", cost: 15, effect: "attackMC", value: 5, text: "選擇對手，偷取 5 M€", type: "event", vp: 0, requiresTarget: true },
             { name: "資源駭客", cost: 10, effect: "attackSteel", value: 4, text: "選擇對手，偷取 4 鋼鐵", type: "event", vp: 0, requiresTarget: true },
-            
-            // 地球標籤卡 (與折扣卡連動)
-            { name: "地球移民", cost: 15, effect: "mcProd", value: 1, text: "金錢產量+1", type: "auto", vp: 0, tags: ['地球'] },
-            { name: "地球企業", cost: 20, effect: "city", text: "放置城市", type: "auto", vp: 0, tags: ['地球', '建築'] }
+            { name: "熱能劫持", cost: 14, effect: "attackHeat", value: 4, text: "選擇對手，奪取 4 熱能", type: "event", vp: 0, requiresTarget: true }
         ];
         return pool[Math.floor(Math.random() * pool.length)];
     }
@@ -1319,6 +1398,7 @@
             let reqText = "";
             if (card.reqOxy !== undefined && roomData.oxygen < card.reqOxy) { isDisabled = true; reqText += `需氧${card.reqOxy}% `; }
             if (card.reqTemp !== undefined && roomData.temp < card.reqTemp) { isDisabled = true; reqText += `需溫${card.reqTemp}°C `; }
+            if (card.reqOceans !== undefined && roomData.oceans < card.reqOceans) { isDisabled = true; reqText += `需海${card.reqOceans} `; }
 
             return `
                 <div class="card ${card.type} ${isDisabled && !isDraft ? 'disabled' : ''}" 
