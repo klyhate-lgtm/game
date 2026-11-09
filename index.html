@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>🌸 時空旅行者檔案庫</title>
+<title>🌸 WEB桌遊</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap');
 
@@ -42,7 +42,7 @@
     margin-bottom: 10px;
     text-shadow: 2px 2px 0px #fff;
   }
-  
+
   .subtitle {
     text-align: center;
     font-size: 0.9rem;
@@ -55,7 +55,7 @@
     background: rgba(255, 255, 255, 0.7);
     border-radius: 20px;
     padding: 15px 20px;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
     border: 2px dashed #ffb6c1;
     font-size: 0.9rem;
     box-shadow: 0 4px 10px rgba(0,0,0,0.02);
@@ -73,6 +73,33 @@
     padding-left: 20px;
     color: #7a6b63;
     line-height: 1.6;
+  }
+
+  /* 🔍 搜尋框 */
+  .search-wrapper {
+    margin-bottom: 20px;
+  }
+  .search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 20px;
+    border-radius: 999px;
+    border: 2px solid #ffd0d6;
+    background: rgba(255, 255, 255, 0.85);
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    outline: none;
+    transition: all 0.25s;
+    box-shadow: 0 4px 10px rgba(255, 154, 158, 0.12);
+  }
+  .search-input:focus {
+    border-color: #ff9a9e;
+    background: #fff;
+    box-shadow: 0 6px 18px rgba(255, 154, 158, 0.28);
+  }
+  .search-input::placeholder {
+    color: #c9a8a8;
   }
 
   /* 遊戲選單 */
@@ -106,6 +133,7 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
+    min-width: 0;
   }
 
   .game-title {
@@ -119,6 +147,22 @@
     color: #b08a8a;
   }
 
+  .badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #ffe0e6;
+    color: #ff6b81;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .badge.new {
+    background: #ff6b81;
+    color: #fff;
+  }
+
   /* 點擊率標籤 */
   .game-views {
     background: #f0f8ff;
@@ -130,13 +174,22 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
-  #loading { 
-    color: #ff9a9e; 
-    text-align: center; 
+  #loading {
+    color: #ff9a9e;
+    text-align: center;
     font-size: 1.2rem;
     animation: pulse 1.5s infinite;
+  }
+
+  .empty {
+    text-align: center;
+    color: #b08a8a;
+    padding: 25px 0;
+    font-size: 0.95rem;
   }
 
   @keyframes pulse {
@@ -158,98 +211,204 @@
     <ul class="log-list" id="logList"></ul>
   </div>
 
+  <!-- 🔍 搜尋框 -->
+  <div class="search-wrapper">
+    <input id="searchInput" class="search-input" type="text"
+           placeholder="🔍 搜尋遊戲名稱…" autocomplete="off">
+  </div>
+
   <!-- 遊戲列表區塊 -->
   <div id="menu">
     <div id="loading">正在施展讀取魔法... 🪄</div>
   </div>
+  <div id="empty" class="empty" style="display:none;">找不到符合的遊戲 🥺</div>
 </div>
 
 <script>
-    // 免費計數 API 設定
-  const API_BASE = "https://abacus.jasoncameron.dev";
-  const NAMESPACE = "klyhate-lgtm-games";
+  /* ============ 點擊計數設定 ============ */
+  const NS = 'klyhate-lgtm-games';
+
+  // 兩套免費計數 API，哪個能用就鎖定哪個（避免重複計數）
+  const APIS = [
+    {
+      name: 'abacus',
+      get: k => `https://abacus.jasoncameron.dev/get/${NS}/${k}`,
+      hit: k => `https://abacus.jasoncameron.dev/hit/${NS}/${k}`,
+      read: d => Number(d && (d.value !== undefined ? d.value : d.count))
+    },
+    {
+      name: 'counterapi',
+      get: k => `https://api.counterapi.dev/v1/${NS}/${k}`,
+      hit: k => `https://api.counterapi.dev/v1/${NS}/${k}/up`,
+      read: d => Number(d && (d.count !== undefined ? d.count : d.value))
+    }
+  ];
+
+  let lockedApi = null;   // 已確認可用的 API
+
+  // 檔名 → 安全的計數 key（中文檔名也能用）
+  function hashKey(str) {
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+    return 'g' + h.toString(36);
+  }
+
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+  }
+
+  async function fetchJSON(url, ms = 3000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // 讀取次數：null = 完全取不到
+  async function readCount(key) {
+    const list = lockedApi ? [lockedApi] : APIS;
+    for (const api of list) {
+      try {
+        const data = await fetchJSON(api.get(key));
+        const v = api.read(data);
+        if (Number.isFinite(v)) {
+          if (!lockedApi) lockedApi = api;
+          return v;
+        }
+      } catch (e) { /* 換下一套 API */ }
+    }
+    return null;
+  }
+
+  // 點擊 +1
+  async function bumpCount(key) {
+    const list = lockedApi ? [lockedApi] : APIS;
+    for (const api of list) {
+      try {
+        const res = await fetch(api.hit(key), { keepalive: true });
+        if (!res.ok) throw new Error();
+        if (!lockedApi) lockedApi = api;
+        return;
+      } catch (e) { /* 換下一套 API */ }
+    }
+  }
+
+  /* ============ 遊戲列表 ============ */
+  let cardEls = [];
+  let gamesLoaded = false;
+
+  function applyFilter() {
+    const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+    let visible = 0;
+    cardEls.forEach(el => {
+      const match = !q || el.dataset.search.includes(q);
+      el.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    document.getElementById('empty').style.display =
+      (gamesLoaded && visible === 0) ? 'block' : 'none';
+  }
+
+  function renderGames(games) {
+    const menu = document.getElementById('menu');
+    menu.innerHTML = '';
+    cardEls = [];
+
+    games.forEach(game => {
+      const key = hashKey(game.file);
+      const isNew = game.changeType === 'new';
+      const badge = isNew
+        ? '<span class="badge new">NEW</span>'
+        : (game.version ? `<span class="badge">v${game.version}</span>` : '');
+
+      const a = document.createElement('a');
+      a.href = encodeURI(game.file);
+      a.className = 'game-card';
+      a.dataset.search = `${game.title} ${game.file}`.toLowerCase();
+      a.innerHTML = `
+        <div class="game-info">
+          <div class="game-title">🎮 ${escapeHTML(game.title)}${badge}</div>
+          <div class="game-time">🕒 ${escapeHTML(game.time || '')}</div>
+        </div>
+        <div class="game-views">
+          <span class="views-count" id="views-${key}">👁️ …</span>
+          <span>➤ 開始</span>
+        </div>
+      `;
+
+      // 點擊：送 +1，並先樂觀更新畫面上的數字
+      a.addEventListener('click', () => {
+        bumpCount(key);
+        const el = document.getElementById(`views-${key}`);
+        if (el && el.dataset.count !== undefined) {
+          const n = Number(el.dataset.count) + 1;
+          el.dataset.count = n;
+          el.textContent = `👁️ ${n}`;
+        }
+      });
+
+      menu.appendChild(a);
+      cardEls.push(a);
+
+      // 非同步讀取次數
+      readCount(key).then(v => {
+        const el = document.getElementById(`views-${key}`);
+        if (!el) return;
+        if (v === null) {
+          el.textContent = '👁️ –';
+        } else {
+          el.dataset.count = v;
+          el.textContent = `👁️ ${v}`;
+        }
+      });
+    });
+
+    gamesLoaded = true;
+    applyFilter();
+  }
 
   async function loadGames() {
     const menu = document.getElementById('menu');
     const logBoard = document.getElementById('logBoard');
     const logList = document.getElementById('logList');
-    
+
     try {
-      const response = await fetch('games.json');
+      const response = await fetch('games.json', { cache: 'no-store' });
       if (!response.ok) throw new Error('找不到 games.json');
-      
+
       const games = await response.json();
-      menu.innerHTML = '';
       logList.innerHTML = '';
 
-      // 1. 生成最近更新日誌
+      // 1. 冒險者手札：新增 / 更新（第幾版）
       games.slice(0, 3).forEach(game => {
         const li = document.createElement('li');
-        li.textContent = `${game.time} 更新了《${game.title}》`;
+        if (game.changeType === 'new') {
+          li.textContent = `${game.time} 新增了《${game.title}》`;
+        } else {
+          li.textContent = `${game.time} 更新了《${game.title}》（第 ${game.version || 1} 版）`;
+        }
         logList.appendChild(li);
       });
       if (games.length > 0) logBoard.style.display = 'block';
 
-      // 2. 生成遊戲卡片
-      games.forEach(game => {
-        const a = document.createElement('a');
-        a.href = encodeURI(game.file);
-        a.className = 'game-card';
-        
-        const pageId = encodeURIComponent(game.file);
-
-        // 卡片結構：左邊標題時間，右邊數字 + 開始按鈕
-        a.innerHTML = `
-          <div class="game-info">
-            <div class="game-title">🎮 ${game.title}</div>
-            <div class="game-time">🕒 ${game.time}</div>
-          </div>
-          <div class="game-views">
-            <span class="views-count" id="views-${pageId}">👁️ -</span>
-            <span>➤ 開始</span>
-          </div>
-        `;
-        
-        // 點擊時默默發送計數請求 (加上 keepalive 防止跳轉中斷)
-        a.addEventListener('click', () => {
-           fetch(`${API_BASE}/hit/${NAMESPACE}/${pageId}`, { keepalive: true }).catch(() => {});
-        });
-
-        menu.appendChild(a);
-
-        // 非同步獲取點擊數字，加上 2 秒超時防卡死
-        fetchViews(pageId);
-      });
+      // 2. 遊戲卡片
+      renderGames(games);
 
     } catch (error) {
-      menu.innerHTML = `<div style="color:#ff6b81;text-align:center;">讀取失敗 🥺<br><small>${error.message}</small></div>`;
+      gamesLoaded = true;
+      menu.innerHTML = `<div style="color:#ff6b81;text-align:center;">讀取失敗 🥺<br><small>${escapeHTML(error.message)}</small></div>`;
     }
   }
 
-  // 獲取瀏覽次數的函數 (包含超時機制)
-  async function fetchViews(pageId) {
-    const el = document.getElementById(`views-${pageId}`);
-    if (!el) return;
-
-    try {
-      // 建立一個 2 秒的計時器，如果時間到就中斷請求
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-
-      const res = await fetch(`${API_BASE}/get/${NAMESPACE}/${pageId}`, { 
-        signal: controller.signal 
-      });
-      clearTimeout(timeoutId); // 請求成功，清除計時器
-
-      const data = await res.json();
-      // 如果 API 有回傳數字，就更新；沒有的話顯示 0
-      el.innerHTML = `👁️ ${data.value !== undefined ? data.value : 0}`;
-      
-    } catch (err) {
-      // 如果超時或網路錯誤，就顯示 0，不讓畫面卡住
-      el.innerHTML = `👁️ 0`;
-    }
-  }
+  // 搜尋事件
+  document.getElementById('searchInput').addEventListener('input', applyFilter);
 
   loadGames();
 </script>
