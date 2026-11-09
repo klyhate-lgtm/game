@@ -111,18 +111,21 @@
   .level-card .lc-stars { font-size: 12px; color: var(--star); letter-spacing: 2px; }
   .level-card .lock-icon { position: absolute; top: 6px; right: 8px; font-size: 16px; }
   #bottomNav {
-    position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-h);
-    background: rgba(40,25,10,0.95); backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(212,167,106,0.4);
-    display: flex; justify-content: space-around; align-items: center; z-index: 200;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-  }
-  #bottomNav button {
-    appearance: none; border: none; background: transparent; color: var(--paper);
-    font-family: inherit; font-size: 10px; display: flex; flex-direction: column; align-items: center; gap: 2px;
-    padding: 6px 6px; border-radius: 10px; cursor: pointer; opacity: 0.75;
-    transition: opacity 0.15s, background 0.15s; min-width: 48px;
-  }
+  position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-h);
+  background: rgba(40,25,10,0.95); backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(212,167,106,0.4);
+  display: flex; justify-content: flex-start; align-items: center; z-index: 200;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  overflow-x: auto; /* 允許橫向滑動 */
+  gap: 2px;
+}
+#bottomNav button {
+  appearance: none; border: none; background: transparent; color: var(--paper);
+  font-family: inherit; font-size: 10px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 4px; border-radius: 10px; cursor: pointer; opacity: 0.75;
+  transition: opacity 0.15s, background 0.15s; 
+  min-width: 50px; flex-shrink: 0; /* 防止按鈕被壓縮 */
+}
   #bottomNav button .nav-emoji { font-size: 18px; }
   #bottomNav button:active { background: rgba(255,255,255,0.1); }
   .modal-overlay {
@@ -207,6 +210,50 @@
 #exampleArea .ex-nav { display: flex; gap: 10px; margin-top: 6px; }
 #exampleArea .ex-nav .btn { padding: 8px 18px; font-size: 14px; min-height: 38px; }
 #quizProgress div { line-height: 1.6; }
+/* ===== 對弈模式 ===== */
+#goArea { display: flex; flex-direction: column; gap: 12px; }
+#goStatusBar {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center;
+  padding: 10px 14px; background: rgba(0,0,0,0.08); border-radius: 12px;
+}
+#goStatusBar .go-stat {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 14px; font-weight: 700; color: var(--wood-dark);
+}
+#goStatusBar .go-stat b { color: var(--accent); }
+#goTurnIndicator {
+  padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 14px;
+  background: linear-gradient(180deg, #f1c40f, #d4a017); color: #2c1810;
+  transition: all 0.3s;
+}
+#goTurnIndicator.ai { background: linear-gradient(180deg, #95a5a6, #7f8c8d); color: #fff; }
+#goBoardWrapper { display: flex; justify-content: center; }
+#goBoard {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  width: min(92vw, 460px); aspect-ratio: 1 / 1;
+  background: linear-gradient(135deg, #e8c88a, #d4a76a 40%, #c49555);
+  border-radius: 10px;
+  box-shadow: inset 0 0 30px rgba(90,62,27,0.4), 0 8px 24px rgba(0,0,0,0.35);
+  padding: 4%; position: relative; touch-action: manipulation;
+}
+#goBoard .cell { cursor: pointer; }
+#goBoard .cell .last-move-marker {
+  position: absolute; width: 22%; height: 22%; border-radius: 50%;
+  background: #e74c3c; z-index: 5; pointer-events: none;
+  box-shadow: 0 0 4px rgba(231,76,60,0.8);
+}
+#navGoBtn { position: relative; }
+#navGoBtn.locked { opacity: 0.4; }
+#navGoBtn .lock-badge {
+  position: absolute; top: 2px; right: 2px; font-size: 10px;
+}
+#goResultModal .modal { text-align: center; }
+#goResultModal .result-emoji { font-size: 64px; margin: 8px 0; }
+#goResultModal .result-title { font-size: 26px; font-weight: 700; color: var(--wood-dark); margin: 8px 0; }
+#goResultModal .result-score { font-size: 15px; line-height: 1.9; color: #444; margin: 14px 0; }
+#goResultModal .result-score b { color: var(--accent); font-size: 18px; }
 </style>
 </head>
 <body>
@@ -247,6 +294,23 @@
     </div>
     <div class="btn-row" id="gameButtons"></div>
   </section>
+  <section class="card hidden" id="goArea">
+    <h2>⚔️ 9 路自由對弈</h2>
+    <p style="font-size:13px;color:#777;">你執黑棋先行。雙方都停一手時結算，圍地多者勝。</p>
+    <div id="goStatusBar">
+      <div class="go-stat">⚫ 黑提 <b id="goBlackCapture">0</b> 子</div>
+      <div class="go-stat">⚪ 白提 <b id="goWhiteCapture">0</b> 子</div>
+      <div id="goTurnIndicator">輪到你（黑棋）</div>
+    </div>
+    <div id="goBoardWrapper">
+      <div id="goBoard"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="goPassBtn">⏭️ 停一手</button>
+      <button class="btn secondary" id="goResignBtn">🏳️ 認輸</button>
+      <button class="btn secondary" id="goBackBtn">🗺️ 返回地圖</button>
+    </div>
+  </section>
 </main>
 
 <nav id="bottomNav">
@@ -255,7 +319,8 @@
   <button data-nav="history"><span class="nav-emoji">📜</span>紀錄</button>
   <button data-nav="save"><span class="nav-emoji">💾</span>存檔</button>
   <button data-nav="load"><span class="nav-emoji">📂</span>讀檔</button>
-  <button data-nav="sound"><span class="nav-emoji" id="soundIcon">🔊</span>音效</button>
+   <button data-nav="sound"><span class="nav-emoji" id="soundIcon">🔊</span>音效</button>
+  <button id="navGoBtn" data-nav="go" class="locked"><span class="nav-emoji">⚔️</span>對弈<span class="lock-badge" id="navGoLock">🔒</span></button>
 </nav>
 
 <div class="modal-overlay" id="helpModal">
@@ -312,6 +377,17 @@
     <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap;">
       <button class="btn gold" id="lcNextBtn">➡️ 下一關</button>
       <button class="btn secondary" id="lcMapBtn">🗺️ 返回地圖</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="goResultModal">
+  <div class="modal">
+    <div class="result-emoji" id="goResultEmoji">🎉</div>
+    <div class="result-title" id="goResultTitle">你贏了！</div>
+    <div class="result-score" id="goResultScore"></div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+      <button class="btn gold" id="goAgainBtn">🔄 再來一局</button>
+      <button class="btn secondary" id="goResultMapBtn">🗺️ 返回地圖</button>
     </div>
   </div>
 </div>
@@ -419,12 +495,18 @@ const VoiceEngine = {
 /* ========== 遊戲狀態 ========== */
 const State = {
   phase: 'INTRO', currentLevel: null, stars: 0, completedLevels: [], history: [],
-  achievements: {
-    first_star: { icon: '🌟', name: '第一顆星星', desc: '完成第一個關卡', unlocked: false },
-    all_levels: { icon: '🎓', name: '小小圍棋達人', desc: '完成全部 9 個關卡', unlocked: false },
-    perfect_qi: { icon: '💨', name: '氣功大師', desc: '一次點完所有氣', unlocked: false },
-    capture_master: { icon: '⚔️', name: '提子高手', desc: '正確完成提子關卡', unlocked: false },
-    ko_master: { icon: '🔄', name: '打劫博士', desc: '正確回答打劫問題', unlocked: false },
+    achievements: {
+    first_star:     { icon: '🌟', name: '第一顆星星', desc: '完成第一個關卡', unlocked: false },
+    quick_learner:  { icon: '📚', name: '初級畢業',   desc: '完成前 3 個關卡', unlocked: false },
+    half_way:       { icon: '⚡', name: '過半了',     desc: '完成前 6 個關卡', unlocked: false },
+    all_levels:     { icon: '🎓', name: '小小圍棋達人', desc: '完成全部 12 個關卡', unlocked: false },
+    advanced_master:{ icon: '🥋', name: '實戰高手', desc: '學會真眼、雙打吃與征子', unlocked: false },
+    perfect_qi:     { icon: '💨', name: '氣功大師',   desc: '第 4 關零失誤拿到 3 星', unlocked: false },
+    capture_master: { icon: '⚔️', name: '提子高手',   desc: '第 5 關零失誤拿到 3 星', unlocked: false },
+    ko_master:      { icon: '🔄', name: '打劫博士',   desc: '第 8 關零失誤拿到 3 星', unlocked: false },
+    zero_mistake:   { icon: '💎', name: '零失誤',     desc: '任何一關零失誤拿到 3 星', unlocked: false },
+    perfect_score:  { icon: '🏅', name: '完美主義者', desc: '全部 9 關都拿 3 星', unlocked: false },
+	first_win: { icon: '🏆', name: '初勝', desc: '在自由對弈中贏得第一局', unlocked: false },
   },
   levelStars: {}, boardState: null, interaction: {}
 };
@@ -440,8 +522,212 @@ const LEVELS = [
   { id: 6, title: '禁著點', icon: '🚫', desc: '一下去就沒氣的點', instruction: '有些交叉點，一下子就會讓自己馬上「沒氣」，而且又吃不到對方，這種點叫做「禁著點」，不能下。請從閃爍的候選點中，點選 1 個「禁著點」。', setup: setupLevel3 },
   { id: 7, title: '打劫與打二還一', icon: '🔄', desc: '不能馬上提回來！', instruction: '打劫時，提子後不能立刻提回，要隔一手。但如果對方一次提走你兩顆以上，你可以立刻回提一顆，這叫「打二還一」。請回答下面的問題。', setup: setupLevel8_Rule9 },
   { id: 8, title: '圍住小星星', icon: '🌟', desc: '用黑棋把星星圍起來', instruction: '棋盤上有 2 顆閃閃發亮的小星星 ⭐。請用黑棋把星星的上下左右都堵住，星星就會變成 🌟，代表你成功圍住它了！你有 10 手棋。', setup: setupLevel9_Stars },
+    { id: 9, title: '真眼與假眼', icon: '👁️', desc: '哪個眼才不會被破壞？', instruction: '有兩個眼就能活棋！但有些眼是「假眼」，會被對方破壞。請點擊圖中那個「真正的眼」。', setup: setupLevel10_Eyes },
+  { id: 10, title: '雙打吃', icon: '⚔️', desc: '一手同時打吃兩塊棋', instruction: '一顆棋子落下，同時讓對方兩塊棋都只剩一口氣，這叫「雙打吃」，對方只能救一邊！請找出雙打吃的位置。', setup: setupLevel11_DoubleAtari },
+  { id: 11, title: '征子', icon: '🏃', desc: '連續打吃直到吃掉', instruction: '征子就像趕羊，連續打吃對方，把對方趕到邊上吃掉。如果方向不對，對方就會逃跑。請找出正確的征子方向！', setup: setupLevel12_Ladder },
 ];
+/* ============================================================
+   圍棋核心引擎（9 路）
+   ============================================================ */
+const GoEngine = {
+  size: 9,
+  board: [],
+  koPoint: null,
+  captures: { black: 0, white: 0 },
+  lastMove: null,
+  passCounter: 0,
 
+  init() {
+    this.board = Array.from({ length: this.size }, () => Array(this.size).fill(0));
+    this.koPoint = null;
+    this.captures = { black: 0, white: 0 };
+    this.lastMove = null;
+    this.passCounter = 0;
+  },
+
+  neighbors(r, c) {
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    const out = [];
+    for (const [dr, dc] of dirs) {
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < this.size && nc >= 0 && nc < this.size) out.push([nr, nc]);
+    }
+    return out;
+  },
+
+  getGroup(r, c) {
+    const color = this.board[r][c];
+    if (!color) return { stones: [], liberties: new Set() };
+    const visited = new Set();
+    const stones = [];
+    const liberties = new Set();
+    const stack = [[r, c]];
+    while (stack.length) {
+      const [cr, cc] = stack.pop();
+      const key = `${cr},${cc}`;
+      if (visited.has(key)) continue;
+      visited.add(key);
+      stones.push([cr, cc]);
+      for (const [nr, nc] of this.neighbors(cr, cc)) {
+        const v = this.board[nr][nc];
+        if (v === 0) liberties.add(`${nr},${nc}`);
+        else if (v === color && !visited.has(`${nr},${nc}`)) stack.push([nr, nc]);
+      }
+    }
+    return { stones, liberties };
+  },
+
+  tryPlace(r, c, color) {
+    if (this.board[r][c] !== 0) return { ok: false, reason: 'occupied' };
+    if (this.koPoint && this.koPoint.r === r && this.koPoint.c === c) return { ok: false, reason: 'ko' };
+
+    this.board[r][c] = color;
+    const opponent = color === 1 ? 2 : 1;
+
+    const captured = [];
+    for (const [nr, nc] of this.neighbors(r, c)) {
+      if (this.board[nr][nc] === opponent) {
+        const g = this.getGroup(nr, nc);
+        if (g.liberties.size === 0) {
+          for (const [sr, sc] of g.stones) {
+            if (this.board[sr][sc] === opponent) {
+              this.board[sr][sc] = 0;
+              captured.push([sr, sc]);
+            }
+          }
+        }
+      }
+    }
+
+    const myGroup = this.getGroup(r, c);
+    if (myGroup.liberties.size === 0 && captured.length === 0) {
+      this.board[r][c] = 0;
+      for (const [cr, cc] of captured) this.board[cr][cc] = opponent;
+      return { ok: false, reason: 'suicide' };
+    }
+
+    let newKo = null;
+    if (captured.length === 1 && myGroup.liberties.size === 1) {
+      const [capR, capC] = captured[0];
+      const libs = Array.from(myGroup.liberties).map(s => s.split(',').map(Number));
+      if (libs.length === 1 && libs[0][0] === capR && libs[0][1] === capC) {
+        newKo = { r: capR, c: capC };
+      }
+    }
+
+    this.koPoint = newKo;
+    this.lastMove = { r, c };
+    if (color === 1) this.captures.black += captured.length;
+    else this.captures.white += captured.length;
+
+    return { ok: true, captured, ko: newKo };
+  },
+
+  simulate(r, c, color) {
+    const backupBoard = this.board.map(row => [...row]);
+    const backupKo = this.koPoint;
+    const backupCap = { ...this.captures };
+    const backupLast = this.lastMove;
+    const result = this.tryPlace(r, c, color);
+    const info = result.ok ? {
+      captured: result.captured.length,
+      myLiberties: this.getGroup(r, c).liberties.size,
+      myGroupSize: this.getGroup(r, c).stones.length,
+      newKo: this.koPoint
+    } : null;
+    this.board = backupBoard;
+    this.koPoint = backupKo;
+    this.captures = backupCap;
+    this.lastMove = backupLast;
+    return info;
+  },
+
+  territory() {
+    const visited = Array.from({ length: this.size }, () => Array(this.size).fill(false));
+    let black = 0, white = 0;
+    for (let r = 0; r < this.size; r++) {
+      for (let c = 0; c < this.size; c++) {
+        if (visited[r][c] || this.board[r][c] !== 0) continue;
+        const region = [];
+        const stack = [[r, c]];
+        visited[r][c] = true;
+        let touchesBlack = false, touchesWhite = false;
+        while (stack.length) {
+          const [cr, cc] = stack.pop();
+          region.push([cr, cc]);
+          for (const [nr, nc] of this.neighbors(cr, cc)) {
+            const v = this.board[nr][nc];
+            if (v === 0 && !visited[nr][nc]) {
+              visited[nr][nc] = true;
+              stack.push([nr, nc]);
+            } else if (v === 1) touchesBlack = true;
+            else if (v === 2) touchesWhite = true;
+          }
+        }
+        if (touchesBlack && !touchesWhite) black += region.length;
+        else if (touchesWhite && !touchesBlack) white += region.length;
+      }
+    }
+    return { black, white };
+  },
+
+  countStones() {
+    let b = 0, w = 0;
+    for (let r = 0; r < this.size; r++)
+      for (let c = 0; c < this.size; c++) {
+        if (this.board[r][c] === 1) b++;
+        else if (this.board[r][c] === 2) w++;
+      }
+    return { black: b, white: w };
+  }
+};
+
+/* ============================================================
+   簡易 AI
+   ============================================================ */
+function chooseAIMove(color) {
+  const size = GoEngine.size;
+  const opponent = color === 1 ? 2 : 1;
+  const candidates = [];
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (GoEngine.board[r][c] !== 0) continue;
+      const sim = GoEngine.simulate(r, c, color);
+      if (!sim) continue;
+
+      let score = 0;
+      score += sim.captured * 20;
+      score += sim.myLiberties * 1;
+      score += sim.myGroupSize * 0.5;
+      if (sim.newKo) score -= 5;
+      const centerDist = Math.abs(r - 4) + Math.abs(c - 4);
+      score += (8 - centerDist) * 0.3;
+
+      let nearOpp = 0;
+      for (const [nr, nc] of GoEngine.neighbors(r, c)) {
+        if (GoEngine.board[nr][nc] === opponent) nearOpp++;
+      }
+      score += nearOpp * 1.5;
+
+      if (r === 0 || r === size - 1 || c === 0 || c === size - 1) score -= 1;
+
+      candidates.push({ r, c, score, captured: sim.captured });
+    }
+  }
+
+  if (candidates.length === 0) return null;
+
+  const captures = candidates.filter(x => x.captured > 0);
+  if (captures.length > 0) {
+    captures.sort((a, b) => b.captured - a.captured);
+    return captures[0];
+  }
+
+  candidates.sort((a, b) => b.score - a.score);
+  const top = candidates.slice(0, Math.min(6, candidates.length));
+  return top[Math.floor(Math.random() * top.length)];
+}
 /* ========== 基礎函式 ========== */
 function toast(msg, duration = 2200) {
   const c = $('#toastContainer');
@@ -567,12 +853,14 @@ function updateTopBar() {
 function renderLevelGrid() {
   const grid = $('#levelGrid'); grid.innerHTML = '';
   LEVELS.forEach((lv, i) => {
-    const locked = i > 0 && !State.completedLevels.includes(i - 1);
+        const locked = i > 0 && !State.completedLevels.includes(i - 1);
     const starsEarned = State.levelStars[i] || 0;
+    const needReview = State.completedLevels.includes(i) && starsEarned < 3;
     const card = document.createElement('div');
     card.className = 'level-card' + (locked ? ' locked' : '');
     card.innerHTML = `
       ${locked ? '<span class="lock-icon">🔒</span>' : ''}
+      ${needReview ? '<span style="position:absolute;top:6px;left:8px;font-size:10px;background:#e67e22;color:#fff;padding:1px 6px;border-radius:8px;letter-spacing:0;">📕 複習</span>' : ''}
       <div class="lc-num">第 ${i + 1} 關</div>
       <div class="lc-title">${lv.icon} ${lv.title}</div>
       <div class="lc-desc">${lv.desc}</div>
@@ -582,6 +870,13 @@ function renderLevelGrid() {
     else card.addEventListener('click', () => { toast('🔒 先完成前面的關卡才能解鎖喔！'); SoundEngine.play('error'); });
     grid.appendChild(card);
   });
+    const goBtn = $('#navGoBtn');
+  const goLock = $('#navGoLock');
+  if (goBtn && goLock) {
+        const unlocked = State.completedLevels.length >= 9; // 基礎 9 關完成即可解鎖對弈
+    goBtn.classList.toggle('locked', !unlocked);
+    goLock.style.display = unlocked ? 'none' : '';
+  }
 }
 
 /* ========== 狀態機 ========== */
@@ -614,8 +909,15 @@ function finishLevel(starsEarned = 1) {
   if (!State.completedLevels.includes(idx)) State.completedLevels.push(idx);
   State.levelStars[idx] = Math.max(State.levelStars[idx] || 0, starsEarned);
   State.stars = Object.values(State.levelStars).reduce((a, b) => a + b, 0);
-  if (State.completedLevels.length === 1) unlockAchievement('first_star');
-  if (State.completedLevels.length === LEVELS.length) unlockAchievement('all_levels');
+  if (State.completedLevels.length >= 1) unlockAchievement('first_star');
+  if (State.completedLevels.length >= 3) unlockAchievement('quick_learner');
+  if (State.completedLevels.length >= 6) unlockAchievement('half_way');
+  if (State.completedLevels.length >= LEVELS.length) unlockAchievement('all_levels');
+  if (starsEarned === 3) unlockAchievement('zero_mistake');
+  if (idx === 3 && starsEarned === 3) unlockAchievement('perfect_qi');
+  if (idx === 4 && starsEarned === 3) unlockAchievement('capture_master');
+  if (idx === 7 && starsEarned === 3) unlockAchievement('ko_master');
+  if (LEVELS.every((_, i) => (State.levelStars[i] || 0) >= 3)) unlockAchievement('perfect_score');
   updateTopBar();
   renderLevelGrid();
   autoSave();
@@ -684,12 +986,15 @@ function finishLevel(starsEarned = 1) {
 function backToMap() {
   VoiceEngine.stop();
   if (typeof Quiz !== 'undefined') Quiz.active = false;
+  if (typeof GoGame !== 'undefined') { GoGame.running = false; GoGame.aiThinking = false; }
   State.phase = 'HOME';
   State.currentLevel = null;
   $('#gameArea').classList.add('hidden');
+  $('#goArea').classList.add('hidden');
   $('#levelSelectCard').classList.remove('hidden');
   const qp = $('#quizProgress');
   if (qp) qp.style.display = 'none';
+  closeModal('goResultModal');
   SoundEngine.play('click');
 }
 
@@ -2073,7 +2378,467 @@ const HINTS = [
   '想一想：打劫要隔一手；但被提兩子時可以立刻回提一子。',
   '想一想：把星星上下左右都堵住，就圍住它了。',
 ];
+/* ============================================================
+   對弈模式
+   ============================================================ */
+const GoGame = {
+  playerColor: 1,
+  aiColor: 2,
+  running: false,
+  aiThinking: false,
 
+  start() {
+    if (State.completedLevels.length < LEVELS.length) {
+      toast('🔒 先完成全部 9 關，才能解鎖自由對弈喔！');
+      SoundEngine.play('error');
+      return;
+    }
+    GoEngine.init();
+    this.running = true;
+    this.aiThinking = false;
+    State.phase = 'PLAYING_GO';
+    $('#levelSelectCard').classList.add('hidden');
+    $('#gameArea').classList.add('hidden');
+    $('#goArea').classList.remove('hidden');
+    this.render();
+    this.updateInfo();
+    typeText('你執黑棋先行。點擊棋盤交叉點落子，把白棋圍住或圍出更多地盤吧！');
+    addHistory('⚔️ 進入自由對弈');
+    VoiceEngine.stop();
+  },
+
+  render() {
+    const el = $('#goBoard');
+    el.innerHTML = '';
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.row = r;
+        cell.dataset.col = c;
+        const v = GoEngine.board[r][c];
+        if (v === 1) { const s = document.createElement('div'); s.className = 'stone black'; cell.appendChild(s); }
+        else if (v === 2) { const s = document.createElement('div'); s.className = 'stone white'; cell.appendChild(s); }
+        if (GoEngine.lastMove && GoEngine.lastMove.r === r && GoEngine.lastMove.c === c) {
+          const m = document.createElement('div');
+          m.className = 'last-move-marker';
+          cell.appendChild(m);
+        }
+        el.appendChild(cell);
+      }
+    }
+  },
+
+  updateInfo() {
+    $('#goBlackCapture').textContent = GoEngine.captures.black;
+    $('#goWhiteCapture').textContent = GoEngine.captures.white;
+    const ind = $('#goTurnIndicator');
+    if (this.aiThinking) {
+      ind.textContent = '🤖 AI 思考中…';
+      ind.classList.add('ai');
+    } else {
+      ind.textContent = '輪到你（黑棋）';
+      ind.classList.remove('ai');
+    }
+  },
+
+  handleClick(r, c) {
+    if (!this.running || this.aiThinking) return;
+    if (GoEngine.board[r][c] !== 0) { toast('❌ 這裡已經有棋子了。'); SoundEngine.play('error'); return; }
+    if (GoEngine.koPoint && GoEngine.koPoint.r === r && GoEngine.koPoint.c === c) {
+      toast('🔄 這裡是打劫禁著點，先到別處下一手吧。');
+      SoundEngine.play('error');
+      return;
+    }
+    const result = GoEngine.tryPlace(r, c, this.playerColor);
+    if (!result.ok) {
+      if (result.reason === 'suicide') toast('❌ 這手會讓自己的棋沒氣，不能下。');
+      else if (result.reason === 'ko') toast('🔄 打劫禁著點，先到別處下一手。');
+      else toast('❌ 不能下這裡。');
+      SoundEngine.play('error');
+      return;
+    }
+    SoundEngine.play('place');
+    if (result.captured.length > 0) toast(`⚔️ 提子 ${result.captured.length} 顆！`);
+    GoEngine.passCounter = 0;
+    this.render();
+    this.updateInfo();
+    this.aiTurn();
+  },
+
+  aiTurn() {
+    this.aiThinking = true;
+    this.updateInfo();
+    setTimeout(() => {
+      const move = chooseAIMove(this.aiColor);
+      if (!move) {
+        GoEngine.passCounter++;
+        this.aiThinking = false;
+        this.updateInfo();
+        if (GoEngine.passCounter >= 2) { this.endGame(); return; }
+        toast('🤖 AI 停一手。');
+        return;
+      }
+      GoEngine.tryPlace(move.r, move.c, this.aiColor);
+      GoEngine.passCounter = 0;
+      SoundEngine.play('place');
+      this.aiThinking = false;
+      this.render();
+      this.updateInfo();
+    }, 500);
+  },
+
+  handlePass() {
+    if (!this.running || this.aiThinking) return;
+    GoEngine.passCounter++;
+    GoEngine.lastMove = null;
+    SoundEngine.play('click');
+    toast('⏭️ 你停一手。');
+    this.render();
+    if (GoEngine.passCounter >= 2) { this.endGame(); return; }
+    this.aiTurn();
+  },
+
+  handleResign() {
+    if (!this.running) return;
+    if (!confirm('確定要認輸嗎？')) return;
+    this.endGame('resign');
+  },
+
+  endGame(reason) {
+    this.running = false;
+    this.aiThinking = false;
+    const stones = GoEngine.countStones();
+    const terr = GoEngine.territory();
+    const blackTotal = stones.black + terr.black + GoEngine.captures.black;
+    const whiteTotal = stones.white + terr.white + GoEngine.captures.white;
+
+    let emoji, title, win = false;
+    if (reason === 'resign') {
+      emoji = '🏳️'; title = '你認輸了';
+    } else if (blackTotal > whiteTotal) {
+      emoji = '🎉'; title = '你贏了！'; win = true;
+    } else if (blackTotal < whiteTotal) {
+      emoji = '🤖'; title = 'AI 贏了';
+    } else {
+      emoji = '🤝'; title = '平手！';
+    }
+
+    $('#goResultEmoji').textContent = emoji;
+    $('#goResultTitle').textContent = title;
+    $('#goResultScore').innerHTML = `
+      黑（你）：黑子 ${stones.black} + 地盤 ${terr.black} = <b>${blackTotal}</b><br>
+      白（AI）：白子 ${stones.white} + 地盤 ${terr.white} = <b>${whiteTotal}</b><br>
+      <span style="font-size:12px;color:#888;">雙方都停一手，依中國規則數子法結算</span>
+    `;
+    openModal('goResultModal');
+    addHistory(`⚔️ 對弈結束：${title}（黑 ${blackTotal} vs 白 ${whiteTotal}）`);
+    if (win) {
+      if (State.achievements.first_win) unlockAchievement('first_win');
+      SoundEngine.play('success');
+    } else {
+      SoundEngine.play('error');
+    }
+  },
+
+  backToMap() {
+    this.running = false;
+    this.aiThinking = false;
+    VoiceEngine.stop();
+    State.phase = 'HOME';
+    $('#goArea').classList.add('hidden');
+    $('#levelSelectCard').classList.remove('hidden');
+    closeModal('goResultModal');
+  }
+};
+
+// 對弈棋盤事件綁定
+document.addEventListener('click', (e) => {
+  if (State.phase !== 'PLAYING_GO') return;
+  const cell = e.target.closest('#goBoard .cell');
+  if (!cell) return;
+  GoGame.handleClick(parseInt(cell.dataset.row), parseInt(cell.dataset.col));
+});
+
+$('#goPassBtn') && ($('#goPassBtn').onclick = () => GoGame.handlePass());
+$('#goResignBtn') && ($('#goResignBtn').onclick = () => GoGame.handleResign());
+$('#goBackBtn') && ($('#goBackBtn').onclick = () => GoGame.backToMap());
+$('#goAgainBtn') && ($('#goAgainBtn').onclick = () => { closeModal('goResultModal'); GoGame.start(); });
+$('#goResultMapBtn') && ($('#goResultMapBtn').onclick = () => { closeModal('goResultModal'); GoGame.backToMap(); });
+
+/* ============================================================
+   進階關卡：真眼假眼、雙打吃、征子
+   ============================================================ */
+
+// 新增題目生成器：點擊正確位置
+function makePointQuestion({ stones, targetPos, prompt, correctFeedback, wrongFeedback }) {
+  return function () {
+    showBoard();
+    prepareGameButtons();
+    setCurrentPrompt(prompt);
+    const size = 9;
+    const board = Array.from({ length: size }, () => Array(size).fill(null));
+    stones.forEach(([r, c, color]) => { board[r][c] = color; });
+    renderBoard(board, size);
+    let answered = false;
+    bindBoardClicks((r, c) => {
+      if (answered) return;
+      if (r === targetPos[0] && c === targetPos[1]) {
+        answered = true;
+        SoundEngine.play('success');
+        const cell = getCellEl(r, c);
+        const stone = document.createElement('div');
+        stone.className = 'stone black';
+        cell.appendChild(stone);
+        toast(correctFeedback || '✅ 正確！');
+        setTimeout(() => Quiz.answerCorrect(), 1000);
+      } else {
+        SoundEngine.play('error');
+        toast(wrongFeedback || '❌ 這個位置不對喔，再想想。');
+      }
+    });
+    addBackButton();
+  };
+}
+
+// 第 10 關：真眼與假眼
+function setupLevel10_Eyes() {
+  const size = 9;
+  const board = Array.from({ length: size }, () => Array(size).fill(null));
+  // 黑棋陣地，左邊是真眼(0,1)，右邊是假眼(2,1)
+  board[0][0]='B'; board[0][1]='B'; board[0][2]='B'; board[0][3]='B';
+  board[1][0]='B'; board[1][1]=null; board[1][2]='B'; board[1][3]='W';
+  board[2][0]='B'; board[2][1]='B'; board[2][2]='B'; board[2][3]='W';
+  renderBoard(board, size);
+  State.interaction = { answered: false };
+  bindBoardClicks((r, c) => {
+    if (State.interaction.answered) return;
+    if (r === 1 && c === 1) {
+      State.interaction.answered = true;
+      SoundEngine.play('success');
+      toast('✅ 正確！這是真眼，對方無法破壞。');
+      setTimeout(() => Quiz.answerCorrect(), 1000);
+    } else {
+      SoundEngine.play('error');
+      toast('❌ 再仔細看，哪個眼的四周完全被黑棋包圍，沒有弱點？');
+    }
+  });
+  const btns = $('#gameButtons'); btns.innerHTML = '';
+  addBackButton();
+}
+
+// 第 11 關：雙打吃
+function setupLevel11_DoubleAtari() {
+  const size = 9;
+  const board = Array.from({ length: size }, () => Array(size).fill(null));
+  // 白棋兩塊，都剩一氣，黑棋下在 (4,4) 就能雙打吃
+  board[3][4] = 'W'; board[3][3] = 'B'; board[3][5] = 'B'; // 上白
+  board[5][4] = 'W'; board[5][3] = 'B'; board[5][5] = 'B'; // 下白
+  board[4][3] = 'B'; board[4][5] = 'B'; // 左右黑
+  renderBoard(board, size);
+  State.interaction = { answered: false };
+  bindBoardClicks((r, c) => {
+    if (State.interaction.answered) return;
+    if (r === 4 && c === 4) {
+      State.interaction.answered = true;
+      SoundEngine.play('success');
+      const cell = getCellEl(r, c);
+      const stone = document.createElement('div'); stone.className = 'stone black';
+      cell.appendChild(stone);
+      toast('✅ 正確！下在這裡，上下兩顆白棋同時只剩一氣，這就是雙打吃！');
+      setTimeout(() => Quiz.answerCorrect(), 1200);
+    } else {
+      SoundEngine.play('error');
+      toast('❌ 找找看，下在哪裡可以「同時」讓兩顆白棋都沒氣？');
+    }
+  });
+  const btns = $('#gameButtons'); btns.innerHTML = '';
+  addBackButton();
+}
+
+// 第 12 關：征子
+function setupLevel12_Ladder() {
+  const size = 9;
+  const board = Array.from({ length: size }, () => Array(size).fill(null));
+  // 征子基本形：白棋在 (2,2)，黑棋包圍，下一手在 (2,3)
+  board[2][2] = 'W';
+  board[2][1] = 'B'; board[1][2] = 'B'; board[3][2] = 'B';
+  board[1][1] = 'B'; board[3][1] = 'B';
+  renderBoard(board, size);
+  State.interaction = { answered: false };
+  bindBoardClicks((r, c) => {
+    if (State.interaction.answered) return;
+    if (r === 2 && c === 3) {
+      State.interaction.answered = true;
+      SoundEngine.play('success');
+      const cell = getCellEl(r, c);
+      const stone = document.createElement('div'); stone.className = 'stone black';
+      cell.appendChild(stone);
+      toast('✅ 正確！往這個方向連續打吃，白棋就會被趕到邊上吃掉！');
+      setTimeout(() => Quiz.answerCorrect(), 1200);
+    } else {
+      SoundEngine.play('error');
+      toast('❌ 找找看白棋只剩哪一口氣？請堵住它。');
+    }
+  });
+  const btns = $('#gameButtons'); btns.innerHTML = '';
+  addBackButton();
+}
+
+// 進階關卡的範例資料
+EXAMPLE_DATA[9] = [
+  { title: '👁️ 真眼', tone: 'ok', size: 5,
+    stones: [
+      { r: 1, c: 1, color: 'B' }, { r: 1, c: 2, color: 'B' }, { r: 1, c: 3, color: 'B' },
+      { r: 2, c: 1, color: 'B' }, { r: 2, c: 3, color: 'B' },
+      { r: 3, c: 1, color: 'B' }, { r: 3, c: 2, color: 'B' }, { r: 3, c: 3, color: 'B' },
+    ],
+    marks: [{ r: 2, c: 2, type: 'ok' }],
+    desc: '四周都是自己的棋，這個眼對方無法破壞，叫「真眼」。' },
+  { title: '❌ 假眼', tone: 'no', size: 5,
+    stones: [
+      { r: 1, c: 1, color: 'B' }, { r: 1, c: 2, color: 'B' }, { r: 1, c: 3, color: 'B' },
+      { r: 2, c: 1, color: 'B' }, { r: 2, c: 3, color: 'W' }, // 右上角是白棋
+      { r: 3, c: 1, color: 'B' }, { r: 3, c: 2, color: 'B' }, { r: 3, c: 3, color: 'B' },
+    ],
+    marks: [{ r: 2, c: 2, type: 'no' }],
+    desc: '這個眼有一角是對方的棋，對方可以來破壞，這叫「假眼」。' },
+];
+EXAMPLE_DATA[10] = [
+  { title: '⚔️ 雙打吃', tone: 'ok', size: 5,
+    stones: [
+      { r: 1, c: 2, color: 'B' }, { r: 2, c: 1, color: 'W' }, { r: 2, c: 3, color: 'W' },
+      { r: 2, c: 2, color: 'B' },
+    ],
+    marks: [{ r: 2, c: 2, type: 'circle', color: '#e74c3c' }],
+    desc: '黑棋下在中間，同時讓左右兩顆白棋只剩一氣，對方只能救一邊！' },
+];
+EXAMPLE_DATA[11] = [
+  { title: '🏃 征子方向', tone: 'info', size: 5,
+    stones: [
+      { r: 1, c: 1, color: 'B' }, { r: 2, c: 1, color: 'B' }, { r: 3, c: 1, color: 'B' },
+      { r: 2, c: 2, color: 'W' },
+    ],
+    marks: [{ r: 2, c: 3, type: 'circle', color: '#27ae60' }],
+    desc: '白棋只剩右邊一口氣，黑棋從這邊打吃，就能把白棋往邊上趕。' },
+];
+
+// 進階關卡的考題
+LEVEL_QUESTIONS[9] = [
+  function () {
+    showBoard();
+    prepareGameButtons();
+    setCurrentPrompt('請點擊圖中「真正的眼」（不會被破壞的眼）。');
+    const size = 9;
+    const board = Array.from({ length: size }, () => Array(size).fill(null));
+    board[1][1]='B'; board[1][2]='B'; board[1][3]='B';
+    board[2][1]='B'; board[2][2]=null; board[2][3]='B';
+    board[3][1]='B'; board[3][2]='B'; board[3][3]='B';
+    board[5][5]='B'; board[5][6]='W'; board[6][5]='B'; board[6][6]='B'; // 假眼
+    renderBoard(board, size);
+    let answered = false;
+    bindBoardClicks((r, c) => {
+      if (answered) return;
+      if (r === 2 && c === 2) {
+        answered = true;
+        SoundEngine.play('success');
+        toast('✅ 正確！這是真眼。');
+        setTimeout(() => Quiz.answerCorrect(), 1000);
+      } else {
+        SoundEngine.play('error');
+        toast('❌ 找找看哪個眼四周完全是自己人，沒有敵方棋子？');
+      }
+    });
+    addBackButton();
+  },
+  makeChoiceQuestion({
+    question: '假眼有什麼弱點？',
+    options: ['A. 對方可以破壞它', 'B. 假眼會讓自己少一顆子'],
+    correctIndex: 0,
+    correctFeedback: '✅ 正確！假眼因為有弱點，對方可以來破壞。',
+    wrongFeedback: '❌ 再想想，假眼最怕被對方怎樣？',
+    beforeSetup: hideBoard
+  })
+];
+
+LEVEL_QUESTIONS[10] = [
+  function () {
+    showBoard();
+    prepareGameButtons();
+    setCurrentPrompt('請找出「雙打吃」的位置（下一子同時打吃兩塊白棋）。');
+    const size = 9;
+    const board = Array.from({ length: size }, () => Array(size).fill(null));
+    // 白棋在 (3,4) 和 (5,4)，黑棋在周圍
+    board[3][4] = 'W'; board[3][3] = 'B'; board[3][5] = 'B';
+    board[5][4] = 'W'; board[5][3] = 'B'; board[5][5] = 'B';
+    board[4][3] = 'B'; board[4][5] = 'B';
+    renderBoard(board, size);
+    let answered = false;
+    bindBoardClicks((r, c) => {
+      if (answered) return;
+      if (r === 4 && c === 4) {
+        answered = true;
+        SoundEngine.play('success');
+        const cell = getCellEl(r, c);
+        const stone = document.createElement('div'); stone.className = 'stone black';
+        cell.appendChild(stone);
+        toast('✅ 正確！這就是雙打吃。');
+        setTimeout(() => Quiz.answerCorrect(), 1000);
+      } else {
+        SoundEngine.play('error');
+        toast('❌ 找找看下在哪裡，可以同時讓兩顆白棋都只剩一口氣？');
+      }
+    });
+    addBackButton();
+  },
+  makeChoiceQuestion({
+    question: '遇到雙打吃，對方通常只能怎麼做？',
+    options: ['A. 兩邊都救', 'B. 只能救一邊，放棄另一邊'],
+    correctIndex: 1,
+    correctFeedback: '✅ 正確！雙打吃是致命的，對方只能救一邊。',
+    wrongFeedback: '❌ 再想想，一手棋能同時救兩邊嗎？',
+    beforeSetup: hideBoard
+  })
+];
+
+LEVEL_QUESTIONS[11] = [
+  function () {
+    showBoard();
+    prepareGameButtons();
+    setCurrentPrompt('請點擊正確的「征子」方向（堵住白棋最後一口氣）。');
+    const size = 9;
+    const board = Array.from({ length: size }, () => Array(size).fill(null));
+    board[2][2] = 'W';
+    board[2][1] = 'B'; board[1][2] = 'B'; board[3][2] = 'B';
+    board[1][1] = 'B'; board[3][1] = 'B';
+    renderBoard(board, size);
+    let answered = false;
+    bindBoardClicks((r, c) => {
+      if (answered) return;
+      if (r === 2 && c === 3) {
+        answered = true;
+        SoundEngine.play('success');
+        const cell = getCellEl(r, c);
+        const stone = document.createElement('div'); stone.className = 'stone black';
+        cell.appendChild(stone);
+        toast('✅ 正確！往這裡打吃，就能把白棋趕向邊界。');
+        setTimeout(() => Quiz.answerCorrect(), 1000);
+      } else {
+        SoundEngine.play('error');
+        toast('❌ 看看白棋哪邊還有氣？請堵住它。');
+      }
+    });
+    addBackButton();
+  },
+  makeChoiceQuestion({
+    question: '征子失敗（讓對方跑掉）最可能是什麼原因？',
+    options: ['A. 方向錯了，或前方有對方的接應棋子', 'B. 自己提子提太少'],
+    correctIndex: 0,
+    correctFeedback: '✅ 正確！方向錯或對方有接應，征子就會失敗。',
+    wrongFeedback: '❌ 再想想，征子是連續打吃，最怕遇到什麼阻礙？',
+    beforeSetup: hideBoard
+  })
+];
 const Quiz = {
   levelIdx: 0,
   qIdx: 0,
@@ -2155,6 +2920,11 @@ function init() {
     btn.addEventListener('click', () => {
       const nav = btn.dataset.nav;
       SoundEngine.play('click');
+	        if (nav === 'go') {
+        if (State.phase === 'PLAYING_GO') GoGame.backToMap();
+        else GoGame.start();
+        return;
+      }
       if (nav === 'home') {
         if (State.phase === 'PLAYING') backToMap();
         else { State.phase = 'HOME'; $('#gameArea').classList.add('hidden'); $('#levelSelectCard').classList.remove('hidden'); }

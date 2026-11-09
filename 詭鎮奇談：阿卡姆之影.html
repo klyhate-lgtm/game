@@ -27,25 +27,22 @@ body{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
 .chapter-tag{display:inline-block;font-size:11px;letter-spacing:2px;color:#b8912f;
   border:1px solid #b8912f;border-radius:2px;padding:1px 8px;margin-bottom:10px}
 .story{
-  background-color: #241b13 !important; /* 深咖啡色背景 */
+  background-color: #241b13 !important;
   background-image: none !important;
   border: 1px solid #7a5c2e;
   border-radius: 6px;
   padding: 16px 16px 18px;
   box-shadow: inset 0 0 30px rgba(0,0,0,.8), 0 4px 12px rgba(0,0,0,.6);
-  color: #f0d896 !important;            /* 淺黃色文字 */
+  color: #f0d896 !important;
   line-height: 1.85;
   font-size: 15px;
   position: relative;
 }
-  padding:16px 16px 18px;box-shadow:0 6px 24px rgba(0,0,0,.55),inset 0 0 40px rgba(120,90,50,.15);
-  color:#2b2118;line-height:1.85;font-size:15px;position:relative;
-  background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(120,90,50,.06) 27px,rgba(120,90,50,.06) 28px)}
 .story::before{content:"";position:absolute;inset:4px;border:1px solid rgba(120,90,50,.25);border-radius:4px;pointer-events:none}
 .story p{margin:0 0 12px}
 .story .kw{ color: #ffb347 !important; font-weight: bold; text-shadow: 0 0 8px rgba(255,179,71,0.5); }
-.story .kw2{color:#3a5a2a;font-weight:700}
-.cursor{display:inline-block;width:8px;height:16px;background:#7a1f1f;vertical-align:-2px;animation:blink .8s steps(1) infinite}
+.story .kw2{color:#7fe07f;font-weight:700}
+.cursor{display:inline-block;width:8px;height:16px;background:#f0d896;vertical-align:-2px;animation:blink .8s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
 .choices{margin-top:14px;display:flex;flex-direction:column;gap:9px}
 button{font-family:inherit;cursor:pointer;border:none;outline:none}
@@ -197,7 +194,7 @@ const Sound = (() => {
     bad(){beep(180,.16,"sawtooth",.07);setTimeout(()=>beep(120,.22,"sawtooth",.07),100)},
     secret(){beep(880,.08,"sine",.05);setTimeout(()=>beep(1100,.08,"sine",.05),80);setTimeout(()=>beep(1320,.14,"sine",.05),160)},
     toggle(){on=!on;if(on){ensure();beep(700,.08,"sine",.06)}return on},
-	resume(){const c=ensure();if(c&&c.state==="suspended")c.resume();}
+    resume(){const c=ensure();if(c&&c.state==="suspended")c.resume();}
   }
 })();
 
@@ -795,7 +792,7 @@ o:[["若你想看看這扇暗門通向何處，翻至第136章",136],
 
 108:{t:`你和布萊恩博士寡不敵眾，很快就被教徒們制服。`,
 fx:{h:-1},
-o:[["進行一次命運測試：1d6，若{被詛咒}點數+1。≤厄運值→232章；>厄運值→177章",0,{fate:{232:177}}]]},
+o:[["進行一次命運測試：1d6，若{被詛咒}點數+1。≤厄運值→232章；>厄運值→177章",0,{fate:{win:232, lose:177}}]]},
 
 109:{t:`想要擾亂儀式，最好的辦法無疑是在溫室裡製造混亂。`,
 test:{n:"巧思測試",s:"int",d:1,c:"clue",need:8,ok:129,ng:149}},
@@ -1102,7 +1099,7 @@ o:[["若你決定在付出無法承受的代價前離開，翻至第141章",141]
 172:{t:`你擠過混戰的教徒，登上石質高台的台階，一把抓起那隻詭異的陶土容器，將它的開口對準了月食形成的天空傳送門。
 
 無數巨型黑色昆蟲從容器口中噴湧而出，直衝雲霄。空間彷彿開始扭曲、收縮。你的手臂酸痛難忍，任由容器掉落在地，摔得粉碎。但你的目的似乎已經達到——蟲群依舊死死盯著高空傳送門後的怪物。`,
-o:[["擲1d6，若{敏捷}點數+1。≤生命值→250章；>生命值→200章",0,{escapeRoll:{250:200}}]]},
+o:[["擲1d6，若{敏捷}點數+1。≤生命值→250章；>生命值→200章",0,{escapeRoll:{win:250, lose:200}}]]},
 
 173:{t:`你凝神靜氣，在自己和逼近的教徒之間佈下一道魔法屏障。`,
 o:[["翻至第13章",13]]},
@@ -1161,7 +1158,7 @@ combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為�
 end:{stars:0,title:"虛無的盡頭"}},
 
 185:{t:`看到那隻怪物出現在阿卡姆上空的空間裂隙中，你的想法徹底改變了。`,
-o:[["擲1d6，若{被詛咒}或{鬧鬼}點數-1。≤理智值→258章；>理智值→196章",0,{sanityRoll:{258:196}}]]},
+o:[["擲1d6，若{被詛咒}或{鬧鬼}點數-1。≤理智值→258章；>理智值→196章",0,{sanityRoll:{win:258, lose:196}}]]},
 
 186:{t:`你掀開了白布。這是一具年輕男子的屍體，肩膀上的傷口是人類的牙印，而且傷口周圍沒有血跡。`,
 fx:{s:-1},sec:["想來一口嗎？"],
@@ -1502,7 +1499,7 @@ o:[["探索宅邸的西翼，翻至第176章",176],
 
 248:{t:`「尼德斯教授的辦公室在二樓，卡夫卡藏品館那邊，」克里斯托弗博士告訴你，「不如我帶你過去吧。」`,
 sec:["昆蟲學家"],
-o:[["他領著你穿過科學樓，最終在一扇深胡桃木色的房門前停下。",0,{goto:248.5}]]},
+o:[["他領著你穿過科學樓，最終在一扇深胡桃木色的房門前停下。",0,{goto:"248.5"}]]},
 
 "248.5":{t:`房間裡一片漆黑，但一陣憤怒的嗡嗡聲，立刻讓你察覺到了危險。克里斯托弗博士找到電燈開關，房間瞬間被燈光照亮，這位科學家發出一聲驚恐的尖叫。
 
@@ -1546,7 +1543,7 @@ o:[["翻至第262章",262]]},
 end:{stars:0,title:"旁觀者的下場"}},
 
 257:{t:`教徒的數量實在太多，你和布萊恩博士被徹底壓制。局勢逆轉，你被教徒俘虜。`,
-o:[["進行一次命運測試：1d6，若{被詛咒}點數+1。≤厄運值→232章；>厄運值→177章",0,{fate:{232:177}}]]},
+o:[["進行一次命運測試：1d6，若{被詛咒}點數+1。≤厄運值→232章；>厄運值→177章",0,{fate:{win:232, lose:177}}]]},
 
 258:{t:`你終於將目光從那可怖怪物身上移開。但沃醫生已經察覺。他決意要除掉你。`,
 combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
@@ -1563,7 +1560,7 @@ combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為�
 sec:["窮途末路"],end:{stars:0,title:"窮途末路"}},
 
 260:{t:`面對這般瘋狂的景象，除了逃離，一個心智正常的人還能作何反應？`,
-o:[["擲1d6，若{敏捷}點數+1。≤生命值→100章；>生命值→26章",0,{escapeRoll:{100:26}}]]},
+o:[["擲1d6，若{敏捷}點數+1。≤生命值→100章；>生命值→26章",0,{escapeRoll:{win:100, lose:26}}]]},
 
 261:{t:`哈登警探認真傾聽著你所掌握的一切線索。他伸手從大衣口袋裡掏出一把【彈簧刀】，「小心點用。」`,
 give:["FLICK_KNIFE"],fx:{r:1},sec:["守護與服務"],
@@ -1666,7 +1663,7 @@ o:[["若你選擇出聲求助，翻至第4章",4],
    ["若你選擇低調行事，翻至第36章",36]]},
 
 280:{t:`那位漂浮在空中的巫師身上散發出的恐怖力量，清晰可感。`,
-o:[["擲1d6，若{被詛咒}或{鬧鬼}點數-1。≤理智值→260章；>理智值→206章",0,{sanityRoll:{260:206}}]]},
+o:[["擲1d6，若{被詛咒}或{鬧鬼}點數-1。≤理智值→260章；>理智值→206章",0,{sanityRoll:{win:260, lose:206}}]]},
 
 281:{t:`你來到這裡的目的，就是阻止尼德斯教授，以及她所領導的同化教派。`,
 combat:{res:true,prep:"每輪戰鬥開始前，你可以消耗1點資源，為本輪總點數+2。",
@@ -2125,8 +2122,8 @@ function handleFate(map){
   if(p.otherWeak.includes("CURSED"))roll+=1;
   toast(`🎲 命運測試：${roll}（厄運值 ${p.doom}）`);
   setTimeout(()=>{
-    if(roll<=p.doom)goChapter(map[232]||Object.values(map)[0]);
-    else goChapter(map[177]||Object.values(map)[1]);
+    if(roll<=p.doom) goChapter(map.lose);
+    else goChapter(map.win);
   },500);
 }
 function handleEscapeRoll(map){
@@ -2135,8 +2132,8 @@ function handleEscapeRoll(map){
   if(p.otherAbilities.includes("AGILE"))roll+=1;
   toast(`🎲 逃脫測試：${roll}（生命 ${p.hp}）`);
   setTimeout(()=>{
-    if(roll<=p.hp)goChapter(map[100]||Object.values(map)[0]);
-    else goChapter(map[26]||Object.values(map)[1]);
+    if(roll<=p.hp) goChapter(map.win);
+    else goChapter(map.lose);
   },600);
 }
 function handleSanityRoll(map){
@@ -2145,9 +2142,8 @@ function handleSanityRoll(map){
   if(p.otherWeak.includes("CURSED")||p.otherWeak.includes("HAUNTED"))roll-=1;
   toast(`🎲 理智測試：${roll}（理智值 ${p.san}）`);
   setTimeout(()=>{
-    const keys=Object.keys(map);
-    if(roll<=p.san)goChapter(map[keys[0]]);
-    else goChapter(map[keys[1]]);
+    if(roll<=p.san) goChapter(map.win);
+    else goChapter(map.lose);
   },600);
 }
 function renderSumPuzzle(fallback){
