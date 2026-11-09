@@ -17,31 +17,49 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 必須設定為 0，才能讀取完整的 Git 歷史紀錄
+          fetch-depth: 0          # 必須保留，否則 rev-list 拿不到完整歷史
 
-      - name: Generate games.json with Real Git Time
+      - name: Generate games.json with version
         run: |
-          python3 -c "
+          python3 - <<'PY'
           import os, json, subprocess
+
+          def git(*args):
+              try:
+                  return subprocess.check_output(['git', *args]).decode('utf-8').strip()
+              except Exception:
+                  return ''
+
           games = []
           for f in os.listdir('.'):
               if f.endswith('.html') and f != 'index.html':
                   title = f[:-5]
-                  # 使用 git log 抓取該檔案最後一次 commit 的時間
+
+                  # 最後更新時間
+                  time_str = git('log', '-1', '--format=%cd',
+                                 '--date=format:%Y-%m-%d %H:%M', '--', f) or '未知時間'
+
+                  # 該檔案被 commit 的次數 = 版本號
                   try:
-                      time_str = subprocess.check_output(
-                          ['git', 'log', '-1', '--format=%cd', '--date=format:%Y-%m-%d %H:%M', f]
-                      ).decode('utf-8').strip()
-                  except Exception:
-                      time_str = '未知時間'
-                  
-                  games.append({'title': title, 'file': f, 'time': time_str})
-                  
-          # 依照時間反序排列 (最新在最上面)
+                      version = int(git('rev-list', '--count', 'HEAD', '--', f)) or 1
+                  except ValueError:
+                      version = 1
+
+                  # 第 1 版 = 新增；之後 = 更新
+                  change_type = 'new' if version == 1 else 'update'
+
+                  games.append({
+                      'title': title,
+                      'file': f,
+                      'time': time_str,
+                      'version': version,
+                      'changeType': change_type
+                  })
+
           games.sort(key=lambda x: x['time'], reverse=True)
           with open('games.json', 'w', encoding='utf-8') as out:
               json.dump(games, out, ensure_ascii=False, indent=2)
-          "
+          PY
 
       - name: Commit and Push changes
         run: |
