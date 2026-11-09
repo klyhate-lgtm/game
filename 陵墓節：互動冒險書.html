@@ -82,308 +82,29 @@ ul.clean li{padding:3px 0;border-bottom:1px dotted #c6ad80}
 <div id="modal" class="hidden"><div class="modal-content"><h2 id="modalTitle"></h2><div id="modalBody" class="modalBody"></div><div id="modalActions" class="modalActions"></div></div></div>
 <div id="toast"></div>
 
-<!-- ============================================================
-     冒險資料（JSON）：日後只需改這裡，就能新增條目、任務、結局
-     新增條目：在 entries 加 key（字串 id），text + choices
-     新增效果：choices[].effect 用 "type:args"，並在 ACTIONS 註冊
-     ============================================================ -->
-<script type="application/json" id="advData">
-{
-  "meta": {"title":"陵墓節：互動冒險書","version":"1.0","start":"0000"},
-
-  "items": {
-    "boarding_pass": "登船牌",
-    "mahogany_wand": "紅木魔杖",
-    "dagger": "帶鞘匕首",
-    "letters": "一包信件",
-    "silver_15": "15 枚銀幣",
-    "necklace": "納明丁榮譽項鍊",
-    "shell_charm": "貝殼護身符",
-    "potion": "治療藥水"
-  },
-
-  "events": {
-    "003":"第一場戰鬥","005":"擦鞋匠是干擾者","008":"找到搬運工屍體",
-    "015":"挫敗扒竊","017":"西姆斯與海盜血緣","022":"哈維恩看到扒手",
-    "027":"明輪罩鬧鬼","028":"燒毀漁船","029":"提亞空魔杖鞘",
-    "030":"牧師打信號","034":"石碑找回",
-    "130":"決鬥任務","137":"藥物任務","142":"胸針任務","126":"舊情人任務",
-    "150":"戰士夥伴","160":"牧師夥伴","166":"盜賊夥伴","174":"法師夥伴",
-    "190":"冬至","204":"秋分","218":"夏至","237":"春分"
-  },
-
-  "missions": {
-    "duel":     {"event":"130","name":"決鬥審判","intro":"0162"},
-    "medicine": {"event":"137","name":"拉本靈藥","intro":"0023"},
-    "brooch":   {"event":"142","name":"光明希望之星","intro":"0039"},
-    "lover":    {"event":"126","name":"舊情人羅賓","intro":"0056"}
-  },
-
-  "companions": {
-    "warrior": {"event":"150","name":"戰士"},
-    "priest":  {"event":"160","name":"牧師"},
-    "rogue":   {"event":"166","name":"盜賊"},
-    "mage":    {"event":"174","name":"法師"}
-  },
-
-  "seasons": {
-    "winter": {"event":"190","name":"冬至","festival":"最長之夜"},
-    "autumn": {"event":"204","name":"秋分","festival":"金色之秋"},
-    "summer": {"event":"218","name":"夏至","festival":"日落節"},
-    "spring": {"event":"237","name":"春分","festival":"重生"}
-  },
-
-  "clues": {
-    "shoe":{"event":"005","name":"擦鞋匠"},
-    "wizard":{"event":"029","name":"提亞空魔杖鞘"},
-    "priest":{"event":"017","name":"西姆斯血緣"},
-    "guard":{"event":"027","name":"明輪罩"},
-    "body":{"event":"008","name":"船底艙屍體"},
-    "purser":{"event":"033","name":"事務長可疑"}
-  },
-
-  "entries": {
-    "0000": {
-      "scene":"ship","type":"story",
-      "text":"0000\n渡輪的隊伍排得很長，蜿蜒繞過城市色彩斑斕的濱水建築，穿過一排排集市攤位，一直延伸到長長碼頭盡頭。午後陽光漸暖，你終於走到「壯麗號」的登船跳板前。\n\n隊伍突然停了下來。船員把你和其他乘客領到一旁，替豪華乘客的行李搬運工騰出道路。\n\n「快到了，」你身後的半獸人賈拉尼說，「我每年都去切斯特拉爾。你今年去那兒是為了什麼？」\n\n你考慮過無視這個問題。答案實在太過私人……\n\n▶ 選擇主要任務。",
-      "choices":[
-        {"label":"▶ 0162 決鬥：去會見憎恨的敵人","effect":"mission:duel"},
-        {"label":"▶ 0023 藥物：去安伯林神廟求靈藥","effect":"mission:medicine"},
-        {"label":"▶ 0039 胸針：找回家族失竊胸針","effect":"mission:brooch"},
-        {"label":"▶ 0056 舊情人：去前情人家表白","effect":"mission:lover"}
-      ]
-    },
-
-    "0162": {"scene":"ship","type":"mission_intro","mission":"duel",
-      "text":"0162\n一年前，你同意在檔案管理員廣場進行決鬥。在切斯特拉爾中央公園，在城市大法官和那棵高大橡樹的見證下，你將殺死津·塔戈。\n\n這個龍裔必須死。他人脈太廣，其罪行無法被定罪。其中一位致殘後被拋棄的人，是你的叔叔。\n\n如今尋求正義的唯一希望，是這座城市古老的決鬥審判法。指定的日子越來越近了。",
-      "choices":[{"label":"繼續","goto":"0076"}]},
-    "0023": {"scene":"ship","type":"mission_intro","mission":"medicine",
-      "text":"0023\n你的目的地是安伯林神廟，這是一座供奉多位治癒之神的地方。廟裡的牧師掌握著製作拉本靈藥（Raben Panacea）的秘密，這種靈藥能治癒正在威脅你家鄉的疾病。\n\n你帶著鎮議會的介紹信前往切斯特拉爾，有權與神廟協商生產足夠的藥物。這並非易事——神廟規模不大，牧師們還有其他事務要處理。\n\n如果成功，你將拯救家鄉數百人的生命，還有你年邁的導師梅茲。",
-      "choices":[{"label":"繼續","goto":"0076"}]},
-    "0039": {"scene":"ship","type":"mission_intro","mission":"brooch",
-      "text":"0039\n「光明希望之星」是一枚鑲嵌寶石的胸針。這件著名寶物曾屬於你的家族，但十年前被盜。傳說你家族的命運與這枚胸針緊密相連。\n\n最近有傳言說，切斯特拉爾的貴族福斯科拉夫人在活動中佩戴過它。\n\n你前往這座城市，就是為了奪回這件珍寶。",
-      "choices":[{"label":"繼續","goto":"0076"}]},
-    "0056": {"scene":"ship","type":"mission_intro","mission":"lover",
-      "text":"0056\n你依然愛著羅賓·馮特茲。一年多前，羅賓被召回切斯特拉爾的家族宅邸。當時你不願搬走，於是結束了這段關係。\n\n現在，你後悔了。沒有羅賓的日子變得不同。\n\n你不知道再次見到羅賓會發生什麼——或許這份思念是相互的；如果不是，至少你能得到一個答案。",
-      "choices":[{"label":"繼續","goto":"0076"}]},
-
-    "0076": {"scene":"ship","type":"story",
-      "text":"0076\n你用最簡單的語言向賈拉尼簡要講述了事情原委，她似乎對此感到滿意。\n\n船長突然喊道：「讓一讓！給斯圖弗頓勳爵讓路！」\n\n斯圖弗頓勳爵走到隊伍最前面，卻在你附近停下——他的行李搬運工堵住了跳板。\n\n「別去！」小個子女人說，「聽聽靈魂的警告！」\n\n「胡說！」斯圖弗頓勳爵回應道，「你姐姐根本不是真正的靈媒。再說，活人比死人危險多了。」\n\n你知道覺醒節每年舉行一次，但舉辦季節各不相同。今年……\n\n▶ 選擇季節。",
-      "choices":[
-        {"label":"0090 冬至前後","effect":"season:winter"},
-        {"label":"0114 秋分前後","effect":"season:autumn"},
-        {"label":"0099 夏至前後","effect":"season:summer"},
-        {"label":"0121 春分前後","effect":"season:spring"}
-      ]
-    },
-
-    "0169": {"scene":"ship","type":"story",
-      "text":"0169\n斯圖弗頓勳爵終於登船後，隊伍又開始移動。你來到碼頭盡頭的檢票員面前。你的票對應的是一個帶三層鋪位的艙室，你和矮人朋友阿貝拉爾德分攤了房間費用。\n\n阿貝拉爾德前往切斯特拉爾有自己的原因，他對調查這座城市著名的鬼魂群體非常感興趣。\n\n你是在……的時候認識阿貝拉爾德的。\n\n▶ 選擇夥伴職業。",
-      "choices":[
-        {"label":"0003 小時候：惡霸恐嚇你時他挺身而出","effect":"companion:warrior"},
-        {"label":"0024 借錢：你借錢給他完成牧師學業","effect":"companion:priest"},
-        {"label":"0057 盜竊：你受雇盜竊倉庫時認識他","effect":"companion:rogue"},
-        {"label":"0065 雇用：你想雇一名巫師時認識他","effect":"companion:mage"}
-      ]
-    },
-
-    "0077": {"scene":"ship","type":"story","onEnter":"item:boarding_pass",
-      "text":"檢票員把你的票放進保險箱，遞給你一張登船牌和一把房間鑰匙。\n\n你登船時，聽到檢票員正和賈拉尼爭吵。她想要更大的艙室，但渡輪已經超額預訂。\n\n你抵達露天甲板時，才發現他說的是實話。頂層非常擁擠。\n\n▶ 0115 繼續",
-      "choices":[{"label":"繼續","goto":"0115"}]},
-
-    "0115": {"scene":"ship","type":"story",
-      "text":"0115\n更多乘客湧上你身後的甲板，迫使你離開跳板。人群不斷擠壓，你想找個不那麼擁擠的地方。\n\n▶ 進行 DC 8 力量（運動）檢定。",
-      "choices":[
-        {"label":"力量（運動）DC 8","effect":"check:str:8:0115_pass:0095"},
-        {"label":"慢慢跟人群（耗 1 時段）","effect":"time:1","goto":"0095"}
-      ]
-    },
-    "0115_pass": {"scene":"ship","type":"story",
-      "text":"你成功擠過人群。\n\n行進中，你注意到一個女孩迅速靠近，似乎想扒你的口袋；目光交會時她立刻轉身融入人群。\n\n（事件 #015。）\n\n▶ 0172 繼續",
-      "choices":[{"label":"繼續","goto":"0172"}]},
-    "0095": {"scene":"ship","type":"story",
-      "text":"0095\n你無法擺脫樓梯間乘客的擁擠。最終人群開始散去。\n\n▶ 0172 繼續",
-      "choices":[{"label":"繼續","goto":"0172"}]},
-
-    "0172": {"scene":"ship","type":"story",
-      "text":"0172\n你走進樓梯間，聽到兩聲響亮的船鳴。渡輪啟航，駛入萊克瓦河。\n\n樓梯間可通往四層甲板：露天甲板（頂層）、慶典甲板（豪華艙室）、乘客甲板（經濟艙）、統艙甲板（船員吊床與貨物）。\n\n▶ 選擇前往哪一層。",
-      "choices":[
-        {"label":"0139 露天甲板（頂層）","goto":"0139"},
-        {"label":"0173 慶典甲板（豪華艙室）","goto":"0173"},
-        {"label":"0010 乘客甲板（經濟艙）","goto":"0010"},
-        {"label":"0027 統艙甲板（貨物）","goto":"0027"}
-      ]
-    },
-
-    "0139": {"scene":"ship","type":"story",
-      "text":"0139\n露天甲板上的人群比航行第一天稀疏了一些。\n\n你四處尋找可疑人員。樓梯間旁一個擦鞋的小男孩可能是目擊者，但吸引你注意的是船前部躺椅上一名金髮精靈——她那件帶有星星圖案的巫師長袍和頭髮一樣金黃。\n\n▶ 選擇調查對象。",
-      "choices":[
-        {"label":"詢問精靈巫師提亞","goto":"0119"},
-        {"label":"詢問擦鞋匠諾蘭","goto":"0028"},
-        {"label":"返回樓梯間","goto":"0172"}
-      ]
-    },
-
-    "0119": {"scene":"ship","type":"story","onEnter":"event:029","effect":"time:1",
-      "text":"金髮精靈巫師提亞坐在躺椅上。她的腰帶掛著塞滿材料的法術袋，旁邊卻有一個空的魔杖鞘（事件 #029）。\n\n▶ 選擇問題。",
-      "choices":[
-        {"label":"詢問她是否看到可疑情況","effect":"clue:wizard","goto":"tia_seen"},
-        {"label":"返回露天甲板","goto":"0139"}
-      ]
-    },
-    "tia_seen": {"scene":"ship","type":"story",
-      "text":"「很多人類，」她平淡地說，「在我看來，他們都很可疑。」\n\n片刻後補充：「我昨晚看到一艘漁船。船是空的，在漂流，而且看起來被燒焦了。」\n\n（事件 #028·線索：燒毀漁船。）\n\n▶ 繼續",
-      "choices":[{"label":"返回提亞","goto":"0119"}]},
-
-    "0028": {"scene":"ship","type":"story",
-      "text":"0028\n有幾位乘客在等著這個年輕擦鞋匠服務，每個人都準備好付一枚銀幣。\n\n▶ 支付 1 枚銀幣讓諾蘭回答。",
-      "choices":[
-        {"label":"支付 1 枚銀幣","require":{"gold":1},"hint":"需要 1 枚金幣（銀幣等值）。","effect":"gold:-1;event:005;event:030;clue:shoe;time:1","goto":"noland_answers"},
-        {"label":"不付錢，直接詢問","goto":"noland_free"},
-        {"label":"返回露天甲板","goto":"0139"}
-      ]
-    },
-    "noland_answers": {"scene":"ship","type":"story",
-      "text":"諾蘭很高興能獲得報酬。\n\n「可疑情況？有啊，我看到那邊有個穿牧師長袍的人，他試圖點燃一盞燈，說『是為了儀式』。船上禁止明火！結果有些乘客堅持要繼續，甲板水手只好跑去拿封閉燈籠。但我覺得那個牧師在朝岸邊打信號。」\n\n（事件 #005·#030·線索：擦鞋匠。）\n\n▶ 繼續",
-      "choices":[{"label":"返回露天甲板","goto":"0139"}]},
-    "noland_free": {"scene":"ship","type":"story",
-      "text":"諾蘭回答了所有問題，並堅稱他沒有看到任何與調查相關的線索。\n\n▶ 繼續",
-      "choices":[{"label":"返回露天甲板","goto":"0139"}]},
-
-    "0010": {"scene":"ship","type":"story",
-      "text":"0010\n乘客甲板的休息室裡，十幾名乘客圍著小桌子玩骰子遊戲。一位身著長袍的牧師站在賭桌旁，向幾位聽眾佈道。弗娜典獄長也在這裡執行日常巡邏。\n\n▶ 選擇調查對象。",
-      "choices":[
-        {"label":"詢問牧師西姆斯","goto":"0180"},
-        {"label":"與弗娜典獄長交談","goto":"0091"},
-        {"label":"進入艙室短休息（恢復 HP，推進 1 時段）","effect":"heal:full;time:1","goto":"0010"},
-        {"label":"返回樓梯間","goto":"0172"}
-      ]
-    },
-
-    "0180": {"scene":"ship","type":"story",
-      "text":"西姆斯助手是乘客甲板休息室的常客。儘管他宣揚反對與死者交流，但語氣並不張揚。\n\n▶ 選擇問題。",
-      "choices":[
-        {"label":"詢問他昨晚在哪裡","effect":"event:017;clue:priest;time:1","goto":"priest_where"},
-        {"label":"就他「眼熟的容貌」與祭司對質","effect":"event:017;clue:priest;time:1","goto":"priest_face"},
-        {"label":"返回乘客甲板","goto":"0010"}
-      ]
-    },
-    "priest_where": {"scene":"ship","type":"story",
-      "text":"牧師告訴你，他還在露天甲板上與一群信徒進行了一個多小時的宗教儀式。\n\n阿貝拉爾德低聲警告：「那個儀式很可疑，我從沒聽說過任何河神有夜間儀式。」\n\n（事件 #017·線索：西姆斯牧師。）\n\n▶ 繼續",
-      "choices":[{"label":"返回西姆斯","goto":"0180"}]},
-    "priest_face": {"scene":"ship","type":"story",
-      "text":"牧師承認他可能與海盜船長阿曼德·萊赫·克雷斯有血緣關係。\n\n「我們都出生在同一個河邊村莊。」\n\n附近一位女乘客驚呼：「哦，我知道那個村莊！現在所有海盜都住在那裡！」\n\n（事件 #017·線索：西姆斯牧師。）\n\n▶ 繼續",
-      "choices":[{"label":"返回西姆斯","goto":"0180"}]},
-
-    "0091": {"scene":"ship","type":"story","effect":"event:027;clue:guard;time:1",
-      "text":"弗娜典獄長正在乘客甲板巡邏。\n\n「昨晚的報告和以前一樣，只是無稽之談。一個新船員說她在明輪罩裡看到了萊赫·克雷斯的幽靈之光。你們可以去調查，但我保證那裡什麼都沒有。」\n\n（事件 #027·線索：明輪罩。）\n\n▶ 繼續",
-      "choices":[{"label":"返回乘客甲板","goto":"0010"}]},
-
-    "0173": {"scene":"ship","type":"story",
-      "text":"0173\n慶典甲板的裝飾比船上其他地方更好。這一層的艙室和客廳僅限貴族及其隨從使用。\n\n你的目光被貴族休息室裡那個留著濃密鬍子的半精靈吸引——他正在玩牌。這個半精靈似乎是一名職業賭徒。\n\n賈拉尼也在這裡，她為斯圖弗頓勳爵辦各種差事。\n\n▶ 選擇調查對象。",
-      "choices":[
-        {"label":"詢問賭徒哈維恩","goto":"0120"},
-        {"label":"詢問事務長托門茨","goto":"0006"},
-        {"label":"返回樓梯間","goto":"0172"}
-      ]
-    },
-
-    "0120": {"scene":"ship","type":"story",
-      "text":"這位半精靈賭徒名叫哈維恩。走近後，你能聞到他鬍子蠟的甜味。\n\n▶ 選擇問題。",
-      "choices":[
-        {"label":"詢問他是否看到任何可疑情況","effect":"event:022;time:1","goto":"havier_seen"},
-        {"label":"返回慶典甲板","goto":"0173"}
-      ]
-    },
-    "havier_seen": {"scene":"ship","type":"story",
-      "text":"「可疑情況？有，」哈維恩的眼睛左右掃視著房間。\n\n「船上有很多帶武器的人。但我也注意到很多人攜帶隱藏武器。還有一件事，看好你們的錢包。我在那個舷窗旁邊看到一個女孩偷了一個錢包，船上有扒手在活動。」\n\n（事件 #022。）\n\n▶ 繼續",
-      "choices":[{"label":"返回哈維恩","goto":"0120"}]},
-
-    "0006": {"scene":"ship","type":"story",
-      "text":"事務長在一間小辦公室工作。這位年長男人的名牌上寫著「托門茨」。\n\n▶ 選擇問題。",
-      "choices":[
-        {"label":"詢問他昨晚在哪裡","effect":"time:1","goto":"purser_where"},
-        {"label":"仔細觀察事務長","effect":"time:1","goto":"purser_scrutiny"},
-        {"label":"返回慶典甲板","goto":"0173"}
-      ]
-    },
-    "purser_where": {"scene":"ship","type":"story",
-      "text":"托門茨用手捋了捋他短短的白髮。\n\n「我當然在工作。我們每晚都會停靠一次，裝載補給品。我幾乎一整晚都在核對貨單和記錄庫存。」\n\n▶ 繼續",
-      "choices":[{"label":"返回事務長","goto":"0006"}]},
-    "purser_scrutiny": {"scene":"ship","type":"story",
-      "text":"你仔細觀察事務長。他對回答問題感到緊張，語氣和肢體語言都很不自然，但你不確定原因。\n\n（規則：被動洞察 13 以上可看穿他。本版被動洞察為 12，因此無法取得事件 #033。）\n\n▶ 繼續",
-      "choices":[{"label":"返回事務長","goto":"0006"}]},
-
-    "0027": {"scene":"ship","type":"story",
-      "text":"0027\n樓梯間底部通往統艙甲板。一名皮膚黝黑的矮人守衛著通往甲板其餘區域的門，他名叫西爾維斯特倫。\n\n▶ 選擇調查。",
-      "choices":[
-        {"label":"審問守衛西爾維斯特倫","goto":"guard_talk"},
-        {"label":"下到船底艙（戰鬥）","effect":"combat_start","goto":"0123"},
-        {"label":"返回樓梯間","goto":"0172"}
-      ]
-    },
-    "guard_talk": {"scene":"ship","type":"story","onEnter":"event:027",
-      "text":"西爾維斯特倫告訴你，他在午夜過後一小時才開始值班。\n\n「我大部分時間都在這扇門後的吊床上，總覺得露天甲板不太對勁。」\n\n▶ 繼續",
-      "choices":[{"label":"返回統艙甲板","goto":"0027"}]},
-
-    "0123": {"scene":"combat","type":"combat",
-      "text":"0123\n鼠群被擊敗。你搜查搬運工的屍體：腰帶上掛著帶鞘匕首；束腰外衣裡有一包斯圖弗頓勳爵的通信；他緊握的手中還有一根紅木巫師魔杖。\n\n（事件 #008·線索：船底艙屍體。）\n\n▶ 返回調查選單。",
-      "onEnter":"event:008;clue:body;item:mahogany_wand;item:letters;item:dagger;time:1",
-      "choices":[
-        {"label":"向弗娜典獄長報告（至少 2 條線索）","require":{"cluesMin":2},"hint":"需至少 2 條線索。","goto":"report"},
-        {"label":"繼續調查","goto":"0027"}
-      ]
-    },
-
-    "report": {"scene":"ship","type":"report",
-      "text":"你把線索整理給弗娜典獄長。她攤開筆記本：「你認為誰是犯人？」\n\n▶ 選擇要指控的對象。",
-      "choices":[
-        {"label":"指控精靈巫師提亞（需 屍體 + 空魔杖鞘）","require":{"clues":["body","wizard"]},"hint":"缺少證據：需先取得 #008 與 #029。","effect":"ending:success"},
-        {"label":"指控事務長托門茨（需 可疑線索）","require":{"clues":["purser"]},"hint":"你沒有足夠的事務長證據。","effect":"ending:wrong"},
-        {"label":"報告失蹤搬運工（需 屍體）","require":{"clues":["body"]},"hint":"尚未找到搬運工。","effect":"ending:partial"},
-        {"label":"返回繼續調查","goto":"0027"}
-      ]
-    }
-  },
-
-  "endings": {
-    "success": {"achievement":"success","gold":50,"items":["necklace","shell_charm"],
-      "text":"你指出提亞利用搬運工從保險箱偷出石碑，並在船底艙殺人滅口。弗娜典獄長派甲板水手搜查提亞艙室，果然找回石碑。\n\n【序章成功結局】\n獲得 50 金幣、納明丁榮譽項鍊、貝殼護身符。\n\n▶ 前往切斯特拉爾主冒險。"},
-    "wrong": {"achievement":"wrong",
-      "text":"弗娜典獄長調查後發現他確實與扒手集團有關，但失竊石碑並非他所為。真正的犯人有了警覺。\n\n【錯誤指控結局】\n你仍抵達切斯特拉爾，但留下遺憾。"},
-    "partial": {"achievement":"partial","gold":10,
-      "text":"你報告搬運工下落。弗娜封鎖現場，但石碑未找回。\n\n【部分真相結局】\n獲得 10 金幣。"},
-    "death": {"achievement":"death",
-      "text":"你被紅眼鼠群撲倒。船底艙的污水漫過膝蓋，黑暗吞沒視線。\n\n【死亡結局】\n壯麗號短暫停靠，馬車將你逆流送回哈利茲堡。冒險在此結束。"}
-  }
-}
-</script>
-
 <script>
-/* ============ 載入資料 ============ */
-const DATA = JSON.parse(document.getElementById('advData').textContent);
 const $=id=>document.getElementById(id);
-const SAVE_KEY='festivalTombs_v4', ACH_KEY='festivalTombsAch_v4';
-const ACH_NAMES={success:'序章破案：正確指控提亞',wrong:'錯誤指控：真相未明',partial:'部分真相：只有搬運工',death:'船底艙死亡'};
-function fresh(){return{phase:'manual',entry:'0000',hp:11,maxHp:11,gold:0,day:1,time:0,events:[],inventory:[],history:[],achievements:[],sound:true,clues:{},mission:null,companion:null,season:null,combat:null};}
+const SAVE_KEY='festivalTombs_v7', ACH_KEY='festivalTombsAch_v7';
+const ACH_NAMES={success:'序章破案：正確指控提亞',wrong:'錯誤指控：真相未明',partial:'部分真相：只有搬運工',death:'序章死亡',fullClues:'全線索調查員',mainStart:'抵達切斯特拉爾',pirate:'夜間海盜倖存',ghost:'目擊幽靈船長',level2:'晉升 2 級',cityStart:'城市探索開始'};
+function fresh(){return{phase:'manual',entry:'0000',hp:11,maxHp:11,gold:0,day:1,time:0,events:[],inventory:[],history:[],achievements:[],sound:true,clues:{},mission:null,companion:null,season:null,combat:null,level:1};}
 let state=fresh();
 state.achievements=JSON.parse(localStorage.getItem(ACH_KEY)||'[]');
 
-/* ============ 工具 ============ */
 function d20(m=0){return Math.floor(Math.random()*20)+1+m;}
 function rnd(n){return Math.floor(Math.random()*n)+1;}
 function has(id){return state.events.includes(String(id));}
 function mark(id){id=String(id);if(!has(id))state.events.push(id);}
-function item(key){const n=DATA.items[key];if(n&&!state.inventory.includes(n))state.inventory.push(n);}
-function hist(t){state.history.push(`[${state.day}天·${state.time}時] ${t}`);if(state.history.length>150)state.history.shift();}
+function item(n){if(!state.inventory.includes(n))state.inventory.push(n);}
+function drop(n){const i=state.inventory.indexOf(n);if(i>=0)state.inventory.splice(i,1);}
+function hist(t){state.history.push(`[第${state.day}天·${state.time}時] ${t}`);if(state.history.length>200)state.history.shift();}
+function adv(n=1){state.time=Math.min(5,state.time+n);if(state.time>=5)toast('時段已滿 5，建議回長羽旅館長休息。');}
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),2400);}
 function sfx(t='click'){if(!state.sound)return;try{const c=window._ac||(window._ac=new(window.AudioContext||window.webkitAudioContext)());const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value={click:440,hit:160,win:660,lose:110,dice:300}[t]||440;g.gain.setValueAtTime(.045,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.13);o.start();o.stop(c.currentTime+.13);}catch(e){}}
+function unlock(a){if(!state.achievements.includes(a)){state.achievements.push(a);localStorage.setItem(ACH_KEY,JSON.stringify(state.achievements));side();toast('🏆 '+(ACH_NAMES[a]||a));}}
 
-/* ============ 打字機 ============ */
 let tmr=null,full='';
 function story(t){full=t||'';const el=$('story');el.textContent='';clearInterval(tmr);let i=0;el.onclick=()=>{clearInterval(tmr);el.textContent=full;};tmr=setInterval(()=>{if(i>=full.length){clearInterval(tmr);return;}el.textContent+=full[i++];},14);}
 
-/* ============ 狀態更新 ============ */
 function stats(){$('hp').textContent=Math.max(0,state.hp);$('maxHp').textContent=state.maxHp;$('gold').textContent=state.gold;$('day').textContent=state.day;$('time').textContent=state.time;$('invCount').textContent=state.inventory.length;$('eventCount').textContent=state.events.length;$('soundBtn').textContent='音效：'+(state.sound?'開':'關');}
 function side(){
   $('eventsList').innerHTML=state.events.length?state.events.map(e=>`<span class="chip">#${e}</span>`).join(''):'<span class="muted">尚無</span>';
@@ -392,156 +113,326 @@ function side(){
   $('achievementList').innerHTML=state.achievements.length?state.achievements.map(a=>`<li>🏆 ${ACH_NAMES[a]||a}</li>`).join(''):'<li class="muted">尚無</li>';
 }
 
-/* ============ SVG ============ */
 function svg(type='ship'){
   const stars=Array.from({length:26},(_,i)=>{const x=(i*67)%900,y=(i*31)%108,r=i%3===0?1.6:1;return`<circle cx="${x}" cy="${y}" r="${r}" fill="#ffe9a8" class="twinkle" style="animation-delay:${(i%7)*.3}s"/>`;}).join('');
   const base=`<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07111d"/><stop offset="1" stop-color="#1d3147"/></linearGradient><linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16364a"/><stop offset="1" stop-color="#071018"/></linearGradient></defs><rect width="900" height="190" fill="url(#sky)"/>${stars}<rect y="128" width="900" height="62" fill="url(#water)"/><path d="M0 130 Q80 122 160 130 T320 130 T480 130 T640 130 T800 130 T900 128 V190 H0Z" fill="#0b1d28" opacity=".8"/>`;
-  if(type==='combat')return base+`<rect y="145" width="900" height="45" fill="#1b120b"/><path d="M0 150 Q120 138 240 150 T480 150 T720 150 T900 148 V190 H0Z" fill="#382313"/><g class="mist"><ellipse cx="450" cy="165" rx="260" ry="18" fill="#7ea88c" opacity=".18"/></g><text x="640" y="40" fill="#ffd27a" font-size="16" font-family="serif">船底艙·紅眼鼠群</text>`;
-  if(type==='city')return base+`<rect y="118" width="900" height="72" fill="#24170e"/>${[80,170,280,390,520,650,780].map((x,i)=>`<rect x="${x}" y="${58+(i%3)*14}" width="${70+i*4}" height="${92-(i%3)*14}" fill="#3b2a1b" stroke="#7d5b31"/><rect x="${x+10}" y="${74+(i%3)*14}" width="12" height="16" fill="#ffd27a" class="twinkle"/><rect x="${x+30}" y="${74+(i%3)*14}" width="12" height="16" fill="#ffd27a" class="twinkle" style="animation-delay:.4s"/>`).join('')}<text x="620" y="36" fill="#ffe1a0" font-size="16" font-family="serif">切斯特拉爾·覺醒節</text>`;
-  return base+`<path d="M170 132 L730 132 L660 172 L240 172Z" fill="#5c3a1d" stroke="#c99a4a"/><rect x="310" y="88" width="280" height="44" fill="#6e4a25" stroke="#c99a4a"/><rect x="350" y="96" width="30" height="22" fill="#ffd27a" class="twinkle"/><rect x="400" y="96" width="30" height="22" fill="#ffd27a" class="twinkle" style="animation-delay:.5s"/><rect x="450" y="96" width="30" height="22" fill="#ffd27a" class="twinkle" style="animation-delay:.9s"/><path d="M280 80 L450 45 L620 80" fill="none" stroke="#c99a4a" stroke-width="4"/><path class="flag" d="M450 45 L450 15 L500 28 L450 40" fill="#7a2e22"/><g class="mist"><ellipse cx="450" cy="150" rx="280" ry="16" fill="#8fb7c9" opacity=".18"/></g><text x="580" y="36" fill="#ffe1a0" font-size="16" font-family="serif">壯麗號·萊克瓦河</text>`;
+  if(type==='combat')return base+`<rect y="145" width="900" height="45" fill="#1b120b"/><path d="M0 150 Q120 138 240 150 T480 150 T720 150 T900 148 V190 H0Z" fill="#382313"/><g class="mist"><ellipse cx="450" cy="165" rx="260" ry="18" fill="#7ea88c" opacity=".18"/></g><text x="640" y="40" fill="#ffd27a" font-size="16" font-family="serif">戰鬥</text>`;
+  if(type==='city')return base+`<rect y="118" width="900" height="72" fill="#24170e"/>${[80,170,280,390,520,650,780].map((x,i)=>`<rect x="${x}" y="${58+(i%3)*14}" width="${70+i*4}" height="${92-(i%3)*14}" fill="#3b2a1b" stroke="#7d5b31"/><rect x="${x+10}" y="${74+(i%3)*14}" width="12" height="16" fill="#ffd27a" class="twinkle"/><rect x="${x+30}" y="${74+(i%3)*14}" width="12" height="16" fill="#ffd27a" class="twinkle" style="animation-delay:.4s"/>`).join('')}<text x="620" y="36" fill="#ffe1a0" font-size="16" font-family="serif">切斯特拉爾</text>`;
+  if(type==='boat')return base+`<path d="M200 135 L700 135 L640 170 L260 170Z" fill="#5c3a1d" stroke="#c99a4a"/><rect x="340" y="95" width="220" height="40" fill="#6e4a25" stroke="#c99a4a"/><text x="600" y="40" fill="#ffd27a" font-size="16" font-family="serif">救生艇</text>`;
+  if(type==='ghost')return base+`<rect y="145" width="900" height="45" fill="#101420"/><g class="mist"><ellipse cx="450" cy="150" rx="300" ry="20" fill="#a0d0e0" opacity=".22"/></g><path d="M400 50 Q430 20 470 50 Q500 30 500 80 L480 140 L440 140 L420 90 Q400 70 400 50Z" fill="#a0d0e0" opacity=".5"/><text x="560" y="40" fill="#ffd27a" font-size="16" font-family="serif">幽靈船長</text>`;
+  if(type==='temple')return base+`<rect y="118" width="900" height="72" fill="#24170e"/><path d="M350 190 V90 Q450 40 550 90 V190Z" fill="#6e4a25" stroke="#c99a4a" stroke-width="3"/><rect x="430" y="130" width="40" height="60" fill="#ffd27a" opacity=".7"/><text x="380" y="40" fill="#ffe1a0" font-size="16" font-family="serif">安伯林神廟</text>`;
+  return base+`<path d="M170 132 L730 132 L660 172 L240 172Z" fill="#5c3a1d" stroke="#c99a4a"/><rect x="310" y="88" width="280" height="44" fill="#6e4a25" stroke="#c99a4a"/><rect x="350" y="96" width="30" height="22" fill="#ffd27a" class="twinkle"/><rect x="400" y="96" width="30" height="22" fill="#ffd27a" class="twinkle" style="animation-delay:.5s"/><rect x="450" y="96" width="30" height="22" fill="#ffd27a" class="twinkle" style="animation-delay:.9s"/><path d="M280 80 L450 45 L620 80" fill="none" stroke="#c99a4a" stroke-width="4"/><path class="flag" d="M450 45 L450 15 L500 28 L450 40" fill="#7a2e22"/><g class="mist"><ellipse cx="450" cy="150" rx="280" ry="16" fill="#8fb7c9" opacity=".18"/></g><text x="580" y="36" fill="#ffe1a0" font-size="16" font-family="serif">壯麗號</text>`;
 }
 
-/* ============ 效果執行（從 JSON 的 effect 字串解析） ============ */
-const ACTIONS = {
-  mission:   (key)=>{const m=DATA.missions[key];if(!m)return;mark(m.event);state.mission={key,...m};hist('任務：'+m.name);},
-  season:    (key)=>{const s=DATA.seasons[key];if(!s)return;mark(s.event);state.season={key,...s};hist('季節：'+s.name);},
-  companion: (key)=>{const c=DATA.companions[key];if(!c)return;mark(c.event);state.companion={key,...c};hist('夥伴：'+c.name);},
-  clue:      (key)=>{state.clues[key]=true;const c=DATA.clues[key];if(c)mark(c.event);hist('線索：'+(c?c.name:key));},
-  event:     (id)=>mark(id),
-  item:      (key)=>item(key),
-  gold:      (n)=>{state.gold+=parseInt(n,10)||0;},
-  time:      (n)=>{state.time=Math.min(5,state.time+(parseInt(n,10)||0));},
-  heal:      (mode)=>{if(mode==='full')state.hp=state.maxHp;},
-  check:     (ability,dc,pass,fail)=>{
-                const mod = ability==='str'?2 : ability==='dex'?2 : 0;
-                const r=d20(mod); sfx('dice');
-                toast(`檢定 d20+${mod}=${r}（DC ${dc}）`);
-                go(r>=dc?pass:fail);
-                return true; // 表示 effect 已自行跳轉
-             },
-  combat_start: ()=>{ state.combat={enemyHp:24,enemyMax:24,round:1,enemyAttack:3,enemyDmg:'1d6'}; mark('003'); hist('進入船底艙'); combatRender(); return true; },
-  ending:    (key)=>{const e=DATA.endings[key];if(!e)return;if(e.gold)state.gold+=e.gold;if(e.items)e.items.forEach(k=>item(k));state.phase='ended';if(e.achievement&&!state.achievements.includes(e.achievement)){state.achievements.push(e.achievement);localStorage.setItem(ACH_KEY,JSON.stringify(state.achievements));}setEndingText(e.text);return true;}
+function choices(list){const b=$('choices');b.innerHTML='';list.forEach(o=>{const btn=document.createElement('button');btn.className='choice';btn.textContent=o.label;btn.onclick=()=>{sfx('click');if(o.check&&!o.check()){toast(o.hint||'條件不足');return;}if(o.do)o.do();if(o.goto)go(o.goto);};b.appendChild(btn);});}
+
+const E={};
+function go(id){state.entry=id;const e=E[id];if(!e){story('缺少條目 '+id);choices([{label:'重新開始',do:resetGame}]);return;}if(e.onEnter)e.onEnter();$('svgScene').innerHTML=svg(e.scene||'ship');story(typeof e.text==='function'?e.text():e.text||'');choices((typeof e.choices==='function'?e.choices():e.choices)||[]);stats();side();}
+
+/* ============ 通用戰鬥系統 ============ */
+const MONSTERS={
+  rats:{name:'紅眼鼠群',hp:24,ac:10,atk:3,dmg:'1d6',desc:'一群紅眼老鼠'},
+  pirate:{name:'海盜',hp:11,ac:11,atk:3,dmg:'1d6+1',desc:'一名海盜'},
+  ghost:{name:'幽靈船長',hp:22,ac:12,atk:5,dmg:'2d4',desc:'阿曼德·萊赫·克雷斯的幽靈'}
 };
 
-function runEffects(str){
-  if(!str)return false;
-  const parts=String(str).split(';').map(s=>s.trim()).filter(Boolean);
-  let redirected=false;
-  for(const p of parts){
-    const [type,...args]=p.split(':');
-    if(!ACTIONS[type]){console.warn('未知 effect:',type);continue;}
-    if(ACTIONS[type](...args)){redirected=true;break;}
-  }
-  return redirected;
+function startCombat(cfg){
+  state.combat={
+    round:1,
+    enemies:cfg.enemies.map(k=>({key:k,...MONSTERS[k]})),
+    victory:cfg.victory,
+    defeat:cfg.defeat||'death_end',
+    flee:cfg.flee,
+    fleeDC:cfg.fleeDC||10,
+    intro:cfg.intro||''
+  };
+  renderCombat();
 }
 
-/* ============ 渲染 ============ */
-function go(id){
-  state.entry=id;
-  const e=DATA.entries[id];
-  if(!e){story('缺少條目 '+id);choices([{label:'重新開始',do:resetGame}]);return;}
-  if(e.type==='combat'){combatRender();return;}
-  if(e.onEnter)runEffects(e.onEnter);
-  $('svgScene').innerHTML=svg(e.scene||'ship');
-  story(e.text||'');
-  renderChoices(e.choices||[]);
-  stats();side();
-}
-function renderChoices(list){
-  const b=$('choices');b.innerHTML='';
-  list.forEach(o=>{
-    const btn=document.createElement('button');
-    btn.className='choice';
-    btn.textContent=o.label;
-    btn.onclick=()=>{
-      sfx('click');
-      if(o.require&&!checkRequire(o.require)){toast(o.hint||'條件不足');return;}
-      if(o.effect){const handled=runEffects(o.effect);stats();side();if(handled)return;}
-      if(o.goto)go(o.goto);
-      else{stats();side();}
-    };
-    b.appendChild(btn);
-  });
-}
-function checkRequire(req){
-  if(req.gold&&state.gold<req.gold)return false;
-  if(req.cluesMin&&Object.keys(state.clues).filter(k=>state.clues[k]).length<req.cluesMin)return false;
-  if(req.clues&&!req.clues.every(k=>state.clues[k]))return false;
-  return true;
-}
-
-/* ============ 戰鬥 ============ */
-function combatRender(){
+function renderCombat(){
   const c=state.combat;if(!c){go(state.entry);return;}
+  state.phase='combat';
   $('svgScene').innerHTML=svg('combat');
-  story(`【戰鬥：船底艙】\n鼠群 HP：${Math.max(0,c.enemyHp)}/${c.enemyMax}\n你的 HP：${Math.max(0,state.hp)}/${state.maxHp}\n回合：${c.round}\n\n濕滑油膩的甲板覆蓋浮渣。鼠群朝你和阿貝拉爾德游來。`);
-  choices([
-    {label:'攻擊鼠群（d20+4，命中 1d8+2）',do:()=>{sfx('dice');const h=d20(4);if(h>=10){const d=1+rnd(8)+1;state.combat.enemyHp-=d;sfx('hit');toast(`命中！造成 ${d} 點傷害。`);if(state.combat.enemyHp<=0){state.combat=null;go('0123');return;}}else toast(`未命中（${h}）。`);enemyTurn();}},
-    {label:'逃跑（DC 10 敏捷）',do:()=>{sfx('dice');const r=d20(2);toast(`敏捷：${r}（DC 10）`);if(r>=10){state.combat=null;hist('逃離鼠群');go('0123');}else{toast('逃跑失敗！');enemyTurn();}}},
-    {label:'使用治療藥水（若持有）',do:()=>{const k=DATA.items.potion;if(state.inventory.includes(k)){state.inventory.splice(state.inventory.indexOf(k),1);const h=2+rnd(4)+rnd(4);state.hp=Math.min(state.maxHp,state.hp+h);toast('恢復 '+h+' 點。');stats();combatRender();}else toast('沒有治療藥水。');}}
-  ]);
-  stats();
+  const enemy=c.enemies[0];
+  story(`【戰鬥：${c.intro||enemy.name}】\n${enemy.name} HP：${Math.max(0,enemy.hp)}/${MONSTERS[enemy.key].hp}\n你的 HP：${Math.max(0,state.hp)}/${state.maxHp}\n回合：${c.round}\n\n▶ 選擇行動。`);
+  const list=[
+    {label:`攻擊 ${enemy.name}（d20+4，命中 1d8+2）`,do:()=>{sfx('dice');const h=d20(4);if(h>=enemy.ac){const d=3+rnd(8);enemy.hp-=d;sfx('hit');toast(`命中！造成 ${d} 點傷害。`);}else toast(`未命中（${h} vs AC ${enemy.ac}）。`);afterPlayerTurn();}}
+  ];
+  if(c.flee)list.push({label:`逃跑（DC ${c.fleeDC} 敏捷）`,do:()=>{sfx('dice');const r=d20(2);toast(`敏捷：${r}（DC ${c.fleeDC}）`);if(r>=c.fleeDC){state.combat=null;go(c.flee);}else{toast('逃跑失敗！');enemyTurn();}}});
+  if(state.inventory.includes('治療藥水'))list.push({label:'使用治療藥水',do:()=>{drop('治療藥水');const h=2+rnd(4)+rnd(4);state.hp=Math.min(state.maxHp,state.hp+h);toast('恢復 '+h+' 點。');stats();renderCombat();}});
+  choices(list);stats();
+}
+function afterPlayerTurn(){
+  const c=state.combat;if(!c)return;
+  if(c.enemies[0].hp<=0){state.combat=null;hist('戰鬥勝利');go(c.victory);return;}
+  enemyTurn();
 }
 function enemyTurn(){
   const c=state.combat;if(!c)return;
-  const h=d20(c.enemyAttack);
-  if(h>=14){const d=1+rnd(6);state.hp-=d;sfx('hit');toast(`鼠群咬中你，受到 ${d} 點傷害。`);}
-  else toast(`鼠群撲空（${h}）。`);
-  if(state.hp<=0){showEnding('death');return;}
-  state.combat.round++;stats();combatRender();
+  const e=c.enemies[0];
+  const h=d20(e.atk);
+  if(h>=12){const d=1+rnd(6);state.hp-=d;sfx('hit');toast(`${e.name}命中你，受到 ${d} 點傷害。`);}
+  else toast(`${e.name}撲空（${h}）。`);
+  if(state.hp<=0){state.combat=null;go(c.defeat);return;}
+  c.round++;stats();renderCombat();
 }
 
 /* ============ 結局 ============ */
-function showEnding(key){
-  const e=DATA.endings[key];if(!e)return;
-  state.phase='ended';
-  if(e.gold)state.gold+=e.gold;
-  if(e.items)e.items.forEach(k=>item(k));
-  if(e.achievement&&!state.achievements.includes(e.achievement)){
-    state.achievements.push(e.achievement);
-    localStorage.setItem(ACH_KEY,JSON.stringify(state.achievements));
-  }
-  hist('結局：'+key);
-  stats();side();
-  setEndingText(e.text);
-}
-function setEndingText(text){
-  story(text);
-  choices([
-    {label:'🔄 重新開始',do:resetGame},
-    {label:'🏆 成就',do:openAchievements},
-    {label:'🧭 歷史',do:openHistory}
-  ]);
-}
+function endG(tag,text){state.phase='ended';unlock(tag);stats();side();story(text);choices([{label:'🔄 重新開始',do:resetGame},{label:'🏆 成就',do:openAchievements},{label:'🧭 歷史',do:openHistory}]);hist('結局：'+tag);}
+function win(){state.gold+=50;item('納明丁榮譽項鍊');item('貝殼護身符');mark('034');hist('正確指控提亞');endG('success',`你指出提亞利用搬運工從保險箱偷出石碑，並在船底艙殺人滅口。弗娜典獄長派甲板水手搜查提亞艙室，果然找回石碑。\n\n【序章成功結局】\n獲得 50 金幣、納明丁榮譽項鍊、貝殼護身符。\n\n▶ 進入 2 級：繼續主冒險。`);}
+function wrong(t){endG('wrong',t+`\n\n【錯誤指控結局】\n弗娜典獄長失望。真正的犯人有了警覺。你仍抵達切斯特拉爾，但留下遺憾。`);}
+function partial(){state.gold+=10;endG('partial',`你報告搬運工下落。弗娜封鎖現場，但石碑未找回。\n\n【部分真相結局】\n獲得 10 金幣。`);}
 
-/* ============ 選項小工具（戰鬥用） ============ */
-function choices(list){const b=$('choices');b.innerHTML='';list.forEach(o=>{const btn=document.createElement('button');btn.className='choice';btn.textContent=o.label;btn.onclick=()=>{sfx('click');if(o.check&&!o.check()){toast(o.hint||'條件不足');return;}if(o.do)o.do();if(o.goto)go(o.goto);};b.appendChild(btn);});}
+/* ============ 條目庫 ============ */
+const M={duel:['130','決鬥審判',`0162\n一年前，你同意在檔案管理員廣場進行決鬥。津·塔戈這個龍裔必須死。其中一位致殘後被拋棄的人，是你的叔叔。\n\n如今尋求正義的唯一希望，是這座城市古老的決鬥審判法。`],medicine:['137','拉本靈藥',`0023\n你的目的地是安伯林神廟，廟裡的牧師掌握著製作拉本靈藥的秘密，這種靈藥能治癒正在威脅你家鄉的疾病。`],brooch:['142','光明希望之星',`0039\n「光明希望之星」曾屬於你的家族，十年前被盜。最近有傳言說福斯科拉夫人佩戴過它。`],lover:['126','舊情人羅賓',`0056\n你依然愛著羅賓·馮特茲。你不知道再次見到羅賓會發生什麼——或許這份思念是相互的。`]};
+const C={warrior:['150','戰士',`0003\n阿貝拉爾德從你童年起就是你最可靠的夥伴。`],priest:['160','牧師',`0024\n阿貝拉爾德是個老練的人，幽默感很文雅。`],rogue:['166','盜賊',`0057\n阿貝拉爾德成了一名神祕的企業家。`],mage:['174','法師',`0065\n你覺得有必要保護阿貝拉爾德，避免他惹上麻煩。`]};
+const S={winter:['190','冬至'],autumn:['204','秋分'],summer:['218','夏至'],spring:['237','春分']};
 
-/* ============ 音效開關 ============ */
-function toggleSound(){state.sound=!state.sound;$('soundBtn').textContent='音效：'+(state.sound?'開':'關');if(state.sound)sfx('click');}
+E['0000']={scene:'ship',text:`0000\n渡輪的隊伍排得很長。\n\n「快到了，」你身後的半獸人賈拉尼說，「你今年去切斯特拉爾是為了什麼？」\n\n▶ 選擇主要任務。`,choices:[{label:'▶ 0162 決鬥',do:()=>pickM('duel')},{label:'▶ 0023 藥物',do:()=>pickM('medicine')},{label:'▶ 0039 胸針',do:()=>pickM('brooch')},{label:'▶ 0056 舊情人',do:()=>pickM('lover')}]};
+function pickM(k){const m=M[k];mark(m[0]);state.mission={k,name:m[1]};hist('任務：'+m[1]);go(k);}
+E['duel']={scene:'ship',text:()=>M.duel[2]+`\n\n（事件 #130）`,choices:[{label:'繼續',goto:'0076'}]};
+E['medicine']={scene:'ship',text:()=>M.medicine[2]+`\n\n（事件 #137）`,choices:[{label:'繼續',goto:'0076'}]};
+E['brooch']={scene:'ship',text:()=>M.brooch[2]+`\n\n（事件 #142）`,choices:[{label:'繼續',goto:'0076'}]};
+E['lover']={scene:'ship',text:()=>M.lover[2]+`\n\n（事件 #126）`,choices:[{label:'繼續',goto:'0076'}]};
+
+E['0076']={scene:'ship',text:`0076\n斯圖弗頓勳爵登船前與妻子爭吵。\n\n你知道覺醒節每年舉行一次，但舉辦季節各不相同。今年……`,choices:[{label:'0090 冬至',do:()=>pickS('winter')},{label:'0114 秋分',do:()=>pickS('autumn')},{label:'0099 夏至',do:()=>pickS('summer')},{label:'0121 春分',do:()=>pickS('spring')}]};
+function pickS(k){mark(S[k][0]);state.season={k};hist('季節：'+S[k][1]);go('0169');}
+
+E['0169']={scene:'ship',text:`0169\n檢票員核對了你的票。\n\n你是在……的時候認識阿貝拉爾德的。`,choices:[{label:'0003 小時候',do:()=>pickC('warrior')},{label:'0024 借錢',do:()=>pickC('priest')},{label:'0057 盜竊',do:()=>pickC('rogue')},{label:'0065 雇用',do:()=>pickC('mage')}]};
+function pickC(k){const c=C[k];mark(c[0]);state.companion={k,name:c[1]};hist('夥伴：'+c[1]);go(k);}
+E['warrior']={scene:'ship',text:()=>C.warrior[2]+`\n\n（事件 #150）`,choices:[{label:'繼續',goto:'0077'}]};
+E['priest']={scene:'ship',text:()=>C.priest[2]+`\n\n（事件 #160）`,choices:[{label:'繼續',goto:'0077'}]};
+E['rogue']={scene:'ship',text:()=>C.rogue[2]+`\n\n（事件 #166）`,choices:[{label:'繼續',goto:'0077'}]};
+E['mage']={scene:'ship',text:()=>C.mage[2]+`\n\n（事件 #174）`,choices:[{label:'繼續',goto:'0077'}]};
+
+E['0077']={scene:'ship',onEnter:()=>item('登船牌'),text:`0077\n檢票員遞給你登船牌和房間鑰匙。\n\n▶ 0174 繼續`,choices:[{label:'繼續',goto:'0174'}]};
+E['0174']={scene:'ship',text:`0174\n你的小艙室有一張三層鋪位。\n\n▶ 0115 繼續`,choices:[{label:'繼續',goto:'0115'}]};
+E['0115']={scene:'ship',text:`0115\n更多乘客湧上甲板。\n\n▶ DC 8 力量（運動）。`,choices:[{label:'力量 DC 8',do:()=>{sfx('dice');const r=d20(2);toast(`力量：${r}`);if(r>=8){mark('015');go('0094');}else{adv();go('0095');}}},{label:'慢慢跟（耗 1 時段）',do:()=>{adv();go('0095');}}]};
+E['0095']={scene:'ship',text:`0095\n最終人群開始散去。`,choices:[{label:'繼續',goto:'0172'}]};
+E['0094']={scene:'ship',text:`0094\n你擠過人群，看到一位年輕女人需要幫助。`,choices:[{label:'0138 詢問',goto:'0138'},{label:'0001 無視',goto:'0001'}]};
+E['0138']={scene:'ship',text:`0138\n「我看到有人了！」她驚呼，「他的脖子被割破了！」`,choices:[{label:'0166 幫忙尋找',goto:'0166'},{label:'0112 叫水手',goto:'0112'},{label:'0001 無視',goto:'0001'}]};
+E['0166']={scene:'ship',text:`0166\n▶ DC 10 察覺。`,choices:[{label:'察覺 DC 10',do:()=>{sfx('dice');const r=d20(2);toast(`察覺：${r}`);if(r>=10){mark('012');go('0157');}else{go('0001');}}}]};
+E['0157']={scene:'ship',text:`0157\n你看到那個男人捂著喉嚨，眉毛上有「X」形傷疤。\n\n（事件 #012）`,choices:[{label:'繼續',goto:'0172'}]};
+E['0112']={scene:'ship',text:`0112\n▶ DC 10 說服。`,choices:[{label:'說服 DC 10',do:()=>{sfx('dice');const r=d20(0);toast(`說服：${r}`);if(r>=10){mark('012');go('0129');}else{go('0166');}}}]};
+E['0129']={scene:'ship',text:`0129\n甲板水手嘶聲說出一個名字：「拉·克雷斯。」\n\n（事件 #012）`,choices:[{label:'繼續',goto:'0172'}]};
+E['0001']={scene:'ship',text:`0001\n你朝樓梯間走去。`,choices:[{label:'繼續',goto:'0172'}]};
+
+E['0172']={scene:'ship',text:`0172\n渡輪啟航。樓梯間可通往四層甲板。`,choices:[{label:'0139 露天甲板',goto:'0139'},{label:'0173 慶典甲板',goto:'0173'},{label:'0010 乘客甲板',goto:'0010'},{label:'0027 統艙甲板',goto:'0027'}]};
+E['0139']={scene:'ship',text:`0139\n露天甲板。`,choices:[{label:'詢問精靈巫師提亞',goto:'0119'},{label:'詢問擦鞋匠諾蘭',goto:'0028'},{label:'0005 擠向樓梯間',goto:'0005'},{label:'0165 朝船頭前進',goto:'0165'},{label:'返回樓梯間',goto:'0172'}]};
+
+E['0119']={scene:'ship',onEnter:()=>{mark('029');adv();},text:`提亞的腰帶上掛著空的魔杖鞘（事件 #029）。`,choices:[{label:'詢問可疑情況',goto:'tia_seen'},{label:'詢問原因',goto:'tia_why'},{label:'0138 就「殘留物」質問',goto:'tia_residue',check:()=>has('019'),hint:'需先看過保險箱殘留物（#019）。'},{label:'返回',goto:'0139'}]};
+E['tia_seen']={scene:'ship',onEnter:()=>{mark('028');state.clues.wizard=true;},text:`「我昨晚看到一艘漁船。船是空的，在漂流，而且看起來被燒焦了。」\n\n（事件 #028·線索）`,choices:[{label:'返回',goto:'0119'}]};
+E['tia_why']={scene:'ship',text:`提亞說她去切斯特拉爾是為了在學院面試。`,choices:[{label:'返回',goto:'0119'}]};
+E['tia_residue']={scene:'ship',text:`提亞堅稱靈質樣本密封，一定是船長鬼魂所為。\n\n（事件 #019·提亞回應）`,choices:[{label:'返回',goto:'0119'}]};
+
+E['0028']={scene:'ship',text:`0028\n▶ 支付 1 枚金幣。`,choices:[{label:'支付 1 枚金幣',check:()=>state.gold>=1,hint:'需 1 金幣。',do:()=>{state.gold-=1;mark('005');mark('030');state.clues.shoe=true;adv();go('noland_answers');}},{label:'不付錢',do:()=>go('noland_free')},{label:'返回',goto:'0139'}]};
+E['noland_answers']={scene:'ship',text:`諾蘭說牧師在朝岸邊打信號。\n\n（事件 #005·#030·線索）`,choices:[{label:'繼續',goto:'0139'}]};
+E['noland_free']={scene:'ship',text:`諾蘭堅稱他沒看到任何線索。`,choices:[{label:'返回',goto:'0139'}]};
+
+E['0005']={scene:'ship',text:`0005\n▶ DC 12 神祕學或歷史。`,choices:[{label:'神祕學 DC 12',do:()=>{sfx('dice');const r=d20(2);toast(`神祕學：${r}`);if(r>=12){mark('012');go('0022');}else{go('0066');}}},{label:'歷史 DC 12',do:()=>{sfx('dice');const r=d20(2);toast(`歷史：${r}`);if(r>=12){mark('012');go('0038');}else{go('0066');}}},{label:'離開',goto:'0066'}]};
+E['0022']={scene:'ship',text:`0022\n你記得這名海盜船長前額有一道「X」形傷疤。\n\n（事件 #012）`,choices:[{label:'繼續',goto:'0066'}]};
+E['0038']={scene:'ship',text:`0038\n你記得阿曼德·萊赫·克雷斯前額有「X」形傷疤。\n\n（事件 #012）`,choices:[{label:'繼續',goto:'0066'}]};
+E['0066']={scene:'ship',text:`0066\n你跟著人群湧入樓梯間。`,choices:[{label:'繼續',goto:'0172'}]};
+
+E['0165']={scene:'ship',text:`0165\n你朝船前部走去。\n\n▶ 0014 觀察人群。`,choices:[{label:'0014 觀察（DC 12 察覺）',do:()=>{mark('004');sfx('dice');const r=d20(3);toast(`察覺：${r}`);if(r>=12){go('0026');}else{go('0042');}}},{label:'返回',goto:'0139'}]};
+E['0026']={scene:'ship',text:`0026\n你發現自己被扒竊了！\n\n移除登船牌（若持有）。\n\n（事件 #004）`,choices:[{label:'繼續',goto:'0175'}]};
+E['0042']={scene:'ship',text:`0042\n你挫敗了一次扒竊企圖！\n\n（事件 #015·#004）`,choices:[{label:'繼續',goto:'0175'}]};
+E['0175']={scene:'ship',text:`0175\n船首甲板。三名甲板水手正在盤問一名精靈女巫。`,choices:[{label:'0186 偷聽',goto:'0186'},{label:'0084 看操舵室',goto:'0084'},{label:'返回',goto:'0172'}]};
+E['0186']={scene:'ship',text:`0186\n那名精靈出示了結案令，證明自己無罪。`,choices:[{label:'繼續',goto:'0175'}]};
+E['0084']={scene:'ship',text:`0084\n操舵室窗戶微微敞開。`,choices:[{label:'0106 偷望',goto:'0106'},{label:'返回',goto:'0175'}]};
+E['0106']={scene:'ship',text:`0106\n桌上放著領航員的雙筒望遠鏡。`,choices:[{label:'0122 偷望遠鏡（DC 12 巧手）',do:()=>{mark('016');sfx('dice');const r=d20(2);toast(`巧手：${r}`);if(r>=12){go('0145');}else{go('0154');}}},{label:'返回',goto:'0175'}]};
+E['0145']={scene:'ship',text:`0145\n你拿到雙筒望遠鏡（重量 0.5）。`,choices:[{label:'0101 繼續',goto:'0101'}]};
+E['0154']={scene:'ship',text:`0154\n你失敗了，迅速離開操舵室。`,choices:[{label:'0101 繼續',goto:'0101'}]};
+E['0101']={scene:'ship',text:`0101\n渡輪啟航後，乘客們在頂層甲板休息。`,choices:[{label:'0165 朝船頭',goto:'0165'},{label:'返回',goto:'0172'}]};
+
+E['0173']={scene:'ship',text:`0173\n慶典甲板。`,choices:[{label:'詢問賭徒哈維恩',goto:'0120'},{label:'詢問事務長托門茨',goto:'0006'},{label:'詢問賈拉尼',goto:'0092'},{label:'0116 了解這一層',goto:'0116'},{label:'返回',goto:'0172'}]};
+E['0116']={scene:'ship',text:`0116\n這一層的艙室和客廳僅限貴族使用。`,choices:[{label:'0079 說服守衛',goto:'0079'},{label:'返回',goto:'0173'}]};
+E['0079']={scene:'ship',text:`0079\n精靈守衛攔住你。`,choices:[{label:'0035 偷聽貴族',check:()=>has('007'),hint:'需先取得慶典甲板車票（#007）。',goto:'0035'},{label:'0100 與賈拉尼對話',goto:'0100'},{label:'返回',goto:'0173'}]};
+E['0100']={scene:'ship',text:`0100\n賈拉尼成為斯圖弗頓勳爵的助手。\n\n她給了你 4 張餐券（重量 0）。\n\n（事件 #007）`,choices:[{label:'繼續',goto:'0035'}]};
+E['0035']={scene:'ship',text:`0035\n貴族休息室內一位半精靈正在發牌。`,choices:[{label:'0051 觀察（DC 12 察覺）',do:()=>{sfx('dice');const r=d20(2);toast(`察覺：${r}`);if(r>=12){mark('011');go('0068');}else{go('0173');}}},{label:'返回',goto:'0172'}]};
+E['0068']={scene:'ship',text:`0068\n你發現半精靈從牌組兩端發牌。\n\n（事件 #011）`,choices:[{label:'返回',goto:'0035'}]};
+
+E['0120']={scene:'ship',text:`半精靈賭徒哈維恩。`,choices:[{label:'詢問可疑情況',goto:'havien_seen'},{label:'詢問原因',goto:'havien_why'},{label:'觀察發牌',goto:'havien_deal'},{label:'0082 就耳環質問',goto:'havien_earring',check:()=>has('006'),hint:'需先取得賈拉尼耳環（#006）。'},{label:'返回',goto:'0173'}]};
+E['havien_seen']={scene:'ship',onEnter:()=>{mark('022');adv();},text:`哈維恩說他看到舷窗旁有女孩偷錢包。\n\n（事件 #022）`,choices:[{label:'返回',goto:'0120'}]};
+E['havien_why']={scene:'ship',text:`哈維恩的家人住在切斯特拉爾。`,choices:[{label:'返回',goto:'0120'}]};
+E['havien_deal']={scene:'ship',text:`▶ DC 12 察覺。`,choices:[{label:'察覺 DC 12',do:()=>{sfx('dice');const r=d20(2);toast(`察覺：${r}`);if(r>=12){mark('011');toast('哈維恩從牌組兩端發牌（#011）。');}go('0173');}}]};
+E['havien_earring']={scene:'ship',onEnter:()=>mark('023'),text:`哈維恩說他整晚在玩「高釘牌」，賈拉尼根本沒坐下玩過一局。\n\n（事件 #023：賈拉尼可能在說謊。）`,choices:[{label:'返回',goto:'0120'}]};
+
+E['0006']={scene:'ship',text:`事務長托門茨。`,choices:[{label:'詢問昨晚在哪裡',goto:'purser_where'},{label:'詢問可疑情況',goto:'purser_seen'},{label:'詢問原因',goto:'purser_why'},{label:'仔細觀察',goto:'purser_scrutiny'},{label:'0064 詢問綠色箱子',goto:'purser_green',check:()=>has('020'),hint:'需先發現綠色箱子（#020）。'},{label:'返回',goto:'0173'}]};
+E['purser_where']={scene:'ship',onEnter:()=>adv(),text:`托門茨說他一整晚都在核對貨單。`,choices:[{label:'返回',goto:'0006'}]};
+E['purser_seen']={scene:'ship',onEnter:()=>{mark('032');adv();},text:`「我昨晚看到他下船了。至少我認為是他。」\n\n（事件 #032·線索）`,choices:[{label:'返回',goto:'0006'}]};
+E['purser_why']={scene:'ship',text:`托門茨說他想買些暗影結晶體。`,choices:[{label:'返回',goto:'0006'}]};
+E['purser_scrutiny']={scene:'ship',text:`事務長對回答問題感到緊張。\n\n（被動洞察 12 < 13，無法取得 #033。）`,choices:[{label:'返回',goto:'0006'}]};
+E['purser_green']={scene:'ship',onEnter:()=>{mark('025');state.gold+=11;},text:`事務長承認與盜賊行會有協議。\n\n（事件 #025·獲得阿貝拉爾德 11 枚金幣）`,choices:[{label:'返回',goto:'0006'}]};
+
+E['0092']={scene:'ship',text:`賈拉尼在走廊裡踱來踱去。`,choices:[{label:'詢問昨晚在哪裡',goto:'jalany_where'},{label:'詢問可疑情況',goto:'jalany_seen'},{label:'詢問原因',goto:'jalany_why'},{label:'0153 就「高釘牌」質問',goto:'jalany_highspike',check:()=>has('023'),hint:'需先問過哈維恩耳環（#023）。'},{label:'返回',goto:'0173'}]};
+E['jalany_where']={scene:'ship',onEnter:()=>{mark('006');adv();},text:`賈拉尼說她整晚都在慶典甲板，還輸掉一對耳環。\n\n（事件 #006）`,choices:[{label:'返回',goto:'0092'}]};
+E['jalany_seen']={scene:'ship',onEnter:()=>adv(),text:`賈拉尼急於告訴你失蹤搬運工的事。`,choices:[{label:'返回',goto:'0092'}]};
+E['jalany_why']={scene:'ship',text:`賈拉尼的藝術品生意遇到困難，要去切斯特拉爾和已故的父親談生意。`,choices:[{label:'返回',goto:'0092'}]};
+E['jalany_highspike']={scene:'ship',onEnter:()=>mark('026'),text:`賈拉尼哭了起來。\n\n「我昨晚太累了，不小心睡著了。」\n\n「還有件事，我本來應該把斯圖弗頓勳爵今晚要用的新拖鞋和煙斗拿上來。你能去統艙甲板幫我拿一下嗎？他所有的箱子都是綠色的。」\n\n（事件 #026：新任務）`,choices:[{label:'返回',goto:'0092'}]};
+
+E['0010']={scene:'ship',text:`乘客甲板。`,choices:[{label:'詢問牧師西姆斯',goto:'0180'},{label:'與弗娜典獄長交談',goto:'0091'},{label:'0052 玩骰子',goto:'0052'},{label:'0007 前往艙室',goto:'0007'},{label:'返回',goto:'0172'}]};
+E['0180']={scene:'ship',text:`西姆斯助手。`,choices:[{label:'詢問昨晚在哪裡',goto:'priest_where'},{label:'就容貌對質',goto:'priest_face'},{label:'詢問原因',goto:'priest_why'},{label:'0073 讓阿貝拉爾德帶頭',goto:'priest_abelard',check:()=>has('160'),hint:'需阿貝拉爾德為牧師（#160）。'},{label:'返回',goto:'0010'}]};
+E['priest_where']={scene:'ship',onEnter:()=>{mark('017');state.clues.priest=true;adv();},text:`牧師說昨晚在露天甲板舉行宗教儀式。\n\n（事件 #017·線索）`,choices:[{label:'返回',goto:'0180'}]};
+E['priest_face']={scene:'ship',onEnter:()=>{mark('017');state.clues.priest=true;adv();},text:`牧師承認可能與海盜船長有血緣關係。\n\n（事件 #017·線索）`,choices:[{label:'返回',goto:'0180'}]};
+E['priest_why']={scene:'ship',text:`西姆斯去切斯特拉爾是為了給反對覺醒節的團體提供精神指引。`,choices:[{label:'返回',goto:'0180'}]};
+E['priest_abelard']={scene:'ship',onEnter:()=>mark('005'),text:`阿貝拉爾德質問牧師。\n\n牧師承認：「我確實看到了一些情況——擦鞋的男孩是同謀。」\n\n（事件 #005）`,choices:[{label:'返回',goto:'0180'}]};
+
+E['0091']={scene:'ship',onEnter:()=>{mark('027');state.clues.guard=true;adv();},text:`弗娜典獄長說有新船員在明輪罩看到幽靈之光。\n\n（事件 #027·線索）`,choices:[{label:'向弗娜報告（至少 2 條線索）',check:()=>clueCount()>=2,hint:'需至少 2 條線索。',goto:'report'},{label:'0136 舉報可疑人員',goto:'report',check:()=>clueCount()>=2,hint:'需至少 2 條線索。'},{label:'返回',goto:'0010'}]};
+
+E['0052']={scene:'ship',text:`0052\n老奶奶們教你玩「喘息石」。`,choices:[{label:'下注 1 枚金幣',check:()=>state.gold>=1,hint:'需 1 金幣。',do:()=>playDice(1)},{label:'下注 5 枚金幣',check:()=>state.gold>=5,hint:'需 5 金幣。',do:()=>playDice(5)},{label:'返回',goto:'0010'}]};
+function playDice(bet){state.gold-=bet;sfx('dice');const r=d20(2);toast(`敏捷：${r}`);if(r>=10){state.gold+=bet*2;toast(`你贏了 ${bet*2} 枚金幣！`);}else{toast(`你輸掉 ${bet} 枚金幣。`);}stats();go('0010');}
+
+E['0007']={scene:'ship',onEnter:()=>{if(!has('003'))mark('003');},text:`0007\n阿貝拉爾德告訴你他父親去世了。`,choices:[{label:'短休息（恢復 HP·1 時段）',do:()=>{state.hp=state.maxHp;adv();go('0010');}},{label:'0117 查看新艙室',goto:'0117',check:()=>has('003')},{label:'返回',goto:'0010'}]};
+E['0117']={scene:'ship',onEnter:()=>{state.hp=state.maxHp;adv();},text:`0117\n新艙室。\n\n▶ 短休息完成。`,choices:[{label:'返回',goto:'0172'}]};
+
+E['0027']={scene:'ship',text:`統艙甲板。`,choices:[{label:'審問守衛',goto:'guard_talk'},{label:'0161 請求進入',goto:'guard_search'},{label:'下到船底艙（戰鬥）',do:()=>{startCombat({enemies:['rats'],victory:'0123',defeat:'0118',flee:'0034_flee',intro:'船底艙·紅眼鼠群'});}},{label:'0085 搜查斯圖弗頓勳爵行李',goto:'0085',check:()=>has('020')||has('026'),hint:'需先從賈拉尼接到任務（#026）或發現綠色箱子線索。'},{label:'0097 進入明輪罩',goto:'0097'},{label:'返回',goto:'0172'}]};
+E['guard_talk']={scene:'ship',onEnter:()=>mark('027'),text:`西爾維斯特倫說他大部分時間在門後吊床上。`,choices:[{label:'返回',goto:'0027'}]};
+E['guard_search']={scene:'ship',text:`西爾維斯特倫帶你來到活板門前。`,choices:[{label:'下到船底艙（戰鬥）',do:()=>{startCombat({enemies:['rats'],victory:'0123',defeat:'0118',flee:'0034_flee',intro:'船底艙·紅眼鼠群'});}},{label:'返回',goto:'0027'}]};
+E['0085']={scene:'ship',text:`0085\n你打開斯圖弗頓勳爵的箱子，發現一個綠色漆盒，裡面有十幾個空錢包。\n\n守衛說：「那是事務長的個人儲物。」\n\n（事件 #020 已標記）`,choices:[{label:'0064 質問事務長',goto:'0006'},{label:'返回',goto:'0027'}]};
+
+/* ============ 船底艙完整戰鬥（0034 地圖細節） ============ */
+E['0034']={scene:'combat',text:`0034\n一群紅眼老鼠朝你游來。阿貝拉爾德開始揮舞斧頭。\n\n【戰鬥地圖 14：船底艙】\n- 你與阿貝拉爾德在（1）（2）位置\n- 鼠群在（3）\n- 西爾維斯特倫在（4），從活板門往下看\n\n【地形】\n- 傾斜甲板覆蓋油膩浮渣：每位成員每回合第一次移動需 DC 10 敏捷豁免，失敗則倒地\n- 中央 20 英尺寬水域：及腰深，無游泳速度者為困難地形\n\n【戰術】\n- 西爾維斯特倫用手弩向鼠群射擊：+3 命中，1d6+1 穿刺\n\n▶ 進入戰鬥。`,choices:[{label:'開始戰鬥',do:()=>startCombat({enemies:['rats'],victory:'0123',defeat:'0118',flee:'0034_flee',intro:'船底艙·紅眼鼠群'})}]};
+
+E['0034_flee']={scene:'combat',text:`你成功逃回甲板。鼠群沒有追來，但搬運工的屍體仍留在下面。`,choices:[{label:'繼續調查',goto:'0027'}]};
+
+E['0118']={scene:'combat',onEnter:()=>{state.phase='ended';unlock('death');},text:`0118\n你或你們兩人在「壯麗號」上死亡。\n\n這艘內河渡輪短暫停靠，安排了一輛馬車，將你們逆流送回哈利茲堡——在那裡或許能復活。\n\n【死亡結局】\n你的冒險在此結束。`,choices:[{label:'🔄 重新開始',do:resetGame},{label:'🏆 成就',do:openAchievements}]};
+
+E['0123']={scene:'combat',onEnter:()=>{mark('008');state.clues.body=true;item('紅木魔杖');item('一包信件');item('帶鞘匕首');adv();hist('擊敗鼠群');},text:`0123\n鼠群被擊敗。你搜查搬運工的屍體：腰帶上掛著帶鞘匕首；束腰外衣裡有一包斯圖弗頓勳爵的通信；他緊握的手中還有一根紅木巫師魔杖。\n\n（事件 #008·線索）`,choices:[{label:'向弗娜報告',check:()=>clueCount()>=2,hint:'需至少 2 條線索。',goto:'report'},{label:'返回統艙甲板',goto:'0027'}]};
+
+/* ============ 明輪罩幽靈（0097） ============ */
+E['0097']={scene:'ghost',text:`0097\n你爬進統艙甲板後的明輪罩。\n\n一股縹緲的霧氣從布滿刻度盤和靛藍寶石的機器中升起，化作一個面容憔悴、戴著船長帽、前額下方有「X」形傷疤的男人。\n\n「交出你的金子，」他咆哮著拔出一把幽靈彎刀朝你揮來。\n\n▶ DC 10 魅力豁免。`,choices:[{label:'魅力豁免 DC 10',do:()=>{sfx('dice');const r=d20(0);toast(`魅力：${r}（DC 10）`);if(r>=10){mark('012');mark('013');unlock('ghost');toast('你抵抗住了幽靈的力量（#012·#013）。');}else{const dmg=rnd(4)+rnd(4);state.hp-=dmg;toast(`受到 ${dmg} 點死靈傷害。`);if(state.hp<=0){go('death_end');return;}mark('012');mark('013');unlock('ghost');}go('ghost_after');}},{label:'拔腿就跑',do:()=>{mark('012');mark('013');go('ghost_after');}}]};
+E['ghost_after']={scene:'ghost',text:`你無法自衛，只能向後爬行，卻遇到了同樣驚慌失措的阿貝拉爾德。\n\n（事件 #012·#013 已標記。）`,choices:[{label:'離開統艙甲板',goto:'0027'}]};
+
+/* ============ 0097 保險箱殘留物、證據 ============ */
+E['0054']={scene:'ship',text:`0054\n弗娜典獄長帶你進入貴族艙室。\n\n保險箱前地板上有三個綠色螢光點，彷彿有發光液體濺落在那裡。\n\n「斯圖弗頓勳爵認為是鬼魂來過這裡。我覺得可能是某種法術留下的。」\n\n（事件 #019 已標記：保險箱殘留物）`,choices:[{label:'繼續',goto:'0010'}]};
+
+/* ============ 指控、報告 ============ */
+E['report']={scene:'ship',text:()=>`你把線索整理給弗娜典獄長。\n\n目前線索：\n${Object.keys(state.clues).filter(k=>state.clues[k]).map(k=>({shoe:'擦鞋匠（#005）',wizard:'提亞·燒毀漁船（#028）',priest:'西姆斯·海盜血緣（#017）',guard:'明輪罩鬧鬼（#027）',body:'船底艙屍體（#008）',purser:'事務長可疑（#033）'})[k]).join('\n')||'尚無'}`,choices:[{label:'指控精靈巫師提亞（需 #008 與 #029）',do:()=>{if(state.clues.body&&state.clues.wizard)win();else toast('缺少證據。');}},{label:'指控事務長托門茨',do:()=>{if(state.clues.purser)wrong('你指控事務長。弗娜發現他與扒手集團有關，但石碑並非他所為。');else toast('證據不足。');}},{label:'報告失蹤搬運工',do:()=>{if(state.clues.body)partial();else toast('尚未找到搬運工。');}},{label:'返回調查',goto:'0027'}]};
+E['0136']={scene:'ship',text:`0136\n▶ 選擇指控對象。`,choices:[{label:'0159 指控提亞',goto:'report'},{label:'0050 報告搬運工',goto:'report'},{label:'0087 指控事務長',goto:'report'},{label:'0107 指控哈維恩',goto:'report'},{label:'0113 指控賈拉尼',goto:'report'},{label:'0146 指控西姆斯',goto:'report'},{label:'0181 指控西爾維斯特倫',goto:'report'},{label:'0164 不指控',goto:'0164'}]};
+function clueCount(){return Object.keys(state.clues).filter(k=>state.clues[k]).length;}
+
+E['death_end']={scene:'combat',onEnter:()=>{state.phase='ended';unlock('death');},text:`你倒下了。\n\n【死亡結局】\n冒險在此結束。`,choices:[{label:'🔄 重新開始',do:resetGame},{label:'🏆 成就',do:openAchievements}]};
+
+/* ============ 夜間海盜（0200 前） ============ */
+E['0021']={scene:'ship',text:`0021\n凌晨時分，你聽到一聲尖叫，接著是遠處的打鬥聲。阿貝拉爾德立刻從床上滾下來，抓起斧頭。\n\n更新角色表，體現完成長休息後的增益。將日期推進至第 2 天。`,choices:[{label:'0109 前往露天甲板',do:()=>{state.day=2;state.time=0;go('0109');}}]};
+E['0109']={scene:'combat',text:`0109\n你走上露天甲板，發現渡輪正在夜間補給。成群的海盜從樹林裡蜂擁而出。\n\n阿貝拉爾德大喊：「那邊！」他指著欄杆旁的賈拉尼——她和斯圖弗頓勳爵正登上救生艇。`,choices:[{label:'0002 跳進救生艇',goto:'0002'},{label:'0147 與海盜戰鬥',do:()=>{startCombat({enemies:['pirate'],victory:'0137',defeat:'0118',flee:'0185',fleeDC:10,intro:'露天甲板·海盜'});}},{label:'0185 投降',goto:'0185'}]};
+E['0002']={scene:'boat',text:`0002\n救生艇開始下降。一名海盜朝你的方向投擲了一支標槍。\n\n救生艇傾斜得十分危險。\n\n▶ 進行 DC 12 力量（運動）檢定，累計 3 次成功或 3 次失敗。`,choices:[{label:'力量（運動）檢定',do:()=>{sfx('dice');let s=0,f=0;for(let i=0;i<6&&s<3&&f<3;i++){const r=d20(2);if(r>=12)s++;else f++;}toast(`成功 ${s} / 失敗 ${f}`);if(s>=3){mark('031');go('0137');}else{go('0185');}}}]};
+E['0137']={scene:'boat',onEnter:()=>mark('031'),text:`0137\n救生艇平穩下降並安全抵達水面。\n\n早上，你返回岸邊。「壯麗號」早已不見蹤影，但其他乘客都已安全上岸。`,choices:[{label:'0012 繼續',goto:'0012'}]};
+E['0012']={scene:'boat',text:`0012\n乘客們被迫上岸，財物丟失，還要步行兩天才能抵達切斯特拉爾。`,choices:[{label:'0018 繼續',goto:'0018'}]};
+E['0185']={scene:'boat',text:`0185\n大批海盜湧入船內，你別無選擇只能投降。\n\n幸運的是，海盜不打算殺人。你和其他乘客被送上岸。`,choices:[{label:'0012 繼續',goto:'0012'}]};
+E['0147']={scene:'combat',text:`0147\n三名海盜正在逼近。你必須阻止他們。\n\n▶ 戰鬥。`,choices:[{label:'開始戰鬥',do:()=>startCombat({enemies:['pirate'],victory:'0137',defeat:'0118',flee:'0185',fleeDC:10,intro:'露天甲板·海盜'})}]};
+
+/* ============ 抵達城市 → 2 級 ============ */
+E['0018']={scene:'city',text:`0018\n你在天黑前進入了城市。切斯特拉爾擠滿了遊客，所有旅館房間都已客滿。\n\n幸運的是，斯圖弗頓勳爵將你的隊伍納入他的隨從，你得以在長羽旅館獲得食宿。\n\n「你明天打算做什麼？」賈拉尼問。\n\n▶ 序章結束。`,choices:[{label:'🎉 序章完成，進入 2 級',do:()=>{state.level=2;state.maxHp=16;state.hp=16;unlock('level2');mark('035');unlock('mainStart');go('0200');}}]};
+
+/* ============ 0200 主冒險開場 ============ */
+E['0200']={scene:'city',text:()=>`0200\n一陣敲門聲傳來。阿貝拉爾德從床上坐起。「是賈拉尼嗎？我跟她說過我們今早要見斯圖弗頓勳爵。」\n\n幾分鐘後，你來到走廊盡頭斯圖弗頓勳爵的連通套房。一張中央餐桌上擺滿了豐盛的早餐。阿貝拉爾德開始往兩個盤子裡裝食物——兩個都是他自己的——而賈拉尼則告訴你四位訪客的身份，他們都是市議會成員。其中一位是奧爾德羅斯市長，斯圖弗頓勳爵的老朋友。\n\n「斯坦尼爾，那場景我從未見過，」奧爾德羅斯市長說，「鬼魂！就出現在我的客廳裡。我是說，鬼魂一直都在，但它們從未那樣顯現過。我們毫無準備，一片混亂！其他『起始週』派對上也發生了同樣的事。我看過報告了。市民們感到緊張也是理所當然的。」\n\n「那麼，這對『覺醒節』的後續活動意味著什麼？」斯圖弗頓勳爵問道。\n\n「既然你來了，一切都會好起來的。我已經告訴市議會，你會處理好所有事情。」\n\n所有市議員都微笑著點頭。\n\n（完成長休息。你的私人任務：${state.mission?state.mission.name:'未定'}。）\n\n▶ 決定今日行程。`,choices:[{label:'👉 前往城市探索',goto:'city_hub'}]};
+
+/* ============ 城市樞紐（city_hub） ============ */
+function locList(){
+  const base=[
+    {id:'loc_inn',name:'🏨 長羽旅館（安全長休息）'},
+    {id:'loc_temple',name:'⛪ 安伯林神廟'},
+    {id:'loc_seance',name:'🔮 降神會街'},
+    {id:'loc_market',name:'🛒 城市集市'},
+    {id:'loc_archivists',name:'🏛️ 檔案員廣場'},
+    {id:'loc_park',name:'🌳 中央公園'},
+    {id:'loc_observatory',name:'🔭 天文台'},
+    {id:'loc_boathouse',name:'⛵ 船屋'},
+    {id:'loc_cemetery',name:'⚰️ 墓地'},
+    {id:'loc_ruins',name:'🏚️ 老城廢墟'}
+  ];
+  return base;
+}
+function renderHub(){
+  const list=locList().map(l=>({label:l.name,goto:l.id}));
+  list.push({label:'🌙 結束今日（回旅館長休息）',goto:'loc_inn'});
+  return list;
+}
+E['city_hub']={scene:'city',text:()=>`【切斯特拉爾城市導航】\n\n📅 第 ${state.day} 天 ⏳ 時段 ${state.time}/5\n🪙 金幣：${state.gold}｜❤️ HP：${state.hp}/${state.maxHp}\n\n私人任務：${state.mission?state.mission.name:'未定'}\n\n▶ 選擇前往地點。`,choices:()=>renderHub()};
+
+/* ============ 地點：長羽旅館 ============ */
+E['loc_inn']={scene:'city',text:`🏨 長羽旅館\n\n這裡是切斯特拉爾最古老的建築之一，旅館老闆多里安日夜都忙著招呼客人。\n\n▶ 選擇行動。`,choices:[
+  {label:'🌙 長休息（恢復全部 HP，日期 +1，時段歸零）',do:()=>{state.hp=state.maxHp;state.day++;state.time=0;hist('長休息，進入第'+state.day+'天');toast(`長休息完成。第 ${state.day} 天開始。`);go('loc_inn');}},
+  {label:'🍺 在公共休息室聽謠言',do:()=>{adv(1);toast('你聽到最近城裡出現各種怪事：鬧鬼的燈籠、超自然騷動……');hist('旅館聽謠言');go('loc_inn');}},
+  {label:'🍽️ 免費早餐（推進 1 時段，恢復 1d4 HP）',do:()=>{adv(1);const h=rnd(4);state.hp=Math.min(state.maxHp,state.hp+h);toast(`恢復 ${h} 點 HP。`);go('loc_inn');}},
+  {label:'返回城市導航',goto:'city_hub'}
+]};
+
+/* ============ 地點：安伯林神廟 ============ */
+E['loc_temple']={scene:'temple',text:`⛪ 安伯林神廟\n\n這座神廟供奉多位治癒之神。祈求者排著隊，有的尋求治療，有的買賣靈藥。\n\n▶ 選擇行動。`,choices:[
+  {label:'💊 購買治療藥水（50 金幣）',check:()=>state.gold>=50,hint:'需要 50 金幣。',do:()=>{state.gold-=50;item('治療藥水');hist('購買治療藥水');go('loc_temple');}},
+  {label:'🔍 詢問拉本靈藥',goto:'temple_panacea'},
+  {label:'💬 與牧師閒聊',do:()=>{adv(1);toast('牧師提到最近墓地有些異狀。');hist('神廟閒聊');go('loc_temple');}},
+  {label:'返回城市導航',goto:'city_hub'}
+]};
+E['temple_panacea']={scene:'temple',text:`你詢問拉本靈藥。\n\n「我們已不再釀造萬靈藥，」海倫斯抄寫員說，「原料太過稀有。首先你需要取得出口許可，否則討論毫無意義。」\n\n（事件 #138 已標記：拉本靈藥任務。）`,choices:[{label:'返回神廟',goto:'loc_temple'}]};
+
+/* ============ 地點：降神會街 ============ */
+E['loc_seance']={scene:'city',text:`🔮 降神會街\n\n這條街上的房子都被改建為降神會客廳。人群四處遊蕩，討論著透過靈媒與死者交流的經歷。\n\n▶ 選擇行動。`,choices:[
+  {label:'🕯️ 僱傭靈媒通靈（2 金幣，推進 1 時段）',check:()=>state.gold>=2,hint:'需 2 金幣。',do:()=>{state.gold-=2;adv(1);hist('降神會通靈');toast('靈媒進入恍惚狀態……她低聲說出幾句模糊的話。');go('loc_seance');}},
+  {label:'👂 聽人群討論',do:()=>{adv(1);toast('你聽說最近燈籠會莫名其妙熄滅，水閘也出了問題。');hist('聽降神會街人群');go('loc_seance');}},
+  {label:'返回城市導航',goto:'city_hub'}
+]};
+
+/* ============ 地點：城市集市 ============ */
+E['loc_market']={scene:'city',text:`🛒 城市集市\n\n外圍有多家常設商店，中心區域擠滿了小商販。\n\n▶ 選擇行動。`,choices:[
+  {label:'🛡️ 瀏覽裝備商（購買治療藥水 50 金）',check:()=>state.gold>=50,hint:'需 50 金幣。',do:()=>{state.gold-=50;item('治療藥水');hist('市場買藥水');go('loc_market');}},
+  {label:'🗣️ 詢問攤販最近傳言',do:()=>{adv(1);toast('商販們抱怨運河裡傳來惡臭，還有鬼魂干擾駁船交通。');hist('市場問傳言');go('loc_market');}},
+  {label:'返回城市導航',goto:'city_hub'}
+]};
+
+/* ============ 地點：檔案員廣場 ============ */
+E['loc_archivists']={scene:'city',text:`🏛️ 檔案員廣場\n\n兩座宏偉圖書館之間，市政廳和民兵總部矗立。\n\n▶ 選擇行動。`,choices:[
+  {label:'📜 前往檔案大廳',do:()=>{adv(1);toast('書記員告訴你，最近確實有人查閱過納明丁契約相關記錄。');hist('檔案大廳查詢');go('loc_archivists');}},
+  {label:'🛡️ 前往民兵總部',do:()=>{adv(1);toast('民兵總部人滿為患，最近城裡的騷動讓他們焦頭爛額。');hist('民兵總部');go('loc_archivists');}},
+  {label:'返回城市導航',goto:'city_hub'}
+]};
+
+/* ============ 地點：中央公園 ============ */
+E['loc_park']={scene:'city',text:`🌳 中央公園\n\n公園中央矗立著一棵巨大的魔法橡樹，枝葉散發著微光。\n\n▶ 選擇行動。`,choices:[
+  {label:'🧘 在樹下冥想（推進 1 時段，恢復 1d6 HP）',do:()=>{adv(1);const h=rnd(6);state.hp=Math.min(state.maxHp,state.hp+h);toast(`恢復 ${h} 點 HP。`);hist('公園冥想');go('loc_park');}},
+  {label:'🚶 沿步道漫步',do:()=>{adv(1);toast('你注意到公園西南角的涼亭有幾位法師在低聲交談。');hist('公園漫步');go('loc_park');}},
+  {label:'返回城市導航',goto:'city_hub'}
+]};
+
+/* ============ 地點：天文台 ============ */
+E['loc_observatory']={scene:'city',text:`🔭 天文台\n\n這座圓頂塔樓矗立在防波堤盡頭，彩色玻璃窗在陽光下閃爍。\n\n▶ 選擇行動。`,choices:[
+  {label:'🔍 觀察建築外部',do:()=>{adv(1);toast('塔樓外牆有一道裂縫，部分彩色玻璃窗的窗格缺失。');hist('天文台外觀');go('loc_observatory');}},
+  {label:'🚪 嘗試進入前門',do:()=>{adv(1);toast('門沒有把手或鎖，似乎由魔法或某種從外部無法觸及的機械裝置開啟。');hist('天文台前門');go('loc_observatory');}},
+  {label:'返回城市導航',goto:'city_hub'}
+]};
+
+/* ============ 地點：船屋 ============ */
+E['loc_boathouse']={scene:'city',text:`⛵ 船屋\n\n船屋內部裝飾著舊漁網、彩色浮標和其他古董漁具。\n\n▶ 選擇行動。`,choices:[
+  {label:'💬 與店主喬里爾交談',do:()=>{adv(1);toast('喬里爾提到最近運河上有鬼魂干擾船隻。');hist('船屋與喬里爾');go('loc_boathouse');}},
+  {label:'🚣 租一艘划艇（30 金幣）',check:()=>state.gold>=30,hint:'需 30 金幣。',do:()=>{state.gold-=30;item('租來的划艇');hist('租划艇');go('loc_boathouse');}},
+  {label:'返回城市導航',goto:'city_hub'}
+]};
+
+/* ============ 地點：墓地 ============ */
+E['loc_cemetery']={scene:'city',text:`⚰️ 墓地\n\n公墓環繞著鍛鐵柵欄，柵欄的每根柱子頂部都像長矛一樣鋒利。\n\n▶ 選擇行動。`,choices:[
+  {label:'🔍 搜索墓碑',do:()=>{adv(1);toast('你發現某些墓碑上的符號被篡改過。');hist('墓地被篡改的墓碑');go('loc_cemetery');}},
+  {label:'🚪 離開墓地',goto:'city_hub'}
+]};
+
+/* ============ 地點：老城廢墟 ============ */
+E['loc_ruins']={scene:'city',text:`🏚️ 老城廢墟\n\n城外西側遍布古老城市的廢墟，居民們已重新利用部分區域。\n\n▶ 選擇行動。`,choices:[
+  {label:'🚶 探索流亡者村',do:()=>{adv(1);toast('你抵達流亡者村，這裡的人們生活困苦，但仍在努力。');hist('探索流亡者村');go('loc_ruins');}},
+  {label:'🏚️ 深入廢墟',do:()=>{adv(1);toast('廢墟深處似乎有某種不祥的氣息……');hist('深入廢墟');go('loc_ruins');}},
+  {label:'返回城市導航',goto:'city_hub'}
+]};
 
 /* ============ 說明 / 歷史 / 成就 / 存讀檔 ============ */
-function openManual(){
-  state.phase='manual';stats();
-  $('modalTitle').textContent='📖 陵墓節：新手說明';
-  $('modalBody').innerHTML=`
-  <h3>🎯 遊戲目標</h3><p>你是前往切斯特拉爾參加「覺醒節」的冒險者。序章中要調查「壯麗號」渡輪上失竊的納明丁石碑。收集足夠線索後，向 <b>弗娜典獄長</b> 報告並選出正確犯人。</p>
-  <h3>👀 看懂畫面</h3><p>畫面最上方：❤️生命、🪙金幣、📅第N天、⏳時段0/5、🎒物品數、🔖事件數。中間是故事文字（點擊可立即顯示），下方是選項按鈕。右側是事件追蹤、物品欄、歷史紀錄、成就。</p>
-  <h3>🕹️ 操作步驟</h3><p>1. 0000 選任務 → 2. 選季節 → 3. 選夥伴 → 4. 登船 → 5. 調查證人收集線索 → 6. 可下船底艙戰鬥 → 7. 向弗娜報告。</p>
-  <h3>⚙️ 特殊機制</h3><p>事件追蹤自動標記 #005、#008 等；某些結局需特定事件組合。長休息恢復生命、時間歸零、日期+1。底部導航列可存檔／讀檔。</p>
-  <h3>💡 小訣竅</h3><p>按鈕若看起來變淡仍可點；系統會用提示告訴你缺少什麼，而不是鎖死按鈕。</p>`;
-  $('modalActions').innerHTML='';
-  const b=document.createElement('button');b.textContent='我準備好了，開始遊戲';
-  b.onclick=()=>{sfx('click');closeModal();state.phase='playing';hist('開始遊戲');go(DATA.meta.start);};
-  $('modalActions').appendChild(b);
-  $('modal').classList.remove('hidden');
-}
+function openManual(){state.phase='manual';stats();$('modalTitle').textContent='📖 陵墓節：新手說明';$('modalBody').innerHTML=`<h3>🎯 遊戲目標</h3><p>你是前往切斯特拉爾參加「覺醒節」的冒險者。序章中要調查「壯麗號」渡輪上失竊的納明丁石碑。收集至少 2 條線索後，向 <b>弗娜典獄長</b> 報告並選出正確犯人。序章完成後進入 2 級，可自由探索切斯特拉爾。</p><h3>👀 看懂畫面</h3><p>頂部：❤️生命、🪙金幣、📅天、⏳時段0/5、🎒物品、🔖事件。中間是故事文字（點擊立即顯示），下方是選項。右側：事件追蹤、物品欄、歷史、成就。</p><h3>🕹️ 操作步驟</h3><p>1. 0000 選任務 → 2. 選季節 → 3. 選夥伴 → 4. 登船 → 5. 調查證人 → 6. 可下船底艙戰鬥、可查明輪罩鬼魂 → 7. 向弗娜報告 → 8. 序章完成後在城市導航選擇地點。</p><h3>⚙️ 特殊機制</h3><p>事件追蹤自動標記；某些結局需特定事件組合。長休息恢復生命、時段歸零、日期+1。城市導航推進天數與時段。存檔／讀檔在底部導航列。</p><h3>💡 小訣竅</h3><p>按鈕變淡仍可點；系統會用提示告訴你缺少什麼，不會鎖死按鈕。</p>`;$('modalActions').innerHTML='';const b=document.createElement('button');b.textContent='我準備好了，開始遊戲';b.onclick=()=>{sfx('click');closeModal();state.phase='playing';hist('開始遊戲');go('0000');};$('modalActions').appendChild(b);$('modal').classList.remove('hidden');}
 function closeModal(){$('modal').classList.add('hidden');}
 function openHistory(){const h=state.history.length?'<ol>'+state.history.slice().reverse().map(x=>`<li>${x}</li>`).join('')+'</ol>':'<p>尚無紀錄。</p>';$('modalTitle').textContent='🧭 歷史紀錄';$('modalBody').innerHTML=h;$('modalActions').innerHTML='';const b=document.createElement('button');b.textContent='關閉';b.onclick=closeModal;$('modalActions').appendChild(b);$('modal').classList.remove('hidden');}
 function openAchievements(){const h=state.achievements.length?'<ul>'+state.achievements.map(a=>`<li>🏆 ${ACH_NAMES[a]||a}</li>`).join('')+'</ul>':'<p>尚未解鎖成就。</p>';$('modalTitle').textContent='🏆 成就';$('modalBody').innerHTML=h;$('modalActions').innerHTML='';const b=document.createElement('button');b.textContent='關閉';b.onclick=closeModal;$('modalActions').appendChild(b);$('modal').classList.remove('hidden');}
 function saveGame(){localStorage.setItem(SAVE_KEY,JSON.stringify(state));toast('已存檔。');}
-function loadGame(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw){toast('沒有存檔。');return;}const o=JSON.parse(raw);state={...fresh(),...o};state.events=o.events||[];state.inventory=o.inventory||[];state.history=o.history||[];state.achievements=o.achievements||[];state.clues=o.clues||{};state.phase=o.phase==='ended'?'ended':'playing';closeModal();if(state.phase==='ended'){setEndingText('已讀取結局存檔。');}else go(state.entry);toast('已讀取存檔。');}catch(e){toast('讀檔失敗。');}}
+function loadGame(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw){toast('沒有存檔。');return;}const o=JSON.parse(raw);state={...fresh(),...o};state.events=o.events||[];state.inventory=o.inventory||[];state.history=o.history||[];state.achievements=o.achievements||[];state.clues=o.clues||{};state.phase=o.phase==='ended'?'ended':'playing';closeModal();if(state.phase==='ended'){story('已讀取結局存檔。');choices([{label:'🔄 重新開始',do:resetGame}]);}else go(state.entry);toast('已讀取存檔。');}catch(e){toast('讀檔失敗。');}}
 function resetGame(){if(!confirm('確定重置？成就會保留。'))return;const a=state.achievements.slice();state=fresh();state.achievements=a;closeModal();stats();side();hist('重置遊戲');openManual();}
+function toggleSound(){state.sound=!state.sound;$('soundBtn').textContent='音效：'+(state.sound?'開':'關');if(state.sound)sfx('click');}
 
 /* ============ 初始化 ============ */
 stats();side();$('svgScene').innerHTML=svg('ship');story('正在翻開古老的冒險書……');openManual();
