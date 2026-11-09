@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>殖民火星 - 多人連線終極版 (公司技能+動物計分)</title>
+<title>殖民火星 - 多人連線終極版 (回合順位與互動)</title>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -81,6 +81,7 @@
     .hex.ocean { background-color: #2196f3; background-image: none; color: white; }
     .hex.forest { background-color: #4caf50; background-image: none; color: white; }
     .hex.city { background-color: #757575; background-image: none; color: white; border: 2px solid #fff; }
+    .hex.neutral { opacity: 0.7; border: 2px dashed #aaa; }
     .hex.valid-target { border: 2px solid gold; box-shadow: 0 0 15px gold; filter: brightness(1.3); }
     .hex:hover { filter: brightness(1.3); transform: scale(1); z-index: 10; }
     .hex-reward { position: absolute; bottom: 2px; font-size: 8px; background: rgba(0,0,0,0.8); padding: 1px 3px; border-radius: 2px; pointer-events: none; color: #fff; }
@@ -128,6 +129,7 @@
 
     .score-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; font-size: 14px; flex-wrap: wrap;}
     .score-row:last-child { border-bottom: none; }
+    .target-btn { background: #333; border: 1px solid #aaa; margin: 5px; }
 
     @media (max-width: 768px) {
         :root { --hex-w: 38px; --hex-h: 43.87px; }
@@ -215,15 +217,16 @@
         <p><b>🕹️ 回合流程（總共 14 世代）</b></p>
         <ul style="margin-left: 20px; margin-bottom: 15px;">
             <li><b>開發階段</b>：每人抽 4 張牌，點擊想買的卡（每張 3 M€），按下「保留」。</li>
-            <li><b>行動階段</b>：嚴格輪流制，每次輪到你只能執行 <b>1~2 個行動</b>（打牌、買專案、轉換資源、宣稱獎項）。做完按「結束回合」換人。</li>
+            <li><b>行動階段</b>：嚴格輪流制，每次輪到你只能執行 <b>1~2 個行動</b>。做完按「結束回合」換人。<b>誰先結束回合，下一世代誰就先手！</b></li>
             <li><b>生產階段</b>：所有人 Pass 後自動觸發。獲得「TR + 金錢產量」的資金，動物也會繁殖。</li>
         </ul>
         <p><b>🃏 卡牌與折抵</b></p>
         <ul style="margin-left: 20px; margin-bottom: 15px;">
             <li><b>資源折抵</b>：有「建築」標籤可用鋼鐵折抵（1鋼=2元）；有「太空」標籤可用鈦折抵（1鈦=3元）。</li>
-            <li><b>橘色卡 (動物)</b>：打出後會留在場上，每回合會自動增加動物，遊戲結束時每隻動物算 1 分。</li>
+            <li><b>折扣卡 (藍卡)</b>：打出後，以後打出特定標籤的卡牌會自動折價！</li>
+            <li><b>攻擊卡牌</b>：有些卡牌會要求你選擇一個對手作為目標，對他們造成傷害！</li>
         </ul>
-        <p><b>🏢 公司能力</b><br>每間公司都有獨特的被動技能（例如：生態學線每次放綠化多得 1 植物），請善用你的優勢！</p>
+        <p><b>🏢 公司能力</b><br>每間公司都有獨特的被動技能，請善用你的優勢！</p>
         <button onclick="toggleRules()" style="width:100%; margin-top:15px;">開始遊戲</button>
     </div>
 </div>
@@ -257,11 +260,20 @@
     </div>
 </div>
 
+<div id="modal-target" class="modal">
+    <div class="modal-content">
+        <h3 style="color:var(--mars-orange); margin-bottom:15px;">選擇攻擊目標</h3>
+        <div id="target-list" style="display:flex; flex-wrap:wrap; justify-content:center;"></div>
+        <button onclick="cancelTarget()" style="margin-top:15px; background:#555;">取消</button>
+    </div>
+</div>
+
 <div id="modal-gameover" class="modal">
     <div class="modal-content">
         <h2 style="color:var(--mars-orange); margin-bottom:20px;">🏆 火星改造完成！</h2>
         <div id="score-list" style="text-align:left; margin-bottom:20px;"></div>
-        <button onclick="location.reload()" style="width:100%;">返回大廳</button>
+        <button onclick="restartGame()" style="width:100%; margin-bottom:10px; background:var(--mars-green);">再來一局</button>
+        <button onclick="location.reload()" style="width:100%; background:#555;">返回大廳</button>
     </div>
 </div>
 
@@ -310,6 +322,7 @@
     let unsubscribeRoom = null;
     let localSelectedCards = []; 
     let placingMode = null; 
+    let pendingCardIndex = null; 
 
     const mapGrid = [
         [0,0,1,1,1,1,1,0,0], [0,1,1,1,1,1,1,0,0], [0,1,1,1,1,1,1,1,0], [1,1,1,1,1,1,1,1,0], [1,1,1,1,1,1,1,1,1],
@@ -318,7 +331,6 @@
 
     const PLAYER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f'];
 
-    // ★ 加入被動技能的公司卡
     const companies = [
         { id: 'c1', name: '生態學線', desc: '起始 20 M€，植物+1。\n被動：放置綠化時，獲得 1 植物。', mc: 20, prod: { plant: 1 } },
         { id: 'c2', name: '採礦公會', desc: '起始 14 M€，鋼鐵+1。\n被動：放置城市時，獲得 2 鋼鐵。', mc: 14, prod: { steel: 1 } },
@@ -446,10 +458,23 @@
         let oceans = board.filter(b => b.isReservedOcean);
         while(oceans.length > 9) { oceans.pop().isReservedOcean = false; }
         while(oceans.length < 9) {
-            let empty = board.filter(b => !b.isReservedOcean && !b.reward);
+            let empty = board.filter(b => !b.isReservedOcean && !b.reward && b.type === 'empty');
             let randomCell = empty[Math.floor(Math.random() * empty.length)];
-            randomCell.isReservedOcean = true; oceans.push(randomCell);
+            if (randomCell) {
+                randomCell.isReservedOcean = true; 
+                oceans.push(randomCell);
+            }
         }
+
+        let emptyCells = board.filter(b => b.type === 'empty' && !b.isReservedOcean);
+        emptyCells.sort(() => 0.5 - Math.random());
+        if (emptyCells.length >= 4) {
+            emptyCells[0].type = 'city'; emptyCells[0].isNeutral = true;
+            emptyCells[1].type = 'city'; emptyCells[1].isNeutral = true;
+            emptyCells[2].type = 'forest'; emptyCells[2].isNeutral = true;
+            emptyCells[3].type = 'forest'; emptyCells[3].isNeutral = true;
+        }
+
         return board;
     }
 
@@ -629,13 +654,13 @@
             let targetCell = board.find(b => b.id === cellId);
             targetCell.type = placingMode.type;
             targetCell.ownerId = currentUser.uid; 
+            targetCell.isNeutral = false; 
 
-            // ★ 被動技能觸發：生態學線 (放綠化得植物)
+            // 被動技能觸發
             if (placingMode.type === 'forest' && p.company === '生態學線') {
                 p.plant += 1;
                 newLogs.push(`🌱 ${p.name} 觸發公司被動：獲得 1 植物。`);
             }
-            // ★ 被動技能觸發：採礦公會 (放城市得鋼鐵)
             if (placingMode.type === 'city' && p.company === '採礦公會') {
                 p.steel += 2;
                 newLogs.push(`⚙️ ${p.name} 觸發公司被動：獲得 2 鋼鐵。`);
@@ -649,8 +674,8 @@
             adjacents.forEach(adj => {
                 let neighbor = board.find(b => b.r === adj.r && b.c === adj.c);
                 if (neighbor) {
-                    if (neighbor.type === 'ocean') extraMc += 2; // 海洋相鄰
-                    if (neighbor.reward) { // 周遭寶箱
+                    if (neighbor.type === 'ocean') extraMc += 2;
+                    if (neighbor.reward) {
                         let rw = neighbor.reward;
                         if (rw.type === 'steel') p.steel += rw.amount;
                         if (rw.type === 'titan') p.titan += rw.amount;
@@ -713,30 +738,68 @@
         if (card.reqOxy !== undefined && roomData.oxygen < card.reqOxy) return UI.toast(`需要氧氣 ${card.reqOxy}% 才能打出！`);
         if (card.reqTemp !== undefined && roomData.temp < card.reqTemp) return UI.toast(`需要溫度 ${card.reqTemp}°C 才能打出！`);
 
-        // ★ 被動技能觸發：托爾蓋特 (能源卡折 3 元)
-        let discount = 0;
-        if (me.company === '托爾蓋特' && card.tags && card.tags.includes('能源')) {
-            discount = 3;
+        if (card.requiresTarget) {
+            pendingCardIndex = handIndex;
+            openTargetSelect(card.name);
+            return;
         }
 
-        // 計算資源折抵
+        executePlayCard(handIndex, null);
+    }
+
+    function openTargetSelect(cardName) {
+        const list = document.getElementById('target-list');
+        list.innerHTML = '';
+        
+        roomData.players.forEach(p => {
+            if (p.id === currentUser.uid) return;
+            const btn = document.createElement('button');
+            btn.className = 'target-btn';
+            btn.innerHTML = `<span class="color-dot" style="background:${p.color}"></span> ${p.name}`;
+            btn.onclick = () => {
+                UI.toggleModal('modal-target');
+                executePlayCard(pendingCardIndex, p.id);
+                pendingCardIndex = null;
+            };
+            list.appendChild(btn);
+        });
+        
+        UI.toggleModal('modal-target');
+    }
+
+    window.cancelTarget = function() {
+        pendingCardIndex = null;
+        UI.toggleModal('modal-target');
+    }
+
+    async function executePlayCard(handIndex, targetId) {
+        const me = roomData.players.find(p => p.id === currentUser.uid);
+        const card = me.hand[handIndex];
+
+        // 計算折抵與折扣
+        let discount = 0;
+        if (me.company === '托爾蓋特' && card.tags && card.tags.includes('能源')) discount = 3;
+        
+        // 檢查是否有藍卡提供折扣 (例如：地球辦公室)
+        me.activeCards.forEach(c => {
+            if (c.activeEffect === 'discountEarth' && card.tags && card.tags.includes('地球')) discount += 3;
+            if (c.activeEffect === 'discountSpace' && card.tags && card.tags.includes('太空')) discount += 2;
+        });
+
         let actualCost = Math.max(0, card.cost - discount);
-        let steelUsed = 0;
-        let titanUsed = 0;
+        let steelUsed = 0, titanUsed = 0;
         
         if (card.tags && card.tags.includes('建築') && me.steel > 0) {
-            steelUsed = Math.min(Math.floor(actualCost / 2), me.steel);
-            actualCost -= steelUsed * 2;
+            steelUsed = Math.min(Math.floor(actualCost / 2), me.steel); actualCost -= steelUsed * 2;
         }
         if (card.tags && card.tags.includes('太空') && me.titan > 0) {
-            titanUsed = Math.min(Math.floor(actualCost / 3), me.titan);
-            actualCost -= titanUsed * 3;
+            titanUsed = Math.min(Math.floor(actualCost / 3), me.titan); actualCost -= titanUsed * 3;
         }
 
-        if (me.mc < actualCost) return UI.toast("金錢不足！(已計算資源折抵)");
+        if (me.mc < actualCost) return UI.toast("金錢不足！");
 
         if (card.effect === 'ocean' || card.effect === 'forest' || card.effect === 'city') {
-            placingMode = { type: card.effect, cardIndex: handIndex, cost: actualCost, steelUsed, titanUsed, discount };
+            placingMode = { type: card.effect, cardIndex: handIndex, cost: actualCost, steelUsed, titanUsed };
             highlightValidTiles(card.effect);
             Audio.click();
             renderGame();
@@ -746,34 +809,39 @@
                 const roomDoc = await transaction.get(doc(db, "rooms", currentRoomId));
                 const data = roomDoc.data();
                 let players = [...data.players];
-                let p = players.find(p => p.id === currentUser.uid);
+                let pIndex = players.findIndex(p => p.id === currentUser.uid);
+                let p = players[pIndex];
                 let newLogs = [...data.logs];
                 
-                p.mc -= actualCost; 
-                p.steel -= steelUsed;
-                p.titan -= titanUsed;
+                p.mc -= actualCost; p.steel -= steelUsed; p.titan -= titanUsed;
                 p.hand.splice(handIndex, 1);
                 
-                // 土星系統：打太空卡得 1 元
-                if (p.company === '土星系統' && card.tags && card.tags.includes('太空')) {
-                    p.mc += 1;
-                    newLogs.push(`💰 ${p.name} 觸發公司被動：獲得 1 M€。`);
+                if (p.company === '土星系統' && card.tags && card.tags.includes('太空')) p.mc += 1;
+
+                if (card.type === 'active' || card.type === 'animal') {
+                    p.activeCards.push(card);
+                }
+                newLogs.push(`${p.name} 打出了 ${card.name}。`);
+                
+                if (targetId) {
+                    let targetP = players.find(x => x.id === targetId);
+                    if (targetP) {
+                        if (card.effect === 'attackPlant') {
+                            let amt = Math.min(card.value, targetP.plant);
+                            targetP.plant -= amt; p.plant += amt;
+                            newLogs.push(`⚔️ ${p.name} 奪取了 ${targetP.name} 的 ${amt} 植物。`);
+                        } else if (card.effect === 'attackMC') {
+                            let amt = Math.min(card.value, targetP.mc);
+                            targetP.mc -= amt; p.mc += amt;
+                            newLogs.push(`⚔️ ${p.name} 偷取了 ${targetP.name} 的 ${amt} M€。`);
+                        } else if (card.effect === 'attackSteel') {
+                            let amt = Math.min(card.value, targetP.steel);
+                            targetP.steel -= amt; p.steel += amt;
+                            newLogs.push(`⚔️ ${p.name} 偷取了 ${targetP.name} 的 ${amt} 鋼鐵。`);
+                        }
+                    }
                 }
 
-                let payText = actualCost > 0 ? `${actualCost} M€` : '';
-                if (steelUsed > 0) payText += ` 及 ${steelUsed} 鋼鐵`;
-                if (titanUsed > 0) payText += ` 及 ${titanUsed} 鈦`;
-                
-                if (card.type === 'active') {
-                    p.activeCards.push(card);
-                    newLogs.push(`${p.name} 部署了主動卡：${card.name}`);
-                } else if (card.type === 'animal') {
-                    p.activeCards.push(card); // 動物卡也放場上
-                    newLogs.push(`${p.name} 打出了動物卡：${card.name}`);
-                } else {
-                    newLogs.push(`${p.name} 打出了 ${card.name} (支付 ${payText})。`);
-                }
-                
                 let newTemp = data.temp;
                 if (card.effect === 'temp') { newTemp += card.value || 1; p.tr += 1; }
                 if (card.effect === 'mcProd') p.prod.mc += card.value || 1;
@@ -782,6 +850,11 @@
                 if (card.effect === 'plantProd') p.prod.plant += card.value || 1;
                 if (card.effect === 'heatProd') p.prod.heat += card.value || 1;
                 if (card.effect === 'animalProd') p.animals += card.value || 1;
+                if (card.effect === 'convertEnergyToSteel') {
+                    let convertAmt = Math.min(2, p.energy);
+                    p.energy -= convertAmt; p.steel += convertAmt * 2;
+                    newLogs.push(`🔄 ${p.name} 將 ${convertAmt} 電力轉換為 ${convertAmt*2} 鋼鐵。`);
+                }
                 
                 let newActionsLeft = data.actionsLeft - 1;
                 transaction.update(doc(db, "rooms", currentRoomId), { players: players, temp: newTemp, logs: newLogs, actionsLeft: newActionsLeft });
@@ -797,6 +870,7 @@
 
         const card = me.activeCards[index];
         if (card.type === 'animal') return UI.toast("動物卡為被動生效，無需點擊。");
+        if (card.activeEffect && card.activeEffect.startsWith('discount')) return UI.toast("折扣卡為被動生效。");
         if (me.mc < (card.activeCost || 0)) return UI.toast("金錢不足！");
         
         const { db, doc, runTransaction } = window.FB;
@@ -823,6 +897,10 @@
                 newTemp += 1;
                 p.tr += 1;
                 newLogs.push(`${p.name} 提升了 1°C。`);
+            } else if (card.activeEffect === 'oxygen') {
+                data.oxygen += 1;
+                p.tr += 1;
+                newLogs.push(`${p.name} 提升了 1% 氧氣。`);
             }
             
             let newActionsLeft = data.actionsLeft - 1;
@@ -956,7 +1034,7 @@
         UI.toggleModal('modal-awards');
     }
 
-    // --- 回合結束 ---
+    // --- 回合結束 (加入順位機制) ---
     window.passTurn = async function() {
         const me = roomData.players.find(p => p.id === currentUser.uid);
         if (!me || me.id !== roomData.players[roomData.turnIndex].id) return UI.toast("還沒輪到你！");
@@ -972,6 +1050,11 @@
             let newLogs = [...data.logs, `${players[currentIdx].name} 結束了回合。`];
             
             players[currentIdx].passed = true;
+            
+            // ★ 紀錄 Pass 的順序
+            let passOrder = data.passOrder || [];
+            passOrder.push(players[currentIdx].id);
+
             let nextIdx = currentIdx;
             let allPassed = true;
             for (let i = 1; i <= players.length; i++) {
@@ -988,7 +1071,6 @@
                     p.steel += p.prod.steel; p.titan += p.prod.titan; p.plant += p.prod.plant;
                     p.energy += p.prod.energy; p.heat += p.prod.heat;
                     
-                    // ★ 動物繁殖：如果場上有動物卡，每回合加 1 隻
                     let animalCards = p.activeCards.filter(c => c.type === 'animal');
                     if (animalCards.length > 0) {
                         p.animals += animalCards.length;
@@ -1003,10 +1085,14 @@
                 if (data.gen >= 14) {
                     transaction.update(roomRef, { status: 'ended', players: players, logs: newLogs });
                 } else {
-                    transaction.update(roomRef, { gen: data.gen + 1, turnIndex: 0, actionsLeft: 2, phase: 'research', players: players, logs: newLogs });
+                    // ★ 依據 Pass 順序決定下一世代先手玩家
+                    let nextTurnIndex = players.findIndex(p => p.id === passOrder[0]);
+                    newLogs.push(`第 ${data.gen + 1} 世代由 ${players[nextTurnIndex].name} 先手！`);
+                    
+                    transaction.update(roomRef, { gen: data.gen + 1, turnIndex: nextTurnIndex, actionsLeft: 2, phase: 'research', players: players, logs: newLogs, passOrder: [] });
                 }
             } else {
-                transaction.update(roomRef, { turnIndex: nextIdx, actionsLeft: 2, players: players, logs: newLogs });
+                transaction.update(roomRef, { turnIndex: nextIdx, actionsLeft: 2, players: players, logs: newLogs, passOrder: passOrder });
             }
         }).catch(e => UI.toast(e));
         Audio.success();
@@ -1024,19 +1110,33 @@
             { name: "生物量燃燒", cost: 4, effect: "mcProd", value: 2, text: "金錢產量+2", type: "auto", vp: 0, tags: ['植物'] },
             { name: "巨冰小行星", cost: 36, effect: "ocean", text: "放置海洋", type: "event", vp: 0, reqTemp: -10, tags: ['太空'] },
             { name: "深井熱力", cost: 15, effect: "temp", text: "溫度+1", type: "auto", vp: 1, tags: ['科學'] },
-            { name: "企業間諜", cost: 12, effect: "stealMC", text: "偷取對手 3 M€", type: "event", vp: 0 },
             { name: "苔蘚", cost: 8, effect: "forest", text: "放置綠化", type: "auto", vp: 0, reqOxy: 3, tags: ['植物'] },
             { name: "採礦業", cost: 8, effect: "steelProd", value: 1, text: "鋼鐵產量+1", type: "auto", vp: 0, tags: ['建築'] },
             { name: "苔原植物", cost: 10, effect: "plantProd", value: 1, text: "植物產量+1", type: "auto", vp: 0, tags: ['植物'] },
             { name: "放射性同位素", cost: 14, effect: "heatProd", value: 2, text: "熱能產量+2", type: "auto", vp: 0, tags: ['科學'] },
-            // 藍卡
+            { name: "能量轉換器", cost: 12, effect: "convertEnergyToSteel", text: "打出時：2 電力換 4 鋼鐵", type: "auto", vp: 0, tags: ['能源'] },
+            
+            // 藍卡 (包含折扣與不同行動)
             { name: "研究實驗室", cost: 15, type: "active", activeEffect: "draw", activeCost: 2, text: "行動：支付 2 M€ 抽 1 張牌", tags: ['科學'] },
             { name: "商業中心", cost: 18, type: "active", activeEffect: "mc", activeCost: 0, text: "行動：獲得 3 M€", tags: ['建築'] },
             { name: "地熱發電站", cost: 20, type: "active", activeEffect: "temp", activeCost: 5, text: "行動：支付 5 M€ 升溫 1°C", tags: ['科學'] },
-            // ★ 橘色動物卡
+            { name: "氧氣工廠", cost: 22, type: "active", activeEffect: "oxygen", activeCost: 6, text: "行動：支付 6 M€ 氧氣+1%", tags: ['科學', '建築'] },
+            { name: "地球辦公室", cost: 12, type: "active", activeEffect: "discountEarth", activeCost: 0, text: "被動：打出地球卡少付 3 M€", tags: ['地球'] },
+            { name: "太空港", cost: 18, type: "active", activeEffect: "discountSpace", activeCost: 0, text: "被動：打出太空卡少付 2 M€", tags: ['太空'] },
+
+            // 動物卡
             { name: "牲畜", cost: 12, effect: "animalProd", value: 1, text: "被動：每回合 +1 動物", type: "animal", vp: 0, tags: ['植物'] },
             { name: "寵物", cost: 10, effect: "animalProd", value: 0, text: "被動：每回合 +1 動物", type: "animal", vp: 0 },
-            { name: "生態園", cost: 20, effect: "animalProd", value: 2, text: "被動：每回合 +2 動物", type: "animal", vp: 1, tags: ['植物'] }
+            { name: "生態園", cost: 20, effect: "animalProd", value: 2, text: "被動：每回合 +2 動物", type: "animal", vp: 1, tags: ['植物'] },
+            
+            // 攻擊卡
+            { name: "掠奪者", cost: 12, effect: "attackPlant", value: 3, text: "選擇對手，奪取 3 植物", type: "event", vp: 0, requiresTarget: true },
+            { name: "網路攻擊", cost: 15, effect: "attackMC", value: 5, text: "選擇對手，偷取 5 M€", type: "event", vp: 0, requiresTarget: true },
+            { name: "資源駭客", cost: 10, effect: "attackSteel", value: 4, text: "選擇對手，偷取 4 鋼鐵", type: "event", vp: 0, requiresTarget: true },
+            
+            // 地球標籤卡 (與折扣卡連動)
+            { name: "地球移民", cost: 15, effect: "mcProd", value: 1, text: "金錢產量+1", type: "auto", vp: 0, tags: ['地球'] },
+            { name: "地球企業", cost: 20, effect: "city", text: "放置城市", type: "auto", vp: 0, tags: ['地球', '建築'] }
         ];
         return pool[Math.floor(Math.random() * pool.length)];
     }
@@ -1045,12 +1145,11 @@
     function calculateFinalScores() {
         let scores = {};
         let stats = getPlayerStats();
-        roomData.players.forEach(p => { scores[p.id] = { name: p.name, color: p.color, tr: p.tr, cardVP: 0, mapVP: 0, milestoneVP: 0, awardVP: 0, animalVP: 0, total: 0 }; });
+        roomData.players.forEach(p => { scores[p.id] = { name: p.name, color: p.color, mc: p.mc, tr: p.tr, cardVP: 0, mapVP: 0, milestoneVP: 0, awardVP: 0, animalVP: 0, total: 0 }; });
 
         roomData.players.forEach(p => {
             p.hand.forEach(c => { if(c.vp) scores[p.id].cardVP += c.vp; });
             p.activeCards.forEach(c => { if(c.vp) scores[p.id].cardVP += c.vp; });
-            // 動物分數
             scores[p.id].animalVP = p.animals;
         });
 
@@ -1079,7 +1178,12 @@
             s.total = s.tr + s.cardVP + s.mapVP + s.milestoneVP + s.awardVP + s.animalVP;
             arr.push(s);
         }
-        arr.sort((a, b) => b.total - a.total);
+        
+        arr.sort((a, b) => {
+            if (b.total !== a.total) return b.total - a.total;
+            if (b.mc !== a.mc) return b.mc - a.mc;
+            return b.tr - a.tr;
+        });
         return arr;
     }
 
@@ -1185,22 +1289,22 @@
             document.getElementById('turn-indicator').innerText = `等待中...`;
         }
 
-        // 渲染藍卡與動物卡
         const activeArea = document.getElementById('active-cards');
         activeArea.innerHTML = '';
         if (me.activeCards && me.activeCards.length > 0) {
             me.activeCards.forEach((card, i) => {
                 const isUsed = me.usedActiveCards && me.usedActiveCards.includes(i);
                 const isAnimal = card.type === 'animal';
+                const isDiscount = card.activeEffect && card.activeEffect.startsWith('discount');
                 const el = document.createElement('div');
-                el.className = `card ${isAnimal ? 'animal-card' : 'active-card'} ${isUsed && !isAnimal ? 'used' : ''}`;
+                el.className = `card ${isAnimal ? 'animal-card' : 'active-card'} ${isUsed && !isAnimal && !isDiscount ? 'used' : ''}`;
                 el.innerHTML = `
                     <div class="title" style="color:${isAnimal ? '#ff9800' : '#81c784'};">${card.name}</div>
                     <div class="text" style="color:#ccc; font-size:10px;">${card.text}</div>
                     ${isAnimal ? `<div style="text-align:center; color:#ff9800; font-weight:bold; margin-top:5px;">🐾 ${me.animals} 隻</div>` : ''}
-                    ${isUsed && !isAnimal ? '<div style="text-align:center; color:#e74c3c; font-size:10px; margin-top:5px;">本回合已使用</div>' : ''}
+                    ${isUsed && !isAnimal && !isDiscount ? '<div style="text-align:center; color:#e74c3c; font-size:10px; margin-top:5px;">本回合已使用</div>' : ''}
                 `;
-                if (!isUsed && !isAnimal && isMyTurn && roomData.phase === 'action' && !placingMode && roomData.actionsLeft > 0) {
+                if (!isUsed && !isAnimal && !isDiscount && isMyTurn && roomData.phase === 'action' && !placingMode && roomData.actionsLeft > 0) {
                     el.onclick = () => useActiveCard(i);
                 }
                 activeArea.appendChild(el);
@@ -1292,6 +1396,7 @@
                     let owner = roomData.players.find(p => p.id === cell.ownerId);
                     if (owner) hex.style.border = `3px solid ${owner.color}`;
                 }
+                if (cell.isNeutral) hex.classList.add('neutral');
             }
             if (cell.type === 'city') {
                 hex.classList.add('city');
@@ -1299,6 +1404,7 @@
                     let owner = roomData.players.find(p => p.id === cell.ownerId);
                     if (owner) hex.style.backgroundColor = owner.color;
                 }
+                if (cell.isNeutral) hex.classList.add('neutral');
             }
             
             if (cell.type === 'empty' && cell.reward) {
