@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>鐵盔 Iron Helm - 地圖探索版</title>
+    <style>
+        /* ================= 復古 UI ================= */
+        :root {
+            --bg: #1a1614; --paper: #e8d8b5; --text: #2c1e16;
+            --light: #f4e4bc; --red: #8b2a1c; --gold: #cda343;
+            --blue: #2a5a8b; --border: #4a3b2c; --font: 'Georgia', serif;
+        }
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; background: radial-gradient(circle at center, #2c1e16 0%, #0a0807 100%); color: var(--text); font-family: var(--font); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body::after { content: ''; position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 100px rgba(0,0,0,0.9); z-index: 999; }
+
+        /* 頂部狀態 */
+        #top-bar { background: #111; color: var(--light); padding: 4px; display: flex; justify-content: space-around; flex-wrap: wrap; font-size: 12px; border-bottom: 2px solid var(--gold); z-index: 100; }
+        .stat { display: flex; align-items: center; gap: 2px; padding: 2px 4px; background: rgba(255,255,255,0.05); border-radius: 4px; }
+        .stat span { font-weight: bold; font-size: 14px; }
+        .text-red { color: #ff6b6b; } .text-blue { color: #4ecdc4; } .text-gold { color: #feca57; } .text-green { color: #1dd1a1; } .text-purple { color: #a29bfe; }
+
+        /* 主區域 */
+        #main-area { flex: 1; display: flex; flex-direction: column; padding: 8px; overflow: hidden; }
+        #story-box { background: rgba(0,0,0,0.7); border: 1px solid var(--gold); border-radius: 8px; padding: 10px; color: var(--light); min-height: 70px; margin-bottom: 10px; font-size: 14px; line-height: 1.4; overflow-y: auto; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        
+        /* 地圖區 */
+        #map-container { height: 140px; background: rgba(0,0,0,0.4); border: 1px solid #555; border-radius: 8px; margin-bottom: 10px; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        svg { width: 100%; height: 100%; }
+        .map-path { fill: none; stroke: #666; stroke-width: 3; stroke-dasharray: 5,5; }
+        .map-node { fill: #333; stroke: #888; stroke-width: 2; cursor: pointer; transition: all 0.3s; }
+        .map-node.available { stroke: var(--gold); fill: #4a3b2c; animation: pulse 1.5s infinite; }
+        .map-node.current { fill: var(--red); stroke: #fff; }
+        .map-node.visited { fill: #222; stroke: #444; }
+        .map-text { fill: #fff; font-size: 10px; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+
+        /* 卡牌區 */
+        #card-area { display: flex; gap: 10px; overflow-x: auto; padding: 5px; align-items: center; min-height: 220px; scrollbar-width: thin; }
+        #card-area::-webkit-scrollbar { height: 5px; } #card-area::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+        
+        .card { flex: 0 0 150px; height: 210px; background: var(--paper); border: 3px solid var(--border); border-radius: 8px; box-shadow: 3px 3px 10px rgba(0,0,0,0.7); display: flex; flex-direction: column; position: relative; animation: fadeIn 0.3s ease-out; }
+        .card.enemy, .card.boss { border-color: var(--red); }
+        .card.item { border-color: var(--blue); }
+        .card.event, .card.plot { border-color: var(--gold); }
+        .card-art { height: 80px; display: flex; justify-content: center; align-items: center; font-size: 40px; border-bottom: 2px solid var(--border); background: linear-gradient(135deg, #cfc2a5 25%, #e8d8b5 25%, #e8d8b5 50%, #cfc2a5 50%, #cfc2a5 75%, #e8d8b5 75%); background-size: 20px 20px; }
+        .card-title { text-align: center; font-weight: bold; padding: 3px; background: rgba(0,0,0,0.8); color: var(--light); font-size: 12px; position: absolute; top: 80px; width: 100%; clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%); }
+        .card-desc { padding: 10px 4px 4px 4px; font-size: 10px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; line-height: 1.2; font-weight: bold; }
+        .card-stats { display: flex; justify-content: space-around; padding: 3px; background: rgba(0,0,0,0.1); border-top: 1px solid var(--border); font-weight: bold; font-size: 10px; }
+
+        /* 按鈕區 */
+        #actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding: 5px 0; }
+        button { background: var(--red); color: var(--light); border: 2px solid var(--gold); padding: 8px 12px; border-radius: 5px; font-family: var(--font); font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.5); flex: 1 1 auto; max-width: 160px; }
+        button:hover:not(:disabled) { background: #a83222; transform: scale(1.05); }
+        button:active:not(:disabled) { transform: scale(0.95); }
+        button:disabled { background: #555; color: #999; border-color: #444; cursor: not-allowed; }
+        button.secondary { background: #333; border-color: #888; }
+        button.energy { background: var(--blue); border-color: var(--blue); }
+
+        /* 底部導航與彈窗 */
+        #bottom-nav { display: flex; background: #111; border-top: 2px solid var(--gold); z-index: 100; }
+        .nav-btn { flex: 1; background: none; border: none; color: var(--light); padding: 10px 0; font-size: 12px; border-radius: 0; box-shadow: none; max-width: none; }
+        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; backdrop-filter: blur(3px); }
+        #modal-overlay.active { display: flex; }
+        #modal-content { background: var(--paper); border: 3px solid var(--gold); border-radius: 10px; width: 100%; max-width: 600px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 0 30px rgba(0,0,0,0.9); }
+        .modal-header { background: #2c1e16; color: var(--gold); padding: 10px; font-size: 16px; text-align: center; font-weight: bold; border-bottom: 2px solid var(--gold); }
+        .modal-body { padding: 15px; overflow-y: auto; font-size: 14px; line-height: 1.5; }
+        .modal-footer { padding: 10px; border-top: 1px solid #ccc; display: flex; justify-content: center; }
+        .modal-footer button { width: 80%; max-width: none; }
+        textarea { width: 100%; height: 200px; font-family: monospace; font-size: 12px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; }
+
+        #toast { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.9); color: var(--light); padding: 8px 16px; border-radius: 20px; border: 1px solid var(--gold); font-size: 13px; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 2000; text-align: center; }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        @media (max-width: 600px) {
+            .card { flex: 0 0 120px; height: 180px; } .card-art { height: 60px; font-size: 30px; } .card-title { top: 60px; font-size: 11px; } .card-desc { font-size: 9px; padding-top: 8px; }
+            #map-container { height: 100px; }
+        }
+    </style>
+</head>
+<body>
+    <header id="top-bar">
+        <div class="stat">❤️ <span id="ui-life" class="text-red">0</span></div>
+        <div class="stat">💠 <span id="ui-energy" class="text-blue">0</span></div>
+        <div class="stat">🪙 <span id="ui-gold" class="text-gold">0</span></div>
+        <div class="stat">🍞 <span id="ui-food" class="text-green">0</span></div>
+        <div class="stat">⚖️ <span id="ui-load" class="text-purple">0/0</span></div>
+        <div class="stat">☠️ <span id="ui-poison" class="text-green">0</span></div>
+        <div class="stat">⚖️道德: <span id="ui-morality">0</span></div>
+    </header>
+
+    <main id="main-area">
+        <div id="story-box"><span id="story-text"></span></div>
+        
+        <!-- 地圖區 -->
+        <div id="map-container">
+            <svg id="map-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+
+        <div id="card-area"></div>
+        <div id="actions"></div>
+    </main>
+
+    <footer id="bottom-nav">
+        <button class="nav-btn" onclick="showHelp()">📖 說明</button>
+        <button class="nav-btn" onclick="showInventory()">🎒 角色</button>
+        <button class="nav-btn" onclick="showJsonEditor()">⚙️ 編輯數據</button>
+        <button class="nav-btn" onclick="saveGame()">💾 存檔</button>
+        <button class="nav-btn" onclick="loadGame()">📂 讀檔</button>
+    </footer>
+
+    <div id="modal-overlay" onclick="closeModal(event)">
+        <div id="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header" id="modal-title"></div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer" id="modal-footer"></div>
+        </div>
+    </div>
+    <div id="toast"></div>
+
+<script>
+/* ================= 1. 核心 JSON 資料庫 ================= */
+let DATABASE = {
+    characters: {
+        warrior: { name: '戰士', maxLife: 12, life: 12, maxEnergy: 4, energy: 4, gold: 2, food: 2, maxLoad: 6, morality: 0, startingEquip: '長劍', icon: '🛡️' },
+        rogue: { name: '盜賊', maxLife: 10, life: 10, maxEnergy: 6, energy: 6, gold: 4, food: 1, maxLoad: 4, morality: -1, startingEquip: '匕首', icon: '🗡️' },
+        cleric: { name: '牧師', maxLife: 10, life: 10, maxEnergy: 5, energy: 5, gold: 2, food: 2, maxLoad: 5, morality: 2, startingEquip: '錘子', icon: '✝️' }
+    },
+    equipment: {
+        '長劍': { type: 'weapon', slot: 'mainHand', atk: 1, weight: 1, desc: '主手。攻擊+1。' },
+        '匕首': { type: 'weapon', slot: 'mainHand', atk: 0, weight: 1, desc: '主手。輕巧。' },
+        '錘子': { type: 'weapon', slot: 'mainHand', atk: 1, weight: 2, desc: '主手。沉重。' },
+        '小圓盾': { type: 'armor', slot: 'offHand', def: 1, weight: 1, desc: '副手。防禦+1。' },
+        '皮甲': { type: 'armor', slot: 'body', def: 1, weight: 2, desc: '身體。防禦+1。' },
+        '鐵盔': { type: 'armor', slot: 'head', def: 1, weight: 1, desc: '頭部。防禦+1。' },
+        '治療藥水': { type: 'potion', weight: 1, heal: 4, desc: '消耗品。恢復4點生命。' },
+        '解毒劑': { type: 'potion', weight: 1, cure: 3, desc: '消耗品。移除3層中毒。' }
+    },
+    cards: {
+        enemy: [
+            { id: 'goblin', name: '哥布林', type: 'enemy', icon: '👺', life: 4, initDmg: 0, counter: 2, gold: 1, desc: '弱小的地城生物。' },
+            { id: 'skeleton', name: '骷髏兵', type: 'enemy', icon: '💀', life: 5, initDmg: 1, counter: 3, gold: 2, desc: '亡靈。免疫中毒。' },
+            { id: 'rat', name: '巨鼠', type: 'enemy', icon: '🐀', life: 3, initDmg: 1, counter: 1, gold: 0, desc: '攜帶疾病。' }
+        ],
+        event: [
+            { id: 'treasure', name: '寶藏', type: 'event', icon: '📦', action: 'loot', desc: '發現寶箱。獲得金幣或物品。' },
+            { id: 'camp', name: '營地', type: 'event', icon: '🏕️', action: 'camp', desc: '安全的營地。可以休息或搜索。' },
+            { id: 'altar', name: '祭壇', type: 'event', icon: '⛪', action: 'altar', desc: '根據道德值獲得不同效果。' },
+            { id: 'trapped', name: '箭矢陷阱', type: 'event', icon: '🏹', action: 'trap', desc: '獲得1層中毒標記。' }
+        ],
+        plot: [
+            { id: 'clue1', name: '首領的線索', type: 'plot', icon: '📜', desc: '你發現了關於首領的蛛絲馬跡。' }
+        ],
+        boss: [
+            { id: 'cyclops', name: '獨眼巨人', type: 'boss', icon: '👁️', life: 18, initDmg: 3, counter: 4, gold: 10, desc: '這層的首領。' }
+        ]
+    },
+    // 地圖資料結構 (節點與連線)
+    maps: {
+        level1: {
+            name: "絕望巢穴",
+            nodes: {
+                "start": { x: 10, y: 50, type: "start", next: ["n1", "n2"], label: "入口" },
+                "n1": { x: 35, y: 30, type: "enemy", next: ["n3"], label: "遭遇" },
+                "n2": { x: 35, y: 70, type: "event", next: ["n3"], label: "事件" },
+                "n3": { x: 60, y: 50, type: "plot", next: ["n4"], label: "劇情" },
+                "n4": { x: 80, y: 50, type: "boss", next: [], label: "首領" }
+            }
+        }
+    }
+};
+
+/* ================= 2. 遊戲狀態 ================= */
+let game = {
+    player: null,
+    floor: 1,
+    plotCount: 0,
+    inventory: [], 
+    equipment: { mainHand: null, offHand: null, head: null, body: null, accessory: null },
+    currentNode: "start",
+    currentMap: "level1",
+    enemy: null,
+    history: []
+};
+
+/* ================= 3. UI 渲染 ================= */
+function updateUI() {
+    if (!game.player) return;
+    const p = game.player;
+    document.getElementById('ui-life').innerText = Math.max(0, p.life);
+    document.getElementById('ui-energy').innerText = Math.max(0, p.energy);
+    document.getElementById('ui-gold').innerText = p.gold;
+    document.getElementById('ui-food').innerText = p.food;
+    
+    let load = 0;
+    game.inventory.forEach(item => load += (DATABASE.equipment[item]?.weight || 0));
+    Object.values(game.equipment).forEach(item => {
+        if (item) load += (DATABASE.equipment[item]?.weight || 0);
+    });
+    document.getElementById('ui-load').innerText = `${load}/${p.maxLoad}`;
+    document.getElementById('ui-poison').innerText = p.poison || 0;
+    document.getElementById('ui-morality').innerText = p.morality;
+}
+
+function setStory(text) {
+    document.getElementById('story-text').innerText = text;
+}
+
+/* 渲染 SVG 地圖 */
+function renderMap() {
+    const svg = document.getElementById('map-svg');
+    svg.innerHTML = '';
+    
+    const mapData = DATABASE.maps[game.currentMap];
+    if (!mapData) return;
+
+    // 1. 畫連線
+    for (const [id, node] of Object.entries(mapData.nodes)) {
+        node.next.forEach(nextId => {
+            const nextNode = mapData.nodes[nextId];
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', node.x);
+            line.setAttribute('y1', node.y);
+            line.setAttribute('x2', nextNode.x);
+            line.setAttribute('y2', nextNode.y);
+            line.setAttribute('class', 'map-path');
+            svg.appendChild(line);
+        });
+    }
+
+    // 2. 畫節點
+    for (const [id, node] of Object.entries(mapData.nodes)) {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', node.x);
+        circle.setAttribute('cy', node.y);
+        circle.setAttribute('r', 6);
+        
+        let className = 'map-node ';
+        if (id === game.currentNode) className += 'current ';
+        else if (mapData.nodes[game.currentNode].next.includes(id)) className += 'available ';
+        
+        circle.setAttribute('class', className);
+        
+        // 點擊移動
+        if (id !== game.currentNode) {
+            circle.onclick = () => handleMove(id);
+        }
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', node.x);
+        text.setAttribute('y', node.y - 9);
+        text.setAttribute('class', 'map-text');
+        text.textContent = node.label || id;
+        
+        g.appendChild(circle);
+        g.appendChild(text);
+        svg.appendChild(g);
+    }
+}
+
+function renderCards(cards) {
+    const area = document.getElementById('card-area'); area.innerHTML = '';
+    cards.forEach(card => {
+        const div = document.createElement('div');
+        div.className = `card ${card.type}`;
+        let stats = (card.type === 'enemy' || card.type === 'boss') 
+            ? `<div class="card-stats"><span>❤️ ${card.life}</span><span>🗡️ ${card.counter}</span></div>` : '';
+        div.innerHTML = `
+            <div class="card-art">${card.icon}</div>
+            <div class="card-title">${card.name}</div>
+            <div class="card-desc">${card.desc || ''}</div>
+            ${stats}
+        `;
+        area.appendChild(div);
+    });
+}
+
+function renderButtons(btns) {
+    const area = document.getElementById('actions'); area.innerHTML = '';
+    btns.forEach(b => {
+        const btn = document.createElement('button');
+        btn.innerText = b.text;
+        if (b.secondary) btn.classList.add('secondary');
+        if (b.energy) btn.classList.add('energy');
+        btn.disabled = b.disabled || false;
+        btn.onclick = () => { playSound(); b.action(); };
+        area.appendChild(btn);
+    });
+}
+
+/* ================= 4. 核心流程控制 ================= */
+let currentState = 'INIT';
+
+function initGame() {
+    setStory("歡迎來到《鐵盔》。請選擇你的角色...");
+    renderMap(); // 顯示空地圖
+    renderButtons([
+        { text: '🛡️ 戰士 (生命高)', action: () => startGame('warrior') },
+        { text: '🗡️ 盜賊 (金幣多)', action: () => startGame('rogue') },
+        { text: '✝️ 牧師 (道德高)', action: () => startGame('cleric') }
+    ]);
+}
+
+function startGame(charKey) {
+    game.player = JSON.parse(JSON.stringify(DATABASE.characters[charKey]));
+    game.player.poison = 0;
+    game.inventory = [];
+    game.equipment = { mainHand: null, offHand: null, head: null, body: null, accessory: null };
+    game.equipment.mainHand = game.player.startingEquip;
+
+    game.floor = 1;
+    game.currentMap = 'level1';
+    game.currentNode = 'start';
+    game.plotCount = 0;
+    
+    updateUI();
+    renderMap();
+    setStory("你站在地城入口。點擊地圖上發光的節點開始探索。");
+    renderButtons([]);
+}
+
+// 移動邏輯
+function handleMove(nodeId) {
+    const mapData = DATABASE.maps[game.currentMap];
+    if (!mapData.nodes[game.currentNode].next.includes(nodeId)) return; // 檢查是否相鄰
+
+    game.currentNode = nodeId;
+    renderMap();
+    
+    const nodeType = mapData.nodes[nodeId].type;
+    
+    if (nodeType === 'boss') {
+        setStory("你推開沉重的大門，首領就在眼前！");
+        setTimeout(() => resolveCard(DATABASE.cards.boss[0]), 800);
+    } else {
+        // 進入抽二選一階段
+        startDrawPhase(nodeType);
+    }
+}
+
+function startDrawPhase(nodeType) {
+    currentState = 'DRAW';
+    setStory(`你到達了新的區域（類型：${nodeType}）。你要選擇穩妥前進，還是冒險搜尋？`);
+    
+    // 根據節點類型決定抽卡權重
+    game.currentCard1 = getRandomCard(nodeType);
+    game.currentCard2 = getRandomCard(nodeType);
+    
+    renderCards([
+        { ...game.currentCard1, icon: '❓', name: '未知路線 1' },
+        { ...game.currentCard2, icon: '❓', name: '未知路線 2' }
+    ]);
+    renderButtons([
+        { text: '結算路線 1 (安全)', action: () => resolveCard(game.currentCard1) },
+        { text: '冒險翻開路線 2', action: () => resolveCard(game.currentCard2), secondary: true }
+    ]);
+}
+
+function getRandomCard(preferredType) {
+    const rand = Math.random();
+    // 如果節點指定了類型，有較高機率抽到該類型
+    if (preferredType === 'enemy') return { ...DATABASE.cards.enemy[Math.floor(Math.random() * DATABASE.cards.enemy.length)] };
+    if (preferredType === 'event') return { ...DATABASE.cards.event[Math.floor(Math.random() * DATABASE.cards.event.length)] };
+    if (preferredType === 'plot') return { ...DATABASE.cards.plot[0] };
+    
+    // 否則隨機
+    if (rand < 0.2) return { ...DATABASE.cards.plot[0] };
+    if (rand < 0.5) return { ...DATABASE.cards.event[Math.floor(Math.random() * DATABASE.cards.event.length)] };
+    return { ...DATABASE.cards.enemy[Math.floor(Math.random() * DATABASE.cards.enemy.length)] };
+}
+
+function resolveCard(card) {
+    renderCards([card]);
+    if (card.type === 'enemy' || card.type === 'boss') { startCombat(card); }
+    else if (card.type === 'plot') {
+        game.plotCount++;
+        setStory(`${card.desc} (劇情進度: ${game.plotCount})`);
+        renderButtons([{ text: '返回地圖', action: returnToMap }]);
+    } else {
+        handleEvent(card);
+    }
+}
+
+function returnToMap() {
+    renderCards([]);
+    renderMap();
+    setStory("你回到了地城通道。點擊發光的節點繼續前進。");
+    renderButtons([]);
+}
+
+/* ================= 5. 事件處理 ================= */
+function handleEvent(card) {
+    if (card.action === 'loot') {
+        const gold = Math.floor(Math.random()*5)+1;
+        game.player.gold += gold;
+        updateUI();
+        setStory(`你找到了 ${gold} 枚金幣。`);
+        renderButtons([{ text: '返回地圖', action: returnToMap }]);
+    } 
+    else if (card.action === 'trap') {
+        game.player.poison = (game.player.poison || 0) + 1;
+        updateUI();
+        setStory(`踩中陷阱！獲得 1 層中毒。`);
+        renderButtons([{ text: '返回地圖', action: returnToMap }]);
+    }
+    else if (card.action === 'camp') {
+        setStory("你抵達了安全的營地。");
+        renderButtons([
+            { text: '吃口糧(恢復2生命)', action: () => {
+                if(game.player.food >= 1) { game.player.food--; game.player.life += 2; updateUI(); setStory("你恢復了生命。"); renderButtons([{text:'返回地圖', action:returnToMap}]); }
+                else { showToast("沒有口糧！"); }
+            }},
+            { text: '搜索(獲得口糧)', action: () => { game.player.food++; updateUI(); setStory("你找到了食物。"); renderButtons([{text:'返回地圖', action:returnToMap}]); }, secondary: true }
+        ]);
+    }
+    else if (card.action === 'altar') {
+        setStory("你來到祭壇前。");
+        if (game.player.morality >= 1) {
+            game.player.gold += 3;
+            setStory("你的善行得到了庇佑，獲得 3 枚金幣。");
+        } else {
+            game.player.life -= 2;
+            setStory("邪惡的氣息灼傷了你，失去 2 點生命。");
+        }
+        updateUI();
+        renderButtons([{ text: '返回地圖', action: returnToMap }]);
+    }
+}
+
+/* ================= 6. 戰鬥系統 ================= */
+function startCombat(enemy) {
+    currentState = 'COMBAT';
+    game.enemy = JSON.parse(JSON.stringify(enemy));
+    
+    if (enemy.initDmg > 0) {
+        game.player.life -= enemy.initDmg;
+        updateUI();
+        setStory(`${enemy.name} 先發制人！造成 ${enemy.initDmg} 點初始傷害。`);
+        if (game.player.life <= 0) return gameOver();
+        setTimeout(renderCombatUI, 1200);
+    } else {
+        setStory(`遭遇了 ${enemy.name}！`);
+        renderCombatUI();
+    }
+}
+
+function renderCombatUI() {
+    renderCards([game.enemy]);
+    const p = game.player;
+    let btns = [];
+    if (p.energy >= 1) btns.push({ text: '耗1💠 擲1D6', action: () => performAttack(1), energy: true });
+    if (p.energy >= 2) btns.push({ text: '耗2💠 擲2D6', action: () => performAttack(2), energy: true });
+    if (p.energy >= 3) btns.push({ text: '耗3💠 擲3D6', action: () => performAttack(3), energy: true });
+    if (p.energy === 0) btns.push({ text: '徒手攻擊 (1D3)', action: () => performAttack(0) });
+    renderButtons(btns);
+}
+
+function performAttack(cost) {
+    const p = game.player;
+    p.energy -= cost;
+    updateUI();
+    
+    let totalDamage = 0;
+    let rollResults = [];
+    
+    if (cost === 0) {
+        totalDamage = Math.floor(Math.random()*3)+1;
+        rollResults.push(totalDamage);
+    } else {
+        for (let i=0; i<cost; i++) {
+            const r = Math.floor(Math.random()*6)+1;
+            rollResults.push(r);
+            totalDamage += r;
+        }
+    }
+    
+    let load = 0;
+    game.inventory.forEach(i => load += (DATABASE.equipment[i]?.weight || 0));
+    Object.values(game.equipment).forEach(i => { if(i) load += (DATABASE.equipment[i]?.weight || 0); });
+    
+    if (load > p.maxLoad) {
+        totalDamage = Math.max(0, totalDamage - 1);
+        showToast("超重！傷害-1");
+    }
+    if (game.equipment.mainHand) {
+        totalDamage += (DATABASE.equipment[game.equipment.mainHand]?.atk || 0);
+    }
+
+    game.enemy.life -= totalDamage;
+    setStory(`你造成 ${totalDamage} 點傷害！ (擲骰: ${rollResults.join(',')})`);
+    
+    if (game.enemy.life <= 0) setTimeout(victoryCombat, 1000);
+    else setTimeout(enemyCounter, 1000);
+}
+
+function enemyCounter() {
+    const p = game.player;
+    const e = game.enemy;
+    const eRoll = Math.floor(Math.random()*6)+1;
+    
+    let defense = 4;
+    Object.values(game.equipment).forEach(item => {
+        if(item) defense += (DATABASE.equipment[item]?.def || 0);
+    });
+
+    const dmg = Math.max(0, (e.counter + eRoll) - defense);
+    
+    if (dmg > 0) {
+        p.life -= dmg;
+        setStory(`${e.name} 反擊！(擲骰 ${eRoll}) 造成 ${dmg} 點傷害。`);
+        updateUI();
+    } else {
+        setStory(`${e.name} 反擊，但你成功防禦住了！`);
+    }
+    
+    if (p.life <= 0) return gameOver();
+    setTimeout(renderCombatUI, 1200);
+}
+
+function victoryCombat() {
+    game.player.gold += game.enemy.gold;
+    updateUI();
+    
+    if (game.player.poison > 0) {
+        game.player.life -= game.player.poison;
+        setStory(`戰鬥勝利！但毒素發作，失去 ${game.player.poison} 點生命。`);
+        updateUI();
+        if (game.player.life <= 0) return gameOver();
+    } else {
+        setStory(`戰鬥勝利！獲得 ${game.enemy.gold} 金幣。`);
+    }
+
+    if (game.enemy.type === 'boss') {
+        renderButtons([{ text: '下一層探險', action: () => {
+            game.floor++;
+            game.plotCount = 0;
+            game.player.life += 5;
+            game.player.energy += 2;
+            updateUI();
+            // 這裡可以切換 map JSON，目前先重置
+            game.currentNode = 'start';
+            returnToMap();
+        }}]);
+    } else {
+        renderButtons([{ text: '返回地圖', action: returnToMap }]);
+    }
+}
+
+function gameOver() {
+    setStory("你倒在了冰冷的石板上... 你的冒險結束了。");
+    renderButtons([{ text: '重新開始', action: () => location.reload() }]);
+}
+
+/* ================= 7. 輔助功能 ================= */
+function showHelp() {
+    document.getElementById('modal-title').innerText = '📖 鐵盔規則說明';
+    document.getElementById('modal-body').innerHTML = `
+        <p><b>地圖探索：</b>點擊地圖上發光的圓點移動。</p>
+        <p><b>抽二選一：</b>到達節點後，系統會給你兩張未知卡，選擇安全結算第一張，或冒險結算第二張。</p>
+        <p><b>戰鬥：</b>消耗💠能量擲骰子。能量越多，骰子越多。</p>
+        <p><b>目標：</b>抵達地圖最右側擊敗首領。</p>
+    `;
+    document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()">開始遊戲</button>`;
+    document.getElementById('modal-overlay').classList.add('active');
+}
+
+function showInventory() {
+    document.getElementById('modal-title').innerText = '🎒 角色與裝備';
+    let html = '<h4>已裝備</h4><ul style="list-style:none; padding:0;">';
+    for (const [slot, item] of Object.entries(game.equipment)) {
+        html += `<li style="padding:4px; border-bottom:1px solid #ccc;">${slot}: <b>${item || '空'}</b></li>`;
+    }
+    html += '</ul><h4>背包</h4><ul style="list-style:none; padding:0;">';
+    if (game.inventory.length === 0) html += '<li>空的。</li>';
+    game.inventory.forEach((item, index) => {
+        const data = DATABASE.equipment[item];
+        html += `<li style="padding:4px; border-bottom:1px solid #ccc;">
+            <b>${item}</b> (負重:${data?.weight||0}) <br><span style="font-size:11px; color:#666;">${data?.desc||''}</span>
+            ${data?.type === 'potion' ? `<button onclick="useItem(${index})" style="padding:2px 8px; font-size:11px;">使用</button>` : ''}
+        </li>`;
+    });
+    html += '</ul>';
+    document.getElementById('modal-body').innerHTML = html;
+    document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()">關閉</button>`;
+    document.getElementById('modal-overlay').classList.add('active');
+}
+
+function useItem(index) {
+    const item = game.inventory[index];
+    const data = DATABASE.equipment[item];
+    if (data.type === 'potion') {
+        if (item === '治療藥水') { game.player.life += data.heal; }
+        if (item === '解毒劑') { game.player.poison = Math.max(0, (game.player.poison||0) - data.cure); }
+        game.inventory.splice(index, 1);
+        updateUI();
+        showToast(`使用了 ${item}`);
+        closeModal();
+    }
+}
+
+function showJsonEditor() {
+    document.getElementById('modal-title').innerText = '⚙️ 擴充 JSON 數據';
+    document.getElementById('modal-body').innerHTML = `
+        <p style="font-size:12px;">直接貼上修改後的 JSON 即可熱更新。</p>
+        <textarea id="json-input">${JSON.stringify(DATABASE, null, 2)}</textarea>
+    `;
+    document.getElementById('modal-footer').innerHTML = `
+        <button onclick="importJson()" style="background:#2a5a8b;">匯入更新</button>
+        <button onclick="closeModal()" class="secondary" style="margin-left:10px;">取消</button>
+    `;
+    document.getElementById('modal-overlay').classList.add('active');
+}
+
+function importJson() {
+    try {
+        const newData = JSON.parse(document.getElementById('json-input').value);
+        DATABASE = newData;
+        showToast("數據匯入成功！");
+        closeModal();
+        initGame();
+    } catch (e) {
+        alert("JSON 格式錯誤！\n" + e.message);
+    }
+}
+
+function saveGame() {
+    if(!game.player) return;
+    localStorage.setItem('ironHelmSave', JSON.stringify(game));
+    showToast("存檔成功！");
+}
+
+function loadGame() {
+    const saved = localStorage.getItem('ironHelmSave');
+    if(!saved) return showToast("無存檔");
+    game = JSON.parse(saved);
+    updateUI();
+    renderMap();
+    if(currentState === 'COMBAT' && game.enemy) { renderCombatUI(); }
+    else if(currentState === 'DRAW') { startDrawPhase('enemy'); } // 恢復時稍微簡化
+    else { returnToMap(); }
+    showToast("讀檔成功！");
+}
+
+function closeModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('modal-overlay').classList.remove('active');
+}
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+}
+function playSound() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator(); const g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.type = 'square'; osc.frequency.value = 150;
+        g.gain.setValueAtTime(0.05, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        osc.start(); osc.stop(ctx.currentTime + 0.1);
+    } catch(e){}
+}
+
+window.onload = () => { initGame(); showHelp(); };
+</script>
+</body>
+</html>
