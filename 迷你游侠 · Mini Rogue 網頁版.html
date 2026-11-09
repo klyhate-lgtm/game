@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>迷你遊俠 · Mini Rogue 網頁版</title>
+<style>
+/* ========== 全域與主題 ========== */
+:root {
+  --bg-dark: #150f0c;
+  --bg-card: #2a1f1a;
+  --gold: #c9a84c;
+  --gold-bright: #f0d68a;
+  --red: #b33a3a;
+  --red-bright: #e05555;
+  --green: #4a7c59;
+  --green-bright: #6aad7a;
+  --blue: #3a5a8c;
+  --blue-bright: #5a8ac9;
+  --purple: #6b3a7a;
+  --purple-bright: #9a5aaa;
+  --text-light: #e8dcc8;
+  --text-dim: #9a8a7a;
+  --font-serif: 'Georgia', 'Times New Roman', 'Noto Serif TC', serif;
+  --font-sans: 'Segoe UI', 'Noto Sans TC', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-dark);
+  color: var(--text-light);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 羊皮紙與暗角 */
+body::before {
+  content: ''; position: fixed; inset: 0;
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(200,180,150,0.02) 2px, rgba(200,180,150,0.02) 4px);
+  pointer-events: none; z-index: 0;
+}
+body::after {
+  content: ''; position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%);
+  pointer-events: none; z-index: 1;
+}
+
+/* ========== 頂部狀態列 ========== */
+#top-bar {
+  position: relative; z-index: 10; display: flex; align-items: center;
+  gap: 6px; padding: 8px 12px; background: linear-gradient(180deg, #2a1f1a 0%, #150f0c 100%);
+  border-bottom: 2px solid var(--gold); flex-wrap: wrap; min-height: 52px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.6);
+}
+
+.stat-chip {
+  display: flex; align-items: center; gap: 4px; padding: 3px 10px;
+  border-radius: 20px; background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(201,168,76,0.3); font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+
+.stat-chip .icon { font-size: 15px; }
+.stat-chip .value { color: var(--gold-bright); font-family: var(--font-serif); }
+.stat-chip.hp .value { color: var(--red-bright); }
+.stat-chip.armor .value { color: var(--blue-bright); }
+.stat-chip.food .value { color: var(--green-bright); }
+.stat-chip.gold .value { color: var(--gold-bright); }
+.stat-chip.xp .value { color: var(--purple-bright); }
+
+#level-badge { padding: 2px 10px; border-radius: 12px; background: linear-gradient(135deg, var(--purple), #4a2a5a); font-size: 12px; font-weight: 700; border: 1px solid var(--purple-bright); }
+#location-badge { margin-left: auto; font-size: 12px; color: var(--text-dim); padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,0.3); }
+
+/* ========== 主遊戲區 ========== */
+#game-area { position: relative; z-index: 10; flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+#dungeon-grid-wrapper { flex: 1; overflow: auto; padding: 12px; display: flex; align-items: center; justify-content: center; min-height: 0; }
+#dungeon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 520px; width: 100%; transition: opacity 0.3s; }
+
+/* 卡牌通用樣式 */
+.card {
+  position: relative; border-radius: 8px; border: 2px solid rgba(201,168,76,0.4);
+  background: var(--bg-card); overflow: hidden; cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  aspect-ratio: 3/4; display: flex; flex-direction: column; user-select: none;
+}
+.card:hover:not(.resolved-card) { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(201,168,76,0.2); }
+.card:active:not(.resolved-card) { transform: scale(0.97); }
+
+/* 已探索完畢的卡牌 */
+.card.resolved-card { opacity: 0.5; filter: grayscale(0.6); cursor: default; border-color: rgba(201,168,76,0.2); }
+.card.resolved-card::after {
+  content: '✓'; position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%); font-size: 40px;
+  color: rgba(240, 214, 138, 0.8); font-weight: bold;
+  text-shadow: 0 0 10px rgba(0,0,0,0.8); pointer-events: none;
+}
+
+.card.current { border-color: var(--gold-bright); box-shadow: 0 0 0 2px var(--gold-bright), 0 0 20px rgba(240,214,138,0.3); animation: currentGlow 2s ease-in-out infinite; }
+@keyframes currentGlow { 0%, 100% { box-shadow: 0 0 0 2px var(--gold-bright), 0 0 20px rgba(240,214,138,0.3); } 50% { box-shadow: 0 0 0 2px var(--gold-bright), 0 0 30px rgba(240,214,138,0.6); } }
+.card.revealed { border-color: rgba(201,168,76,0.6); }
+.card.hidden-card { background: repeating-linear-gradient(135deg, #1a1512, #1a1512 6px, #221a16 6px, #221a16 12px); border-color: rgba(201,168,76,0.2); }
+.card.hidden-card .card-art { opacity: 0.3; }
+.card.boss-card { border-color: var(--red); background: linear-gradient(180deg, #2a1515, #1a0a0a); }
+
+.card-art { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px; min-height: 0; position: relative; }
+.card-art svg { width: 100%; height: 100%; max-height: 100%; }
+
+/* 卡牌標籤 */
+.card-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); padding: 4px 6px; font-size: 10px; text-align: center; line-height: 1.3; border-top: 1px solid rgba(201,168,76,0.3); }
+.card-label .name { font-weight: 700; color: var(--gold-bright); font-size: 11px; display: block; }
+.card-label .effect { color: var(--text-dim); font-size: 9px; display: block; }
+
+/* 路徑指示 */
+.card-path-marker { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 32px; height: 32px; border-radius: 50%; background: rgba(240,214,138,0.15); border: 2px dashed rgba(240,214,138,0.5); display: flex; align-items: center; justify-content: center; font-size: 16px; animation: pathPulse 2s infinite; pointer-events: none; }
+@keyframes pathPulse { 0%, 100% { transform: translate(-50%,-50%) scale(1); opacity: 0.6; } 50% { transform: translate(-50%,-50%) scale(1.15); opacity: 1; } }
+
+/* ========== 底部操作區 ========== */
+#bottom-panel { position: relative; z-index: 10; background: linear-gradient(0deg, #150f0c 0%, #2a1f1a 100%); border-top: 2px solid var(--gold); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-height: 100px; }
+#action-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.btn {
+  padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(201,168,76,0.5);
+  background: linear-gradient(180deg, #3a2a1a, #2a1f1a); color: var(--text-light);
+  font-family: var(--font-sans); font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; white-space: nowrap; position: relative; overflow: hidden;
+}
+.btn:hover:not(:disabled) { background: linear-gradient(180deg, #4a3a2a, #3a2a1a); border-color: var(--gold); box-shadow: 0 0 12px rgba(201,168,76,0.25); transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; filter: grayscale(0.5); }
+.btn.primary { background: linear-gradient(180deg, #7a5a2a, #5a3a1a); border-color: var(--gold); color: var(--gold-bright); }
+.btn.primary:hover:not(:disabled) { background: linear-gradient(180deg, #9a7a3a, #7a5a2a); box-shadow: 0 0 16px rgba(240,214,138,0.35); }
+.btn.danger { background: linear-gradient(180deg, #6a2a2a, #4a1a1a); border-color: var(--red); color: var(--red-bright); }
+.btn.small { padding: 5px 10px; font-size: 11px; }
+
+/* 骰子 */
+#dice-area { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-height: 36px; padding: 4px 0; }
+.die { width: 36px; height: 36px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; border: 2px solid; transition: all 0.3s; animation: dieRoll 0.5s ease-out; }
+@keyframes dieRoll { 0% { transform: rotateY(0) scale(0.5); opacity: 0; } 50% { transform: rotateY(180deg) scale(1.1); } 100% { transform: rotateY(360deg) scale(1); opacity: 1; } }
+.die.character { background: #eee; color: #222; border-color: #aaa; }
+.die.dungeon { background: #222; color: #eee; border-color: #555; }
+.die.crit { border-color: var(--gold-bright); box-shadow: 0 0 10px var(--gold); }
+.die.miss { opacity: 0.6; }
+.dice-total { font-size: 18px; font-weight: 800; color: var(--gold-bright); margin-left: 6px; padding: 2px 10px; background: rgba(240,214,138,0.1); border-radius: 6px; border: 1px solid rgba(240,214,138,0.3); }
+
+/* 日誌區 */
+#log-area { flex: 1; max-height: 80px; overflow-y: auto; font-size: 11px; color: var(--text-dim); padding: 4px 0; line-height: 1.5; scrollbar-width: thin; }
+#log-area .log-entry { padding: 1px 0; border-bottom: 1px solid rgba(201,168,76,0.06); }
+#log-area .log-entry.good { color: var(--green-bright); }
+#log-area .log-entry.bad { color: var(--red-bright); }
+#log-area .log-entry.info { color: var(--gold-bright); }
+
+/* ========== 彈窗 ========== */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal-box { background: linear-gradient(180deg, #2a1f1a, #150f0c); border: 2px solid var(--gold); border-radius: 12px; padding: 24px; max-width: 600px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.8), 0 0 60px rgba(201,168,76,0.1); transform: scale(0.9); transition: transform 0.3s; position: relative; }
+.modal-overlay.active .modal-box { transform: scale(1); }
+.modal-box h2 { font-family: var(--font-serif); color: var(--gold-bright); font-size: 22px; margin-bottom: 12px; text-align: center; border-bottom: 1px solid rgba(201,168,76,0.3); padding-bottom: 10px; }
+.modal-box h3 { font-family: var(--font-serif); color: var(--gold); font-size: 16px; margin: 14px 0 8px; }
+.modal-box p { font-size: 14px; line-height: 1.7; color: var(--text-light); margin-bottom: 8px; }
+.modal-box ul, .modal-box ol { padding-left: 20px; margin-bottom: 10px; font-size: 13px; line-height: 1.8; }
+.modal-box .modal-actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+
+/* 角色選擇卡 */
+.character-select-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
+.char-select-card { background: var(--bg-card); border: 2px solid rgba(201,168,76,0.4); border-radius: 8px; padding: 14px; cursor: pointer; transition: all 0.2s; text-align: center; }
+.char-select-card:hover { border-color: var(--gold); transform: translateY(-3px); box-shadow: 0 6px 20px rgba(201,168,76,0.2); }
+.char-select-card.selected { border-color: var(--gold-bright); box-shadow: 0 0 0 2px var(--gold-bright); }
+.char-select-card .char-avatar { width: 60px; height: 60px; margin: 0 auto 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; border: 2px solid rgba(201,168,76,0.4); }
+.char-select-card .char-name { font-weight: 700; color: var(--gold-bright); font-size: 15px; margin-bottom: 4px; }
+.char-select-card .char-stats { font-size: 11px; color: var(--text-dim); line-height: 1.6; }
+.char-select-card .char-skill { font-size: 10px; color: var(--text-dim); margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(201,168,76,0.15); }
+
+/* 獎勵選擇 */
+.reward-choice-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 12px 0; }
+.reward-choice-btn { flex: 1; min-width: 120px; padding: 14px; border-radius: 8px; border: 2px solid rgba(201,168,76,0.4); background: var(--bg-card); cursor: pointer; transition: all 0.2s; text-align: center; }
+.reward-choice-btn:hover { border-color: var(--gold); background: rgba(201,168,76,0.1); }
+.reward-choice-btn .reward-icon { font-size: 28px; display: block; margin-bottom: 4px; }
+.reward-choice-btn .reward-name { font-size: 13px; font-weight: 600; color: var(--gold-bright); }
+.reward-choice-btn .reward-desc { font-size: 10px; color: var(--text-dim); }
+
+/* 底部導航列 */
+#bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; display: flex; justify-content: space-around; align-items: center; background: linear-gradient(0deg, #0a0806, #1a120e); border-top: 1px solid rgba(201,168,76,0.3); padding: 6px 0 max(6px, env(safe-area-inset-bottom)); height: 56px; }
+.nav-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: none; color: var(--text-dim); font-size: 10px; cursor: pointer; padding: 4px 12px; border-radius: 8px; transition: all 0.2s; font-family: var(--font-sans); }
+.nav-btn .nav-icon { font-size: 18px; }
+.nav-btn:hover, .nav-btn.active { color: var(--gold-bright); background: rgba(201,168,76,0.1); }
+
+/* Toast */
+#toast-container { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; }
+.toast { background: rgba(42,31,26,0.95); border: 1px solid var(--gold); border-radius: 8px; padding: 10px 18px; font-size: 13px; color: var(--text-light); box-shadow: 0 4px 20px rgba(0,0,0,0.6); animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.5s forwards; max-width: 90vw; text-align: center; }
+.toast.warning { border-color: var(--red); color: var(--red-bright); }
+.toast.success { border-color: var(--green-bright); color: var(--green-bright); }
+.toast.info { border-color: var(--gold); color: var(--gold-bright); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-10px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+
+/* 時間線側欄 */
+#timeline-panel { position: fixed; top: 0; right: -320px; width: 320px; height: 100%; background: linear-gradient(180deg, #2a1f1a, #150f0c); border-left: 2px solid var(--gold); z-index: 500; transition: right 0.3s ease; display: flex; flex-direction: column; box-shadow: -4px 0 20px rgba(0,0,0,0.5); }
+#timeline-panel.open { right: 0; }
+#timeline-panel .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid rgba(201,168,76,0.3); }
+#timeline-panel .panel-header h3 { font-family: var(--font-serif); color: var(--gold-bright); font-size: 16px; }
+#timeline-list { flex: 1; overflow-y: auto; padding: 12px 16px; font-size: 12px; line-height: 1.6; scrollbar-width: thin; }
+.timeline-item { padding: 6px 0; border-bottom: 1px solid rgba(201,168,76,0.08); color: var(--text-dim); }
+.timeline-item .tl-area { color: var(--gold); font-weight: 600; font-size: 11px; }
+.timeline-item .tl-desc { color: var(--text-light); }
+
+/* 成就 */
+.achievement-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid rgba(201,168,76,0.1); }
+.achievement-item .ach-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); }
+.achievement-item .ach-info { flex: 1; }
+.achievement-item .ach-name { font-size: 13px; font-weight: 600; color: var(--gold-bright); }
+.achievement-item .ach-desc { font-size: 11px; color: var(--text-dim); }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(201,168,76,0.5); }
+
+@media (max-width: 600px) {
+  #top-bar { padding: 6px 8px; gap: 5px; min-height: 46px; }
+  .stat-chip { padding: 2px 7px; font-size: 11px; }
+  #location-badge { display: none; }
+  #dungeon-grid-wrapper { padding: 8px; }
+  #dungeon-grid { gap: 6px; }
+  .card-label .name { font-size: 9px; }
+  .card-label .effect { font-size: 8px; }
+  .btn { padding: 7px 12px; font-size: 12px; }
+  #bottom-panel { padding: 8px; min-height: 90px; }
+  #log-area { max-height: 60px; font-size: 10px; }
+  .character-select-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .char-select-card { padding: 10px; }
+  .char-select-card .char-avatar { width: 44px; height: 44px; font-size: 22px; }
+  .modal-box { padding: 16px; }
+  #bottom-nav { height: 50px; }
+  .nav-btn { padding: 4px 8px; }
+  .nav-btn .nav-icon { font-size: 16px; }
+  .nav-btn { font-size: 9px; }
+  #timeline-panel { width: 280px; right: -280px; }
+}
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- 頂部狀態列 -->
+<div id="top-bar">
+  <div class="stat-chip hp"><span class="icon">❤️</span><span class="value" id="stat-hp">10</span></div>
+  <div class="stat-chip armor"><span class="icon">🛡️</span><span class="value" id="stat-armor">0</span></div>
+  <div class="stat-chip food"><span class="icon">🍖</span><span class="value" id="stat-food">3</span></div>
+  <div class="stat-chip gold"><span class="icon">🪙</span><span class="value" id="stat-gold">5</span></div>
+  <div class="stat-chip xp"><span class="icon">✨</span><span class="value" id="stat-xp">0</span></div>
+  <span id="level-badge">Lv.1</span>
+  <div id="status-icons"></div>
+  <span id="location-badge">區域 1</span>
+</div>
+
+<!-- 主遊戲區 -->
+<div id="game-area">
+  <div id="dungeon-grid-wrapper">
+    <div id="dungeon-grid"></div>
+  </div>
+</div>
+
+<!-- 底部操作區 -->
+<div id="bottom-panel">
+  <div id="action-row">
+    <button class="btn primary" id="btn-main-action" disabled>開始遊戲</button>
+    <button class="btn" id="btn-use-skill" disabled>使用技能</button>
+    <button class="btn" id="btn-potion" disabled>使用藥水</button>
+  </div>
+  <div id="dice-area"></div>
+  <div id="log-area"></div>
+</div>
+
+<!-- 底部導航列 -->
+<nav id="bottom-nav">
+  <button class="nav-btn" id="nav-rules"><span class="nav-icon">📖</span>規則</button>
+  <button class="nav-btn" id="nav-save"><span class="nav-icon">💾</span>存檔</button>
+  <button class="nav-btn" id="nav-load"><span class="nav-icon">📂</span>讀檔</button>
+  <button class="nav-btn" id="nav-timeline"><span class="nav-icon">📜</span>歷史</button>
+  <button class="nav-btn" id="nav-achievements"><span class="nav-icon">🏆</span>成就</button>
+  <button class="nav-btn" id="nav-sound"><span class="nav-icon">🔊</span>音效</button>
+</nav>
+
+<!-- 時間線側欄 -->
+<div id="timeline-panel">
+  <div class="panel-header">
+    <h3>📜 冒險時間線</h3>
+    <button class="btn small" id="btn-close-timeline">✕</button>
+  </div>
+  <div id="timeline-list"></div>
+</div>
+
+<!-- Toast 容器 -->
+<div id="toast-container"></div>
+
+<!-- 彈窗：規則說明 -->
+<div class="modal-overlay" id="modal-rules">
+  <div class="modal-box">
+    <h2>📖 迷你遊俠 · 規則說明</h2>
+    <p><strong>遊戲目標：</strong>你是一位孤膽冒險者，必須穿過 4 層地牢，擊敗每層的守關 Boss，最終戰勝「奧格殘骸」，取回傳說中的<strong>奧格之血</strong>。</p>
+    <h3>🎮 看懂畫面</h3>
+    <ul>
+      <li><strong>頂部狀態列</strong>：❤️生命、🛡️護甲、🍖食物、🪙金幣、✨經驗，以及等級。</li>
+      <li><strong>地牢網格</strong>：3×3 的房間卡陣列。從左上角出發，每次只能選擇<strong>右邊</strong>或<strong>下面</strong>的相鄰房間進入。</li>
+      <li><strong>底部操作區</strong>：顯示當前可用的按鈕、骰子結果與事件日誌。</li>
+    </ul>
+    <h3>🕹️ 操作步驟</h3>
+    <ol>
+      <li>選擇一位角色（騎士、盜賊、法師、牧師）。</li>
+      <li>進入地牢後，點擊發光的房間卡進行探索與結算。</li>
+      <li>遇到怪物或 Boss 時，會自動進入戰鬥流程。</li>
+      <li>每進入一層新樓層，消耗 1 🍖食物；若沒有食物則失去 3 ❤️生命。</li>
+      <li>經驗值滿 6 點升到 2 級（2 顆角色骰），滿 18 點升到 3 級（3 顆角色骰）。</li>
+    </ol>
+    <h3>⚔️ 戰鬥與技能檢定</h3>
+    <ul>
+      <li><strong>戰鬥</strong>：玩家先攻。投擲角色骰，數字總和即傷害（★ 代表暴擊，會多投一顆並加總）。若怪物存活，投擲地牢骰反擊（1 未命中，2~5 扣護甲，6 無視護甲）。</li>
+      <li><strong>技能檢定</strong>：遇到陷阱、寶箱時，投擲「角色骰 + 地牢骰」。只要角色骰出現 <strong>★</strong> 即成功。然後根據地牢骰數字查表結算。</li>
+    </ul>
+    <div class="modal-actions">
+      <button class="btn primary" id="btn-close-rules">我準備好了，開始遊戲</button>
+    </div>
+  </div>
+</div>
+
+<!-- 彈窗：角色選擇 -->
+<div class="modal-overlay" id="modal-character">
+  <div class="modal-box">
+    <h2>⚔️ 選擇你的冒險者</h2>
+    <p style="text-align:center;color:var(--text-dim);font-size:13px;">每位角色擁有獨特的屬性與骰面。</p>
+    <div class="character-select-grid" id="character-grid"></div>
+    <div class="modal-actions">
+      <button class="btn primary" id="btn-confirm-character" disabled>確認選擇，進入地牢</button>
+    </div>
+  </div>
+</div>
+
+<!-- 彈窗：通用結算/選項 -->
+<div class="modal-overlay" id="modal-event">
+  <div class="modal-box" id="modal-event-content"></div>
+</div>
+
+<!-- 彈窗：成就 -->
+<div class="modal-overlay" id="modal-achievements">
+  <div class="modal-box">
+    <h2>🏆 成就殿堂</h2>
+    <div id="achievements-list"></div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-close-achievements">關閉</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== 資料定義 ====================
+
+const CHARACTERS = [
+  { id: 'knight', name: '騎士', icon: '🛡️', color: '#3a5a8c', hp: 10, armor: 2, food: 3, gold: 1, faces: ['×','2','2','3','3','★'], skill: '奋不顾身', desc: '战斗技能：本回合受到伤害-1。' },
+  { id: 'rogue', name: '盜賊', icon: '🗡️', color: '#4a7c59', hp: 10, armor: 1, food: 1, gold: 10, faces: ['×','2','2','3','3','★'], skill: '背刺', desc: '战斗技能：本次攻击伤害翻倍。' },
+  { id: 'mage', name: '法師', icon: '🔮', color: '#6b3a7a', hp: 11, armor: 1, food: 4, gold: 4, faces: ['1','1','2','2','3','★'], skill: '咒语', desc: '战斗技能：投掷地牢骰造成伤害。' },
+  { id: 'priest', name: '牧師', icon: '✨', color: '#b33a3a', hp: 10, armor: 2, food: 3, gold: 3, faces: ['1','1','2','3','★','★'], skill: '神迹', desc: '战斗技能：恢复 3 生命。' }
+];
+
+const MONSTERS = {
+  troll: { name: '巨魔', icon: '👹', levels: { 1: { hp: 12, dmg: 2, reward: { gold: 2 } }, 2: { hp: 16, dmg: 3, reward: { gold: 2, food: 1 } }, 3: { hp: 20, dmg: 4, reward: { gold: 4 } } } },
+  ghoul: { name: '食屍鬼', icon: '🧟', levels: { 1: { hp: 16, dmg: 1, reward: { gold: 3 } }, 2: { hp: 20, dmg: 2, reward: { gold: 4 } }, 3: { hp: 25, dmg: 4, reward: { gold: 5 } } } },
+  spider: { name: '巨型蜘蛛', icon: '🕷️', levels: { 1: { hp: 12, dmg: 2, reward: { gold: 2 } }, 2: { hp: 16, dmg: 3, reward: { gold: 3 } }, 3: { hp: 20, dmg: 4, reward: { gold: 4 } } } },
+  skeleton: { name: '骷髏兵', icon: '💀', levels: { 1: { hp: 12, dmg: 2, reward: { gold: 2 } }, 2: { hp: 16, dmg: 3, reward: { gold: 3 } }, 3: { hp: 20, dmg: 4, reward: { gold: 4 } } } }
+};
+
+const BOSSES = {
+  1: { name: '詛咒之龍', icon: '🐉', hp: 18, dmg: 4 },
+  2: { name: '死靈法師', icon: '🧙‍♂️', hp: 22, dmg: 5 },
+  3: { name: '蜘蛛女皇', icon: '🕸️', hp: 26, dmg: 6 },
+  4: { name: '奧格殘骸', icon: '☠️', hp: 30, dmg: 8 }
+};
+
+const ROOM_TYPES = {
+  bonfire: { name: '營火', icon: '🔥', color: '#c9a84c' },
+  trap: { name: '陷阱', icon: '💀', color: '#b33a3a' },
+  monster: { name: '怪物', icon: '👹', color: '#b33a3a' },
+  treasure: { name: '寶箱', icon: '💰', color: '#c9a84c' },
+  shrine: { name: '神龕', icon: '🕯️', color: '#9a5aaa' },
+  merchant: { name: '商人', icon: '🧳', color: '#c9a84c' },
+  boss: { name: 'Boss', icon: '☠️', color: '#b33a3a' }
+};
+
+// ==================== 遊戲狀態 ====================
+
+const GameState = {
+  phase: 'SETUP',
+  character: null,
+  area: 1,
+  floor: 1,
+  hp: 10, maxHp: 10,
+  armor: 0, maxArmor: 0,
+  food: 3, gold: 5, xp: 0, level: 1, dice: 1,
+  potions: [],
+  grid: [],
+  currentPos: { row: 0, col: 0 },
+  combat: null,
+  log: [],
+  timeline: [],
+  achievements: [],
+  skillUsed: false,
+  soundEnabled: true,
+  gameOver: false
+};
+
+// ==================== 音效 ====================
+
+let audioCtx = null;
+function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+function playSound(type) {
+  if (!GameState.soundEnabled) return;
+  try {
+    initAudio();
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+    if (type === 'click') { osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(400, now + 0.08); gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1); osc.type = 'sine'; osc.start(now); osc.stop(now + 0.1); }
+    else if (type === 'roll') { osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.15); gain.gain.setValueAtTime(0.06, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2); osc.type = 'triangle'; osc.start(now); osc.stop(now + 0.2); }
+    else if (type === 'hit') { osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(60, now + 0.2); gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25); osc.type = 'sawtooth'; osc.start(now); osc.stop(now + 0.25); }
+    else if (type === 'heal') { osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(600, now + 0.1); osc.frequency.setValueAtTime(800, now + 0.2); gain.gain.setValueAtTime(0.06, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35); osc.type = 'sine'; osc.start(now); osc.stop(now + 0.35); }
+    else if (type === 'reward') { osc.frequency.setValueAtTime(523, now); osc.frequency.setValueAtTime(659, now + 0.1); osc.frequency.setValueAtTime(784, now + 0.2); gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4); osc.type = 'sine'; osc.start(now); osc.stop(now + 0.4); }
+  } catch(e) {}
+}
+
+// ==================== 工具 ====================
+
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function rollD6() { return rand(1, 6); }
+function rollFace(faces) { return faces[rand(0, faces.length - 1)]; }
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function addLog(msg, type = 'info') {
+  GameState.log.push({ msg, type });
+  const el = document.getElementById('log-area');
+  el.innerHTML = GameState.log.slice(-15).reverse().map(l => `<div class="log-entry ${l.type}">${l.msg}</div>`).join('');
+}
+function showToast(msg, type = 'info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`; t.textContent = msg;
+  c.appendChild(t); setTimeout(() => t.remove(), 3000);
+}
+function addTimeline(area, desc) {
+  GameState.timeline.push({ area, desc });
+  document.getElementById('timeline-list').innerHTML = GameState.timeline.slice().reverse().map(t => `<div class="timeline-item"><div class="tl-area">區域 ${t.area}</div><div class="tl-desc">${t.desc}</div></div>`).join('');
+}
+
+// ==================== 成就 ====================
+
+const ACHIEVEMENTS = [
+  { id: 'first_blood', name: '初次見血', desc: '擊敗第一隻怪物。', icon: '⚔️' },
+  { id: 'boss_slayer', name: '屠龍勇士', desc: '擊敗第一層 Boss。', icon: '🐉' },
+  { id: 'level_2', name: '小有成就', desc: '升到 2 級。', icon: '⭐' },
+  { id: 'level_3', name: '菁英冒險者', desc: '升到 3 級。', icon: '🌟' },
+  { id: 'victory', name: '奧格之血', desc: '擊敗最終 Boss，獲得勝利。', icon: '🏆' },
+  { id: 'death', name: '出師未捷', desc: '第一次死亡。', icon: '💀' }
+];
+
+function unlockAchievement(id) {
+  if (GameState.achievements.includes(id)) return;
+  GameState.achievements.push(id);
+  const a = ACHIEVEMENTS.find(x => x.id === id);
+  if (a) { showToast(`🏆 成就解鎖：${a.name}`, 'success'); playSound('reward'); }
+  renderAchievements();
+}
+
+function renderAchievements() {
+  document.getElementById('achievements-list').innerHTML = ACHIEVEMENTS.map(a => {
+    const u = GameState.achievements.includes(a.id);
+    return `<div class="achievement-item" style="opacity:${u?1:0.4}">
+      <div class="ach-icon">${u ? a.icon : '🔒'}</div>
+      <div class="ach-info"><div class="ach-name">${a.name}</div><div class="ach-desc">${a.desc}</div></div>
+    </div>`;
+  }).join('');
+}
+
+// ==================== SVG 卡牌 ====================
+
+function generateRoomSVG(type, opts = {}) {
+  const t = ROOM_TYPES[type] || ROOM_TYPES.monster;
+  let inner = '';
+  if (type === 'monster') {
+    inner = `<circle cx="50" cy="40" r="22" fill="${t.color}" opacity="0.3"/><text x="50" y="48" text-anchor="middle" font-size="30" fill="${t.color}">${opts.icon||'👹'}</text><text x="50" y="70" text-anchor="middle" font-size="8" fill="#e8dcc8">HP ${opts.hp||12}</text>`;
+  } else if (type === 'boss') {
+    inner = `<circle cx="50" cy="38" r="26" fill="#b33a3a" opacity="0.25"/><text x="50" y="46" text-anchor="middle" font-size="34" fill="#e05555">${opts.icon||'☠️'}</text><text x="50" y="68" text-anchor="middle" font-size="7" fill="#e05555">BOSS</text><text x="50" y="78" text-anchor="middle" font-size="8" fill="#e8dcc8">HP ${opts.hp||18}</text>`;
+  } else {
+    inner = `<circle cx="50" cy="42" r="24" fill="${t.color}" opacity="0.2"/><text x="50" y="50" text-anchor="middle" font-size="28" fill="${t.color}">${t.icon}</text>`;
+  }
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="rgba(0,0,0,0.2)"/>${inner}</svg>`;
+}
+
+// ==================== 渲染 ====================
+
+function renderDungeon() {
+  const gridEl = document.getElementById('dungeon-grid');
+  gridEl.innerHTML = '';
+  GameState.grid.forEach((card, i) => {
+    const div = document.createElement('div');
+    const isCurrent = GameState.currentPos.row * 3 + GameState.currentPos.col === i;
+    const isResolved = card.resolved;
+
+    div.className = `card ${card.revealed ? 'revealed' : 'hidden-card'} ${card.type==='boss'?'boss-card':''} ${isCurrent?'current':''} ${isResolved?'resolved-card':''}`;
+
+    const artDiv = document.createElement('div');
+    artDiv.className = 'card-art';
+    let opts = {};
+    if (card.type === 'monster') opts = { icon: card.monster.icon, hp: card.monster.levels[GameState.floor].hp };
+    if (card.type === 'boss') opts = { icon: card.boss.icon, hp: card.boss.hp };
+    artDiv.innerHTML = generateRoomSVG(card.type, opts);
+    div.appendChild(artDiv);
+
+    const label = document.createElement('div');
+    label.className = 'card-label';
+    let name = card.revealed ? (card.type==='monster' ? card.monster.name : (card.type==='boss' ? card.boss.name : ROOM_TYPES[card.type].name)) : '？？？';
+    let eff = card.revealed ? (card.type==='monster' ? `HP ${card.monster.levels[GameState.floor].hp} · 傷 ${card.monster.levels[GameState.floor].dmg}` : (card.type==='boss' ? `HP ${card.boss.hp} · 傷 ${card.boss.dmg}` : '')) : '尚未揭曉';
+    label.innerHTML = `<span class="name">${name}</span><span class="effect">${eff}</span>`;
+    div.appendChild(label);
+
+    if (!isCurrent && !isResolved && card.revealed && canMoveTo(i)) {
+      const m = document.createElement('div');
+      m.className = 'card-path-marker'; m.textContent = '👣';
+      div.appendChild(m);
+    }
+
+    div.addEventListener('click', () => onCardClick(i));
+    gridEl.appendChild(div);
+  });
+}
+
+function updateTopBar() {
+  document.getElementById('stat-hp').textContent = GameState.hp;
+  document.getElementById('stat-armor').textContent = GameState.armor;
+  document.getElementById('stat-food').textContent = GameState.food;
+  document.getElementById('stat-gold').textContent = GameState.gold;
+  document.getElementById('stat-xp').textContent = GameState.xp;
+  document.getElementById('level-badge').textContent = `Lv.${GameState.level}`;
+  document.getElementById('location-badge').textContent = `區域 ${GameState.area} · 第 ${GameState.floor} 層`;
+}
+
+function updateButtons() {
+  const main = document.getElementById('btn-main-action');
+  const skill = document.getElementById('btn-use-skill');
+  const potion = document.getElementById('btn-potion');
+  main.disabled = true; skill.disabled = true; potion.disabled = true;
+
+  if (GameState.phase === 'SETUP') { main.textContent = '開始遊戲'; main.disabled = false; }
+  else if (GameState.phase === 'EXPLORING') { main.textContent = '選擇房間'; if (GameState.character) { skill.disabled = GameState.skillUsed; potion.disabled = GameState.potions.length===0; } }
+  else if (GameState.phase === 'COMBAT') { main.textContent = '投擲骰子'; main.disabled = false; skill.disabled = GameState.skillUsed; potion.disabled = GameState.potions.length===0; }
+  else if (GameState.phase === 'EVENT') { main.textContent = '繼續'; main.disabled = true; }
+  else if (GameState.phase === 'GAMEOVER' || GameState.phase === 'VICTORY') { main.textContent = '重新開始'; main.disabled = false; }
+}
+
+// ==================== 地圖生成 ====================
+
+function generateArea() {
+  const pool = ['bonfire','bonfire','trap','trap','monster','monster','treasure','shrine','merchant'];
+  const shuffled = pool.sort(() => Math.random() - 0.5);
+  GameState.grid = [];
+  for (let i = 0; i < 8; i++) {
+    const type = shuffled[i];
+    const card = { type, revealed: false, resolved: false };
+    if (type === 'monster') card.monster = MONSTERS[Object.keys(MONSTERS)[rand(0,3)]];
+    GameState.grid.push(card);
+  }
+  const boss = BOSSES[GameState.area];
+  GameState.grid.push({ type: 'boss', boss, revealed: false, resolved: false });
+
+  GameState.currentPos = { row: 0, col: 0 };
+  GameState.grid[0].revealed = true;
+}
+
+function canMoveTo(idx) {
+  const cur = GameState.currentPos.row * 3 + GameState.currentPos.col;
+  const cr = Math.floor(cur/3), cc = cur%3;
+  const tr = Math.floor(idx/3), tc = idx%3;
+  return (tr === cr && tc === cc+1) || (tc === cc && tr === cr+1);
+}
+
+// ==================== 流程控制 ====================
+
+function onCardClick(idx) {
+  if (GameState.phase !== 'EXPLORING') return;
+  
+  const card = GameState.grid[idx];
+  const curIdx = GameState.currentPos.row * 3 + GameState.currentPos.col;
+
+  // 點擊當前房間
+  if (idx === curIdx) {
+    if (!card.resolved) {
+      resolveRoom(); // 如果當前房間還沒結算，觸發結算
+    } else {
+      showToast('此房間已探索完畢，請選擇右邊或下面的相鄰房間。', 'info');
+    }
+    return;
+  }
+
+  // 檢查是否可移動
+  if (!canMoveTo(idx)) {
+    showToast('只能向右或向下移動！', 'warning');
+    return;
+  }
+
+  // 檢查是否已結算
+  if (card.resolved) {
+    showToast('此房間已探索完畢。', 'info');
+    return;
+  }
+
+  // 移動並結算
+  if (!card.revealed) {
+    card.revealed = true;
+    playSound('click');
+  }
+  GameState.currentPos = { row: Math.floor(idx / 3), col: idx % 3 };
+  renderDungeon();
+  resolveRoom();
+}
+
+function revealAdjacent() {
+  const idx = GameState.currentPos.row*3 + GameState.currentPos.col;
+  const r = Math.floor(idx/3), c = idx%3;
+  if (c < 2) GameState.grid[r*3+c+1].revealed = true;
+  if (r < 2) GameState.grid[(r+1)*3+c].revealed = true;
+}
+
+function resolveRoom() {
+  const idx = GameState.currentPos.row*3 + GameState.currentPos.col;
+  const card = GameState.grid[idx];
+
+  if (card.resolved) return; // 防呆
+
+  if (card.type === 'monster') { startCombat(card.monster); return; }
+  if (card.type === 'boss') { startBossCombat(card.boss); return; }
+
+  GameState.phase = 'EVENT';
+  updateButtons();
+
+  if (card.type === 'bonfire') {
+    showEventModal(`<h2>🔥 營火</h2><p>溫暖的火焰。選擇一項：</p><div class="reward-choice-row">
+      <div class="reward-choice-btn" onclick="chooseBonfire('xp')"><span class="reward-icon">⚔️</span><span class="reward-name">磨刃</span><span class="reward-desc">+1 XP</span></div>
+      <div class="reward-choice-btn" onclick="chooseBonfire('food')"><span class="reward-icon">🍖</span><span class="reward-name">覓食</span><span class="reward-desc">+1 食物</span></div>
+      <div class="reward-choice-btn" onclick="chooseBonfire('rest')"><span class="reward-icon">💤</span><span class="reward-name">休息</span><span class="reward-desc">+2 HP</span></div>
+    </div>`);
+  } else if (card.type === 'trap') {
+    showEventModal(`<h2>💀 陷阱</h2><p>進行技能檢定（擲角色骰+地牢骰，有 ★ 即成功）。</p><div class="modal-actions"><button class="btn primary" onclick="doSkillCheck('trap')">進行檢定</button></div>`);
+  } else if (card.type === 'treasure') {
+    showEventModal(`<h2>💰 寶箱</h2><p>進行技能檢定來獲得額外寶藏。</p><div class="modal-actions"><button class="btn primary" onclick="doSkillCheck('treasure')">進行檢定</button></div>`);
+  } else if (card.type === 'shrine') {
+    showEventModal(`<h2>🕯️ 神龕</h2><p>付 1 金幣讓地牢骰 +1。</p><div class="modal-actions"><button class="btn primary" onclick="doShrine(true)" ${GameState.gold<1?'disabled':''}>付 1 🪙</button><button class="btn" onclick="doShrine(false)">直接擲骰</button></div>`);
+  } else if (card.type === 'merchant') {
+    showEventModal(`<h2>🧳 商人</h2><p>你有 ${GameState.gold} 🪙 金幣。</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin:12px 0;">
+        <button class="btn" onclick="buyItem('heal',2)">草藥 (+2 HP) - 2 🪙</button>
+        <button class="btn" onclick="buyItem('armor',3)">護甲片 (+1 護甲) - 3 🪙</button>
+        <button class="btn" onclick="buyItem('potion',5)">隨機藥水 - 5 🪙</button>
+      </div>
+      <div class="modal-actions"><button class="btn" onclick="closeEventAndContinue()">離開</button></div>`);
+  }
+}
+
+// ==================== 房間結算 ====================
+
+window.chooseBonfire = function(choice) {
+  closeModal('modal-event'); playSound('heal');
+  if (choice === 'xp') { gainXP(1); addLog('🔥 營火：+1 XP', 'good'); }
+  if (choice === 'food') { GameState.food = clamp(GameState.food+1, 0, 4); addLog('🔥 營火：+1 食物', 'good'); }
+  if (choice === 'rest') { heal(2); addLog('🔥 營火：+2 HP', 'good'); }
+  GameState.skillUsed = false; // 恢復技能
+  updateTopBar(); closeEventAndContinue();
+};
+
+window.buyItem = function(type, cost) {
+  if (GameState.gold < cost) { showToast('金幣不足！', 'warning'); return; }
+  GameState.gold -= cost;
+  if (type === 'heal') heal(2);
+  if (type === 'armor') GameState.armor = clamp(GameState.armor+1, 0, GameState.maxArmor);
+  if (type === 'potion') { if (GameState.potions.length < 2) GameState.potions.push(['fire','heal','holy'][rand(0,2)]); else showToast('藥水已滿', 'warning'); }
+  playSound('reward'); updateTopBar();
+  showToast('購買成功！', 'success');
+  closeEventAndContinue();
+};
+
+function doSkillCheck(type) {
+  closeModal('modal-event'); playSound('roll');
+  const charDice = [];
+  for (let i = 0; i < GameState.dice; i++) charDice.push(rollFace(GameState.character.faces));
+  const D = rollD6();
+  const success = charDice.includes('★');
+
+  renderDiceUI(charDice, D);
+  let msg = `檢定：角色骰 [${charDice.join(', ')}] + 地牢骰 ${D} → ${success ? '成功！' : '失敗。'}`;
+  addLog(msg, success ? 'good' : 'bad');
+
+  if (type === 'trap') {
+    if (success) {
+      if (D===1) gainXP(1); else if (D===2) gainXP(2); else if (D===3) { GameState.gold=clamp(GameState.gold+1,0,10); } else { GameState.food=clamp(GameState.food+1,0,4); }
+      addLog('💀 陷阱成功避開，獲得獎勵。', 'good');
+    } else {
+      if (D===1) { GameState.armor=clamp(GameState.armor-1,0,4); damage(1); } else if (D===2) { GameState.food=clamp(GameState.food-1,0,4); damage(2); } else if (D===3) { damage(3); } else { damage(4); }
+      addLog('💀 陷阱觸發，受到傷害！', 'bad');
+    }
+  } else if (type === 'treasure') {
+    GameState.gold = clamp(GameState.gold+2, 0, 10);
+    if (success) { GameState.gold = clamp(GameState.gold+3, 0, 10); addLog('💰 寶箱：成功！額外 +3 金幣', 'good'); }
+    else { addLog('💰 寶箱：失敗，僅獲得 2 金幣', 'info'); }
+  }
+  updateTopBar();
+  setTimeout(() => closeEventAndContinue(), 1200);
+}
+
+function doShrine(pay) {
+  closeModal('modal-event'); playSound('roll');
+  let D = rollD6();
+  if (pay && GameState.gold >= 1) { GameState.gold--; D = clamp(D+1, 1, 6); }
+  const results = {
+    1: { name: '恥辱！', fn: () => { GameState.hp-=2; } },
+    2: { name: '被詛咒吧！', fn: () => { GameState.hp-=1; } },
+    3: { name: '被詛咒吧！', fn: () => { GameState.hp-=1; } },
+    4: { name: '可怕的靈魂！', fn: () => { heal(2); } },
+    5: { name: '黑暗之心', fn: () => { heal(1); } },
+    6: { name: '小信之人', fn: () => { heal(1); } }
+  };
+  results[D].fn();
+  addLog(`🕯️ 神龕 D=${D}：${results[D].name}`, D>=4?'good':'bad');
+  updateTopBar();
+  setTimeout(() => closeEventAndContinue(), 1000);
+}
+
+function renderDiceUI(charDice, D) {
+  const el = document.getElementById('dice-area');
+  let html = '';
+  charDice.forEach(d => { html += `<div class="die character ${d==='★'?'crit':''} ${d==='×'?'miss':''}">${d}</div>`; });
+  html += `<div class="die dungeon">${D}</div>`;
+  el.innerHTML = html;
+}
+
+// ==================== 戰鬥 ====================
+
+function startCombat(monster) {
+  GameState.phase = 'COMBAT';
+  const m = monster.levels[GameState.floor];
+  GameState.combat = { monster, isBoss: false, hp: m.hp, maxHp: m.hp, dmg: m.dmg, reward: m.reward };
+  GameState.skillUsed = false;
+  addLog(`⚔️ 遭遇 ${monster.name}！HP ${m.hp}`, 'bad');
+  showCombatModal(); updateButtons();
+}
+
+function startBossCombat(boss) {
+  GameState.phase = 'COMBAT';
+  GameState.combat = { monster: boss, isBoss: true, hp: boss.hp, maxHp: boss.hp, dmg: boss.dmg, reward: { gold: 5, xp: 5 } };
+  GameState.skillUsed = false;
+  addLog(`☠️ Boss 戰！${boss.name} 出現！HP ${boss.hp}`, 'bad');
+  showCombatModal(); updateButtons();
+}
+
+function showCombatModal() {
+  const c = GameState.combat;
+  showEventModal(`<h2>⚔️ 戰鬥 · ${c.monster.name}</h2>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
+      <div style="font-size:40px;">${c.monster.icon}</div>
+      <div style="flex:1;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;"><span>怪物 HP</span><span style="color:var(--red-bright);font-weight:700;">${c.hp} / ${c.maxHp}</span></div>
+        <div style="height:8px;background:rgba(0,0,0,0.5);border-radius:4px;overflow:hidden;margin-top:4px;"><div style="height:100%;width:${(c.hp/c.maxHp)*100}%;background:var(--red-bright);transition:width 0.3s;"></div></div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">傷害 ${c.dmg}</div>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:12px;color:var(--text-dim);">點擊下方「投擲骰子」進行攻擊。玩家先攻。</p>
+    <div class="modal-actions"><button class="btn primary" onclick="closeModal('modal-event'); doCombatRoll();">投擲骰子</button></div>`);
+}
+
+function doCombatRoll() {
+  if (GameState.phase !== 'COMBAT') return;
+  playSound('roll');
+  const c = GameState.combat;
+  const faces = GameState.character.faces;
+
+  let charDice = [];
+  for (let i = 0; i < GameState.dice; i++) charDice.push(rollFace(faces));
+
+  let dmg = 0;
+  charDice.forEach(d => {
+    if (d === '★') { let ex = rollFace(faces); while(ex==='★') ex = rollFace(faces); if(ex!=='×') dmg += parseInt(ex); }
+    else if (d !== '×') dmg += parseInt(d);
+  });
+
+  const D = rollD6();
+  renderDiceUI(charDice, D);
+
+  c.hp = Math.max(0, c.hp - dmg);
+  addLog(`⚔️ 你造成 ${dmg} 傷害！怪物剩餘 HP ${c.hp}`, 'good');
+
+  if (c.hp <= 0) { setTimeout(onMonsterDefeated, 600); return; }
+
+  // 怪物反擊
+  if (D === 1) {
+    addLog(`🛡️ 怪物未命中 (D=1)`, 'good');
+  } else {
+    let actualDmg = c.dmg;
+    if (D === 6) { damage(actualDmg); addLog(`💥 怪物命中且無視護甲 (D=6)！受到 ${actualDmg} 傷害`, 'bad'); }
+    else {
+      const absorbed = Math.min(GameState.armor, actualDmg);
+      GameState.armor -= absorbed;
+      actualDmg -= absorbed;
+      if (actualDmg > 0) { damage(actualDmg); addLog(`💥 怪物命中！護甲吸收 ${absorbed}，受到 ${actualDmg} 傷害`, 'bad'); }
+      else { addLog('🛡️ 護甲完全抵擋了傷害！', 'good'); }
+    }
+  }
+
+  if (GameState.hp <= 0) { setTimeout(() => gameOver(), 500); return; }
+  updateTopBar();
+  setTimeout(showCombatModal, 1000);
+}
+
+function onMonsterDefeated() {
+  const c = GameState.combat;
+  playSound('reward');
+  addLog(`🏆 擊敗了 ${c.monster.name}！`, 'good');
+  if (c.reward.gold) { GameState.gold = clamp(GameState.gold+c.reward.gold, 0, 10); addLog(`🪙 +${c.reward.gold} 金幣`, 'good'); }
+  if (c.reward.food) { GameState.food = clamp(GameState.food+c.reward.food, 0, 4); addLog(`🍖 +${c.reward.food} 食物`, 'good'); }
+  if (c.reward.xp) gainXP(c.reward.xp);
+
+  if (c.isBoss) {
+    unlockAchievement('boss_slayer');
+    if (c.monster.name === '奧格殘骸') { setTimeout(victory, 600); return; }
+    GameState.armor = GameState.maxArmor;
+    GameState.combat = null;
+    setTimeout(nextArea, 600);
+  } else {
+    unlockAchievement('first_blood');
+    GameState.armor = GameState.maxArmor;
+    GameState.combat = null;
+    closeEventAndContinue();
+  }
+}
+
+// ==================== 狀態與推進 ====================
+
+function damage(amt) { GameState.hp = clamp(GameState.hp-amt, 0, GameState.maxHp); playSound('hit'); updateTopBar(); }
+function heal(amt) { GameState.hp = clamp(GameState.hp+amt, 0, GameState.maxHp); playSound('heal'); updateTopBar(); }
+
+function gainXP(amt) {
+  GameState.xp = clamp(GameState.xp+amt, 0, 18);
+  const old = GameState.level;
+  if (GameState.xp >= 18) GameState.level = 3; else if (GameState.xp >= 6) GameState.level = 2; else GameState.level = 1;
+  GameState.dice = GameState.level;
+  if (GameState.level > old) {
+    showToast(`升級！Lv.${GameState.level}`, 'success');
+    if (GameState.level === 2) unlockAchievement('level_2');
+    if (GameState.level === 3) unlockAchievement('level_3');
+  }
+  updateTopBar();
+}
+
+function closeEventAndContinue() {
+  closeModal('modal-event');
+  
+  // 標記當前房間為已結算
+  const idx = GameState.currentPos.row * 3 + GameState.currentPos.col;
+  const card = GameState.grid[idx];
+  if (card) card.resolved = true;
+
+  if (GameState.combat) return;
+
+  // 檢查是否到達右下角
+  if (idx === 8) { nextArea(); return; }
+
+  GameState.phase = 'EXPLORING';
+  revealAdjacent();
+  renderDungeon();
+  updateButtons();
+}
+
+function nextArea() {
+  if (GameState.area >= 4) { victory(); return; }
+  GameState.area++;
+  GameState.floor = GameState.area;
+
+  if (GameState.food > 0) { GameState.food--; addLog('🍖 進入新樓層，消耗 1 食物', 'info'); }
+  else { damage(3); addLog('🍖 沒有食物！失去 3 HP', 'bad'); if (GameState.hp <= 0) { gameOver(); return; } }
+
+  GameState.armor = GameState.maxArmor;
+  GameState.skillUsed = false;
+  GameState.currentPos = { row: 0, col: 0 };
+  generateArea();
+  renderDungeon();
+  updateTopBar();
+  GameState.phase = 'EXPLORING';
+  revealAdjacent();
+  renderDungeon();
+  updateButtons();
+  addLog(`📍 進入區域 ${GameState.area}`, 'info');
+}
+
+// ==================== 遊戲結束 ====================
+
+function gameOver() {
+  if (GameState.gameOver) return;
+  GameState.gameOver = true;
+  GameState.phase = 'GAMEOVER';
+  unlockAchievement('death');
+  showEventModal(`<h2>💀 你死了</h2><p style="text-align:center;">你倒在了區域 ${GameState.area}。</p><div class="modal-actions"><button class="btn primary" onclick="restartGame()">重新開始</button></div>`);
+  updateButtons();
+}
+
+function victory() {
+  GameState.phase = 'VICTORY';
+  unlockAchievement('victory');
+  showEventModal(`<h2>🏆 勝利！</h2><p style="text-align:center;">你擊敗了奧格殘骸，奪得了奧格之血！</p><div class="modal-actions"><button class="btn primary" onclick="restartGame()">再玩一次</button></div>`);
+  updateButtons();
+}
+
+function restartGame() {
+  closeModal('modal-event');
+  GameState.phase = 'SETUP'; GameState.combat = null; GameState.gameOver = false;
+  GameState.grid = []; renderDungeon();
+  document.getElementById('dice-area').innerHTML = '';
+  showCharacterSelect();
+}
+
+// ==================== UI 初始化與事件 ====================
+
+function showEventModal(html) { document.getElementById('modal-event-content').innerHTML = html; document.getElementById('modal-event').classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function showCharacterSelect() {
+  document.getElementById('character-grid').innerHTML = CHARACTERS.map(c => `
+    <div class="char-select-card" data-char="${c.id}" onclick="selectCharacter('${c.id}')">
+      <div class="char-avatar" style="background:${c.color}33;border-color:${c.color};">${c.icon}</div>
+      <div class="char-name">${c.name}</div>
+      <div class="char-stats">❤️${c.hp} 🛡️${c.armor} 🍖${c.food} 🪙${c.gold}</div>
+      <div class="char-skill" style="font-size:10px;">${c.desc}</div>
+    </div>
+  `).join('');
+  document.getElementById('modal-character').classList.add('active');
+  document.getElementById('btn-confirm-character').disabled = true;
+  GameState._sel = null;
+}
+
+window.selectCharacter = function(id) {
+  document.querySelectorAll('.char-select-card').forEach(el => el.classList.remove('selected'));
+  document.querySelector(`.char-select-card[data-char="${id}"]`).classList.add('selected');
+  GameState._sel = id;
+  document.getElementById('btn-confirm-character').disabled = false;
+};
+
+function startGame(id) {
+  const c = CHARACTERS.find(x => x.id === id);
+  GameState.character = c;
+  GameState.hp = c.hp; GameState.maxHp = c.hp;
+  GameState.armor = c.armor; GameState.maxArmor = c.armor;
+  GameState.food = c.food; GameState.gold = c.gold; GameState.xp = 0; GameState.level = 1; GameState.dice = 1;
+  GameState.potions = []; GameState.area = 1; GameState.floor = 1;
+  GameState.timeline = []; GameState.achievements = [];
+  addTimeline(1, `${c.name} 開始冒險`);
+  generateArea(); renderDungeon(); updateTopBar();
+  GameState.phase = 'EXPLORING';
+  revealAdjacent(); renderDungeon(); updateButtons();
+  closeModal('modal-character'); closeModal('modal-rules');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-main-action').onclick = () => {
+    playSound('click');
+    if (GameState.phase === 'SETUP') showCharacterSelect();
+    else if (GameState.phase === 'COMBAT') doCombatRoll();
+    else if (GameState.phase === 'GAMEOVER' || GameState.phase === 'VICTORY') restartGame();
+  };
+
+  document.getElementById('btn-close-rules').onclick = () => { closeModal('modal-rules'); showCharacterSelect(); };
+
+  document.getElementById('btn-confirm-character').onclick = () => { if (GameState._sel) startGame(GameState._sel); };
+
+  // 技能按鈕
+  document.getElementById('btn-use-skill').onclick = () => {
+    if (GameState.skillUsed) return;
+    GameState.skillUsed = true;
+    const c = GameState.character;
+    const combat = GameState.combat;
+    if (combat) {
+      switch(c.id) {
+        case 'knight': GameState._knightSkill = true; showToast('奮不顧身：本回合受傷-1', 'info'); break;
+        case 'rogue': combat._rogueSkill = true; showToast('背刺：本次傷害翻倍', 'info'); break;
+        case 'mage': const D = rollD6(); combat.hp -= D; addLog(`咒語：地牢骰 D=${D}，造成 ${D} 傷害`, 'good'); break;
+        case 'priest': heal(3); break;
+      }
+      if (combat.hp <= 0) { setTimeout(onMonsterDefeated, 500); return; }
+      updateTopBar(); showCombatModal();
+    } else {
+      showToast('探索階段使用技能（簡化為恢復2HP）', 'info'); heal(2);
+    }
+    updateButtons();
+  };
+
+  // 藥水
+  document.getElementById('btn-potion').onclick = () => {
+    if (!GameState.potions.length) return;
+    showEventModal(`<h2>🧪 使用藥水</h2>
+      <div style="display:flex;flex-direction:column;gap:8px;margin:12px 0;">
+        ${GameState.potions.map((p,i) => `<button class="btn" onclick="usePotion(${i})">${p}</button>`).join('')}
+      </div>
+      <div class="modal-actions"><button class="btn" onclick="closeModal('modal-event')">取消</button></div>`);
+  };
+
+  window.usePotion = (idx) => {
+    const p = GameState.potions.splice(idx, 1)[0];
+    if (p === 'heal') heal(4);
+    else if (p === 'fire' && GameState.combat) { GameState.combat.hp -= 7; }
+    else if (p === 'holy') heal(2);
+    closeModal('modal-event'); updateTopBar();
+    if (GameState.combat) showCombatModal();
+    else closeEventAndContinue();
+  };
+
+  document.getElementById('nav-rules').onclick = () => document.getElementById('modal-rules').classList.add('active');
+  document.getElementById('nav-timeline').onclick = () => document.getElementById('timeline-panel').classList.toggle('open');
+  document.getElementById('btn-close-timeline').onclick = () => document.getElementById('timeline-panel').classList.remove('open');
+  document.getElementById('nav-achievements').onclick = () => { renderAchievements(); document.getElementById('modal-achievements').classList.add('active'); };
+  document.getElementById('btn-close-achievements').onclick = () => closeModal('modal-achievements');
+  document.getElementById('nav-save').onclick = () => { localStorage.setItem('minirogue_save', JSON.stringify(GameState)); showToast('已儲存', 'success'); };
+  document.getElementById('nav-load').onclick = () => {
+    const d = localStorage.getItem('minirogue_save');
+    if (d) { Object.assign(GameState, JSON.parse(d)); renderDungeon(); updateTopBar(); updateButtons(); showToast('已載入', 'success'); }
+  };
+  document.getElementById('nav-sound').onclick = () => { GameState.soundEnabled = !GameState.soundEnabled; document.querySelector('#nav-sound .nav-icon').textContent = GameState.soundEnabled ? '🔊' : '🔇'; };
+
+  updateTopBar();
+  document.getElementById('modal-rules').classList.add('active');
+});
+</script>
+</body>
+</html>
