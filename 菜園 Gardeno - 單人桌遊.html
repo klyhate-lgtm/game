@@ -3,16 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>菜園 Gardeno - 單人桌遊 (完美還原版)</title>
+    <title>菜園 Gardeno - 單人桌遊</title>
     <style>
-        /* CSS 變數與重置 */
         :root {
             --bg-color: #f4e8d1;
-            --board-bg: #e6d5b8;
             --text-color: #4a3b2c;
-            --accent-green: #7a9e7e;
-            --accent-red: #c75c5c;
-            --accent-orange: #d98c5f;
             --btn-bg: #8c6b4a;
             --btn-hover: #a07c57;
             --btn-disabled: #b0a090;
@@ -120,13 +115,13 @@
             font-size: 24px;
             font-weight: bold;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-            position: relative;
             transition: transform 0.2s, border-color 0.2s;
             color: #333;
         }
         .dice.empty { background-color: transparent; border: 2px dashed #aaa; box-shadow: none; font-size: 12px; color: #aaa; }
         .dice.highlight { transform: scale(1.1); box-shadow: 0 0 15px var(--highlight); border-color: var(--highlight); cursor: pointer; }
         .dice.selected { border-color: #4caf50; box-shadow: 0 0 15px #4caf50; }
+        .dice.used { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
 
         #storage-area, #season-area {
             background-color: #a8b5a1;
@@ -171,7 +166,7 @@
             position: relative;
         }
         .action-btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 #5a4b3c; }
-        .action-btn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; filter: grayscale(1); }
+        .action-btn.disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); }
         .action-btn.blocked::after {
             content: '🚫';
             position: absolute;
@@ -312,7 +307,6 @@
 
     <div id="board-wrapper">
         <div id="game-board">
-            <!-- 蔬菜田 -->
             <div class="zone" id="zone-broccoli" data-zone="broccoli">
                 <div class="zone-title">🥦 花椰菜</div>
                 <div class="zone-range">1-6</div>
@@ -328,13 +322,11 @@
                 <div class="zone-range">1-6</div>
                 <div class="dice empty" id="dice-tomato">空</div>
             </div>
-            <!-- 儲存區 -->
             <div id="storage-area">
                 <div style="font-size:12px;">儲存區</div>
                 <div id="storage-dice-container" style="display:flex; gap:5px; margin-top:5px; flex-wrap:wrap; justify-content:center;"></div>
             </div>
 
-            <!-- 成本區 -->
             <div class="zone" id="zone-seedling" data-zone="seedling">
                 <div class="zone-title">🌱 秧苗</div>
                 <div class="zone-range">1-6</div>
@@ -346,7 +338,6 @@
                 <div class="dice empty" id="dice-labor">空</div>
             </div>
             <div style="grid-column: 3; grid-row: 2;"></div>
-            <!-- 季節區 -->
             <div id="season-area">
                 <div style="font-size:12px;">季節骰</div>
                 <div class="dice" id="season-dice" style="margin-top:5px; border-color: #fff;">1</div>
@@ -376,12 +367,13 @@
         <button class="btn" id="btn-end-turn" onclick="game.endTurn()" disabled>結束回合</button>
     </div>
 
+    <!-- 修正：將 onclick 的 ui 改為大寫 UI -->
     <div id="bottom-nav">
-        <button class="nav-btn" onclick="ui.showRules()">📖<span>規則</span></button>
+        <button class="nav-btn" onclick="UI.showRules()">📖<span>規則</span></button>
         <button class="nav-btn" onclick="game.saveGame()">💾<span>存檔</span></button>
         <button class="nav-btn" onclick="game.loadGame()">📂<span>讀檔</span></button>
-        <button class="nav-btn" onclick="ui.showHistory()">📜<span>紀錄</span></button>
-        <button class="nav-btn" onclick="ui.toggleSound()">🔊<span>音效</span></button>
+        <button class="nav-btn" onclick="UI.showHistory()">📜<span>紀錄</span></button>
+        <button class="nav-btn" onclick="UI.toggleSound()">🔊<span>音效</span></button>
     </div>
 </div>
 
@@ -389,19 +381,25 @@
     <div class="modal-content">
         <div class="modal-title" id="modal-title">標題</div>
         <div class="modal-body" id="modal-body">內容</div>
-        <button class="btn modal-close-btn" id="modal-close-btn" onclick="ui.closeModal()">我準備好了，開始遊戲</button>
+        <!-- 修正：將 onclick 的 ui 改為大寫 UI -->
+        <button class="btn modal-close-btn" id="modal-close-btn" onclick="UI.closeModal()">我準備好了，開始遊戲</button>
     </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-    // --- 音效管理 ---
     const AudioManager = {
         enabled: true,
         ctx: null,
         init() {
-            if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            // 【修正】確保在使用者互動時解鎖 AudioContext
+            if (this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
         },
         playClick() {
             if (!this.enabled) return;
@@ -451,7 +449,6 @@
         }
     };
 
-    // --- UI 管理器 ---
     const UI = {
         elements: {
             seasonIcon: document.getElementById('season-icon'),
@@ -490,11 +487,14 @@
                 const dice = state.dice.find(d => d.location === zone);
                 
                 zoneEl.classList.remove('active', 'occupied', 'target');
-                diceEl.classList.remove('empty', 'highlight', 'selected');
+                diceEl.classList.remove('empty', 'highlight', 'selected', 'used');
 
                 if (dice) {
                     diceEl.textContent = dice.value;
                     zoneEl.classList.add('occupied');
+                    if (state.phase === 'ACTION_EXECUTE' && state.actedDiceIds.includes(dice.id)) {
+                        diceEl.classList.add('used');
+                    }
                 } else {
                     diceEl.textContent = '空';
                     diceEl.classList.add('empty');
@@ -550,25 +550,24 @@
                 <h3>🖥️ 看懂畫面</h3>
                 <ul>
                     <li><strong>頂部狀態列</strong>：顯示當前季節、回合數（1-6）以及你的總分。</li>
-                    <li><strong>蔬菜田（上方）</strong>：🥦花椰菜、🌶️辣椒、🍅番茄。放置骰子來種植。</li>
-                    <li><strong>成本區（下方）</strong>：🌱秧苗、🛠️勞動力。對應上方蔬菜的種植成本。</li>
-                    <li><strong>儲存區（右上）</strong>：無法放置的骰子會暫時放在這裡，回合結束時移除。</li>
-                    <li><strong>季節骰（右下）</strong>：標示當前回合數，達到 7 時結算季節。</li>
-                    <li><strong>行動區（底部按鈕）</strong>：每回合可選擇一個行動執行。</li>
+                    <li><strong>蔬菜田（上方）</strong>：🥦花椰菜、🌶️辣椒、🍅番茄。</li>
+                    <li><strong>成本區（下方）</strong>：🌱秧苗、🛠️勞動力。</li>
+                    <li><strong>儲存區（右上）</strong>：無法放置的骰子暫時放這，回合結束時移除。</li>
+                    <li><strong>季節骰（右下）</strong>：達 7 時結算季節。</li>
+                    <li><strong>行動區</strong>：每回合可選一個行動。被 🚫 阻擋的無法使用。</li>
                 </ul>
                 <h3>🕹️ 操作步驟</h3>
                 <ol>
-                    <li><strong>擲骰</strong>：點擊「開始回合」，系統會自動擲出一顆骰子。</li>
-                    <li><strong>放置</strong>：點擊版圖上閃爍的區域放置骰子（數值需符合 1-6）。若無處可放，會自動進入儲存區。</li>
-                    <li><strong>選擇行動</strong>：點擊行動按鈕。行動指示物會阻擋其中一個，你只能從剩下三個中選一個。</li>
-                    <li><strong>執行</strong>：根據版圖上（包含儲存區與季節區）相同數值骰子的最高數量，你必須執行該行動對應的次數。</li>
-                    <li><strong>結束回合</strong>：點擊「結束回合」，季節骰 +1，清除儲存區骰子。</li>
+                    <li><strong>擲骰與放置</strong>：點擊「開始回合」，骰子會自動擲出。點擊閃爍的空位放置骰子（數值需符合 1-6）。若無空位會自動放儲存區。</li>
+                    <li><strong>選擇行動</strong>：選擇未被阻擋的行動。系統會根據版圖上（含儲存區與季節區）相同數值骰子的最高數量，要求你執行該次數。</li>
+                    <li><strong>執行動作</strong>：<strong>每顆骰子在該行動中只能被操作一次！</strong>已被操作的骰子會變灰。若合法目標數量不足，系統會自動提前結束該行動。</li>
+                    <li><strong>結束回合</strong>：執行完畢後，點擊「結束回合」，季節骰 +1。</li>
                 </ol>
                 <h3>⚙️ 特殊機制</h3>
                 <ul>
-                    <li><strong>季節結算</strong>：季節骰達 7 時，每個蔬菜區的（蔬菜骰 - 成本骰）會加總計分。若符合季節獎勵（春：花椰菜+3、夏：辣椒+5、秋：番茄+7）且蔬菜骰大於成本骰，額外加分！</li>
-                    <li><strong>保留最低骰</strong>：季節結算後，所有骰子移除，但會保留「數值最低」的骰子到下個季節。</li>
-                    <li><strong>相連限制</strong>：交換行動只能與「相連」的區域進行（花椰菜連秧苗；辣椒連勞動力；番茄連秧苗與勞動力）。</li>
+                    <li><strong>季節結算</strong>：季節骰達 7 時，計算（蔬菜骰 - 相連成本骰）的總和。若符合季節獎勵且蔬菜骰大於成本骰，額外加分（春：🥦+3、夏：🌶️+5、秋：🍅+7）。</li>
+                    <li><strong>保留最低骰</strong>：結算後，只保留「數值最低」的骰子到下個季節。</li>
+                    <li><strong>相連限制</strong>：交換行動只能在相連區域間進行（🥦-🌱、🌶️-🛠️、🍅-🌱/🛠️）。</li>
                 </ul>
             `;
             this.elements.modalCloseBtn.textContent = '我準備好了，繼續遊戲';
@@ -590,25 +589,24 @@
         }
     };
 
-    // --- 遊戲核心狀態機 ---
     const game = {
         state: {
-            phase: 'SETUP', // SETUP, ROLL, PLACE, ACTION_SELECT, ACTION_EXECUTE, MOVE_TARGET, SEASON_END, GAME_OVER
+            phase: 'SETUP',
             season: 1,
             turn: 1,
             seasonDiceValue: 1,
             totalScore: 0,
             currentDiceValue: 0,
-            dice: [], // { id, value, location }
+            dice: [],
             blockedAction: 0,
             selectedAction: 0,
             actionRemaining: 0,
             history: [],
             swapSource: null,
-            moveSource: null
+            moveSource: null,
+            actedDiceIds: []
         },
 
-        // 定義相連關係
         connections: {
             'broccoli': ['seedling'],
             'pepper': ['labor'],
@@ -634,7 +632,8 @@
                 actionRemaining: 0,
                 history: [],
                 swapSource: null,
-                moveSource: null
+                moveSource: null,
+                actedDiceIds: []
             };
             this.updateUI();
             UI.setMessage('歡迎來到菜園！請點擊「開始回合」擲骰。');
@@ -651,8 +650,12 @@
             UI.elements.btnStart.disabled = true;
             
             const poolDice = this.state.dice.find(d => d.location === 'pool');
+            
             if (!poolDice) {
-                this.checkSeasonEnd();
+                UI.setMessage('沒有未使用的骰子，直接進入行動選擇。');
+                this.state.phase = 'ACTION_SELECT';
+                this.rollActionToken();
+                this.updateUI();
                 return;
             }
 
@@ -682,7 +685,6 @@
                 }
             });
             
-            // 如果全部滿了，自動進儲存區
             if (!hasEmpty) {
                 UI.setMessage('沒有空位了，骰子將放入儲存區。');
                 this.placeDice('storage');
@@ -718,32 +720,54 @@
         selectAction(actionId) {
             if (this.state.phase !== 'ACTION_SELECT') return;
             if (actionId === this.state.blockedAction) {
-                UI.showToast('這個行動被阻擋了！');
+                UI.showToast('這個行動被指示物阻擋了！');
                 return;
             }
 
             this.state.selectedAction = actionId;
             this.state.phase = 'ACTION_EXECUTE';
+            this.state.actedDiceIds = [];
             
-            // 正確計算執行次數：包含蔬菜田、成本區、儲存區、季節區
             const counts = {};
-            // 1. 版圖上的骰子
             this.state.dice.forEach(d => {
-                if (d.value > 0) {
-                    counts[d.value] = (counts[d.value] || 0) + 1;
-                }
+                if (d.value > 0) counts[d.value] = (counts[d.value] || 0) + 1;
             });
-            // 2. 季節骰
             counts[this.state.seasonDiceValue] = (counts[this.state.seasonDiceValue] || 0) + 1;
             
             const maxCount = Math.max(...Object.values(counts), 0);
-            this.state.actionRemaining = maxCount > 0 ? maxCount : 1; // 至少執行一次
+            this.state.actionRemaining = maxCount > 0 ? maxCount : 1;
             
             UI.setMessage(`已選擇行動，需執行 ${this.state.actionRemaining} 次。`);
             UI.updateActions(this.state);
-            UI.elements.btnEndTurn.disabled = false;
+            UI.elements.btnEndTurn.disabled = true;
             
             this.executeActionLogic(actionId);
+        },
+
+        hasValidTargets(actionId) {
+            const zones = ['broccoli', 'pepper', 'tomato', 'seedling', 'labor'];
+            const activeDice = this.state.dice.filter(d => zones.includes(d.location) && !this.state.actedDiceIds.includes(d.id));
+
+            if (actionId === 1 || actionId === 3) {
+                return activeDice.length > 0;
+            }
+            if (actionId === 2) {
+                const emptyZones = zones.filter(z => !this.state.dice.some(d => d.location === z));
+                return activeDice.length > 0 && emptyZones.length > 0;
+            }
+            if (actionId === 4) {
+                for (let [veg, costs] of Object.entries(this.connections)) {
+                    const vegDice = this.state.dice.find(d => d.location === veg && !this.state.actedDiceIds.includes(d.id));
+                    if (vegDice) {
+                        for (let cost of costs) {
+                            const costDice = this.state.dice.find(d => d.location === cost && !this.state.actedDiceIds.includes(d.id));
+                            if (costDice) return true;
+                        }
+                    }
+                }
+                return false;
+            }
+            return false;
         },
 
         executeActionLogic(actionId) {
@@ -752,53 +776,41 @@
                 return;
             }
 
-            // 清除所有高亮
+            if (!this.hasValidTargets(actionId)) {
+                UI.showToast('已無可操作的合法目標，提前結束行動。');
+                this.finishAction();
+                return;
+            }
+
             const zones = ['broccoli', 'pepper', 'tomato', 'seedling', 'labor'];
             UI.elements.zones.forEach(z => z.classList.remove('active', 'target'));
-            document.querySelectorAll('.dice').forEach(d => d.classList.remove('highlight', 'selected'));
-            
-            if (actionId === 1) { // 重擲
+            UI.renderBoard(this.state);
+
+            if (actionId === 1) {
                 zones.forEach(z => {
                     const diceEl = document.getElementById(`dice-${z}`);
-                    if (!diceEl.classList.contains('empty')) diceEl.classList.add('highlight');
+                    if (!diceEl.classList.contains('empty') && !diceEl.classList.contains('used')) {
+                        diceEl.classList.add('highlight');
+                    }
                 });
                 UI.setMessage(`重擲：請點擊要重擲的骰子 (剩餘 ${this.state.actionRemaining} 次)`);
-            } else if (actionId === 2) { // 移動
-                const emptyZones = zones.filter(z => !this.state.dice.some(d => d.location === z));
-                if (emptyZones.length === 0) {
-                    UI.showToast('沒有空位可以移動了！');
-                    this.finishAction();
-                    return;
-                }
+            } else if (actionId === 2) {
                 zones.forEach(z => {
                     const diceEl = document.getElementById(`dice-${z}`);
-                    if (!diceEl.classList.contains('empty')) diceEl.classList.add('highlight');
+                    if (!diceEl.classList.contains('empty') && !diceEl.classList.contains('used')) {
+                        diceEl.classList.add('highlight');
+                    }
                 });
                 UI.setMessage(`移動：請點擊要移動的骰子 (剩餘 ${this.state.actionRemaining} 次)`);
-            } else if (actionId === 3) { // 提升
+            } else if (actionId === 3) {
                 zones.forEach(z => {
                     const diceEl = document.getElementById(`dice-${z}`);
-                    if (!diceEl.classList.contains('empty')) diceEl.classList.add('highlight');
+                    if (!diceEl.classList.contains('empty') && !diceEl.classList.contains('used')) {
+                        diceEl.classList.add('highlight');
+                    }
                 });
                 UI.setMessage(`提升：請點擊要 +1 的骰子 (剩餘 ${this.state.actionRemaining} 次)`);
-            } else if (actionId === 4) { // 交換
-                // 檢查是否有合法的相連組合
-                let canSwap = false;
-                for (let [veg, costs] of Object.entries(this.connections)) {
-                    const vegDice = this.state.dice.find(d => d.location === veg);
-                    if (vegDice) {
-                        for (let cost of costs) {
-                            const costDice = this.state.dice.find(d => d.location === cost);
-                            if (costDice) canSwap = true;
-                        }
-                    }
-                }
-
-                if (!canSwap) {
-                    UI.showToast('沒有可交換的骰子組合！');
-                    this.finishAction();
-                    return;
-                }
+            } else if (actionId === 4) {
                 UI.setMessage(`交換：請點擊蔬菜區的骰子，再點擊相連的成本區 (剩餘 ${this.state.actionRemaining} 次)`);
             }
         },
@@ -806,60 +818,78 @@
         handleDiceClick(zone) {
             if (this.state.phase !== 'ACTION_EXECUTE' && this.state.phase !== 'MOVE_TARGET') return;
             const dice = this.state.dice.find(d => d.location === zone);
-            if (!dice) return;
-
-            const actionId = this.state.selectedAction;
-
-            // --- 處理移動的目標選擇階段 ---
+            
             if (this.state.phase === 'MOVE_TARGET') {
-                const targetZone = zone;
-                const targetDice = this.state.dice.find(d => d.location === targetZone);
-                if (targetDice) return; // 目標被佔用
+                if (zone === this.state.moveSource) {
+                    this.state.phase = 'ACTION_EXECUTE';
+                    this.state.moveSource = null;
+                    this.executeActionLogic(this.state.selectedAction);
+                    UI.showToast('已取消移動。');
+                    return;
+                }
 
-                // 執行移動
-                dice.location = targetZone;
+                const targetDice = this.state.dice.find(d => d.location === zone);
+                if (targetDice) return;
+
+                const moveDice = this.state.dice.find(d => d.id === this.state.moveSourceId);
+                moveDice.location = zone;
                 this.state.actionRemaining--;
+                this.state.actedDiceIds.push(moveDice.id);
                 AudioManager.playClick();
                 
-                // 重置狀態
                 this.state.phase = 'ACTION_EXECUTE';
                 this.state.moveSource = null;
                 this.updateUI();
                 
                 UI.setMessage(`移動成功！(剩餘 ${this.state.actionRemaining} 次)`);
                 if (this.state.actionRemaining <= 0) this.finishAction();
-                else this.executeActionLogic(actionId);
+                else this.executeActionLogic(this.state.selectedAction);
                 return;
             }
 
-            // --- 正常行動階段 ---
-            if (actionId === 1) { // 重擲
+            if (!dice) return;
+
+            if (this.state.actedDiceIds.includes(dice.id)) {
+                UI.showToast('每顆骰子在同一行動中只能操作一次！');
+                return;
+            }
+
+            const actionId = this.state.selectedAction;
+
+            if (actionId === 1) {
                 AudioManager.playDice();
                 dice.value = Math.floor(Math.random() * 6) + 1;
                 this.state.actionRemaining--;
+                this.state.actedDiceIds.push(dice.id);
                 UI.setMessage(`重擲結果為 ${dice.value}！(剩餘 ${this.state.actionRemaining} 次)`);
                 this.updateUI();
                 if (this.state.actionRemaining <= 0) this.finishAction();
                 else this.executeActionLogic(actionId);
 
-            } else if (actionId === 2) { // 移動 - 進入選擇目標階段
+            } else if (actionId === 2) {
+                const emptyZones = ['broccoli', 'pepper', 'tomato', 'seedling', 'labor'].filter(z => !this.state.dice.some(d => d.location === z));
+                if (emptyZones.length === 0) {
+                    UI.showToast('沒有空位可以移動了！');
+                    this.finishAction();
+                    return;
+                }
+
                 this.state.moveSource = zone;
+                this.state.moveSourceId = dice.id;
                 this.state.phase = 'MOVE_TARGET';
                 
-                // 高亮合法的空目標區域
-                const zones = ['broccoli', 'pepper', 'tomato', 'seedling', 'labor'];
-                zones.forEach(z => {
-                    const isOccupied = this.state.dice.some(d => d.location === z);
-                    if (!isOccupied) {
-                        document.getElementById(`zone-${z}`).classList.add('target');
-                    }
+                UI.renderBoard(this.state);
+                emptyZones.forEach(z => {
+                    document.getElementById(`zone-${z}`).classList.add('target');
                 });
-                UI.setMessage('請點擊一個綠色的目標空位來移動骰子。');
+                document.getElementById(`dice-${zone}`).classList.add('selected');
+                UI.setMessage('請點擊一個綠色的目標空位來移動骰子（再次點擊原骰子可取消）。');
 
-            } else if (actionId === 3) { // 提升
+            } else if (actionId === 3) {
                 dice.value++;
-                AudioManager.playClick();
                 this.state.actionRemaining--;
+                this.state.actedDiceIds.push(dice.id);
+                AudioManager.playClick();
                 
                 if (dice.value >= 7) {
                     dice.location = 'pool';
@@ -873,9 +903,8 @@
                 if (this.state.actionRemaining <= 0) this.finishAction();
                 else this.executeActionLogic(actionId);
 
-            } else if (actionId === 4) { // 交換
+            } else if (actionId === 4) {
                 if (!this.state.swapSource) {
-                    // 第一下必須點蔬菜
                     if (zone === 'seedling' || zone === 'labor') {
                         UI.showToast('請先點擊上方蔬菜田的骰子！');
                         return;
@@ -883,63 +912,69 @@
                     this.state.swapSource = zone;
                     document.getElementById(`dice-${zone}`).classList.add('selected');
                     
-                    // 高亮合法的相連成本區
                     const validCosts = this.connections[zone] || [];
                     validCosts.forEach(costZone => {
                         const costDice = this.state.dice.find(d => d.location === costZone);
-                        if (costDice) {
+                        if (costDice && !this.state.actedDiceIds.includes(costDice.id)) {
                             document.getElementById(`dice-${costZone}`).classList.add('highlight');
                         }
                     });
                     UI.setMessage('已選擇蔬菜骰，請點擊閃爍的相連成本區進行交換。');
                 } else {
-                    // 第二下點成本
                     if (zone !== 'seedling' && zone !== 'labor') {
                         UI.showToast('請點擊成本區的骰子！');
                         return;
                     }
                     
-                    // 檢查是否合法相連
                     const validCosts = this.connections[this.state.swapSource] || [];
                     if (!validCosts.includes(zone)) {
                         UI.showToast('這兩個區域沒有相連，無法交換！');
                         return;
                     }
 
-                    const sourceDice = this.state.dice.find(d => d.location === this.state.swapSource);
                     const targetDice = this.state.dice.find(d => d.location === zone);
-                    
-                    if (sourceDice && targetDice) {
-                        const tempLoc = sourceDice.location;
-                        sourceDice.location = targetDice.location;
-                        targetDice.location = tempLoc;
-                        
-                        AudioManager.playClick();
-                        this.state.actionRemaining--;
-                        UI.setMessage(`交換成功！(剩餘 ${this.state.actionRemaining} 次)`);
-                        
-                        this.state.swapSource = null;
-                        this.updateUI();
-                        
-                        if (this.state.actionRemaining <= 0) this.finishAction();
-                        else this.executeActionLogic(actionId);
+                    if (!targetDice || this.state.actedDiceIds.includes(targetDice.id)) {
+                        UI.showToast('該骰子已被操作過或為空！');
+                        return;
                     }
+
+                    const sourceDice = this.state.dice.find(d => d.location === this.state.swapSource);
+                    
+                    const tempLoc = sourceDice.location;
+                    sourceDice.location = targetDice.location;
+                    targetDice.location = tempLoc;
+                    
+                    this.state.actedDiceIds.push(sourceDice.id);
+                    this.state.actedDiceIds.push(targetDice.id);
+                    
+                    this.state.actionRemaining--;
+                    AudioManager.playClick();
+                    UI.setMessage(`交換成功！(剩餘 ${this.state.actionRemaining} 次)`);
+                    
+                    this.state.swapSource = null;
+                    this.updateUI();
+                    
+                    if (this.state.actionRemaining <= 0) this.finishAction();
+                    else this.executeActionLogic(actionId);
                 }
             }
         },
 
         finishAction() {
-            this.state.phase = 'ACTION_SELECT';
-            UI.setMessage('行動執行完畢，請點擊「結束回合」。');
-            UI.updateActions(this.state);
-            UI.elements.btnEndTurn.disabled = false;
+            this.state.phase = 'END_TURN_READY';
             this.state.swapSource = null;
             this.state.moveSource = null;
-            this.updateUI();
+            this.state.actedDiceIds = [];
+            
+            UI.setMessage('行動執行完畢，請點擊「結束回合」。');
+            UI.updateActions(this.state);
+            UI.renderBoard(this.state);
+            
+            UI.elements.btnEndTurn.disabled = false;
         },
 
         endTurn() {
-            if (this.state.phase !== 'ACTION_SELECT' && this.state.phase !== 'ACTION_EXECUTE' && this.state.phase !== 'MOVE_TARGET') return;
+            if (this.state.phase !== 'END_TURN_READY' && this.state.phase !== 'ACTION_SELECT') return;
             
             AudioManager.playClick();
             this.state.phase = 'ROLL';
@@ -973,7 +1008,6 @@
             let seasonScore = 0;
             let scoreDetails = [];
 
-            // 根據原版連線圖進行計分
             const connections = {
                 'broccoli': ['seedling'],
                 'pepper': ['labor'],
@@ -985,16 +1019,6 @@
                 if (vegDice) {
                     const vegVal = vegDice.value;
                     let connectedCosts = connections[vegZone];
-                    let bestCostVal = 0; // 取相連成本區的最高值？原版是「每個相連的蔬菜骰子中減去成本骰子」
-                    // 根據規則書：「從每個相連的蔬菜骰子中減去成本骰子」
-                    // 這裡的連線是多對多，番茄連兩個成本。如果番茄有骰，秧苗和勞動力都有骰，要怎麼算？
-                    // 原版圖片上，番茄連秧苗和勞動力。花椰菜連秧苗。辣椒連勞動力。
-                    // 如果番茄連兩個，計分是 番茄 - 秧苗 + 番茄 - 勞動力？還是只減一次？
-                    // 規則書：「從每個相連的蔬菜骰子中減去成本骰子，累加所有值」。
-                    // 意思應該是，對於每個蔬菜區，減去與之相連的成本區的值。
-                    // 如果一個蔬菜連兩個成本，就減去這兩個成本的值。
-                    // 我們來實作：對於每個蔬菜，找到所有相連且成本區有骰的，全部減去。
-                    
                     let subScore = 0;
                     let costTexts = [];
                     
@@ -1004,20 +1028,16 @@
                             subScore += (vegVal - costDice.value);
                             costTexts.push(`${costDice.value}`);
                         } else {
-                            // 如果成本區沒骰，視為 0
-                            subScore += vegVal;
+                            subScore += vegVal; // 成本為 0，直接加蔬菜值
                         }
                     });
 
-                    // 檢查季節獎勵
                     let bonusText = '';
                     if (
                         (this.state.season === 1 && vegZone === 'broccoli') ||
                         (this.state.season === 2 && vegZone === 'pepper') ||
                         (this.state.season === 3 && vegZone === 'tomato')
                     ) {
-                        // 規則：如果相關蔬菜的骰子數值高於連接的成本骰子數值，則提高分數。
-                        // 這裡簡化為：只要該蔬菜有骰，且(蔬菜值 > 所有相連成本值) 或 (沒有成本)。
                         let bonusCondition = true;
                         connectedCosts.forEach(costZone => {
                             const costDice = this.state.dice.find(d => d.location === costZone);
@@ -1062,7 +1082,6 @@
             this.state.turn = 1;
             this.state.phase = 'SETUP';
 
-            // 找出數值最低的骰子
             let minVal = 99;
             this.state.dice.forEach(d => {
                 if (d.location !== 'pool' && d.location !== 'storage' && d.value < minVal) {
@@ -1070,7 +1089,6 @@
                 }
             });
 
-            // 移除其他骰子
             this.state.dice.forEach(d => {
                 if (d.location !== 'pool' && d.location !== 'storage' && d.value !== minVal) {
                     d.location = 'pool';
@@ -1109,7 +1127,7 @@
         },
 
         saveGame() {
-            if (this.state.phase === 'SETUP' || this.state.phase === 'GAME_OVER') {
+            if (this.state.phase === 'SETUP' || this.state.phase === 'GAME_OVER' || this.state.phase === 'MOVE_TARGET') {
                 UI.showToast('現在無法存檔');
                 return;
             }
@@ -1135,11 +1153,15 @@
                 this.highlightValidZones();
             } else if (this.state.phase === 'ACTION_SELECT' || this.state.phase === 'ACTION_EXECUTE') {
                 UI.elements.btnStart.disabled = true;
-                UI.elements.btnEndTurn.disabled = false;
+                UI.elements.btnEndTurn.disabled = true; 
                 UI.updateActions(this.state);
                 if (this.state.phase === 'ACTION_EXECUTE') {
                     this.executeActionLogic(this.state.selectedAction);
                 }
+            } else if (this.state.phase === 'END_TURN_READY') {
+                UI.elements.btnStart.disabled = true;
+                UI.elements.btnEndTurn.disabled = false;
+                UI.updateActions(this.state);
             } else {
                 UI.elements.btnStart.disabled = false;
                 UI.elements.btnEndTurn.disabled = true;
@@ -1153,7 +1175,6 @@
             
             UI.elements.zones.forEach(zone => {
                 zone.onclick = (e) => {
-                    // 如果是點擊內部骰子，觸發 zone 點擊
                     if (this.state.phase === 'PLACE') {
                         this.placeDice(zone.dataset.zone);
                     } else if (this.state.phase === 'ACTION_EXECUTE' || this.state.phase === 'MOVE_TARGET') {
