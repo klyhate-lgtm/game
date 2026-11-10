@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>口袋迷城 - 終極硬核完全體</title>
+    <title>口袋迷城 - 終極戰術版</title>
     <style>
         :root {
             --bg-color: #2c1e16; --paper-color: #f4e8c1; --text-dark: #3e2723;
@@ -32,25 +32,26 @@
         .hex-move:hover { opacity: 1; }
         .hex-obstacle { fill: #111; stroke: #555; stroke-width: 2; }
         .hex-difficult { fill: #5d4037; stroke: #8d6e63; stroke-dasharray: 3; }
+        .hex-trap { fill: #d32f2f; opacity: 0.8; cursor: pointer; }
+        .hex-loot { fill: #fbc02d; opacity: 0.8; }
         
         .unit-player { fill: #1565c0; stroke: #fff; stroke-width: 2; }
         .unit-enemy { fill: #b71c1c; stroke: #fff; stroke-width: 2; cursor: crosshair; }
         .unit-text { fill: white; font-size: 12px; text-anchor: middle; dominant-baseline: central; pointer-events: none; font-weight: bold; }
-        .status-icon { font-size: 12px; }
 
-        #control-panel { background: rgba(0,0,0,0.95); border-top: 2px solid var(--border-color); padding: 8px; display: flex; flex-direction: column; height: 250px; }
+        #control-panel { background: rgba(0,0,0,0.95); border-top: 2px solid var(--border-color); padding: 8px; display: flex; flex-direction: column; height: 260px; }
         #combat-log { height: 40px; overflow-y: auto; font-size: 0.75em; color: #b0bec5; margin-bottom: 5px; border: 1px solid #333; padding: 4px; border-radius: 4px; }
         .log-entry { margin-bottom: 2px; }
 
         .card-row { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0; width: 100%; align-items: center; flex-wrap: nowrap; height: 100px; }
-        .card { flex: 0 0 90px; height: 90px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px; display: flex; flex-direction: column; cursor: pointer; transition: transform 0.2s; font-size: 0.7em; }
+        .card { flex: 0 0 95px; height: 95px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px; display: flex; flex-direction: column; cursor: pointer; transition: transform 0.2s; font-size: 0.7em; }
         .card.selected { border-color: var(--gold); box-shadow: 0 0 10px var(--gold); transform: translateY(-5px); }
         .card.disabled { opacity: 0.4; pointer-events: none; }
         .card-name { font-weight: bold; color: #fff; text-align: center; border-bottom: 1px solid #555; }
         .card-init { color: var(--gold); text-align: center; font-weight: bold; }
         .card-action { background: rgba(0,0,0,0.3); margin-bottom: 2px; padding: 2px; border-radius: 2px; display: flex; justify-content: space-between;}
         .card-lost { color: #ff5252; font-size: 0.8em; text-align: center; }
-        .xp-icon { color: #64b5f6; font-size: 0.8em; }
+        .icon-loot { color: var(--gold); }
 
         .btn-group { display: flex; gap: 6px; justify-content: center; margin-top: auto; flex-wrap: wrap; }
         .btn { background: var(--accent-red); color: white; border: none; padding: 6px 10px; font-size: 0.85em; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -98,8 +99,9 @@
             <button class="btn btn-green" id="btn-confirm-cards" onclick="Game.confirmCards()">確認選牌</button>
             <button class="btn btn-blue" id="btn-end-move" onclick="Game.endMovePhase()" style="display:none">結束移動</button>
             <button class="btn" id="btn-end-turn" onclick="Game.endPlayerTurn()" style="display:none">結束回合</button>
-            <button class="btn btn-gold" id="btn-short-rest" onclick="Game.shortRest()" style="display:none">短休 (隨機棄1)</button>
-            <button class="btn btn-gold" id="btn-long-rest" onclick="Game.longRest()" style="display:none">長休 (自選棄1)</button>
+            <button class="btn btn-gold" id="btn-loot" onclick="Game.loot()" style="display:none">拾取金幣</button>
+            <button class="btn btn-gold" id="btn-short-rest" onclick="Game.shortRest()" style="display:none">短休</button>
+            <button class="btn btn-gold" id="btn-long-rest" onclick="Game.longRest()" style="display:none">長休</button>
             <button class="btn btn-gold" id="btn-next" onclick="Game.proceedBranch()" style="display:none">繼續冒險</button>
         </div>
     </div>
@@ -111,15 +113,21 @@
         <button class="nav-btn" onclick="Game.loadGame()">📂<span>讀檔</span></button>
     </nav>
 
-    <!-- 各種彈窗 -->
     <div id="modal-instructions" class="modal">
         <div class="modal-content">
-            <h2>📜 終極硬核指南</h2>
-            <p><strong>【經驗值獲取】</strong>：卡牌上標有「✨」的行動，執行時才能獲得 XP。</p>
-            <p><strong>【長短休區別】</strong>：短休隨機棄一張牌並回1血；長休可自己選擇要棄的牌，並回2血。</p>
-            <p><strong>【狀態異常】</strong>：踩到火焰或特定攻擊會「燃燒」，每回合扣血；「隱形」會讓怪物無法看見你。</p>
-            <p><strong>【修正牌堆】</strong>：已完全實裝原版 20 張修正牌堆（含 Miss 與 x2）。</p>
+            <h2>📜 終極戰術指南</h2>
+            <p><strong>【拾取行動】</strong>：殺死怪物後會掉落金幣。你必須打出帶有「🪙」圖標的卡牌（如：干擾的下半部），才能拾取周圍一格內的金幣。</p>
+            <p><strong>【陷阱】</strong>：踩到紅色陷阱格會受到 2 點傷害。</p>
+            <p><strong>【道路事件】</strong>：前往劇本前會隨機觸發事件，影響你的金錢與生命。</p>
             <button class="btn btn-gold" style="width:100%; margin-top:15px;" onclick="Game.startGame()">開始遊戲</button>
+        </div>
+    </div>
+
+    <div id="modal-event" class="modal">
+        <div class="modal-content">
+            <h2>🛤️ 道路事件</h2>
+            <p id="event-text"></p>
+            <button class="btn btn-gold" style="width:100%; margin-top:15px;" onclick="Game.closeEvent()">繼續</button>
         </div>
     </div>
 
@@ -130,15 +138,6 @@
         </div>
     </div>
 
-    <div id="modal-shop" class="modal">
-        <div class="modal-content">
-            <h2>🏪 黑衛客棧</h2>
-            <p>金幣：<span id="shop-gold">0</span> | 裝備：<span id="shop-inv">0/3</span></p>
-            <div id="shop-list"></div>
-            <button class="btn btn-gold" style="width:100%; margin-top:15px;" onclick="Game.closeShop()">前往下一個劇本</button>
-        </div>
-    </div>
-    
     <div id="modal-decks" class="modal">
         <div class="modal-content">
             <h2>🎴 牌庫狀態</h2>
@@ -159,26 +158,26 @@
             maps: {
                 1: [
                     { q: 2, r: 0, type: 'floor' }, { q: 3, r: 0, type: 'obstacle' }, { q: 4, r: 0, type: 'floor' },
-                    { q: 1, r: 1, type: 'floor' }, { q: 2, r: 1, type: 'floor' }, { q: 3, r: 1, type: 'floor' }, { q: 4, r: 1, type: 'obstacle' },
+                    { q: 1, r: 1, type: 'floor' }, { q: 2, r: 1, type: 'trap' }, { q: 3, r: 1, type: 'floor' }, { q: 4, r: 1, type: 'obstacle' },
                     { q: 0, r: 2, type: 'obstacle' }, { q: 1, r: 2, type: 'difficult' }, { q: 2, r: 2, type: 'floor' }, { q: 3, r: 2, type: 'floor' }, { q: 4, r: 2, type: 'floor' },
                     { q: 0, r: 3, type: 'floor' }, { q: 1, r: 3, type: 'floor' }, { q: 2, r: 3, type: 'obstacle' }, { q: 3, r: 3, type: 'floor' },
                     { q: 0, r: 4, type: 'floor' }, { q: 1, r: 4, type: 'floor' }, { q: 2, r: 4, type: 'floor' }, { q: 3, r: 4, type: 'difficult' },
                     { q: 0, r: 5, type: 'obstacle' }, { q: 1, r: 5, type: 'floor' }, { q: 2, r: 5, type: 'floor' }
                 ]
             },
-            items: {
-                '飛鷹頭盔': { price: 20, desc: '攻擊範圍 +1', slot: 'head' },
-                '塔盾': { price: 40, desc: '受到攻擊時，減免 1 傷害', slot: 'hand' },
-                '夜刃': { price: 25, desc: '近戰攻擊 +1', slot: 'hand' },
-                '板甲': { price: 30, desc: '生命上限 +2', slot: 'body' }
-            },
+            events: [
+                { text: "你在路上遇到了一位慷慨的商人，他給了你 10 金幣。", effect: (p) => { p.gold += 10; return "獲得 10 金幣"; } },
+                { text: "你遭遇了強盜的埋伏，損失了 5 金幣。", effect: (p) => { p.gold = Math.max(0, p.gold - 5); return "損失 5 金幣"; } },
+                { text: "你找到了一個廢棄的營地，恢復了 3 點生命。", effect: (p) => { p.hp = Math.min(p.maxHp, p.hp + 3); return "恢復 3 生命"; } },
+                { text: "天氣異常寒冷，你感到不適，受到 1 點傷害。", effect: (p) => { p.hp -= 1; return "受到 1 傷害"; } }
+            ],
             cards: {
-                '干擾': { init: 23, lost: false, top: { move: 3, atk: 3, range: 1, xp: 0 }, bottom: { move: 2, atk: 2, range: 1, xp: 0 } },
+                '干擾': { init: 23, lost: false, top: { move: 3, atk: 3, range: 1, xp: 0 }, bottom: { move: 2, atk: 2, range: 1, loot: true, xp: 0 } },
                 '自製葡萄酒': { init: 35, lost: true, top: { heal: 3, move: 5, xp: 1 }, bottom: { atk: 4, range: 1, xp: 0 } },
-                '優質本能': { init: 17, lost: false, top: { atk: 4, range: 3, adv: true, xp: 0 }, bottom: { move: 2, atk: 2, range: 1, xp: 0 } },
+                '優質本能': { init: 17, lost: false, top: { atk: 4, range: 3, adv: true, xp: 0, consumeEl: 'fire' }, bottom: { move: 2, atk: 2, range: 1, xp: 0 } },
                 '失效打擊': { init: 22, lost: false, top: { atk: 4, range: 1, pierce: true, xp: 1 }, bottom: { move: 2, atk: 2, range: 1, xp: 0 } },
                 '治愈之水': { init: 28, lost: true, top: { heal: 4, move: 2, xp: 0 }, bottom: { atk: 3, range: 2, xp: 0 } },
-                '游動攻擊': { init: 12, lost: false, top: { move: 4, atk: 2, range: 1, xp: 0 }, bottom: { atk: 3, range: 2, xp: 1 } },
+                '游動攻擊': { init: 12, lost: false, top: { move: 4, atk: 2, range: 1, xp: 0, loot: true }, bottom: { atk: 3, range: 2, xp: 1 } },
                 '致命一擊': { init: 06, lost: true, top: { atk: 5, range: 1, pierce: true, xp: 2 }, bottom: { move: 3, atk: 3, xp: 0 } }
             },
             monsters: {
@@ -191,7 +190,6 @@
                 'atk_pierce': { name: '穿刺攻擊', move: false, atk: 0, pierce: true },
                 'move_only': { name: '全力移動', move: true, atk: null }
             },
-            // 完全按照原版 20 張修正牌堆
             playerModifiers: [
                 {val: 0, text: 'Miss'}, {val: 2, text: 'x2', isDouble: true},
                 {val: -2, text: '-2'}, {val: -1, text: '-1'}, {val: -1, text: '-1'}, {val: -1, text: '-1'}, {val: -1, text: '-1'}, {val: -1, text: '-1'},
@@ -224,6 +222,7 @@
             click() { this.play(600, 'square', 0.05, 0.05); },
             attack() { this.play(300, 'sawtooth', 0.2, 0.1); },
             damage() { this.play(200, 'sawtooth', 0.3, 0.15); },
+            loot() { this.play(1200, 'sine', 0.1, 0.1); setTimeout(() => this.play(1600, 'sine', 0.15, 0.1), 100); },
             win() { this.play(523, 'sine', 0.2, 0.1); setTimeout(() => this.play(784, 'sine', 0.4, 0.1), 150); }
         };
 
@@ -243,7 +242,7 @@
         const Game = {
             state: 'TITLE', 
             player: { hp: 10, maxHp: 10, gold: 30, xp: 0, hand: [], discard: [], lostCards: [], q: 2, r: 4, inventory: [], baseCards: ['干擾', '自製葡萄酒', '優質本能', '失效打擊', '治愈之水', '游動攻擊'] },
-            combat: { enemies: [], selectedCards: [], movePoints: 0, attackActions: [], log: [], elements: {}, modDeck: [] },
+            combat: { enemies: [], selectedCards: [], movePoints: 0, attackActions: [], log: [], elements: {}, modDeck: [], lootTokens: [] },
             currentScenarioId: 1,
             map: [],
 
@@ -254,17 +253,35 @@
                 AudioSys.init();
                 this.currentScenarioId = 1;
                 this.player = { hp: 10, maxHp: 10, gold: 30, xp: 0, hand: [], discard: [], lostCards: [], q: 2, r: 4, inventory: [], baseCards: ['干擾', '自製葡萄酒', '優質本能', '失效打擊', '治愈之水', '游動攻擊'] };
-                this.loadScenario(1);
+                this.triggerEvent();
+            },
+
+            triggerEvent() {
+                this.state = 'EVENT';
+                const ev = GAME_DATA.events[Math.floor(Math.random() * GAME_DATA.events.length)];
+                document.getElementById('event-text').innerText = ev.text;
+                this.pendingEvent = ev;
+                document.getElementById('modal-event').classList.add('show');
+            },
+
+            closeEvent() {
+                document.getElementById('modal-event').classList.remove('show');
+                if (this.pendingEvent) {
+                    const result = this.pendingEvent.effect(this.player);
+                    this.showToast(result);
+                }
+                this.loadScenario(this.currentScenarioId);
             },
 
             loadScenario(id) {
                 this.map = GAME_DATA.maps[1];
                 this.player.q = 2; this.player.r = 4;
-                this.player.hp = this.player.maxHp;
+                this.player.hp = Math.min(this.player.hp, this.player.maxHp);
                 this.player.hand = [...this.player.baseCards];
                 this.player.discard = []; this.player.lostCards = [];
                 this.combat.elements = { fire: null, ice: null, air: null, earth: null, light: null, dark: null };
-                this.combat.modDeck = [...GAME_DATA.playerModifiers].sort(() => Math.random() - 0.5); // 洗牌
+                this.combat.modDeck = [...GAME_DATA.playerModifiers].sort(() => Math.random() - 0.5);
+                this.combat.lootTokens = [];
                 
                 const sc = GAME_DATA.scenarios[id];
                 this.combat.enemies = sc.enemies.map((e, i) => {
@@ -320,7 +337,10 @@
                     let className = 'hex-bg';
                     if (cell.type === 'obstacle') className = 'hex-obstacle';
                     else if (cell.type === 'difficult') className = 'hex-difficult';
-                    else if (this.state === 'COMBAT' && this.combat.movePoints > 0 && this.validMoves?.some(m => m.q === cell.q && m.r === cell.r)) className = 'hex-move';
+                    else if (cell.type === 'trap') className = 'hex-trap';
+                    
+                    if (this.combat.lootTokens.some(l => l.q === cell.q && l.r === cell.r)) className = 'hex-loot';
+                    if (this.state === 'COMBAT' && this.combat.movePoints > 0 && this.validMoves?.some(m => m.q === cell.q && m.r === cell.r)) className = 'hex-move';
 
                     const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
                     polygon.setAttribute('points', points.join(' '));
@@ -331,8 +351,6 @@
 
                 const pPos = Hex.toPixel(this.player.q, this.player.r);
                 svg.innerHTML += `<circle cx="${pPos.x}" cy="${pPos.y}" r="14" class="unit-player"/><text x="${pPos.x}" y="${pPos.y}" class="unit-text">你</text>`;
-                if(this.player.status?.includes('burn')) svg.innerHTML += `<text x="${pPos.x+10}" y="${pPos.y-10}" class="status-icon">🔥</text>`;
-                if(this.player.status?.includes('invis')) svg.innerHTML += `<text x="${pPos.x-10}" y="${pPos.y-10}" class="status-icon">👻</text>`;
 
                 this.combat.enemies.forEach(enemy => {
                     if (enemy.hp <= 0) return;
@@ -366,6 +384,10 @@
                 document.getElementById('btn-end-move').style.display = (this.state === 'COMBAT' && this.combat.movePoints > 0) ? 'block' : 'none';
                 document.getElementById('btn-end-turn').style.display = (this.state === 'COMBAT' && this.combat.movePoints === 0 && this.combat.attackActions.length > 0) ? 'block' : 'none';
                 
+                // Loot 按鈕判定
+                const canLoot = (this.state === 'COMBAT' && this.combat.attackActions.length === 0 && this.player.hasLootAction);
+                document.getElementById('btn-loot').style.display = canLoot ? 'block' : 'none';
+
                 const canRest = (this.state === 'COMBAT' && this.player.hand.length < 2);
                 document.getElementById('btn-short-rest').style.display = canRest ? 'block' : 'none';
                 document.getElementById('btn-long-rest').style.display = canRest ? 'block' : 'none';
@@ -381,8 +403,8 @@
                         <div class="card ${isSelected ? 'selected' : ''} ${this.state !== 'COMBAT' ? 'disabled' : ''}" onclick="Game.toggleCard('${cName}')">
                             <div class="card-name">${cName}</div>
                             <div class="card-init">先攻: ${card.init}</div>
-                            <div class="card-action"><strong>上</strong> ${card.top.move?`移${card.top.move}`:''} ${card.top.atk?`攻${card.top.atk}`:''} ${card.top.xp ? '<span class="xp-icon">✨</span>' : ''}</div>
-                            <div class="card-action"><strong>下</strong> ${card.bottom.move?`移${card.bottom.move}`:''} ${card.bottom.atk?`攻${card.bottom.atk}`:''} ${card.bottom.xp ? '<span class="xp-icon">✨</span>' : ''}</div>
+                            <div class="card-action"><strong>上</strong> ${card.top.move?`移${card.top.move}`:''} ${card.top.atk?`攻${card.top.atk}`:''} ${card.top.loot?'<span class="icon-loot">🪙</span>':''}</div>
+                            <div class="card-action"><strong>下</strong> ${card.bottom.move?`移${card.bottom.move}`:''} ${card.bottom.atk?`攻${card.bottom.atk}`:''} ${card.bottom.loot?'<span class="icon-loot">🪙</span>':''}</div>
                             ${card.lost ? '<div class="card-lost">損失</div>' : ''}
                         </div>
                     `;
@@ -412,20 +434,21 @@
 
                 this.combat.movePoints = (c1.top.move || 0) + (c2.bottom.move || 0);
                 this.combat.attackActions = [];
-                
-                // 紀錄 XP 獲取
-                if (c1.top.xp) { this.player.xp += c1.top.xp; this.combat.log.push(`獲得 ${c1.top.xp} XP (來自頂部行動)。`); }
-                if (c2.bottom.xp) { this.player.xp += c2.bottom.xp; this.combat.log.push(`獲得 ${c2.bottom.xp} XP (來自底部行動)。`); }
+                this.player.hasLootAction = false;
 
-                // 處理隱形
-                if (c1.top.invis) { this.player.status = this.player.status || []; this.player.status.push('invis'); this.combat.log.push('你進入了隱形狀態！'); }
+                if (c1.top.xp) { this.player.xp += c1.top.xp; this.combat.log.push(`獲得 ${c1.top.xp} XP。`); }
+                if (c2.bottom.xp) { this.player.xp += c2.bottom.xp; this.combat.log.push(`獲得 ${c2.bottom.xp} XP。`); }
 
-                if (c1.top.atk) this.combat.attackActions.push({ atk: c1.top.atk, range: c1.top.range || 1, pierce: c1.top.pierce, adv: c1.top.adv, name: this.combat.selectedCards[0] });
-                if (c2.bottom.atk) this.combat.attackActions.push({ atk: c2.bottom.atk, range: c2.bottom.range || 1, pierce: c2.bottom.pierce, adv: c2.bottom.adv, name: this.combat.selectedCards[1] });
+                if (c1.top.loot || c2.bottom.loot) {
+                    this.player.hasLootAction = true;
+                    this.combat.log.push('你獲得了拾取金幣的能力。');
+                }
+
+                if (c1.top.atk) this.combat.attackActions.push({ atk: c1.top.atk, range: c1.top.range || 1, pierce: c1.top.pierce, adv: c1.top.adv, consumeEl: c1.top.consumeEl });
+                if (c2.bottom.atk) this.combat.attackActions.push({ atk: c2.bottom.atk, range: c2.bottom.range || 1, pierce: c2.bottom.pierce, adv: c2.bottom.adv, consumeEl: c2.bottom.consumeEl });
 
                 this.calculateValidMoves();
-                if (this.combat.movePoints === 0) this.updateUI();
-                else this.render();
+                this.render();
             },
 
             calculateValidMoves() {
@@ -461,6 +484,15 @@
                 if (move) {
                     this.player.q = q; this.player.r = r;
                     this.combat.movePoints -= move.cost;
+                    
+                    // 陷阱判定
+                    const cell = this.map.find(m => m.q === q && m.r === r);
+                    if (cell.type === 'trap') {
+                        this.player.hp -= 2;
+                        this.combat.log.push(`你踩到了陷阱！受到 2 點傷害。`);
+                        AudioSys.damage();
+                    }
+
                     if (this.combat.movePoints <= 0) { this.combat.movePoints = 0; this.endMovePhase(); }
                     else { this.calculateValidMoves(); this.render(); }
                 }
@@ -475,7 +507,6 @@
                 const dist = Hex.distance(this.player.q, this.player.r, enemy.q, enemy.r);
                 if (dist > action.range) return this.showToast('距離太遠！');
 
-                // 抽修正牌
                 if (this.combat.modDeck.length === 0) this.combat.modDeck = [...GAME_DATA.playerModifiers].sort(() => Math.random() - 0.5);
                 let mod = this.combat.modDeck.pop();
                 
@@ -484,16 +515,48 @@
                 else dmg += mod.val;
                 if (dmg < 0) dmg = 0;
 
-                // 裝備加成
-                if (this.player.inventory.includes('夜刃') && dist <= 1) dmg += 1;
+                // 元素消耗判定
+                if (action.consumeEl && this.combat.elements[action.consumeEl]) {
+                    dmg += 2;
+                    this.combat.elements[action.consumeEl] = null;
+                    this.combat.log.push(`消耗了 ${action.consumeEl} 元素，增加 2 點傷害！`);
+                    this.renderElements();
+                }
 
                 enemy.hp -= dmg;
                 this.combat.log.push(`攻擊 ${enemy.name}，抽到 ${mod.text}，造成 ${dmg} 傷害！`);
                 AudioSys.attack();
                 this.combat.attackActions.shift();
                 
-                if (enemy.hp <= 0) this.combat.log.push(`${enemy.name} 被擊敗！`);
+                if (enemy.hp <= 0) {
+                    this.combat.log.push(`${enemy.name} 被擊敗！掉落金幣。`);
+                    this.combat.lootTokens.push({ q: enemy.q, r: enemy.r, amount: 5 });
+                }
                 if (this.combat.enemies.every(e => e.hp <= 0)) return this.winCombat();
+                this.render();
+            },
+
+            loot() {
+                if (!this.player.hasLootAction) return;
+                let looted = 0;
+                // 拾取周圍一格的戰利品
+                this.combat.lootTokens = this.combat.lootTokens.filter(loot => {
+                    const dist = Hex.distance(this.player.q, this.player.r, loot.q, loot.r);
+                    if (dist <= 1) {
+                        this.player.gold += loot.amount;
+                        looted += loot.amount;
+                        return false;
+                    }
+                    return true;
+                });
+                if (looted > 0) {
+                    AudioSys.loot();
+                    this.combat.log.push(`拾取了 ${looted} 金幣！`);
+                } else {
+                    this.combat.log.push(`附近沒有金幣可拾取。`);
+                }
+                this.player.hasLootAction = false;
+                this.updateUI();
                 this.render();
             },
 
@@ -510,7 +573,7 @@
             shortRest() {
                 this.player.hp = Math.min(this.player.maxHp, this.player.hp + 1);
                 if (this.player.discard.length > 0) {
-                    const lost = this.player.discard.pop(); // 簡化：拿最後一張
+                    const lost = this.player.discard.pop();
                     this.player.lostCards.push(lost);
                     this.combat.log.push(`短休：隨機損失了【${lost}】並恢復1生命。`);
                 }
@@ -549,13 +612,6 @@
                 this.combat.log.push("--- 怪物回合 ---");
                 this.combat.enemies.forEach(enemy => {
                     if (enemy.hp <= 0) return;
-                    
-                    // 隱形判定
-                    if (this.player.status && this.player.status.includes('invis')) {
-                        this.combat.log.push(`${enemy.name} 找不到你，原地發呆。`);
-                        return;
-                    }
-
                     const actKey = enemy.deck[Math.floor(Math.random() * enemy.deck.length)];
                     const act = GAME_DATA.monsterActions[actKey];
                     let dist = Hex.distance(enemy.q, enemy.r, this.player.q, this.player.r);
@@ -578,34 +634,24 @@
 
                     if (act.atk !== null && dist <= enemy.range) {
                         let dmg = enemy.atk + act.atk;
-                        if (this.player.inventory.includes('塔盾')) dmg = Math.max(0, dmg - 1);
                         this.player.hp -= dmg;
                         this.combat.log.push(`${enemy.name} 攻擊你，造成 ${dmg} 傷害！`);
                         AudioSys.damage();
                     }
                 });
 
-                // 元素衰減
                 for (let el in this.combat.elements) {
                     if (this.combat.elements[el] === 'strong') this.combat.elements[el] = 'waning';
                     else if (this.combat.elements[el] === 'waning') this.combat.elements[el] = null;
                 }
                 this.renderElements();
 
-                // 燃燒結算
-                if (this.player.status && this.player.status.includes('burn')) {
-                    this.player.hp -= 1;
-                    this.combat.log.push(`你受到燃燒傷害 1 點。`);
-                }
-
-                // 清除隱形
-                if (this.player.status) this.player.status = this.player.status.filter(s => s !== 'invis');
-
                 if (this.player.hp <= 0) return this.loseCombat();
                 if (this.player.hand.length < 2) this.combat.log.push(`⚠️ 手牌不足，請進行休息。`);
                 
                 this.combat.movePoints = 0;
                 this.combat.attackActions = [];
+                this.player.hasLootAction = false;
                 this.render();
             },
 
@@ -625,57 +671,14 @@
                 document.getElementById('btn-end-turn').style.display = 'none';
                 document.getElementById('btn-short-rest').style.display = 'none';
                 document.getElementById('btn-long-rest').style.display = 'none';
+                document.getElementById('btn-loot').style.display = 'none';
                 document.getElementById('btn-next').style.display = 'block';
-                document.getElementById('btn-next').innerText = '前往城鎮';
-                document.getElementById('btn-next').onclick = () => this.openShop();
-                this.updateUI();
-            },
-
-            openShop() {
-                this.state = 'TOWN';
-                document.getElementById('modal-shop').classList.add('show');
-                document.getElementById('shop-gold').innerText = this.player.gold;
-                document.getElementById('shop-inv').innerText = `${this.player.inventory.length}/3`;
-                
-                const list = document.getElementById('shop-list');
-                list.innerHTML = '';
-                for (let [name, data] of Object.entries(GAME_DATA.items)) {
-                    const isOwned = this.player.inventory.includes(name);
-                    const canAfford = this.player.gold >= data.price;
-                    const hasSpace = this.player.inventory.length < 3;
-                    
-                    list.innerHTML += `
-                        <div class="shop-item">
-                            <div><strong>${name}</strong> (${data.price}🪙)<br><small>${data.desc}</small></div>
-                            <button onclick="Game.buyItem('${name}')" ${(!canAfford || !hasSpace || isOwned) ? 'disabled' : ''}>
-                                ${isOwned ? '已擁有' : '購買'}
-                            </button>
-                        </div>
-                    `;
-                }
-            },
-
-            buyItem(name) {
-                const item = GAME_DATA.items[name];
-                if (this.player.gold >= item.price && this.player.inventory.length < 3) {
-                    this.player.gold -= item.price;
-                    this.player.inventory.push(name);
-                    if (name === '板甲') { this.player.maxHp += 2; this.player.hp += 2; }
-                    this.showToast(`購買了 ${name}`);
-                    this.openShop();
-                }
-            },
-
-            closeShop() {
-                document.getElementById('modal-shop').classList.remove('show');
-                const sc = GAME_DATA.scenarios[this.currentScenarioId];
-                if (sc.next) {
+                document.getElementById('btn-next').innerText = '繼續冒險';
+                document.getElementById('btn-next').onclick = () => {
                     this.currentScenarioId = sc.next;
-                    this.loadScenario(this.currentScenarioId);
-                } else {
-                    this.state = 'WIN';
-                    document.getElementById('map-container').innerHTML = `<h2 style="color:var(--gold); text-align:center; margin-top:100px;">🎉 恭喜完成所有劇本！</h2>`;
-                }
+                    this.triggerEvent(); // 進入下一關前抽事件
+                };
+                this.updateUI();
             },
 
             loseCombat() {
