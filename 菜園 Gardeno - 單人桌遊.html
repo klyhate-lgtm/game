@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>菜園 Gardeno - 單人桌遊</title>
+    <style>
+        /* CSS 變數與重置 */
+        :root {
+            --bg-color: #f4e8d1;
+            --board-bg: #e6d5b8;
+            --text-color: #4a3b2c;
+            --accent-green: #7a9e7e;
+            --accent-red: #c75c5c;
+            --accent-orange: #d98c5f;
+            --accent-blue: #6b8e9b;
+            --btn-bg: #8c6b4a;
+            --btn-hover: #a07c57;
+            --btn-disabled: #b0a090;
+            --highlight: #f2c94c;
+            --font-main: 'Georgia', 'Times New Roman', serif;
+            --font-title: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #2c261f;
+            background-image: radial-gradient(circle, #3a332b 0%, #1a1612 100%);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            padding: 10px;
+        }
+
+        /* 主要遊戲容器 */
+        #game-container {
+            width: 100%;
+            max-width: 900px;
+            background-color: var(--bg-color);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7), inset 0 0 20px rgba(255,255,255,0.5);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            border: 4px solid #5a4b3c;
+        }
+
+        /* 頂部狀態列 */
+        #top-bar {
+            background: linear-gradient(to bottom, #d4c3a3, #b8a382);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #5a4b3c;
+            font-weight: bold;
+            font-size: 16px;
+            color: #2c261f;
+        }
+
+        #top-bar span { display: flex; align-items: center; gap: 5px; }
+        #season-icon { font-size: 20px; }
+        #score-display { font-size: 18px; color: #8b4513; }
+
+        /* 遊戲版圖區 */
+        #board-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 15px;
+            overflow-y: auto;
+            overflow-x: auto;
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 120px;
+            grid-template-rows: auto auto;
+            gap: 10px;
+            min-width: 600px; /* 確保手機上可水平滾動 */
+        }
+
+        /* 蔬菜田與成本區 */
+        .zone {
+            background-color: #d9c7a8;
+            border: 2px dashed #8c6b4a;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100px;
+            position: relative;
+            transition: all 0.2s;
+            padding: 5px;
+        }
+        .zone.active { border-color: var(--highlight); box-shadow: 0 0 10px var(--highlight); cursor: pointer; }
+        .zone.occupied { border-style: solid; background-color: #e0d1b5; }
+        .zone-title { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #5a4b3c; }
+        .zone-range { font-size: 10px; background: #fff; padding: 2px 6px; border-radius: 10px; border: 1px solid #ccc; margin-bottom: 5px; }
+        
+        /* 骰子樣式 */
+        .dice {
+            width: 40px;
+            height: 40px;
+            background-color: #fff;
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .dice.empty { background-color: transparent; border: 2px dashed #aaa; box-shadow: none; font-size: 12px; color: #aaa; }
+        .dice.highlight { transform: scale(1.1); box-shadow: 0 0 15px var(--highlight); border-color: var(--highlight); cursor: pointer; }
+        .dice.roll-anim { animation: roll 0.5s ease-out; }
+
+        @keyframes roll {
+            0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
+            50% { transform: rotate(180deg) scale(1.2); opacity: 1; }
+            100% { transform: rotate(360deg) scale(1); opacity: 1; }
+        }
+
+        /* 特殊區域 (儲存區、季節區) */
+        #storage-area, #season-area {
+            background-color: #a8b5a1;
+            border: 2px solid #5a4b3c;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+        }
+        #storage-area { grid-column: 4; grid-row: 1; min-height: 80px; }
+        #season-area { grid-column: 4; grid-row: 2; min-height: 80px; background-color: #c97b7b; }
+
+        /* 行動區 */
+        #action-area {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 10px;
+            background-color: #b8a382;
+            border-radius: 10px;
+            border: 2px solid #5a4b3c;
+        }
+        .action-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fff, #d4c3a3);
+            border: 3px solid #5a4b3c;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 #5a4b3c;
+            transition: all 0.1s;
+            position: relative;
+        }
+        .action-btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 #5a4b3c; }
+        .action-btn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; filter: grayscale(1); }
+        .action-btn.blocked::after {
+            content: '🚫';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            opacity: 0.8;
+            pointer-events: none;
+        }
+        .action-btn .label { font-size: 10px; margin-top: 2px; font-weight: bold; color: #333; }
+        .action-btn.selected { border-color: var(--highlight); box-shadow: 0 0 15px var(--highlight); }
+
+        /* 控制與提示 */
+        #controls {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background-color: #e6d5b8;
+            border-top: 2px solid #5a4b3c;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            background-color: var(--btn-bg);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-family: var(--font-main);
+            box-shadow: 0 4px 0 #4a3b2c;
+        }
+        .btn:hover:not(:disabled) { background-color: var(--btn-hover); }
+        .btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 #4a3b2c; }
+        .btn:disabled { background-color: var(--btn-disabled); cursor: not-allowed; box-shadow: 0 4px 0 #888; }
+
+        #message {
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #8b4513;
+            min-height: 40px;
+        }
+
+        /* 底部導航 */
+        #bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background-color: #5a4b3c;
+            padding: 5px;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            z-index: 10;
+            transform: translateY(100%);
+            transition: transform 0.3s;
+        }
+        #bottom-nav.show { transform: translateY(0); }
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #d4c3a3;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px 15px;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .nav-btn span { font-size: 10px; margin-top: 2px; }
+        .nav-btn:hover { color: white; background-color: rgba(255,255,255,0.1); }
+
+        /* 彈窗 (Modal) */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background-color: var(--bg-color);
+            border: 4px solid #5a4b3c;
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .modal-title { font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #8b4513; border-bottom: 2px solid #8c6b4a; padding-bottom: 5px; }
+        .modal-body { font-size: 14px; line-height: 1.6; color: #333; margin-bottom: 20px; }
+        .modal-body h3 { font-size: 16px; color: #5a4b3c; margin-top: 15px; margin-bottom: 5px; }
+        .modal-body ul { padding-left: 20px; margin-bottom: 10px; }
+        .modal-body li { margin-bottom: 5px; }
+        .modal-close-btn { display: block; width: 100%; padding: 10px; margin-top: 10px; }
+
+        /* Toast 提示 */
+        #toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background-color: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            transition: transform 0.3s;
+            z-index: 200;
+            pointer-events: none;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* 分數結算特效 */
+        .score-popup {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--highlight);
+            text-shadow: 2px 2px 0 #000;
+            animation: floatUp 1s ease-out forwards;
+            pointer-events: none;
+            z-index: 50;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 600px) {
+            #game-container { height: 95vh; }
+            #game-board { grid-template-columns: 1fr 1fr 1fr 80px; gap: 5px; }
+            .action-btn { width: 60px; height: 60px; font-size: 20px; }
+            .dice { width: 30px; height: 30px; font-size: 18px; }
+            .zone-title { font-size: 10px; }
+            .zone-range { font-size: 8px; }
+        }
+
+        /* 隱藏類別 */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- 頂部資訊 -->
+    <div id="top-bar">
+        <span><span id="season-icon">🌸</span> <span id="season-name">春季</span> | 回合 <span id="turn-display">1</span>/6</span>
+        <span>總分: <span id="score-display">0</span></span>
+    </div>
+
+    <!-- 遊戲版圖 -->
+    <div id="board-wrapper">
+        <div id="game-board">
+            <!-- 蔬菜田 (Row 1) -->
+            <div class="zone" id="zone-broccoli" data-zone="broccoli">
+                <div class="zone-title">🥦 花椰菜</div>
+                <div class="zone-range">1-6</div>
+                <div class="dice empty" id="dice-broccoli">空</div>
+            </div>
+            <div class="zone" id="zone-pepper" data-zone="pepper">
+                <div class="zone-title">🌶️ 辣椒</div>
+                <div class="zone-range">1-6</div>
+                <div class="dice empty" id="dice-pepper">空</div>
+            </div>
+            <div class="zone" id="zone-tomato" data-zone="tomato">
+                <div class="zone-title">🍅 番茄</div>
+                <div class="zone-range">1-6</div>
+                <div class="dice empty" id="dice-tomato">空</div>
+            </div>
+            <!-- 儲存區 -->
+            <div id="storage-area">
+                <div style="font-size:12px;">儲存區</div>
+                <div id="storage-dice-container" style="display:flex; gap:5px; margin-top:5px;"></div>
+            </div>
+
+            <!-- 成本區 (Row 2) -->
+            <div class="zone" id="zone-seedling" data-zone="seedling">
+                <div class="zone-title">🌱 秧苗</div>
+                <div class="zone-range">1-6</div>
+                <div class="dice empty" id="dice-seedling">空</div>
+            </div>
+            <div class="zone" id="zone-labor" data-zone="labor">
+                <div class="zone-title">🛠️ 勞動力</div>
+                <div class="zone-range">1-6</div>
+                <div class="dice empty" id="dice-labor">空</div>
+            </div>
+            <div style="grid-column: 3; grid-row: 2; display: flex; justify-content: center; align-items: center;">
+                <!-- 裝飾用 -->
+            </div>
+            <!-- 季節區 -->
+            <div id="season-area">
+                <div style="font-size:12px;">季節骰</div>
+                <div class="dice" id="season-dice" style="margin-top:5px; border-color: #fff;">1</div>
+            </div>
+        </div>
+
+        <!-- 行動區 -->
+        <div id="action-area">
+            <div class="action-btn" id="action-reroll" data-action="reroll">
+                🎲<div class="label">重擲</div>
+            </div>
+            <div class="action-btn" id="action-move" data-action="move">
+                ➡️<div class="label">移動</div>
+            </div>
+            <div class="action-btn" id="action-upgrade" data-action="upgrade">
+                ⬆️<div class="label">提升</div>
+            </div>
+            <div class="action-btn" id="action-swap" data-action="swap">
+                🔄<div class="label">交換</div>
+            </div>
+        </div>
+
+        <!-- 訊息區 -->
+        <div id="message">歡迎來到菜園！請點擊「開始回合」擲骰。</div>
+    </div>
+
+    <!-- 控制按鈕 -->
+    <div id="controls">
+        <button class="btn" id="btn-start" onclick="game.startTurn()">開始回合</button>
+        <button class="btn" id="btn-end-turn" onclick="game.endTurn()" disabled>結束回合</button>
+    </div>
+
+    <!-- 底部導航 -->
+    <div id="bottom-nav" class="show">
+        <button class="nav-btn" onclick="ui.showRules()">📖<span>規則</span></button>
+        <button class="nav-btn" onclick="game.saveGame()">💾<span>存檔</span></button>
+        <button class="nav-btn" onclick="game.loadGame()">📂<span>讀檔</span></button>
+        <button class="nav-btn" onclick="ui.showHistory()">📜<span>紀錄</span></button>
+        <button class="nav-btn" onclick="ui.toggleSound()">🔊<span>音效</span></button>
+    </div>
+</div>
+
+<!-- 彈窗容器 -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-title" id="modal-title">標題</div>
+        <div class="modal-body" id="modal-body">內容</div>
+        <button class="btn modal-close-btn" id="modal-close-btn" onclick="ui.closeModal()">我準備好了，開始遊戲</button>
+    </div>
+</div>
+
+<!-- Toast 提示 -->
+<div id="toast"></div>
+
+<script>
+    // --- 音效管理 (Web Audio API) ---
+    const AudioManager = {
+        enabled: true,
+        ctx: null,
+        init() {
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        },
+        playClick() {
+            if (!this.enabled) return;
+            this.init();
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.1);
+        },
+        playDice() {
+            if (!this.enabled) return;
+            this.init();
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(500, this.ctx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.1);
+        },
+        playScore() {
+            if (!this.enabled) return;
+            this.init();
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime + i * 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.1 + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(this.ctx.currentTime + i * 0.1);
+                osc.stop(this.ctx.currentTime + i * 0.1 + 0.3);
+            });
+        },
+        toggle() {
+            this.enabled = !this.enabled;
+            document.querySelector('.nav-btn:last-child').innerHTML = (this.enabled ? '🔊' : '🔇') + '<span>音效</span>';
+            return this.enabled;
+        }
+    };
+
+    // --- UI 管理器 ---
+    const UI = {
+        elements: {
+            seasonIcon: document.getElementById('season-icon'),
+            seasonName: document.getElementById('season-name'),
+            turnDisplay: document.getElementById('turn-display'),
+            scoreDisplay: document.getElementById('score-display'),
+            seasonDice: document.getElementById('season-dice'),
+            message: document.getElementById('message'),
+            btnStart: document.getElementById('btn-start'),
+            btnEndTurn: document.getElementById('btn-end-turn'),
+            actionBtns: document.querySelectorAll('.action-btn'),
+            zones: document.querySelectorAll('.zone'),
+            storageContainer: document.getElementById('storage-dice-container'),
+            modalOverlay: document.getElementById('modal-overlay'),
+            modalTitle: document.getElementById('modal-title'),
+            modalBody: document.getElementById('modal-body'),
+            modalCloseBtn: document.getElementById('modal-close-btn'),
+            toast: document.getElementById('toast')
+        },
+        setMessage(msg) {
+            this.elements.message.textContent = msg;
+        },
+        updateTopBar(state) {
+            const seasons = ['🌸 春季', '☀️ 夏季', '🍂 秋季'];
+            const icons = ['🌸', '☀️', '🍂'];
+            this.elements.seasonName.textContent = seasons[state.season - 1].split(' ')[1];
+            this.elements.seasonIcon.textContent = icons[state.season - 1];
+            this.elements.turnDisplay.textContent = state.turn;
+            this.elements.scoreDisplay.textContent = state.totalScore;
+            this.elements.seasonDice.textContent = state.seasonDiceValue;
+            this.elements.seasonDice.style.backgroundColor = state.seasonDiceValue >= 7 ? '#f2c94c' : '#fff';
+        },
+        renderBoard(state) {
+            const zones = ['broccoli', 'pepper', 'tomato', 'seedling', 'labor'];
+            zones.forEach(zone => {
+                const diceEl = document.getElementById(`dice-${zone}`);
+                const zoneEl = document.getElementById(`zone-${zone}`);
+                const dice = state.dice.find(d => d.location === zone);
+                
+                zoneEl.classList.remove('active', 'occupied');
+                diceEl.classList.remove('empty', 'highlight', 'roll-anim');
+
+                if (dice) {
+                    diceEl.textContent = dice.value;
+                    diceEl.classList.add('highlight'); // 暫時標記
+                    zoneEl.classList.add('occupied');
+                } else {
+                    diceEl.textContent = '空';
+                    diceEl.classList.add('empty');
+                    if (state.phase === 'PLACE') {
+                        zoneEl.classList.add('active');
+                    }
+                }
+            });
+
+            // 渲染儲存區
+            this.elements.storageContainer.innerHTML = '';
+            const storageDice = state.dice.filter(d => d.location === 'storage');
+            storageDice.forEach(d => {
+                const el = document.createElement('div');
+                el.className = 'dice';
+                el.textContent = d.value;
+                this.elements.storageContainer.appendChild(el);
+            });
+        },
+        updateActions(state) {
+            this.elements.actionBtns.forEach((btn, index) => {
+                btn.classList.remove('disabled', 'blocked', 'selected');
+                const actionIndex = index + 1; // 1-4
+                
+                if (state.phase === 'ACTION_SELECT') {
+                    if (state.blockedAction === actionIndex) {
+                        btn.classList.add('blocked', 'disabled');
+                    }
+                } else {
+                    btn.classList.add('disabled');
+                }
+            });
+        },
+        showModal(title, body, btnText = '確定') {
+            this.elements.modalTitle.textContent = title;
+            this.elements.modalBody.innerHTML = body;
+            this.elements.modalCloseBtn.textContent = btnText;
+            this.elements.modalOverlay.classList.add('active');
+            AudioManager.playClick();
+        },
+        closeModal() {
+            this.elements.modalOverlay.classList.remove('active');
+            AudioManager.playClick();
+            if (game.state.phase === 'SETUP') {
+                game.startTurn();
+            }
+        },
+        showToast(msg) {
+            this.elements.toast.textContent = msg;
+            this.elements.toast.classList.add('show');
+            setTimeout(() => {
+                this.elements.toast.classList.remove('show');
+            }, 2500);
+        },
+        showRules() {
+            this.elements.modalTitle.textContent = '📖 遊戲規則說明';
+            this.elements.modalBody.innerHTML = `
+                <h3>🎯 遊戲目標</h3>
+                <p>在三個季節（春、夏、秋）中種植蔬菜，透過控制成本並獲取季節獎勵，達到最高分！</p>
+                <h3>🖥️ 看懂畫面</h3>
+                <ul>
+                    <li><strong>頂部狀態列</strong>：顯示當前季節、回合數（1-6）以及你的總分。</li>
+                    <li><strong>蔬菜田（上方）</strong>：🥦花椰菜、🌶️辣椒、🍅番茄。放置骰子來種植。</li>
+                    <li><strong>成本區（下方）</strong>：🌱秧苗、🛠️勞動力。對應上方蔬菜的種植成本。</li>
+                    <li><strong>儲存區（右上）</strong>：無法放置的骰子會暫時放在這裡，回合結束時移除。</li>
+                    <li><strong>季節骰（右下）</strong>：標示當前回合數，達到 7 時結算季節。</li>
+                    <li><strong>行動區（底部按鈕）</strong>：每回合可選擇一個行動執行。</li>
+                </ul>
+                <h3>🕹️ 操作步驟</h3>
+                <ol>
+                    <li><strong>擲骰</strong>：點擊「開始回合」，系統會自動擲出一顆骰子。</li>
+                    <li><strong>放置</strong>：點擊版圖上閃爍的區域放置骰子（數值需符合該區域）。若無處可放，會自動進入儲存區。</li>
+                    <li><strong>選擇行動</strong>：點擊行動按鈕。行動指示物會阻擋其中一個，你只能從剩下三個中選一個。</li>
+                    <li><strong>執行</strong>：根據版圖上相同數值骰子的最高數量，你必須執行該行動對應的次數。</li>
+                    <li><strong>結束回合</strong>：點擊「結束回合」，季節骰 +1，清除儲存區骰子。</li>
+                </ol>
+                <h3>⚙️ 特殊機制</h3>
+                <ul>
+                    <li><strong>季節結算</strong>：季節骰達 7 時，每個蔬菜區的（蔬菜骰 - 成本骰）會加總計分。若符合季節獎勵（春：花椰菜+3、夏：辣椒+5、秋：番茄+7）且蔬菜骰大於成本骰，額外加分！</li>
+                    <li><strong>保留最低骰</strong>：季節結算後，所有骰子移除，但會保留「數值最低」的骰子到下個季節。</li>
+                </ul>
+            `;
+            this.elements.modalCloseBtn.textContent = '我準備好了，繼續遊戲';
+            this.elements.modalOverlay.classList.add('active');
+        },
+        showHistory() {
+            this.elements.modalTitle.textContent = '📜 歷史紀錄';
+            let html = '<ul>';
+            if (game.state.history.length === 0) html += '<li>暫無紀錄</li>';
+            game.state.history.forEach(h => {
+                html += `<li>${h}</li>`;
+            });
+            html += '</ul>';
+            this.elements.modalBody.innerHTML = html;
+            this.elements.modalCloseBtn.textContent = '關閉';
+            this.elements.modalOverlay.classList.add('active');
+        },
+        toggleSound() {
+            const enabled = AudioManager.toggle();
+            this.showToast(enabled ? '音效已開啟' : '音效已關閉');
+        }
+    };
+
+    // --- 遊戲核心狀態機 ---
+    const game = {
+        state: {
+            phase: 'SETUP', // SETUP, ROLL, PLACE, ACTION_SELECT, ACTION_EXECUTE, SEASON_END, GAME_OVER
+            season: 1,
+            turn: 1,
+            seasonDiceValue: 1,
+            totalScore: 0,
+            currentDiceValue: 0,
+            dice: [], // { id, value, location }
+            blockedAction: 0,
+            selectedAction: 0,
+            actionRemaining: 0,
+            history: []
+        },
+
+        init() {
+            this.resetGame();
+            UI.showRules(); // 開場顯示規則
+        },
+
+        resetGame() {
+            this.state = {
+                phase: 'SETUP',
+                season: 1,
+                turn: 1,
+                seasonDiceValue: 1,
+                totalScore: 0,
+                currentDiceValue: 0,
+                dice: Array.from({ length: 5 }, (_, i) => ({ id: i, value: 0, location: 'pool' })),
+                blockedAction: 0,
+                selectedAction: 0,
+                actionRemaining: 0,
+                history: []
+            };
+            this.updateUI();
+            UI.setMessage('歡迎來到菜園！請點擊「開始回合」擲骰。');
+            UI.elements.btnStart.disabled = false;
+            UI.elements.btnEndTurn.disabled = true;
+        },
+
+        startTurn() {
+            if (this.state.phase !== 'SETUP' && this.state.phase !== 'ROLL') return;
+            
+            // 如果季節結束或遊戲結束，不執行
+            if (this.state.phase === 'SEASON_END' || this.state.phase === 'GAME_OVER') return;
+
+            AudioManager.playDice();
+            this.state.phase = 'ROLL';
+            UI.elements.btnStart.disabled = true;
+            
+            // 擲骰動畫
+            const poolDice = this.state.dice.find(d => d.location === 'pool');
+            if (!poolDice) {
+                // 如果沒有池子裡的骰子，檢查是否季節結束
+                this.checkSeasonEnd();
+                return;
+            }
+
+            UI.setMessage('正在擲骰...');
+            
+            setTimeout(() => {
+                const value = Math.floor(Math.random() * 6) + 1;
+                poolDice.value = value;
+                this.state.currentDiceValue = value;
+                this.state.phase = 'PLACE';
+                
+                UI.setMessage(`擲出了 ${value} 點！請點擊合適的區域放置。`);
+                this.updateUI();
+                this.highlightValidZones(value);
+            }, 500);
+        },
+
+        highlightValidZones(value) {
+            // 這裡簡化處理，原則是只要區域是空的且數值在1-6之間就可放
+            const zones = ['broccoli', 'pepper', 'tomato', 'seedling', 'labor'];
+            zones.forEach(zone => {
+                const zoneEl = document.getElementById(`zone-${zone}`);
+                const isOccupied = this.state.dice.some(d => d.location === zone);
+                if (!isOccupied) {
+                    zoneEl.classList.add('active');
+                }
+            });
+            // 如果沒有空位，提示存儲區
+            if (!zones.some(zone => !this.state.dice.some(d => d.location === zone))) {
+                UI.setMessage('沒有空位了，骰子將放入儲存區。');
+                this.placeDice('storage');
+            }
+        },
+
+        placeDice(location) {
+            if (this.state.phase !== 'PLACE') return;
+            
+            // 檢查合法性 (數值範圍 1-6，且沒被占用)
+            if (location !== 'storage') {
+                const isOccupied = this.state.dice.some(d => d.location === location);
+                if (isOccupied) {
+                    UI.showToast('該區域已被占用！');
+                    return;
+                }
+            }
+
+            const poolDice = this.state.dice.find(d => d.location === 'pool');
+            if (!poolDice) return;
+
+            poolDice.location = location;
+            AudioManager.playClick();
+            
+            this.state.phase = 'ACTION_SELECT';
+            this.rollActionToken();
+            this.updateUI();
+        },
+
+        rollActionToken() {
+            // 隨機阻擋 1-4 號行動
+            this.state.blockedAction = Math.floor(Math.random() * 4) + 1;
+            this.state.selectedAction = 0;
+            UI.setMessage(`行動指示物阻擋了行動 ${this.state.blockedAction}。請選擇剩下的行動。`);
+            UI.updateActions(this.state);
+        },
+
+        selectAction(actionId) {
+            if (this.state.phase !== 'ACTION_SELECT') return;
+            if (actionId === this.state.blockedAction) {
+                UI.showToast('這個行動被阻擋了！');
+                return;
+            }
+
+            this.state.selectedAction = actionId;
+            this.state.phase = 'ACTION_EXECUTE';
+            
+            // 計算執行次數
+            const counts = {};
+            this.state.dice.forEach(d => {
+                if (d.location !== 'pool' && d.location !== 'storage' && d.location !== 'season') {
+                    counts[d.value] = (counts[d.value] || 0) + 1;
+                }
+            });
+            const maxCount = Math.max(...Object.values(counts), 0);
+            this.state.actionRemaining = maxCount > 0 ? maxCount : 1; // 至少執行一次
+            
+            UI.setMessage(`已選擇行動 ${actionId}，需執行 ${this.state.actionRemaining} 次。請點擊目標骰子。`);
+            UI.updateActions(this.state);
+            UI.elements.btnEndTurn.disabled = false;
+            
+            this.executeActionLogic(actionId);
+        },
+
+        executeActionLogic(actionId) {
+            if (this.state.actionRemaining <= 0) {
+                this.finishAction();
+                return;
+            }
+
+            // 根據行動類型，高亮可操作的骰子
+            const zones = ['broccoli', 'pepper', 'tomato', 'seedling', 'labor'];
+            UI.elements.zones.forEach(z => z.classList.remove('active'));
+            
+            if (actionId === 1) { // 重擲
+                zones.forEach(z => {
+                    const diceEl = document.getElementById(`dice-${z}`);
+                    if (!diceEl.classList.contains('empty')) diceEl.classList.add('highlight');
+                });
+                UI.setMessage(`重擲：請點擊要重擲的骰子 (剩餘 ${this.state.actionRemaining} 次)`);
+            } else if (actionId === 2) { // 移動
+                // 檢查是否有空位
+                const emptyZones = zones.filter(z => !this.state.dice.some(d => d.location === z));
+                if (emptyZones.length === 0) {
+                    UI.showToast('沒有空位可以移動了！');
+                    this.finishAction();
+                    return;
+                }
+                zones.forEach(z => {
+                    const diceEl = document.getElementById(`dice-${z}`);
+                    if (!diceEl.classList.contains('empty')) diceEl.classList.add('highlight');
+                });
+                UI.setMessage(`移動：請點擊要移動的骰子 (剩餘 ${this.state.actionRemaining} 次)`);
+            } else if (actionId === 3) { // 提升
+                zones.forEach(z => {
+                    const diceEl = document.getElementById(`dice-${z}`);
+                    if (!diceEl.classList.contains('empty')) diceEl.classList.add('highlight');
+                });
+                UI.setMessage(`提升：請點擊要 +1 的骰子 (剩餘 ${this.state.actionRemaining} 次)`);
+            } else if (actionId === 4) { // 交換
+                // 檢查是否有配對
+                let canSwap = false;
+                if (!document.getElementById('dice-broccoli').classList.contains('empty') && !document.getElementById('dice-seedling').classList.contains('empty')) canSwap = true;
+                if (!document.getElementById('dice-broccoli').classList.contains('empty') && !document.getElementById('dice-labor').classList.contains('empty')) canSwap = true;
+                if (!document.getElementById('dice-pepper').classList.contains('empty') && !document.getElementById('dice-seedling').classList.contains('empty')) canSwap = true;
+                if (!document.getElementById('dice-pepper').classList.contains('empty') && !document.getElementById('dice-labor').classList.contains('empty')) canSwap = true;
+                if (!document.getElementById('dice-tomato').classList.contains('empty') && !document.getElementById('dice-seedling').classList.contains('empty')) canSwap = true;
+                if (!document.getElementById('dice-tomato').classList.contains('empty') && !document.getElementById('dice-labor').classList.contains('empty')) canSwap = true;
+
+                if (!canSwap) {
+                    UI.showToast('沒有可交換的骰子組合！');
+                    this.finishAction();
+                    return;
+                }
+                UI.setMessage(`交換：請點擊蔬菜區的骰子，再點擊對應成本區的骰子 (剩餘 ${this.state.actionRemaining} 次)`);
+            }
+        },
+
+        handleDiceClick(zone) {
+            if (this.state.phase !== 'ACTION_EXECUTE') return;
+            const dice = this.state.dice.find(d => d.location === zone);
+            if (!dice) return;
+
+            const actionId = this.state.selectedAction;
+
+            if (actionId === 1) { // 重擲
+                AudioManager.playDice();
+                dice.value = Math.floor(Math.random() * 6) + 1;
+                this.state.actionRemaining--;
+                UI.setMessage(`重擲結果為 ${dice.value}！(剩餘 ${this.state.actionRemaining} 次)`);
+                this.updateUI();
+                if (this.state.actionRemaining <= 0) this.finishAction();
+                else this.executeActionLogic(actionId);
+
+            } else if (actionId === 2) { // 移動
+                // 這裡簡化邏輯：點擊骰子後，自動找一個空位移動
+                const zones = ['broccoli', 'pepper', 'tomato', 'seedling', 'labor'];
+                const emptyZones = zones.filter(z => !this.state.dice.some(d => d.location === z));
+                if (emptyZones.length > 0) {
+                    const targetZone = emptyZones[0];
+                    dice.location = targetZone;
+                    this.state.actionRemaining--;
+                    AudioManager.playClick();
+                    UI.setMessage(`將骰子移動到了 ${targetZone}！(剩餘 ${this.state.actionRemaining} 次)`);
+                    this.updateUI();
+                    if (this.state.actionRemaining <= 0) this.finishAction();
+                    else this.executeActionLogic(actionId);
+                }
+
+            } else if (actionId === 3) { // 提升
+                dice.value++;
+                AudioManager.playClick();
+                this.state.actionRemaining--;
+                
+                if (dice.value >= 7) {
+                    dice.location = 'pool';
+                    dice.value = 0;
+                    UI.setMessage(`骰子數值達到 7，被移除了！(剩餘 ${this.state.actionRemaining} 次)`);
+                } else {
+                    UI.setMessage(`骰子數值提升至 ${dice.value}！(剩餘 ${this.state.actionRemaining} 次)`);
+                }
+                
+                this.updateUI();
+                if (this.state.actionRemaining <= 0) this.finishAction();
+                else this.executeActionLogic(actionId);
+
+            } else if (actionId === 4) { // 交換
+                // 這裡需要特殊處理，先選蔬菜，再選成本
+                // 為了簡化單擊操作，我們標記一個臨時變數
+                if (!this.state.swapSource) {
+                    if (zone === 'seedling' || zone === 'labor') {
+                        UI.showToast('請先點擊上方蔬菜田的骰子！');
+                        return;
+                    }
+                    this.state.swapSource = zone;
+                    document.getElementById(`dice-${zone}`).style.borderColor = 'var(--highlight)';
+                    UI.setMessage('已選擇蔬菜骰，請點擊下方對應的成本區骰子進行交換。');
+                } else {
+                    if (zone !== 'seedling' && zone !== 'labor') {
+                        UI.showToast('請點擊成本區的骰子！');
+                        return;
+                    }
+                    // 執行交換
+                    const sourceDice = this.state.dice.find(d => d.location === this.state.swapSource);
+                    const targetDice = this.state.dice.find(d => d.location === zone);
+                    if (sourceDice && targetDice) {
+                        const tempLoc = sourceDice.location;
+                        sourceDice.location = targetDice.location;
+                        targetDice.location = tempLoc;
+                        
+                        AudioManager.playClick();
+                        this.state.actionRemaining--;
+                        UI.setMessage(`交換成功！(剩餘 ${this.state.actionRemaining} 次)`);
+                        this.updateUI();
+                        document.getElementById(`dice-${this.state.swapSource}`).style.borderColor = '#333';
+                        this.state.swapSource = null;
+                        
+                        if (this.state.actionRemaining <= 0) this.finishAction();
+                        else this.executeActionLogic(actionId);
+                    } else {
+                        UI.showToast('其中一個位置沒有骰子！');
+                    }
+                }
+            }
+        },
+
+        finishAction() {
+            this.state.phase = 'ACTION_SELECT'; // 回到選擇階段，但實際上這回合已結束
+            UI.setMessage('行動執行完畢，請點擊「結束回合」。');
+            UI.updateActions(this.state);
+            UI.elements.btnEndTurn.disabled = false;
+            this.state.swapSource = null;
+            this.updateUI();
+        },
+
+        endTurn() {
+            if (this.state.phase !== 'ACTION_SELECT' && this.state.phase !== 'ACTION_EXECUTE') return;
+            
+            AudioManager.playClick();
+            this.state.phase = 'ROLL';
+            this.state.turn++;
+            this.state.seasonDiceValue++;
+            
+            // 移除儲存區的骰子
+            this.state.dice.forEach(d => {
+                if (d.location === 'storage') {
+                    d.location = 'pool';
+                    d.value = 0;
+                }
+            });
+
+            // 記錄歷史
+            this.state.history.push(`第 ${this.state.season} 季，回合 ${this.state.turn - 1} 結束。`);
+
+            this.updateUI();
+
+            if (this.state.seasonDiceValue >= 7) {
+                this.checkSeasonEnd();
+            } else {
+                this.startTurn();
+            }
+        },
+
+        checkSeasonEnd() {
+            this.state.phase = 'SEASON_END';
+            UI.setMessage(`第 ${this.state.season} 季結束！正在結算分數...`);
+            
+            // 延遲結算，讓玩家有心理準備
+            setTimeout(() => {
+                this.calculateSeasonScore();
+            }, 800);
+        },
+
+        calculateSeasonScore() {
+            let seasonScore = 0;
+            let scoreDetails = [];
+
+            // 定義相連關係
+            const pairs = [
+                { veg: 'broccoli', cost: 'seedling', bonus: this.state.season === 1 ? 3 : 0, name: '花椰菜' },
+                { veg: 'pepper', cost: 'labor', bonus: this.state.season === 2 ? 5 : 0, name: '辣椒' },
+                { veg: 'tomato', cost: 'seedling', bonus: this.state.season === 3 ? 7 : 0, name: '番茄' },
+                { veg: 'tomato', cost: 'labor', bonus: this.state.season === 3 ? 7 : 0, name: '番茄' }
+            ];
+
+            // 簡單起見，這裡假設每個蔬菜只對應一個成本區 (原版可能是連線圖)
+            // 根據圖片，花椰菜連秧苗，辣椒連勞動力，番茄連秧苗和勞動力
+            const vegCostMap = {
+                broccoli: 'seedling',
+                pepper: 'labor',
+                tomato: 'seedling' // 或 labor，這裡簡化
+            };
+
+            Object.keys(vegCostMap).forEach(vegZone => {
+                const vegDice = this.state.dice.find(d => d.location === vegZone);
+                const costZone = vegCostMap[vegZone];
+                const costDice = this.state.dice.find(d => d.location === costZone);
+
+                if (vegDice) {
+                    const vegVal = vegDice.value;
+                    const costVal = costDice ? costDice.value : 0;
+                    let subScore = vegVal - costVal;
+                    
+                    let bonusText = '';
+                    // 檢查季節獎勵
+                    if (
+                        (this.state.season === 1 && vegZone === 'broccoli') ||
+                        (this.state.season === 2 && vegZone === 'pepper') ||
+                        (this.state.season === 3 && vegZone === 'tomato')
+                    ) {
+                        if (vegVal > costVal) {
+                            const bonus = this.state.season === 1 ? 3 : (this.state.season === 2 ? 5 : 7);
+                            subScore += bonus;
+                            bonusText = ` (含季節獎勵+${bonus})`;
+                        }
+                    }
+                    
+                    seasonScore += subScore;
+                    scoreDetails.push(`${vegZone === 'broccoli' ? '🥦' : vegZone === 'pepper' ? '🌶️' : '🍅'} ${vegVal} - 成本 ${costVal} = ${vegVal - costVal}${bonusText}`);
+                }
+            });
+
+            this.state.totalScore += seasonScore;
+            
+            UI.updateTopBar(this.state);
+            AudioManager.playScore();
+
+            let html = `<p>本季得分：<strong>${seasonScore}</strong> 分</p>`;
+            html += `<ul>${scoreDetails.map(d => `<li>${d}</li>`).join('')}</ul>`;
+            html += `<p>目前總分：<strong>${this.state.totalScore}</strong> 分</p>`;
+
+            if (this.state.season < 3) {
+                html += `<p>即將進入下一個季節...</p>`;
+                UI.showModal(`第 ${this.state.season} 季結算`, html, '進入下一季');
+                // 綁定一次性事件
+                UI.elements.modalCloseBtn.onclick = () => {
+                    UI.closeModal();
+                    this.nextSeason();
+                };
+            } else {
+                this.endGame(html);
+            }
+        },
+
+        nextSeason() {
+            this.state.season++;
+            this.state.seasonDiceValue = 1;
+            this.state.turn = 1;
+            this.state.phase = 'SETUP';
+
+            // 保留數值最低的骰子，其他清空
+            let minVal = 99;
+            this.state.dice.forEach(d => {
+                if (d.location !== 'pool' && d.location !== 'storage' && d.value < minVal) {
+                    minVal = d.value;
+                }
+            });
+
+            this.state.dice.forEach(d => {
+                if (d.location !== 'pool' && d.location !== 'storage' && d.value !== minVal) {
+                    d.location = 'pool';
+                    d.value = 0;
+                }
+            });
+
+            this.updateUI();
+            UI.setMessage(`第 ${this.state.season} 季開始！請點擊「開始回合」。`);
+            UI.elements.btnStart.disabled = false;
+            UI.elements.btnEndTurn.disabled = true;
+            UI.updateTopBar(this.state);
+        },
+
+        endGame(detailsHtml) {
+            this.state.phase = 'GAME_OVER';
+            let rating = '';
+            if (this.state.totalScore < 30) rating = '😢 新手農夫';
+            else if (this.state.totalScore < 40) rating = '🙁 見習農夫';
+            else if (this.state.totalScore < 50) rating = '😐 熟練農夫';
+            else if (this.state.totalScore < 60) rating = '🙂 優秀農夫';
+            else rating = '😄 傳奇農業大師！';
+
+            let html = `<h3>遊戲結束！</h3>`;
+            html += detailsHtml;
+            html += `<p style="font-size:20px; text-align:center; margin-top:20px;">最終評價：<br><strong>${rating}</strong></p>`;
+            
+            UI.showModal('🏆 最終結算', html, '再玩一次');
+            UI.elements.modalCloseBtn.onclick = () => {
+                UI.closeModal();
+                this.resetGame();
+                UI.elements.modalCloseBtn.onclick = UI.closeModal; // 恢復預設
+            };
+            UI.elements.btnStart.disabled = true;
+            UI.elements.btnEndTurn.disabled = true;
+        },
+
+        saveGame() {
+            if (this.state.phase === 'SETUP' || this.state.phase === 'GAME_OVER') {
+                UI.showToast('現在無法存檔');
+                return;
+            }
+            localStorage.setItem('gardenoSave', JSON.stringify(this.state));
+            UI.showToast('遊戲已存檔！');
+            AudioManager.playClick();
+        },
+
+        loadGame() {
+            const saved = localStorage.getItem('gardenoSave');
+            if (!saved) {
+                UI.showToast('沒有找到存檔！');
+                return;
+            }
+            this.state = JSON.parse(saved);
+            this.updateUI();
+            UI.showToast('讀檔成功！');
+            AudioManager.playClick();
+            
+            // 根據讀取的狀態恢復按鈕
+            if (this.state.phase === 'PLACE') {
+                UI.elements.btnStart.disabled = true;
+                UI.elements.btnEndTurn.disabled = true;
+                this.highlightValidZones(this.state.currentDiceValue);
+            } else if (this.state.phase === 'ACTION_SELECT' || this.state.phase === 'ACTION_EXECUTE') {
+                UI.elements.btnStart.disabled = true;
+                UI.elements.btnEndTurn.disabled = false;
+                UI.updateActions(this.state);
+                if (this.state.phase === 'ACTION_EXECUTE') {
+                    this.executeActionLogic(this.state.selectedAction);
+                }
+            } else {
+                UI.elements.btnStart.disabled = false;
+                UI.elements.btnEndTurn.disabled = true;
+            }
+        },
+
+        updateUI() {
+            UI.updateTopBar(this.state);
+            UI.renderBoard(this.state);
+            UI.updateActions(this.state);
+            
+            // 綁定點擊事件
+            UI.elements.zones.forEach(zone => {
+                zone.onclick = () => {
+                    if (this.state.phase === 'PLACE') {
+                        this.placeDice(zone.dataset.zone);
+                    } else if (this.state.phase === 'ACTION_EXECUTE') {
+                        this.handleDiceClick(zone.dataset.zone);
+                    }
+                };
+                // 點擊內部的骰子也要觸發
+                const diceEl = zone.querySelector('.dice');
+                if (diceEl) {
+                    diceEl.onclick = (e) => {
+                        e.stopPropagation();
+                        zone.onclick();
+                    };
+                }
+            });
+
+            // 行動按鈕事件
+            UI.elements.actionBtns.forEach((btn, index) => {
+                btn.onclick = () => {
+                    if (this.state.phase === 'ACTION_SELECT') {
+                        this.selectAction(index + 1);
+                    }
+                };
+            });
+        }
+    };
+
+    // 初始化
+    window.onload = () => {
+        game.init();
+    };
+
+</script>
+</body>
+</html>
