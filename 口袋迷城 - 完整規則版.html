@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>口袋迷城 - 完整規則版</title>
+    <style>
+        :root {
+            --bg-color: #2c1e16;
+            --paper-color: #f4e8c1;
+            --text-dark: #3e2723;
+            --text-light: #d7ccc8;
+            --accent-red: #8b0000;
+            --accent-green: #2e7d32;
+            --accent-blue: #1565c0;
+            --gold: #ffb300;
+            --card-bg: #5d4037;
+            --border-color: #8d6e63;
+            --shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-image: radial-gradient(circle at center, #3e2723 0%, #1a0f0a 100%);
+        }
+
+        /* 頂部狀態列 */
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 10px;
+            background: rgba(0,0,0,0.8);
+            border-bottom: 2px solid var(--border-color);
+            font-size: 0.9em;
+            z-index: 10;
+            flex-wrap: wrap;
+        }
+        .stat { display: flex; align-items: center; gap: 3px; font-weight: bold; margin-right: 10px; }
+        .gold-text { color: var(--gold); }
+        .hp-text { color: #ff5252; }
+        .xp-text { color: #64b5f6; }
+
+        /* 主內容區 */
+        #main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            transition: opacity 0.3s ease;
+        }
+
+        /* 場景面板 */
+        .scene-panel {
+            background: var(--paper-color);
+            color: var(--text-dark);
+            border-radius: 8px;
+            padding: 15px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: var(--shadow);
+            position: relative;
+            border: 1px solid #8d6e63;
+            margin-bottom: 10px;
+        }
+        .scene-panel::after {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none; box-shadow: inset 0 0 50px rgba(62, 39, 35, 0.5);
+        }
+        .scene-title { font-size: 1.3em; margin-bottom: 10px; color: var(--accent-red); border-bottom: 2px solid var(--accent-red); padding-bottom: 5px; }
+        .scene-text { font-size: 1em; line-height: 1.5; margin-bottom: 15px; cursor: pointer; }
+
+        /* 戰場地圖區 (六角格) */
+        #map-container {
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        #hex-svg { width: 100%; height: 100%; }
+        .hex-cell { fill: #4e342e; stroke: #8d6e63; stroke-width: 1; cursor: pointer; transition: fill 0.2s; }
+        .hex-cell:hover { fill: #6d4c41; }
+        .hex-cell.valid-move { fill: #2e7d32; }
+        .hex-cell.valid-attack { fill: #b71c1c; }
+
+        /* 卡牌區域 */
+        .card-row {
+            display: flex; gap: 10px; overflow-x: auto; padding: 10px 0;
+            width: 100%; align-items: center; flex-wrap: nowrap;
+            min-height: 180px;
+        }
+        .card-row::-webkit-scrollbar { height: 6px; }
+        .card-row::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+        .card {
+            flex: 0 0 140px; height: 200px;
+            background: var(--card-bg); border: 2px solid var(--border-color);
+            border-radius: 8px; padding: 8px; display: flex; flex-direction: column;
+            position: relative; cursor: pointer; transition: transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .card:hover { transform: translateY(-3px); }
+        .card.selected { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: translateY(-8px); }
+        .card.disabled { opacity: 0.5; pointer-events: none; }
+        .card-name { font-weight: bold; font-size: 0.9em; color: #fff; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 3px; }
+        .card-init { font-size: 0.8em; color: var(--gold); text-align: center; margin-bottom: 5px; }
+        .card-action { font-size: 0.75em; padding: 3px; margin-bottom: 3px; background: rgba(0,0,0,0.2); border-radius: 3px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* 戰鬥介面佈局 */
+        #combat-ui { display: flex; flex-direction: column; width: 100%; max-width: 800px; }
+        #enemy-area { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+        .enemy-token { width: 60px; height: 60px; background: #b71c1c; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; border: 2px solid #fff; position: absolute; transition: all 0.3s; }
+        .enemy-token span { font-size: 10px; }
+
+        /* 按鈕群組 */
+        .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; justify-content: center; width: 100%; }
+        .btn {
+            background: var(--accent-red); color: white; border: 1px solid #5c0000;
+            padding: 8px 16px; font-size: 0.9em; border-radius: 5px; cursor: pointer;
+            transition: background 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .btn:hover:not(:disabled) { background: #b71c1c; }
+        .btn:active:not(:disabled) { transform: scale(0.95); }
+        .btn:disabled { background: #555; color: #888; cursor: not-allowed; border-color: #333; }
+        .btn-green { background: var(--accent-green); border-color: #1b5e20; }
+        .btn-green:hover:not(:disabled) { background: #43a047; }
+        .btn-gold { background: var(--gold); color: #333; border-color: #c67c00; font-weight: bold; }
+
+        /* 底部導航 */
+        #bottom-nav {
+            display: flex; justify-content: space-around; background: #1a0f0a;
+            border-top: 2px solid var(--border-color); padding: 8px 0;
+            z-index: 10; padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-btn { background: none; border: none; color: var(--text-light); font-size: 1.3em; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .nav-btn span { font-size: 0.4em; font-family: sans-serif; margin-top: 2px; }
+
+        /* 彈窗 */
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; padding: 15px; }
+        .modal.show { display: flex; }
+        .modal-content { background: var(--paper-color); color: var(--text-dark); padding: 20px; border-radius: 8px; max-width: 600px; width: 100%; max-height: 85vh; overflow-y: auto; border: 2px solid var(--border-color); }
+        
+        /* 日誌 */
+        #combat-log { background: rgba(0,0,0,0.6); border: 1px solid var(--border-color); padding: 8px; border-radius: 5px; margin-top: 5px; height: 80px; overflow-y: auto; font-size: 0.8em; width: 100%; color: #b0bec5; }
+        .log-entry { margin-bottom: 3px; }
+
+        /* Toast */
+        #toast { visibility: hidden; min-width: 200px; background-color: #333; color: #fff; text-align: center; border-radius: 5px; padding: 10px; position: fixed; z-index: 200; left: 50%; bottom: 80px; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s; border: 1px solid var(--gold); }
+        #toast.show { visibility: visible; opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <header id="top-bar">
+        <div class="stat">🪙 <span id="gold-val" class="gold-text">0</span></div>
+        <div class="stat">❤️ <span id="hp-val" class="hp-text">10/10</span></div>
+        <div class="stat">✨ <span id="xp-val" class="xp-text">0</span></div>
+        <div class="stat">🎒 <span id="inv-val">0/2</span></div>
+    </header>
+
+    <main id="main-content">
+        <!-- 動態內容 -->
+    </main>
+
+    <nav id="bottom-nav">
+        <button class="nav-btn" onclick="Game.showInstructions()">📖<span>說明</span></button>
+        <button class="nav-btn" onclick="Game.showDeck()">🎴<span>牌庫</span></button>
+        <button class="nav-btn" onclick="Game.saveGame()">💾<span>存檔</span></button>
+        <button class="nav-btn" onclick="Game.loadGame()">📂<span>讀檔</span></button>
+        <button class="nav-btn" onclick="Game.toggleSound()">🔊<span>音效</span></button>
+    </nav>
+
+    <!-- 說明彈窗 -->
+    <div id="modal-instructions" class="modal show">
+        <div class="modal-content">
+            <h2>📜 遊戲說明 - 幽港迷城核心規則</h2>
+            <p><strong>【遊戲目標】</strong><br>擊敗所有敵人，完成劇本。</p>
+            <p><strong>【核心機制】</strong><br>
+                1. <strong>選牌</strong>：每回合從手牌選兩張。一張執行<strong>頂部行動</strong>，一張執行<strong>底部行動</strong>。較小的先攻值決定行動順序。<br>
+                2. <strong>移動與攻擊</strong>：戰鬥時點擊地圖上的「綠色格子」移動，點擊「紅色敵人」攻擊。<br>
+                3. <strong>攻擊修正</strong>：攻擊時會抽取修正牌（-2, -1, 0, +1, +2, x2, 落空），影響最終傷害。<br>
+                4. <strong>休息</strong>：手牌用盡前需「長休」或「短休」才能將棄牌堆洗回。<br>
+                5. <strong>經驗值</strong>：使用特定卡牌或擊殺敵人可獲得 XP，滿 10 點升級。
+            </p>
+            <p><strong>【畫面引導】</strong><br>
+                * 頂部：金幣、生命、經驗值、物品上限。<br>
+                * 中間：戰場地圖（六角格）與敵人。<br>
+                * 下方：手牌區與戰鬥日誌。
+            </p>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn btn-gold" onclick="Game.startGame()">我準備好了，開始遊戲</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        // ==========================================
+        // 1. JSON 資料庫 (Data Layer)
+        // ==========================================
+        const GAME_DATA = {
+            cards: {
+                '干擾': { init: 23, xp: 0, top: { move: 3, atk: 3 }, bottom: { move: 2, atk: 2 } },
+                '自製葡萄酒': { init: 35, xp: 1, top: { heal: 3, move: 5 }, bottom: { atk: 4 } },
+                '優質本能': { init: 17, xp: 0, top: { atk: 4 }, bottom: { move: 2, atk: 2 } },
+                '失效打擊': { init: 22, xp: 1, top: { atk: 4, pierce: 2 }, bottom: { move: 2, atk: 2 } },
+                '治愈之水': { init: 28, xp: 0, top: { heal: 4, move: 2 }, bottom: { atk: 3 } },
+                '游動攻擊': { init: 12, xp: 0, top: { move: 4, atk: 2 }, bottom: { atk: 3 } },
+                '隱身術': { init: 12, xp: 1, top: { move: 2, invis: true }, bottom: { atk: 2 } },
+                '暗影戰術': { init: 19, xp: 1, top: { move: 4, dark: true }, bottom: { atk: 3 } },
+                '致命一擊': { init: 06, xp: 2, top: { atk: 3, bonus: 2 }, bottom: { move: 3 } }
+            },
+            monsters: {
+                '狼': { hp: 4, atk: 2, move: 3, init: 20, icon: '🐺', ai: 'melee' },
+                '盜賊衛兵': { hp: 5, atk: 2, move: 3, init: 17, icon: '🗡️', ai: 'melee' },
+                '骷髏': { hp: 3, atk: 2, move: 2, init: 16, icon: '💀', ai: 'melee' },
+                '冰霜惡魔': { hp: 5, atk: 3, move: 3, init: 18, icon: '❄️', ai: 'melee' },
+                '瓦爾': { hp: 20, atk: 4, move: 2, init: 11, icon: '🧙', ai: 'ranged' },
+                '費雷國王': { hp: 25, atk: 6, move: 3, init: 10, icon: '🤴', ai: 'melee' }
+            },
+            modifiers: [
+                { val: 0, text: '落空' }, { val: -2, text: '-2' }, { val: -1, text: '-1' },
+                { val: 0, text: '0' }, { val: 0, text: '0' }, { val: 1, text: '+1' },
+                { val: 1, text: '+1' }, { val: 2, text: '+2' }, { val: 2, text: 'x2', isDouble: true }
+            ],
+            scenarios: [
+                { id: 1, title: "口袋幽港迷城的大門", text: "狼群從黑暗中出現。", enemies: ['狼', '狼'], reward: { gold: 12 }, next: 2 },
+                { id: 2, title: "通往北境山谷的道路", text: "黑衛客棧比以往來得繁忙。", enemies: ['狼', '盜賊衛兵'], reward: { gold: 6 }, next: 3 },
+                { id: 3, title: "術士古墓", text: "你面對瓦爾。", enemies: ['瓦爾', '骷髏', '骷髏'], reward: { gold: 15, xp: 2 }, isEnd: true }
+            ]
+        };
+
+        // ==========================================
+        // 2. 音效系統 (Web Audio API)
+        // ==========================================
+        const AudioSys = {
+            ctx: null, enabled: true,
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            play(freq, type = 'sine', dur = 0.1, vol = 0.1) {
+                if (!this.enabled) return; this.init();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + dur);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + dur);
+            },
+            click() { this.play(600, 'square', 0.05, 0.05); },
+            attack() { this.play(300, 'sawtooth', 0.2, 0.1); this.play(150, 'square', 0.3, 0.1); },
+            damage() { this.play(200, 'sawtooth', 0.3, 0.15); },
+            heal() { this.play(800, 'sine', 0.1, 0.1); setTimeout(() => this.play(1000, 'sine', 0.2, 0.1), 100); },
+            win() { this.play(523, 'sine', 0.2, 0.1); setTimeout(() => this.play(659, 'sine', 0.2, 0.1), 150); setTimeout(() => this.play(784, 'sine', 0.4, 0.1), 300); }
+        };
+
+        // ==========================================
+        // 3. 遊戲狀態機與邏輯 (State Machine & Logic)
+        // ==========================================
+        const Game = {
+            state: 'TITLE', // TITLE, SCENARIO_INTRO, COMBAT_INIT, COMBAT_SELECT, COMBAT_RESOLVE, SCENARIO_END, GAME_OVER
+            player: {
+                hp: 10, maxHp: 10, gold: 0, xp: 0, level: 1,
+                hand: [], discard: [], lost: [],
+                maxInventory: 2, inventory: []
+            },
+            currentScenario: 0,
+            combat: {
+                turn: 0, enemies: [], 
+                selectedCards: [], 
+                initOrder: [],
+                log: [],
+                monsterModifiers: [...GAME_DATA.modifiers] // 怪物修正牌堆
+            },
+            isTyping: false,
+            fullText: '',
+
+            init() {
+                this.render();
+            },
+
+            startGame() {
+                document.getElementById('modal-instructions').classList.remove('show');
+                AudioSys.init();
+                this.player = { hp: 10, maxHp: 10, gold: 0, xp: 0, level: 1, hand: [], discard: [], lost: [], maxInventory: 2, inventory: [] };
+                // 初始手牌
+                this.player.hand = ['干擾', '自製葡萄酒', '優質本能', '失效打擊', '治愈之水', '游動攻擊', '隱身術', '暗影戰術', '致命一擊'];
+                this.currentScenario = 1;
+                this.state = 'SCENARIO_INTRO';
+                this.render();
+            },
+
+            showInstructions() { document.getElementById('modal-instructions').classList.add('show'); },
+            showDeck() { this.showToast(`抽牌堆: ${this.player.hand.length}, 棄牌堆: ${this.player.discard.length}, 丟失: ${this.player.lost.length}`); },
+            toggleSound() { AudioSys.enabled = !AudioSys.enabled; this.showToast(AudioSys.enabled ? '音效開' : '音效關'); },
+
+            render() {
+                const main = document.getElementById('main-content');
+                main.innerHTML = '';
+                document.getElementById('gold-val').innerText = this.player.gold;
+                document.getElementById('hp-val').innerText = `${this.player.hp}/${this.player.maxHp}`;
+                document.getElementById('xp-val').innerText = this.player.xp;
+                document.getElementById('inv-val').innerText = `${this.player.inventory.length}/${this.player.maxInventory}`;
+
+                if (this.state === 'TITLE') return;
+
+                if (this.state === 'SCENARIO_INTRO') {
+                    const s = GAME_DATA.scenarios.find(x => x.id === this.currentScenario);
+                    const panel = document.createElement('div');
+                    panel.className = 'scene-panel';
+                    panel.innerHTML = `
+                        <div class="scene-title">#${s.id}: ${s.title}</div>
+                        <div class="scene-text" id="typewriter">${s.text}</div>
+                        <div class="btn-group">
+                            <button class="btn btn-green" onclick="Game.startCombat()">進入戰鬥</button>
+                        </div>
+                    `;
+                    main.appendChild(panel);
+                } 
+                else if (this.state === 'COMBAT_SELECT') {
+                    this.renderCombatUI(main);
+                }
+                else if (this.state === 'SCENARIO_END') {
+                    const s = GAME_DATA.scenarios.find(x => x.id === this.currentScenario);
+                    const panel = document.createElement('div');
+                    panel.className = 'scene-panel';
+                    panel.innerHTML = `<div class="scene-title">戰鬥勝利！</div><p>獲得 ${s.reward.gold} 金幣與 ${s.reward.xp || 0} 經驗值。</p>`;
+                    
+                    if (s.isEnd) {
+                        panel.innerHTML += `<p style="color:var(--accent-red);font-weight:bold;margin-top:10px;">你完成了劇本！</p>`;
+                        panel.innerHTML += `<button class="btn btn-gold" onclick="Game.startGame()">重新開始</button>`;
+                    } else {
+                        panel.innerHTML += `<button class="btn btn-green" onclick="Game.nextScenario(${s.next})">繼續前進</button>`;
+                    }
+                    main.appendChild(panel);
+                }
+            },
+
+            // --- 戰鬥介面渲染 ---
+            renderCombatUI(main) {
+                const s = GAME_DATA.scenarios.find(x => x.id === this.currentScenario);
+                const container = document.createElement('div');
+                container.id = 'combat-ui';
+
+                // 1. 地圖與敵人區域 (簡化的六角格概念)
+                const mapDiv = document.createElement('div');
+                mapDiv.id = 'map-container';
+                // 生成一個簡單的 5x5 六角格背景，敵人放在上方，玩家在下方
+                let svg = `<svg id="hex-svg" viewBox="0 0 600 300">`;
+                // 繪製背景網格 (視覺效果)
+                for(let r=0; r<5; r++) {
+                    for(let c=0; c<6; c++) {
+                        const x = 50 + c * 90 + (r%2)*45;
+                        const y = 20 + r * 60;
+                        svg += `<polygon points="${x},${y-30} ${x+45},${y-15} ${x+45},${y+15} ${x},${y+30} ${x-45},${y+15} ${x-45},${y-15}" class="hex-cell" />`;
+                    }
+                }
+                // 繪製玩家 (下方)
+                svg += `<circle cx="300" cy="260" r="15" fill="#1565c0" stroke="#fff" stroke-width="2"/>`;
+                // 繪製敵人 (上方)
+                this.combat.enemies.forEach((e, i) => {
+                    const x = 150 + i * 100;
+                    const y = 100;
+                    svg += `<g id="enemy-${i}" onclick="Game.handleAttack(${i})" style="cursor:pointer;">
+                        <circle cx="${x}" cy="${y}" r="18" fill="#b71c1c" stroke="#fff" stroke-width="2"/>
+                        <text x="${x}" y="${y+5}" text-anchor="middle" fill="white" font-size="16">${e.icon}</text>
+                        <text x="${x}" y="${y+35}" text-anchor="middle" fill="#ffccbc" font-size="12">${e.name} (${e.hp}/${e.maxHp})</text>
+                    </g>`;
+                });
+                svg += `</svg>`;
+                mapDiv.innerHTML = svg;
+                container.appendChild(mapDiv);
+
+                // 2. 戰鬥日誌
+                const logDiv = document.createElement('div');
+                logDiv.id = 'combat-log';
+                logDiv.innerHTML = this.combat.log.map(l => `<div class="log-entry">${l}</div>`).join('');
+                container.appendChild(logDiv);
+
+                // 3. 手牌區
+                const cardRow = document.createElement('div');
+                cardRow.className = 'card-row';
+                this.player.hand.forEach(cName => {
+                    const card = GAME_DATA.cards[cName];
+                    const isSelected = this.combat.selectedCards.includes(cName);
+                    const div = document.createElement('div');
+                    div.className = `card ${isSelected ? 'selected' : ''}`;
+                    div.onclick = () => this.toggleCardSelect(cName);
+                    div.innerHTML = `
+                        <div class="card-name">${cName}</div>
+                        <div class="card-init">先攻: ${card.init} | XP: ${card.xp}</div>
+                        <div class="card-action"><strong>頂部</strong><br>${Object.entries(card.top).map(([k,v]) => k==='move'?`移動${v}`:k==='atk'?`攻擊${v}`:k==='heal'?`治療${v}`:'').join(' ')}</div>
+                        <div class="card-action"><strong>底部</strong><br>${Object.entries(card.bottom).map(([k,v]) => k==='move'?`移動${v}`:k==='atk'?`攻擊${v}`:k==='heal'?`治療${v}`:'').join(' ')}</div>
+                    `;
+                    cardRow.appendChild(div);
+                });
+                container.appendChild(cardRow);
+
+                // 4. 按鈕區
+                const btnGroup = document.createElement('div');
+                btnGroup.className = 'btn-group';
+                
+                // 休息按鈕 (如果手牌只剩0或1張)
+                if (this.player.hand.length < 2) {
+                    btnGroup.innerHTML += `<button class="btn" onclick="Game.rest()">短休 (失去1生命，棄牌洗回)</button>`;
+                }
+
+                btnGroup.innerHTML += `<button class="btn btn-gold" id="btn-resolve" ${this.combat.selectedCards.length !== 2 ? 'disabled' : ''} onclick="Game.resolveTurn()">確認出牌 (已選 ${this.combat.selectedCards.length}/2)</button>`;
+                container.appendChild(btnGroup);
+                
+                main.appendChild(container);
+            },
+
+            startCombat() {
+                const s = GAME_DATA.scenarios.find(x => x.id === this.currentScenario);
+                this.state = 'COMBAT_SELECT';
+                this.combat.enemies = s.enemies.map((eName, index) => {
+                    const m = GAME_DATA.monsters[eName];
+                    return { id: index, name: eName, hp: m.hp, maxHp: m.hp, atk: m.atk, init: m.init, icon: m.icon };
+                });
+                this.combat.turn = 1;
+                this.combat.selectedCards = [];
+                this.combat.log = [`--- 戰鬥開始 (回合 1) ---`];
+                this.render();
+            },
+
+            toggleCardSelect(cName) {
+                const idx = this.combat.selectedCards.indexOf(cName);
+                if (idx > -1) {
+                    this.combat.selectedCards.splice(idx, 1);
+                } else {
+                    if (this.combat.selectedCards.length < 2) this.combat.selectedCards.push(cName);
+                    else this.showToast('最多只能選兩張！');
+                }
+                this.render();
+            },
+
+            // --- 核心戰鬥結算 (State Machine) ---
+            resolveTurn() {
+                if (this.combat.selectedCards.length !== 2) return;
+                AudioSys.click();
+
+                const c1Name = this.combat.selectedCards[0];
+                const c2Name = this.combat.selectedCards[1];
+                const c1 = GAME_DATA.cards[c1Name];
+                const c2 = GAME_DATA.cards[c2Name];
+
+                // 1. 計算先攻值 (取較小者)
+                const playerInit = Math.min(c1.init, c2.init);
+                
+                // 2. 建立行動順序表
+                let turnOrder = [
+                    { type: 'player', init: playerInit, name: '玩家' },
+                    ...this.combat.enemies.filter(e => e.hp > 0).map(e => ({ type: 'monster', init: e.init, name: e.name, ref: e }))
+                ];
+                turnOrder.sort((a, b) => a.init - b.init);
+
+                this.combat.log.push(`你選擇了【${c1Name}】與【${c2Name}】，先攻值 ${playerInit}。`);
+
+                // 3. 結算行動 (簡化流程，玩家行動優先，然後怪物行動)
+                // 實際桌遊是交替進行，這裡為了 UI 簡潔，一次結算完玩家，再結算怪物
+                
+                // 玩家行動：頂部 (假設使用 c1.top)
+                this.combat.log.push(`【玩家行動】使用【${c1Name}】頂部：`);
+                if (c1.top.atk) {
+                    // 尋找第一個活著的敵人
+                    const target = this.combat.enemies.find(e => e.hp > 0);
+                    if (target) {
+                        const mod = this.drawModifier();
+                        let dmg = c1.top.atk + mod.val;
+                        if (mod.isDouble) dmg = c1.top.atk * 2;
+                        if (dmg < 0) dmg = 0;
+                        
+                        target.hp -= dmg;
+                        this.combat.log.push(`對 ${target.name} 攻擊，抽到修正 ${mod.text}，造成 ${dmg} 傷害！`);
+                        AudioSys.attack();
+                    }
+                }
+                if (c1.top.heal) {
+                    this.player.hp = Math.min(this.player.maxHp, this.player.hp + c1.top.heal);
+                    this.combat.log.push(`恢復 ${c1.top.heal} 生命。`);
+                    AudioSys.heal();
+                }
+                // 獲得 XP
+                if (c1.xp) { this.player.xp += c1.xp; this.combat.log.push(`獲得 ${c1.xp} XP。`); }
+
+                // 玩家行動：底部 (假設使用 c2.bottom)
+                this.combat.log.push(`【玩家行動】使用【${c2Name}】底部：`);
+                if (c2.bottom.atk) {
+                    const target = this.combat.enemies.find(e => e.hp > 0);
+                    if (target) {
+                        const mod = this.drawModifier();
+                        let dmg = c2.bottom.atk + mod.val;
+                        if (mod.isDouble) dmg = c2.bottom.atk * 2;
+                        if (dmg < 0) dmg = 0;
+                        
+                        target.hp -= dmg;
+                        this.combat.log.push(`對 ${target.name} 攻擊，抽到修正 ${mod.text}，造成 ${dmg} 傷害！`);
+                        AudioSys.attack();
+                    }
+                }
+                if (c2.xp) { this.player.xp += c2.xp; this.combat.log.push(`獲得 ${c2.xp} XP。`); }
+
+                // 檢查是否全滅
+                if (this.combat.enemies.every(e => e.hp <= 0)) {
+                    this.endCombat(true);
+                    return;
+                }
+
+                // 怪物行動
+                this.combat.enemies.filter(e => e.hp > 0).forEach(enemy => {
+                    const mod = this.drawModifier();
+                    let dmg = enemy.atk + mod.val;
+                    if (mod.isDouble) dmg = enemy.atk * 2;
+                    if (dmg < 0) dmg = 0;
+                    this.player.hp -= dmg;
+                    this.combat.log.push(`【怪物行動】${enemy.name} 攻擊你，抽到 ${mod.text}，造成 ${dmg} 傷害！`);
+                    AudioSys.damage();
+                });
+
+                // 4. 清理與結算
+                // 將使用的卡牌移至棄牌堆
+                this.player.discard.push(c1Name, c2Name);
+                this.player.hand = this.player.hand.filter(c => c !== c1Name && c !== c2Name);
+                this.combat.selectedCards = [];
+
+                // 檢查玩家死亡
+                if (this.player.hp <= 0) {
+                    this.endCombat(false);
+                    return;
+                }
+
+                // 檢查是否手牌耗盡
+                if (this.player.hand.length < 2) {
+                    this.combat.log.push(`⚠️ 手牌不足兩張！必須進行休息。`);
+                }
+
+                this.combat.turn++;
+                this.combat.log.push(`--- 回合 ${this.combat.turn} ---`);
+                this.render();
+            },
+
+            drawModifier() {
+                if (this.combat.monsterModifiers.length === 0) {
+                    this.combat.monsterModifiers = [...GAME_DATA.modifiers]; // 洗牌(重設)
+                }
+                const idx = Math.floor(Math.random() * this.combat.monsterModifiers.length);
+                return this.combat.monsterModifiers.splice(idx, 1)[0];
+            },
+
+            rest() {
+                AudioSys.heal();
+                this.player.hp -= 1;
+                this.player.discard.forEach(c => this.player.hand.push(c));
+                this.player.discard = [];
+                this.combat.log.push(`【短休】失去 1 生命，棄牌堆洗回手牌。`);
+                this.render();
+            },
+
+            endCombat(isVictory) {
+                if (isVictory) {
+                    AudioSys.win();
+                    this.state = 'SCENARIO_END';
+                    const s = GAME_DATA.scenarios.find(x => x.id === this.currentScenario);
+                    if (s.reward.gold) this.player.gold += s.reward.gold;
+                    if (s.reward.xp) this.player.xp += s.reward.xp;
+                    
+                    // 升級檢查
+                    if (this.player.xp >= 10) {
+                        this.player.xp -= 10;
+                        this.player.level++;
+                        this.player.maxHp += 2;
+                        this.player.hp = this.player.maxHp;
+                        this.showToast('🎉 升級了！生命上限增加！');
+                    }
+                } else {
+                    this.state = 'GAME_OVER';
+                }
+                this.render();
+            },
+
+            nextScenario(id) {
+                this.currentScenario = id;
+                this.state = 'SCENARIO_INTRO';
+                this.render();
+            },
+
+            handleAttack(index) {
+                // 點擊敵人的反饋 (目前簡化為直接結算，此函數保留給未來擴充點擊目標)
+                this.showToast(`點擊了 ${this.combat.enemies[index].name}，請按確認出牌進行攻擊。`);
+            },
+
+            saveGame() {
+                const saveData = { player: this.player, currentScenario: this.currentScenario, state: this.state };
+                localStorage.setItem('gh_save', JSON.stringify(saveData));
+                this.showToast('已存檔');
+            },
+            
+            loadGame() {
+                const data = localStorage.getItem('gh_save');
+                if (data) {
+                    const p = JSON.parse(data);
+                    this.player = p.player;
+                    this.currentScenario = p.currentScenario;
+                    this.state = p.state;
+                    this.showToast('已讀檔');
+                    this.render();
+                } else this.showToast('無存檔');
+            },
+
+            showToast(msg) {
+                const toast = document.getElementById('toast');
+                toast.innerText = msg;
+                toast.className = 'show';
+                setTimeout(() => { toast.className = ''; }, 2000);
+            }
+        };
+
+        window.onload = () => Game.init();
+    </script>
+</body>
+</html>
