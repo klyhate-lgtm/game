@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>圖靈機：自制版 - 密碼破譯</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --accent-blue: #3b82f6;
+            --accent-yellow: #fbbf24;
+            --accent-red: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --font-main: 'Courier New', Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 50% 0%, #1e293b 0%, transparent 70%),
+                linear-gradient(0deg, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 頂部狀態列 */
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(30, 41, 59, 0.8);
+            border-bottom: 1px solid #334155;
+            z-index: 10;
+        }
+
+        .title {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: var(--success);
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        /* 遊戲主區域 */
+        #main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        /* 密碼輸入區 */
+        .code-input-area {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            background: var(--panel-bg);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .color-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .color-indicator {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .blue { background-color: var(--accent-blue); box-shadow: 0 0 15px var(--accent-blue); }
+        .yellow { background-color: var(--accent-yellow); box-shadow: 0 0 15px var(--accent-yellow); }
+        .red { background-color: var(--accent-red); box-shadow: 0 0 15px var(--accent-red); }
+
+        .number-selector {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #0f172a;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #334155;
+        }
+
+        .number-selector button {
+            background: #334155;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .number-selector button:active { background: #475569; }
+        .number-selector span {
+            width: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* 驗證器區域 */
+        .section-title {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 5px;
+        }
+
+        .verifiers-container {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            scrollbar-width: thin;
+        }
+
+        .verifier-card {
+            flex: 0 0 auto;
+            background: var(--panel-bg);
+            border: 2px solid #475569;
+            border-radius: 10px;
+            padding: 10px;
+            width: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .verifier-card.active {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+
+        .verifier-id {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .verifier-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 2px;
+            background: #000;
+            padding: 2px;
+            border-radius: 4px;
+            width: 100px;
+            height: 100px;
+        }
+
+        .grid-cell {
+            background: #1e293b;
+            border-radius: 1px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.6rem;
+            font-weight: bold;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .grid-cell.pass { background: var(--success); color: #000; }
+        .grid-cell.fail { background: var(--danger); color: #fff; }
+
+        .verifier-name {
+            font-size: 0.8rem;
+            text-align: center;
+            color: var(--text-main);
+            height: 2.4em;
+            display: flex;
+            align-items: center;
+        }
+
+        .test-btn {
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: var(--font-main);
+            font-size: 0.8rem;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        .test-btn:active { background: #475569; }
+        .test-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* 底部導航列 */
+        #bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(30, 41, 59, 0.9);
+            border-top: 1px solid #334155;
+            padding: 10px;
+            z-index: 10;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            cursor: pointer;
+        }
+        .nav-btn.active { color: var(--success); }
+        .nav-btn:active { color: var(--text-main); }
+
+        /* 彈出視窗 (Modal) */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-overlay.show { display: flex; }
+
+        .modal-content {
+            background: var(--bg-color);
+            border: 1px solid #475569;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            color: var(--accent-blue);
+            margin-bottom: 15px;
+            text-align: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 10px;
+        }
+
+        .modal-body {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-main);
+            margin-bottom: 20px;
+        }
+        
+        .modal-body p { margin-bottom: 10px; }
+        .modal-body ul { padding-left: 20px; margin-bottom: 10px; }
+        .modal-body li { margin-bottom: 5px; }
+
+        .modal-close-btn {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: var(--font-main);
+            width: 100%;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        .modal-close-btn:active { background: #2563eb; }
+
+        /* Toast 提示 */
+        #toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 200;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        #toast.show { opacity: 1; }
+
+        /* 歷史紀錄面板 */
+        .history-list {
+            list-style: none;
+            padding: 0;
+        }
+        .history-item {
+            background: var(--panel-bg);
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid var(--accent-blue);
+            font-size: 0.8rem;
+        }
+        .history-item .guess { font-weight: bold; color: var(--success); }
+        .history-item .result { color: var(--text-muted); margin-top: 5px; }
+
+        /* 按鈕禁用狀態 */
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* 動畫 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+
+        /* 手機適配 */
+        @media (max-width: 600px) {
+            .verifier-card { width: 140px; }
+            .verifier-grid { width: 80px; height: 80px; }
+            .color-indicator { width: 30px; height: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部狀態列 -->
+    <div id="top-bar">
+        <div class="title">🔒 圖靈機：密碼破譯</div>
+        <button class="btn-icon" id="sound-toggle" title="切換音效">🔊</button>
+    </div>
+
+    <!-- 主遊戲區 -->
+    <div id="main-area">
+        <!-- 說明提示 -->
+        <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 5px;">
+            🎯 目標：找出 3 位數的隱藏密碼 (1-5)
+        </div>
+
+        <!-- 密碼輸入區 -->
+        <div class="code-input-area">
+            <div class="color-block">
+                <div class="color-indicator blue"></div>
+                <div class="number-selector">
+                    <button onclick="changeGuess('blue', -1)">-</button>
+                    <span id="val-blue">1</span>
+                    <button onclick="changeGuess('blue', 1)">+</button>
+                </div>
+            </div>
+            <div class="color-block">
+                <div class="color-indicator yellow"></div>
+                <div class="number-selector">
+                    <button onclick="changeGuess('yellow', -1)">-</button>
+                    <span id="val-yellow">1</span>
+                    <button onclick="changeGuess('yellow', 1)">+</button>
+                </div>
+            </div>
+            <div class="color-block">
+                <div class="color-indicator red"></div>
+                <div class="number-selector">
+                    <button onclick="changeGuess('red', -1)">-</button>
+                    <span id="val-red">1</span>
+                    <button onclick="changeGuess('red', 1)">+</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 驗證器列表 -->
+        <div>
+            <div class="section-title">🕵️‍♂️ 驗證器 (點擊測試你的猜測)</div>
+            <div class="verifiers-container" id="verifiers-container">
+                <!-- 由 JS 動態生成 -->
+            </div>
+        </div>
+
+        <!-- 提交按鈕 -->
+        <button class="modal-close-btn" id="submit-guess-btn" style="margin-top: 10px; background: var(--success);">
+            ✅ 提交密碼
+        </button>
+    </div>
+
+    <!-- 底部導航列 -->
+    <div id="bottom-nav">
+        <button class="nav-btn" onclick="openModal('help-modal')">❓<br>說明</button>
+        <button class="nav-btn" onclick="saveGame()">💾<br>存檔</button>
+        <button class="nav-btn" onclick="loadGame()">📂<br>讀檔</button>
+        <button class="nav-btn" onclick="openModal('history-modal')">📜<br>歷史</button>
+    </div>
+
+    <!-- 說明文件彈窗 -->
+    <div class="modal-overlay" id="help-modal">
+        <div class="modal-content">
+            <div class="modal-title">📖 遊戲玩法說明</div>
+            <div class="modal-body">
+                <p><strong>🎯 遊戲目標：</strong><br>你是一名頂尖的密碼破譯員。系統隱藏了一組由 3 個數字組成的密碼，每個數字都是 1 到 5 之間。你需要利用畫面上的「驗證器」來推敲出正確的密碼。</p>
+                
+                <p><strong>👀 看懂畫面：</strong></p>
+                <ul>
+                    <li><strong>藍色、黃色、紅色方塊：</strong>代表密碼的三個位置。你可以點擊 <code>+</code> 和 <code>-</code> 來調整你猜測的數字。</li>
+                    <li><strong>驗證器 (下方卡片)：</strong>每個驗證器都有獨特的規則（例如：數字是否為偶數、藍色加黃色是否小於 6 等）。</li>
+                    <li><strong>驗證器上的 5x5 網格：</strong>當你點擊「測試」時，驗證器會檢查你目前的猜測。綠色格子代表「通過 (V)」，紅色格子代表「失敗 (X)」。</li>
+                </ul>
+
+                <p><strong>🕹️ 操作步驟：</strong></p>
+                <ol>
+                    <li>點擊 <code>+</code> / <code>-</code> 輸入你猜測的數字。</li>
+                    <li>選擇一個你覺得有幫助的驗證器，點擊下方的「測試」按鈕。</li>
+                    <li>觀察驗證器 5x5 網格的變化，從中找出線索。</li>
+                    <li>當你確信答案時，點擊下方的 <strong>「✅ 提交密碼」</strong>按鈕。</li>
+                </ol>
+
+                <p><strong>💡 特殊機制：</strong></p>
+                <ul>
+                    <li><strong>結合線索：</strong>同一組猜測可以拿去測試不同的驗證器，獲取多條線索來縮小範圍。</li>
+                    <li><strong>歷史紀錄：</strong>點擊底部導航列的「歷史」，可以查看你之前測試過的猜測與結果，幫助你推理。</li>
+                </ul>
+            </div>
+            <button class="modal-close-btn" onclick="closeModal('help-modal')">我準備好了，開始遊戲</button>
+        </div>
+    </div>
+
+    <!-- 歷史紀錄彈窗 -->
+    <div class="modal-overlay" id="history-modal">
+        <div class="modal-content">
+            <div class="modal-title">📜 歷史紀錄</div>
+            <div class="modal-body" id="history-list-container">
+                <p style="color: var(--text-muted); text-align: center;">目前還沒有任何測試紀錄。</p>
+            </div>
+            <button class="modal-close-btn" onclick="closeModal('history-modal')">關閉</button>
+        </div>
+    </div>
+
+    <!-- 遊戲結束彈窗 -->
+    <div class="modal-overlay" id="result-modal">
+        <div class="modal-content" style="text-align: center;">
+            <div class="modal-title" id="result-title">🎉 成功破譯！</div>
+            <div class="modal-body">
+                <p id="result-message">你成功找出了系統的隱藏密碼！</p>
+                <div id="result-code" style="font-size: 2rem; margin: 20px 0; letter-spacing: 10px;"></div>
+            </div>
+            <button class="modal-close-btn" onclick="restartGame()">🔄 再玩一次</button>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div id="toast"></div>
+
+    <script>
+        // --- 音效系統 (Web Audio API) ---
+        let audioCtx = null;
+        let isMuted = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (isMuted || !audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'success') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1);
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } else if (type === 'fail') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        document.getElementById('sound-toggle').addEventListener('click', () => {
+            initAudio();
+            isMuted = !isMuted;
+            document.getElementById('sound-toggle').textContent = isMuted ? '🔇' : '🔊';
+            if (!isMuted) playSound('click');
+        });
+
+        // --- 遊戲資料與狀態機 ---
+        const GameState = {
+            START: 'START',
+            PLAYING: 'PLAYING',
+            END: 'END'
+        };
+        
+        let currentState = GameState.START;
+        let secretCode = { blue: 1, yellow: 1, red: 1 };
+        let currentGuess = { blue: 1, yellow: 1, red: 1 };
+        let history = [];
+        let testedVerifiers = new Set(); // 本次猜測已測試的驗證器
+
+        // 驗證器定義 (基於 PDF 的規則自定義)
+        const verifiers = [
+            { id: '201', name: '藍色數字是否為偶數？', logic: (g) => g.blue % 2 === 0 },
+            { id: '204', name: '黃色數字是否大於 3？', logic: (g) => g.yellow > 3 },
+            { id: '233', name: '紅色數字是否為奇數？', logic: (g) => g.red % 2 !== 0 },
+            { id: '244', name: '藍色與紅色數字相加是否大於 5？', logic: (g) => (g.blue + g.red) > 5 },
+            { id: '796', name: '藍色與黃色配和是否小於 6？', logic: (g) => (g.blue + g.yellow) < 6 },
+            { id: '798', name: '三個數字中是否有重複？', logic: (g) => g.blue === g.yellow || g.yellow === g.red || g.blue === g.red }
+        ];
+
+        // 頁面加載時初始化
+        window.onload = () => {
+            generateSecretCode();
+            renderVerifiers();
+            updateUI();
+            // 首次顯示說明
+            document.getElementById('help-modal').classList.add('show');
+        };
+
+        // 生成隱藏密碼
+        function generateSecretCode() {
+            secretCode = {
+                blue: Math.floor(Math.random() * 5) + 1,
+                yellow: Math.floor(Math.random() * 5) + 1,
+                red: Math.floor(Math.random() * 5) + 1
+            };
+            console.log("Secret Code:", secretCode); // 開發者測試用
+        }
+
+        // 渲染驗證器卡片
+        function renderVerifiers() {
+            const container = document.getElementById('verifiers-container');
+            container.innerHTML = '';
+            verifiers.forEach((v, index) => {
+                const card = document.createElement('div');
+                card.className = 'verifier-card';
+                card.id = `verifier-${v.id}`;
+                
+                // 生成 5x5 網格
+                let gridHTML = '';
+                for (let i = 0; i < 25; i++) {
+                    gridHTML += `<div class="grid-cell" id="cell-${v.id}-${i}"></div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="verifier-id">#${v.id}</div>
+                    <div class="verifier-grid">${gridHTML}</div>
+                    <div class="verifier-name">${v.name}</div>
+                    <button class="test-btn" onclick="testVerifier('${v.id}')">測試</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 更改猜測數字
+        function changeGuess(color, delta) {
+            if (currentState !== GameState.PLAYING) return;
+            playSound('click');
+            let newVal = currentGuess[color] + delta;
+            if (newVal < 1) newVal = 5;
+            if (newVal > 5) newVal = 1;
+            currentGuess[color] = newVal;
+            
+            // 重置已測試狀態，因為猜測改變了
+            testedVerifiers.clear();
+            resetVerifierGrids();
+            updateUI();
+        }
+
+        // 重置所有驗證器網格
+        function resetVerifierGrids() {
+            document.querySelectorAll('.grid-cell').forEach(cell => {
+                cell.className = 'grid-cell';
+                cell.textContent = '';
+            });
+            document.querySelectorAll('.verifier-card').forEach(card => {
+                card.classList.remove('active');
+            });
+        }
+
+        // 測試特定驗證器
+        function testVerifier(id) {
+            if (currentState !== GameState.PLAYING) return;
+            if (testedVerifiers.has(id)) {
+                showToast("你已經測試過這個驗證器了，請改變猜測或選擇其他驗證器。");
+                return;
+            }
+            playSound('click');
+            initAudio();
+
+            const verifier = verifiers.find(v => v.id === id);
+            const isPass = verifier.logic(currentGuess);
+            
+            // 視覺化 5x5 網格 (模擬 PDF 的填充效果)
+            // 為了視覺效果，我們隨機填充一些格子，但確保整體反映 Pass/Fail
+            const gridCells = document.querySelectorAll(`#verifier-${id} .grid-cell`);
+            gridCells.forEach((cell, index) => {
+                // 這裡做一個簡單的視覺模擬：如果 Pass 則大部分綠，Fail 則大部分紅
+                const randomVal = Math.random();
+                let passChance = isPass ? 0.85 : 0.15;
+                
+                if (randomVal < passChance) {
+                    cell.classList.add('pass');
+                    cell.textContent = 'V';
+                } else {
+                    cell.classList.add('fail');
+                    cell.textContent = 'X';
+                }
+            });
+
+            // 更新卡片狀態
+            const card = document.getElementById(`verifier-${id}`);
+            card.classList.add('active');
+            testedVerifiers.add(id);
+
+            // 記錄歷史
+            addHistory(id, verifier.name, isPass);
+
+            if (isPass) playSound('success');
+            else playSound('fail');
+        }
+
+        // 更新 UI 數字顯示
+        function updateUI() {
+            document.getElementById('val-blue').textContent = currentGuess.blue;
+            document.getElementById('val-yellow').textContent = currentGuess.yellow;
+            document.getElementById('val-red').textContent = currentGuess.red;
+        }
+
+        // 提交最終猜測
+        document.getElementById('submit-guess-btn').addEventListener('click', () => {
+            if (currentState !== GameState.PLAYING) return;
+            
+            const isWin = currentGuess.blue === secretCode.blue && 
+                          currentGuess.yellow === secretCode.yellow && 
+                          currentGuess.red === secretCode.red;
+
+            if (isWin) {
+                playSound('success');
+                currentState = GameState.END;
+                document.getElementById('result-title').textContent = "🎉 成功破譯！";
+                document.getElementById('result-message').textContent = "你成功找出了系統的隱藏密碼！";
+                document.getElementById('result-code').textContent = `${secretCode.blue} - ${secretCode.yellow} - ${secretCode.red}`;
+                document.getElementById('result-modal').classList.add('show');
+            } else {
+                playSound('fail');
+                showToast("❌ 密碼錯誤，請繼續利用驗證器尋找線索！");
+            }
+        });
+
+        // 新增歷史紀錄
+        function addHistory(verifierId, name, isPass) {
+            const record = {
+                guess: `${currentGuess.blue}-${currentGuess.yellow}-${currentGuess.red}`,
+                verifier: `#${verifierId} (${name})`,
+                result: isPass ? '通過 (V)' : '失敗 (X)'
+            };
+            history.unshift(record);
+            updateHistoryUI();
+        }
+
+        // 更新歷史紀錄介面
+        function updateHistoryUI() {
+            const container = document.getElementById('history-list-container');
+            if (history.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">目前還沒有任何測試紀錄。</p>';
+                return;
+            }
+
+            let html = '<ul class="history-list">';
+            history.forEach(h => {
+                html += `
+                    <li class="history-item">
+                        <div class="guess">猜測：${h.guess}</div>
+                        <div class="result">驗證器：${h.verifier} ➔ ${h.result}</div>
+                    </li>
+                `;
+            });
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+
+        // Toast 提示
+        let toastTimeout;
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // 彈窗控制
+        function openModal(id) {
+            playSound('click');
+            document.getElementById(id).classList.add('show');
+        }
+
+        function closeModal(id) {
+            playSound('click');
+            document.getElementById(id).classList.remove('show');
+        }
+
+        // 重新開始遊戲
+        function restartGame() {
+            closeModal('result-modal');
+            generateSecretCode();
+            history = [];
+            currentGuess = { blue: 1, yellow: 1, red: 1 };
+            testedVerifiers.clear();
+            resetVerifierGrids();
+            updateUI();
+            updateHistoryUI();
+            currentState = GameState.PLAYING;
+            showToast("系統已重置，新的密碼已生成！");
+        }
+
+        // 存檔與讀檔
+        function saveGame() {
+            playSound('click');
+            const saveData = {
+                secretCode: secretCode,
+                currentGuess: currentGuess,
+                history: history,
+                currentState: currentState
+            };
+            localStorage.setItem('turingMachineSave', JSON.stringify(saveData));
+            showToast("💾 遊戲已成功存檔！");
+        }
+
+        function loadGame() {
+            playSound('click');
+            const saveDataStr = localStorage.getItem('turingMachineSave');
+            if (!saveDataStr) {
+                showToast("⚠️ 找不到存檔！");
+                return;
+            }
+            
+            try {
+                const saveData = JSON.parse(saveDataStr);
+                secretCode = saveData.secretCode;
+                currentGuess = saveData.currentGuess;
+                history = saveData.history || [];
+                currentState = saveData.currentState || GameState.PLAYING;
+                
+                testedVerifiers.clear();
+                resetVerifierGrids();
+                updateUI();
+                updateHistoryUI();
+                showToast("📂 讀檔成功！");
+            } catch (e) {
+                showToast("⚠️ 存檔損壞，無法讀取。");
+            }
+        }
+
+        // 狀態機初始化
+        currentState = GameState.PLAYING;
+    </script>
+</body>
+</html>
