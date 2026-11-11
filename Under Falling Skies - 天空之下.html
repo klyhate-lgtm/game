@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Under Falling Skies - 天空之下</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e24;
+            --text-main: #e0e0e0;
+            --text-accent: #00ffcc;
+            --energy-color: #ffcc00;
+            --damage-color: #ff4444;
+            --research-color: #44ff44;
+            --mothership-color: #8888ff;
+            --border-radius: 8px;
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* 頂部狀態列 */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: var(--panel-bg);
+            border-bottom: 2px solid #333;
+            z-index: 10;
+        }
+        .stat { display: flex; align-items: center; font-weight: bold; }
+        .stat-icon { margin-right: 5px; font-size: 1.2rem; }
+        .energy-val { color: var(--energy-color); }
+        .damage-val { color: var(--damage-color); }
+        .research-val { color: var(--research-color); }
+
+        /* 主遊戲區域 */
+        .game-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        /* 軌道區 */
+        .tracks-container {
+            display: flex;
+            flex: 1;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        /* 研究軌道 (左) */
+        .research-track {
+            display: flex;
+            flex-direction: column-reverse;
+            width: 60px;
+            background: #222;
+            border-radius: var(--border-radius);
+            border: 2px solid #444;
+            align-items: center;
+            padding: 5px;
+        }
+        .research-slot {
+            width: 100%;
+            height: 40px;
+            border-bottom: 1px solid #444;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .research-slot.active { background: rgba(68, 255, 68, 0.2); border-color: var(--research-color); }
+        .research-slot.current { box-shadow: inset 0 0 10px var(--research-color); }
+        .research-marker { width: 20px; height: 20px; background: var(--research-color); border-radius: 50%; transition: all 0.3s; }
+
+        /* 天空區 (中) */
+        .sky-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            flex: 1;
+            min-width: 400px;
+        }
+        .sky-col {
+            background: #2a2a35;
+            border-radius: var(--border-radius);
+            border: 1px solid #444;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .sky-slot {
+            flex: 1;
+            border-bottom: 1px dashed #444;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            min-height: 40px;
+        }
+        .sky-slot:last-child { border-bottom: none; }
+        .sky-slot.explosion::after {
+            content: "💥";
+            position: absolute;
+            opacity: 0.3;
+            font-size: 1.5rem;
+        }
+        .sky-slot .ship {
+            width: 20px;
+            height: 20px;
+            clip-path: polygon(50% 0%, 100% 100%, 50% 80%, 0% 100%);
+            position: absolute;
+            transition: top 0.3s;
+        }
+        .ship.green { background: #44ff44; }
+        .ship.red { background: #ff4444; }
+        .ship.white { background: #ffffff; }
+        
+        /* 基地/房間區 */
+        .base-area {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+            height: 180px;
+        }
+        .room-col {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .room {
+            flex: 1;
+            border-radius: 4px;
+            border: 2px solid #555;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            background: #333;
+            opacity: 0.5; /* Unexcavated */
+            pointer-events: none;
+        }
+        .room.excavated {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .room:hover.excavated { transform: scale(1.05); }
+        .room.yellow { border-color: var(--energy-color); background: rgba(255, 204, 0, 0.1); }
+        .room.orange { border-color: #ff8800; background: rgba(255, 136, 0, 0.1); }
+        .room.green { border-color: var(--research-color); background: rgba(68, 255, 68, 0.1); }
+        .room.blue { border-color: #0088ff; background: rgba(0, 136, 255, 0.1); }
+        .room.target {
+            box-shadow: 0 0 10px #fff;
+            border-color: #fff;
+        }
+        .room-modifier {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #fff;
+            color: #000;
+            font-size: 0.7rem;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        /* 母艦軌道 (右) */
+        .mothership-track {
+            width: 80px;
+            background: #222;
+            border-radius: var(--border-radius);
+            border: 2px solid #444;
+            display: flex;
+            flex-direction: column;
+            padding: 5px;
+            align-items: center;
+        }
+        .ms-slot {
+            flex: 1;
+            width: 100%;
+            border-bottom: 1px solid #444;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+        }
+        .ms-marker {
+            width: 100%;
+            height: 30px;
+            background: var(--mothership-color);
+            border-radius: 15px;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #000;
+            font-weight: bold;
+        }
+
+        /* 底部控制區 */
+        .bottom-bar {
+            background: var(--panel-bg);
+            padding: 15px 10px;
+            border-top: 2px solid #333;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .dice-pool {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            min-height: 50px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .die {
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: grab;
+            user-select: none;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            transition: transform 0.2s;
+        }
+        .die:active { cursor: grabbing; transform: scale(0.95); }
+        .die.black { background: #333; color: #fff; border: 2px solid #555; }
+        .die.white { background: #eee; color: #000; border: 2px solid #aaa; }
+        .die.blue { background: #0088ff; color: #fff; border: 2px solid #0055aa; }
+        .die.disabled { opacity: 0.5; cursor: not-allowed; }
+        .die.placed { display: none; }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            background: #444;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #555; }
+        .btn:active { transform: scale(0.95); }
+        .btn.primary { background: var(--energy-color); color: #000; }
+        .btn.primary:disabled { background: #666; color: #999; cursor: not-allowed; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* 彈窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .modal-content {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid #444;
+            box-shadow: 0 0 20px rgba(0,255,204,0.2);
+        }
+        .modal-content h2 { color: var(--text-accent); margin-bottom: 15px; text-align: center; }
+        .modal-content p { line-height: 1.6; margin-bottom: 10px; font-size: 0.95rem; }
+        .modal-content ul { margin-left: 20px; margin-bottom: 15px; font-size: 0.95rem; }
+        .modal-content li { margin-bottom: 5px; }
+        .modal-btn { width: 100%; margin-top: 15px; }
+
+        /* 側邊欄 - 歷史紀錄 */
+        .sidebar {
+            position: fixed;
+            top: 0; right: -300px;
+            width: 300px; height: 100%;
+            background: #1a1a1a;
+            z-index: 50;
+            transition: right 0.3s;
+            display: flex;
+            flex-direction: column;
+            border-left: 2px solid #333;
+        }
+        .sidebar.active { right: 0; }
+        .sidebar-header { padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-content { padding: 15px; overflow-y: auto; flex: 1; }
+        .log-entry { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed #333; font-size: 0.85rem; color: #aaa; }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px; left: 50%;
+            transform: translateX(-50%);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast {
+            background: rgba(0,0,0,0.9);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 1px solid var(--text-accent);
+            animation: fadeInOut 3s forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+
+        /* 手機底部導航 */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #111;
+            border-top: 1px solid #333;
+            justify-content: space-around;
+            padding: 10px;
+            z-index: 40;
+        }
+        .mobile-nav-btn {
+            background: none; border: none; color: #888;
+            display: flex; flex-direction: column; align-items: center;
+            font-size: 0.7rem; cursor: pointer;
+        }
+        .mobile-nav-btn i { font-size: 1.2rem; margin-bottom: 2px; }
+
+        @media (max-width: 768px) {
+            .game-area { padding-bottom: 70px; }
+            .mobile-nav { display: flex; }
+            .sky-grid { min-width: 300px; }
+            .base-area { height: 150px; }
+            .research-track { width: 40px; }
+            .research-slot { height: 30px; font-size: 0.6rem; }
+            .mothership-track { width: 50px; }
+            .die { width: 35px; height: 35px; font-size: 1.2rem; }
+        }
+
+        /* 打字機效果 */
+        .typewriter {
+            overflow: hidden;
+            border-right: .15em solid var(--text-accent);
+            white-space: pre-wrap;
+            margin: 0 auto;
+            letter-spacing: .15em;
+            animation: blink-caret .75s step-end infinite;
+        }
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: var(--text-accent); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部狀態列 -->
+    <div class="top-bar">
+        <div class="stat" title="能量 (用於啟動房間)"><span class="stat-icon">⚡</span> <span class="energy-val" id="ui-energy">3</span></div>
+        <div class="stat" title="基地損害 (達到 4 失敗)"><span class="stat-icon">💥</span> <span class="damage-val" id="ui-damage">0</span></div>
+        <div class="stat" title="研究進度 (達到 12 勝利)"><span class="stat-icon">🔬</span> <span class="research-val" id="ui-research">0</span></div>
+        <div class="stat" title="回合數"><span class="stat-icon">🔄</span> <span id="ui-turn">1</span></div>
+        <div class="stat" style="cursor:pointer;" onclick="toggleSound()" title="切換音效"><span class="stat-icon" id="ui-sound">🔊</span></div>
+    </div>
+
+    <!-- 歷史紀錄側邊欄 -->
+    <div class="sidebar" id="history-sidebar">
+        <div class="sidebar-header">
+            <h3>歷史紀錄</h3>
+            <button class="btn" onclick="toggleSidebar()">✖</button>
+        </div>
+        <div class="sidebar-content" id="history-log">
+            <!-- 動態生成 -->
+        </div>
+    </div>
+
+    <!-- 主遊戲區域 -->
+    <div class="game-area">
+        <div class="tracks-container">
+            <!-- 研究軌道 -->
+            <div class="research-track" id="research-track">
+                <!-- 由 JS 生成 0-12 -->
+            </div>
+
+            <!-- 天空與房間 -->
+            <div style="flex: 1; display: flex; flex-direction: column;">
+                <div class="sky-grid" id="sky-grid">
+                    <!-- 5 列天空 -->
+                </div>
+                <div class="base-area" id="base-area">
+                    <!-- 5 列房間 -->
+                </div>
+            </div>
+
+            <!-- 母艦軌道 -->
+            <div class="mothership-track" id="mothership-track">
+                <div class="ms-slot" data-pos="3">💀</div>
+                <div class="ms-slot" data-pos="2">🛸</div>
+                <div class="ms-slot" data-pos="1">🛸</div>
+                <div class="ms-slot" data-pos="0">🛸</div>
+                <!-- 母艦標記 -->
+                <div class="ms-marker" id="ms-marker" style="position: absolute; width: 60px;">👾</div>
+            </div>
+        </div>
+
+        <!-- 底部控制區 -->
+        <div class="bottom-bar">
+            <div class="dice-pool" id="dice-pool">
+                <!-- 骰子由 JS 生成 -->
+            </div>
+            <div class="actions">
+                <button class="btn" id="btn-reset" onclick="resetGame()">重新開始</button>
+                <button class="btn primary" id="btn-next-phase" onclick="nextPhase()" disabled>結束回合 ➔</button>
+                <button class="btn" onclick="saveGame()">存檔</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 手機底部導航 -->
+    <div class="mobile-nav">
+        <button class="mobile-nav-btn" onclick="showTutorial()"><span>📖</span>規則</button>
+        <button class="mobile-nav-btn" onclick="toggleSidebar()"><span>📜</span>紀錄</button>
+        <button class="mobile-nav-btn" onclick="saveGame()"><span>💾</span>存檔</button>
+        <button class="mobile-nav-btn" onclick="loadGame()"><span>📂</span>讀檔</button>
+    </div>
+
+    <!-- 彈窗 - 教學 -->
+    <div class="modal-overlay active" id="tutorial-modal">
+        <div class="modal-content">
+            <h2>🌌 天空之下 - 遊戲說明</h2>
+            <p><strong>遊戲目標：</strong>將左側的綠色研究標記推至頂端（第12格）以研發武器擊敗外星人。如果母艦降落到骷髏頭，或基地受到4點傷害，則遊戲失敗。</p>
+            <p><strong>回合流程：</strong></p>
+            <ul>
+                <li><strong>1. 放置骰子：</strong>每回合有 5 顆骰子（3黑2白）。點擊骰子，再點擊下方房間放置。每列只能放一顆。放置後，該列的敵機會下降對應點數。放置白色骰子後會重擲剩下的骰子。</li>
+                <li><strong>2. 結算房間：</strong>點擊已放置的骰子發動效果（需消耗能量）。效果強度等於骰子點數加上房間修正值。</li>
+                <li><strong>3. 母艦移動：</strong>結算完畢後，點擊「結束回合」，母艦會下降並觸發效果。</li>
+            </ul>
+            <p><strong>房間圖示：</strong></p>
+            <ul>
+                <li>⚡ <strong>黃色</strong>：回復能量。</li>
+                <li>🔬 <strong>綠色</strong>：推進研究（消耗能量）。</li>
+                <li>✈️ <strong>橘色</strong>：擊落該列爆炸標記上點數小於等於的敵機。</li>
+                <li>🤖 <strong>藍色</strong>：生成機器人骰子（不移動敵機）。</li>
+            </ul>
+            <p><strong>敵機與傷害：</strong>敵機到達最底部會造成1點傷害並返回母艦。</p>
+            <button class="btn primary modal-btn" onclick="closeTutorial()">我準備好了，開始遊戲</button>
+        </div>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // --- 遊戲狀態管理 ---
+        const GameState = {
+            phase: 'PLACE', // PLACE, RESOLVE, MOTHERSHIP
+            turn: 1,
+            energy: 3,
+            maxEnergy: 7,
+            damage: 0,
+            maxDamage: 4,
+            research: 0,
+            maxResearch: 12,
+            mothershipPos: 0, // 0 (top) to 3 (skull)
+            excavator: 1, // 已挖掘的列數/行數 (簡化為從底部往上數)
+            
+            // 5 列資料
+            columns: [
+                { ships: [], roomDice: null, excavated: true, roomType: 'yellow', roomMod: 0, baseCost: 1 },
+                { ships: [], roomDice: null, excavated: true, roomType: 'blue', roomMod: 0, baseCost: 1 },
+                { ships: [], roomDice: null, excavated: true, roomType: 'orange', roomMod: 0, baseCost: 1 },
+                { ships: [], roomDice: null, excavated: true, roomType: 'green', roomMod: -1, baseCost: 1 },
+                { ships: [], roomDice: null, excavated: false, roomType: 'green', roomMod: 0, baseCost: 2 }
+            ],
+            
+            dicePool: [], // { id, type, value, used }
+            history: [],
+            soundEnabled: true
+        };
+
+        // 初始化天空與房間佈局 (簡化為 5 列，每列 5 格天空)
+        function initLayout() {
+            const skyGrid = document.getElementById('sky-grid');
+            const baseArea = document.getElementById('base-area');
+            skyGrid.innerHTML = '';
+            baseArea.innerHTML = '';
+
+            for (let i = 0; i < 5; i++) {
+                // 天空列
+                let colDiv = document.createElement('div');
+                colDiv.className = 'sky-col';
+                colDiv.dataset.col = i;
+                for (let j = 0; j < 5; j++) {
+                    let slot = document.createElement('div');
+                    slot.className = 'sky-slot';
+                    slot.dataset.row = j;
+                    // 設定爆炸標記 (底部倒數第二格)
+                    if (j === 3 && i % 2 === 0) slot.classList.add('explosion');
+                    colDiv.appendChild(slot);
+                }
+                skyGrid.appendChild(colDiv);
+
+                // 房間列
+                let baseCol = document.createElement('div');
+                baseCol.className = 'room-col';
+                let room = document.createElement('div');
+                room.className = `room ${GameState.columns[i].roomType}`;
+                room.dataset.col = i;
+                room.id = `room-${i}`;
+                room.onclick = () => handleRoomClick(i);
+                
+                if (GameState.columns[i].roomMod !== 0) {
+                    let mod = document.createElement('div');
+                    mod.className = 'room-modifier';
+                    mod.innerText = GameState.columns[i].roomMod > 0 ? `+${GameState.columns[i].roomMod}` : GameState.columns[i].roomMod;
+                    room.appendChild(mod);
+                }
+                
+                baseCol.appendChild(room);
+                baseArea.appendChild(baseCol);
+            }
+
+            // 研究軌道
+            const rTrack = document.getElementById('research-track');
+            rTrack.innerHTML = '';
+            for (let i = 0; i <= 12; i++) {
+                let slot = document.createElement('div');
+                slot.className = 'research-slot';
+                slot.dataset.val = i;
+                if (i === 12) slot.innerHTML = '🏆';
+                if (i === 0) slot.innerHTML = '起點';
+                rTrack.appendChild(slot);
+            }
+            
+            updateUI();
+        }
+
+        // --- 核心邏輯 ---
+
+        function startTurn() {
+            GameState.phase = 'PLACE';
+            GameState.dicePool = [
+                { id: 'b1', type: 'black', value: rollD6() },
+                { id: 'b2', type: 'black', value: rollD6() },
+                { id: 'b3', type: 'black', value: rollD6() },
+                { id: 'w1', type: 'white', value: rollD6() },
+                { id: 'w2', type: 'white', value: rollD6() }
+            ];
+            
+            // 重置房間骰子
+            GameState.columns.forEach(c => {
+                if (c.roomDice && c.roomDice.type !== 'blue') {
+                    c.roomDice = null;
+                }
+            });
+
+            addLog(`第 ${GameState.turn} 回合開始。`);
+            updateUI();
+        }
+
+        function rollD6() {
+            return Math.floor(Math.random() * 6) + 1;
+        }
+
+        // 處理骰子點擊 (選擇)
+        let selectedDieId = null;
+        function selectDie(dieId) {
+            if (GameState.phase !== 'PLACE') return;
+            const die = GameState.dicePool.find(d => d.id === dieId);
+            if (!die || die.used) return;
+
+            selectedDieId = dieId;
+            updateUI();
+        }
+
+        // 處理房間點擊 (放置骰子或結算)
+        function handleRoomClick(colIdx) {
+            if (GameState.phase === 'PLACE') {
+                // 放置骰子
+                if (!GameState.columns[colIdx].excavated) {
+                    showToast('該房間尚未挖掘！');
+                    return;
+                }
+                if (GameState.columns[colIdx].roomDice) {
+                    showToast('該列已有骰子！');
+                    return;
+                }
+                if (!selectedDieId) {
+                    showToast('請先從下方選擇一顆骰子！');
+                    return;
+                }
+
+                const die = GameState.dicePool.find(d => d.id === selectedDieId);
+                GameState.columns[colIdx].roomDice = die;
+                die.used = true;
+                selectedDieId = null;
+
+                // 移動敵機
+                moveShips(colIdx, die.value);
+
+                // 白色骰子特殊能力
+                if (die.type === 'white') {
+                    showToast('白色骰子！重擲剩餘未放置的骰子。');
+                    GameState.dicePool.forEach(d => {
+                        if (!d.used) d.value = rollD6();
+                    });
+                }
+
+                checkNextPhaseButton();
+                updateUI();
+
+            } else if (GameState.phase === 'RESOLVE') {
+                // 結算房間
+                const col = GameState.columns[colIdx];
+                if (!col.roomDice) return;
+
+                const die = col.roomDice;
+                let effectValue = die.value + col.roomMod;
+
+                // 消耗能量
+                if (GameState.energy < col.baseCost) {
+                    showToast('能量不足，無法啟動！(直接移除骰子)');
+                    col.roomDice = null;
+                    checkNextPhaseButton();
+                    updateUI();
+                    return;
+                }
+
+                GameState.energy -= col.baseCost;
+                playSound('resolve');
+
+                // 執行效果
+                switch (col.roomType) {
+                    case 'yellow':
+                        GameState.energy = Math.min(GameState.maxEnergy, GameState.energy + effectValue);
+                        addLog(`啟動黃色房間，恢復 ${effectValue} 能量。`);
+                        break;
+                    case 'green':
+                        let spaces = 0;
+                        // 簡化研究：直接推進數值
+                        GameState.research = Math.min(GameState.maxResearch, GameState.research + effectValue);
+                        addLog(`啟動綠色房間，研究推進至 ${GameState.research}。`);
+                        break;
+                    case 'orange':
+                        // 擊落該列爆炸格的敵機
+                        let killed = false;
+                        let shipsInCol = GameState.columns[colIdx].ships;
+                        // 找出在爆炸格的敵機 (row 3)
+                        let targetShipIdx = shipsInCol.findIndex(s => s.pos === 3);
+                        if (targetShipIdx !== -1) {
+                            let ship = shipsInCol[targetShipIdx];
+                            if (ship.type === 'red') {
+                                if (effectValue >= 1) { // 簡化：紅色只需>=1即可擊落
+                                    shipsInCol.splice(targetShipIdx, 1);
+                                    killed = true;
+                                }
+                            } else if (effectValue >= 2) { // 綠色需要>=2
+                                shipsInCol.splice(targetShipIdx, 1);
+                                killed = true;
+                            }
+                        }
+                        
+                        if (killed) {
+                            addLog(`啟動橘色房間，擊落敵機！`);
+                            // 擊落的敵機不放回，簡化處理
+                        } else {
+                            addLog(`啟動橘色房間，但沒有擊落敵機。`);
+                        }
+                        break;
+                    case 'blue':
+                        // 生成機器人 (簡化為直接回復能量或推進研究)
+                        addLog(`啟動藍色房間，生成機器人 (簡化為恢復1能量)。`);
+                        GameState.energy = Math.min(GameState.maxEnergy, GameState.energy + 1);
+                        break;
+                }
+
+                col.roomDice = null; // 移除骰子
+                
+                // 檢查勝利
+                if (GameState.research >= GameState.maxResearch) {
+                    winGame();
+                    return;
+                }
+
+                checkNextPhaseButton();
+                updateUI();
+            }
+        }
+
+        // 移動敵機
+        function moveShips(colIdx, steps) {
+            const ships = GameState.columns[colIdx].ships;
+            for (let i = ships.length - 1; i >= 0; i--) {
+                let ship = ships[i];
+                ship.pos += steps;
+                if (ship.pos >= 5) {
+                    // 到達底部，造成傷害
+                    GameState.damage++;
+                    addLog(`敵機突破防線！基地受到 1 點傷害。`);
+                    ships.splice(i, 1); // 移除
+                    if (GameState.damage >= GameState.maxDamage) {
+                        loseGame();
+                        return;
+                    }
+                }
+            }
+        }
+
+        // 檢查是否可以進入下一階段
+        function checkNextPhaseButton() {
+            const btn = document.getElementById('btn-next-phase');
+            if (GameState.phase === 'PLACE') {
+                // 所有骰子都用完或無法放置
+                const unplaced = GameState.dicePool.filter(d => !d.used).length;
+                if (unplaced === 0) {
+                    GameState.phase = 'RESOLVE';
+                    btn.innerText = '移動母艦 ➔';
+                    btn.disabled = false;
+                    addLog(`進入結算階段。`);
+                } else {
+                    btn.disabled = true;
+                    btn.innerText = '請放置剩餘骰子';
+                }
+            } else if (GameState.phase === 'RESOLVE') {
+                // 檢查是否還有未結算的房間骰子
+                const hasDice = GameState.columns.some(c => c.roomDice);
+                if (!hasDice) {
+                    btn.disabled = false;
+                    btn.innerText = '移動母艦 ➔';
+                } else {
+                    btn.disabled = true;
+                    btn.innerText = '請結算所有房間';
+                }
+            }
+        }
+
+        function nextPhase() {
+            if (GameState.phase === 'RESOLVE') {
+                // 進入母艦階段
+                GameState.phase = 'MOTHERSHIP';
+                moveMothership();
+            }
+        }
+
+        // 移動母艦
+        function moveMothership() {
+            GameState.mothershipPos++;
+            addLog(`母艦下降至第 ${GameState.mothershipPos} 層。`);
+            
+            // 觸發母艦效果 (簡化：根據層數扣能量/研究/生怪)
+            if (GameState.mothershipPos === 1) {
+                // 例如：損失 1 研究
+                GameState.research = Math.max(0, GameState.research - 1);
+                addLog(`母艦效果：研究 -1。`);
+            } else if (GameState.mothershipPos === 2) {
+                // 例如：生成一隻敵機
+                spawnShip();
+                addLog(`母艦效果：生成新的敵機。`);
+            } else if (GameState.mothershipPos >= 3) {
+                loseGame();
+                return;
+            }
+
+            // 重生敵機
+            spawnShip();
+            spawnShip();
+
+            // 下一回合
+            GameState.turn++;
+            startTurn();
+            updateUI();
+        }
+
+        // 生成敵機
+        function spawnShip() {
+            // 尋找沒有船的列
+            let emptyCols = [];
+            for (let i = 0; i < 5; i++) {
+                if (GameState.columns[i].ships.length === 0) {
+                    emptyCols.push(i);
+                }
+            }
+            
+            let targetCol = emptyCols.length > 0 
+                ? emptyCols[Math.floor(Math.random() * emptyCols.length)] 
+                : Math.floor(Math.random() * 5);
+            
+            let type = Math.random() > 0.2 ? 'green' : 'red';
+            GameState.columns[targetCol].ships.push({ pos: 0, type: type });
+        }
+
+        // --- 渲染 UI ---
+
+        function updateUI() {
+            // 更新頂部
+            document.getElementById('ui-energy').innerText = GameState.energy;
+            document.getElementById('ui-damage').innerText = GameState.damage;
+            document.getElementById('ui-research').innerText = GameState.research;
+            document.getElementById('ui-turn').innerText = GameState.turn;
+
+            // 更新研究軌道
+            document.querySelectorAll('.research-slot').forEach(slot => {
+                let val = parseInt(slot.dataset.val);
+                if (val <= GameState.research) {
+                    slot.classList.add('active');
+                } else {
+                    slot.classList.remove('active');
+                }
+                if (val === GameState.research) {
+                    slot.classList.add('current');
+                } else {
+                    slot.classList.remove('current');
+                }
+            });
+
+            // 更新骰子池
+            const poolDiv = document.getElementById('dice-pool');
+            poolDiv.innerHTML = '';
+            GameState.dicePool.forEach(die => {
+                if (die.used) return;
+                let div = document.createElement('div');
+                div.className = `die ${die.type}`;
+                if (selectedDieId === die.id) {
+                    div.style.transform = 'scale(1.1)';
+                    div.style.boxShadow = '0 0 15px #fff';
+                }
+                div.innerText = die.value;
+                div.onclick = () => selectDie(die.id);
+                poolDiv.appendChild(div);
+            });
+
+            // 更新天空
+            document.querySelectorAll('.sky-col').forEach((col, idx) => {
+                // 清除舊飛船
+                col.querySelectorAll('.ship').forEach(el => el.remove());
+                
+                // 繪製新飛船
+                GameState.columns[idx].ships.forEach(ship => {
+                    let shipEl = document.createElement('div');
+                    shipEl.className = `ship ${ship.type}`;
+                    shipEl.style.top = `${ship.pos * 20}%`; // 粗略位置
+                    // 精準對齊格
+                    let slot = col.children[ship.pos];
+                    if (slot) {
+                        slot.appendChild(shipEl);
+                        shipEl.style.top = '50%';
+                        shipEl.style.left = '50%';
+                        shipEl.style.transform = 'translate(-50%, -50%)';
+                    }
+                });
+            });
+
+            // 更新房間
+            GameState.columns.forEach((col, idx) => {
+                let roomEl = document.getElementById(`room-${idx}`);
+                roomEl.classList.toggle('excavated', col.excavated);
+                
+                // 清除舊骰子顯示
+                let oldDie = roomEl.querySelector('.die');
+                if (oldDie) oldDie.remove();
+
+                if (col.roomDice) {
+                    let dieEl = document.createElement('div');
+                    dieEl.className = `die ${col.roomDice.type}`;
+                    dieEl.innerText = col.roomDice.value;
+                    dieEl.style.width = '30px';
+                    dieEl.style.height = '30px';
+                    dieEl.style.fontSize = '1rem';
+                    roomEl.appendChild(dieEl);
+                }
+
+                // 高亮當前可互動
+                if (GameState.phase === 'PLACE' && selectedDieId && col.excavated && !col.roomDice) {
+                    roomEl.classList.add('target');
+                } else {
+                    roomEl.classList.remove('target');
+                }
+            });
+
+            // 母艦位置
+            const msMarker = document.getElementById('ms-marker');
+            msMarker.style.bottom = `${GameState.mothershipPos * 25}%`;
+            
+            // 按鈕狀態
+            if (GameState.phase === 'MOTHERSHIP') {
+                document.getElementById('btn-next-phase').innerText = '處理母艦...';
+                document.getElementById('btn-next-phase').disabled = true;
+            }
+        }
+
+        // --- 輔助功能 ---
+
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            let toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function addLog(msg) {
+            GameState.history.unshift(`[回合 ${GameState.turn}] ${msg}`);
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            const logDiv = document.getElementById('history-log');
+            logDiv.innerHTML = GameState.history.map(h => `<div class="log-entry">${h}</div>`).join('');
+        }
+
+        function toggleSidebar() {
+            document.getElementById('history-sidebar').classList.toggle('active');
+        }
+
+        function closeTutorial() {
+            document.getElementById('tutorial-modal').classList.remove('active');
+            startTurn();
+        }
+
+        function winGame() {
+            GameState.phase = 'GAMEOVER';
+            showToast('🎉 勝利！你成功研發了武器！');
+            addLog('遊戲勝利！');
+            updateUI();
+        }
+
+        function loseGame() {
+            GameState.phase = 'GAMEOVER';
+            showToast('💀 遊戲失敗！基地被摧毀。');
+            addLog('遊戲失敗...');
+            updateUI();
+            document.getElementById('btn-next-phase').disabled = true;
+        }
+
+        // 音效 (Web Audio API)
+        let audioCtx = null;
+        function playSound(type) {
+            if (!GameState.soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.1);
+                } else if (type === 'resolve') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.2);
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.2);
+                }
+            } catch (e) { console.log('Audio error'); }
+        }
+
+        function toggleSound() {
+            GameState.soundEnabled = !GameState.soundEnabled;
+            document.getElementById('ui-sound').innerText = GameState.soundEnabled ? '🔊' : '🔇';
+        }
+
+        // 存讀檔
+        function saveGame() {
+            localStorage.setItem('ufs_save', JSON.stringify(GameState));
+            showToast('遊戲已存檔！');
+        }
+
+        function loadGame() {
+            const saved = localStorage.getItem('ufs_save');
+            if (saved) {
+                Object.assign(GameState, JSON.parse(saved));
+                initLayout();
+                updateUI();
+                showToast('遊戲已讀取！');
+            } else {
+                showToast('沒有找到存檔！');
+            }
+        }
+
+        function resetGame() {
+            if (confirm('確定要重新開始嗎？目前的進度將會遺失。')) {
+                location.reload();
+            }
+        }
+
+        // 初始化
+        window.onload = () => {
+            initLayout();
+            // 預設給一顆起始敵機
+            GameState.columns[2].ships.push({ pos: 0, type: 'green' });
+            updateUI();
+        };
+
+    </script>
+</body>
+</html>
