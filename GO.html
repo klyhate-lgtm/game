@@ -52,34 +52,29 @@
         #board-wrapper {
             position: relative; width: 100%; max-width: 600px; aspect-ratio: 1 / 1;
             touch-action: none;
-            margin: 0 auto;
         }
         #board-container {
             width: 100%; height: 100%; background: #dcb35c; border-radius: 8px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.5); overflow: hidden; position: relative;
-            display: flex; justify-content: center; align-items: center;
         }
-        /* WGo 會在這裡插入 Canvas，強制設定寬度讓它自動計算比例 */
         #board { width: 100%; height: 100%; cursor: default; transition: cursor 0.2s; }
         #board.my-turn { cursor: crosshair; }
+        #board.scoring-mode { cursor: pointer; }
 
-        /* 🌟 關鍵修復：將遮罩層 z-index 提高到 1000，防止被 WGo 的 Canvas 吃掉點擊事件 */
+        /* 對局狀態遮罩 */
         #game-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85); border-radius: 8px; z-index: 1000;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: var(--accent); text-align: center; padding: 20px;
-            pointer-events: auto; /* 確保點擊有效 */
+            pointer-events: auto;
         }
         #game-overlay .spinner { width: 40px; height: 40px; border: 4px solid var(--surface); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
         #game-overlay h2 { font-size: 1.5rem; margin-bottom: 10px; }
         #game-overlay p { color: #ccc; margin-bottom: 20px; font-size: 1rem; }
         
-        /* 強制按鈕層級 */
         #btn-ready {
-            position: relative;
-            z-index: 1001;
-            pointer-events: auto;
+            position: relative; z-index: 1001; pointer-events: auto;
         }
 
         /* 倒數計時動畫 */
@@ -88,6 +83,18 @@
             animation: pop 1s ease-out infinite; text-shadow: 0 0 20px rgba(226, 176, 74, 0.5);
         }
         @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+
+        /* 點目模式面板 */
+        #scoring-panel {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); padding: 15px 20px; border-radius: 12px;
+            border: 2px solid var(--accent); z-index: 900; text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); width: 90%; max-width: 400px;
+        }
+        #scoring-panel h3 { color: var(--accent); margin-bottom: 10px; font-size: 1.1rem; }
+        #scoring-panel p { color: #ccc; font-size: 0.85rem; margin-bottom: 15px; line-height: 1.4; }
+        .scoring-btns { display: flex; gap: 10px; justify-content: center; }
+        .scoring-btns button { flex: 1; padding: 8px; font-size: 0.9rem; }
 
         #game-controls {
             margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;
@@ -108,7 +115,6 @@
         button.danger { color: var(--danger); border-color: var(--danger); }
         button.danger:hover { background: rgba(231, 76, 60, 0.2); }
         button.warning { color: var(--accent); border-color: var(--accent); }
-        button.secondary { background: #333; }
 
         #log {
             margin-top: 12px; width: 100%; max-width: 600px; max-height: 120px;
@@ -135,18 +141,6 @@
             background: #000; color: var(--accent); font-size: 0.85rem;
         }
 
-        /* 歷史紀錄列表 */
-        .history-list {
-            width: 100%; text-align: left; margin-top: 16px; max-height: 300px; overflow-y: auto;
-        }
-        .history-item {
-            display: flex; justify-content: space-between; align-items: center;
-            background: #111; padding: 10px 12px; border-radius: 6px;
-            margin-bottom: 8px; border: 1px solid var(--border); font-size: 0.9rem;
-        }
-        .history-item .info { flex: 1; }
-        .history-item .info .date { color: #888; font-size: 0.8rem; margin-top: 4px; }
-
         /* 彈窗共用樣式 */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -166,7 +160,6 @@
         .highlight { color: var(--accent); font-weight: bold; }
         .btn-full { display: block; width: 100%; margin-top: 16px; padding: 12px; font-size: 1.1rem; font-weight: bold; border: none; }
         
-        /* 彈窗按鈕群組 */
         .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
         .modal-actions button { flex: 1; margin-top: 0; }
 
@@ -189,7 +182,7 @@
     <div class="modal-content">
         <h2>📖 歡迎來到雙人圍棋</h2>
         <h3>🎯 遊戲目標</h3>
-        <p>輪流落子，圍出比對手更多的地盤。如果雙方連續「虛手」，系統會自動結算勝負。</p>
+        <p>輪流落子，圍出比對手更多的地盤。如果雙方連續「虛手」，系統會進入「點目模式」。</p>
         <h3>👀 看懂畫面</h3>
         <ul>
             <li>狀態列：<span class="highlight">輪到：⚫ 黑方（你的回合）</span> 代表現在該你下棋。</li>
@@ -198,15 +191,6 @@
             <li>棋盤上的紅圈代表「最後一手棋」。</li>
         </ul>
         <button id="btn-start-tutorial" class="btn-full primary">✅ 我準備好了，開始下棋</button>
-    </div>
-</div>
-
-<!-- 歷史對局彈窗 -->
-<div id="history-modal" class="modal-overlay hidden">
-    <div class="modal-content">
-        <h2>📂 我的歷史對局</h2>
-        <div id="history-list" class="history-list"></div>
-        <button id="btn-close-history" class="btn-full secondary">關閉</button>
     </div>
 </div>
 
@@ -248,7 +232,6 @@
     <button id="btn-create" class="primary">建立新對局</button>
     <input id="input-game-id" type="text" placeholder="輸入房間 ID" />
     <button id="btn-join">加入對局</button>
-    <button id="btn-history" class="secondary">📂 歷史對局</button>
 </div>
 
 <div id="invite-area" class="invite-box hidden">
@@ -284,6 +267,16 @@
         <div id="overlay-countdown" class="hidden">
             <div id="countdown-text">3</div>
             <p>對局即將開始</p>
+        </div>
+    </div>
+
+    <!-- 🌟 點目模式面板 -->
+    <div id="scoring-panel" class="hidden">
+        <h3>🛑 點目模式</h3>
+        <p>請點擊盤面上的<b>死子</b>標記為死棋（會畫上紅叉），雙方確認無誤後請點擊「確認點目」。</p>
+        <div class="scoring-btns">
+            <button id="btn-confirm-score" class="success">確認點目</button>
+            <button id="btn-resume-game" class="warning">返回對局</button>
         </div>
     </div>
 </div>
@@ -340,6 +333,11 @@ let confirmCallback = null;
 let isCountdownRunning = false;
 const TIME_LIMIT = 30;
 
+// 點目相關變數
+let isScoringMode = false;
+let deadStones = {}; // 格式: {"x-y": true}
+let scoringReady = {}; // 格式: {B: true, W: false}
+
 /* ================================================================
    3. 工具函式與 UI 切換
    ================================================================ */
@@ -390,6 +388,7 @@ function switchView(view) {
         document.getElementById("game-over-modal").classList.add("hidden");
         isGameOver = false;
         isCountdownRunning = false;
+        isScoringMode = false;
     } else if (view === "game") {
         lobby.classList.add("hidden");
         bar.classList.remove("hidden");
@@ -496,15 +495,12 @@ function initBoard(size) {
     container.innerHTML = "";
     
     const rect = container.getBoundingClientRect();
-    const dim = rect.width > 0 ? rect.width : 600;
+    const boardPx = Math.min(rect.width, rect.height) || 600;
 
     board = new WGo.Board(container, {
-        size: size, 
-        width: dim, 
-        height: dim, 
-        background: "#dcb35c",
+        size: size, width: boardPx, height: boardPx, background: "#dcb35c",
         coordinates: true, 
-        // 🌟 移除 section，讓 WGo 自動繪製完整 19x19 與邊距
+        section: { top: 1.5, right: 1.5, bottom: 1.5, left: 1.5 },
         lineWidth: size === 19 ? 1 : 1.5, 
         stoneHandler: WGo.Board.drawHandlers.NORMAL,
         theme: { coordinatesColor: "#4a3317", font: "sans-serif" }
@@ -513,6 +509,12 @@ function initBoard(size) {
     board.addEventListener("click", (x, y) => {
         if (typeof x !== "number" || typeof y !== "number") return;
         if (isGameOver || isCountdownRunning || document.getElementById("game-overlay").classList.contains("hidden") === false) return;
+        
+        if (isScoringMode) {
+            toggleDeadStone(x, y);
+            return;
+        }
+
         if (!gameId || !currentTurn) return;
         if (currentTurn !== myColor) return log("⏳ 請等待對手落子", "error");
         attemptMove(currentTurn, x, y);
@@ -539,13 +541,50 @@ function renderBoard() {
         }
     }
 
-    if (moveHistory.length > 0) {
+    // 渲染最後一手標記 (如果不在點目模式)
+    if (!isScoringMode && moveHistory.length > 0) {
         const lastMove = moveHistory[moveHistory.length - 1];
         if (lastMove.x !== -1) {
             board.addObject({ x: lastMove.x, y: lastMove.y, type: WGo.Board.drawHandlers.CR, c: "#e74c3c" });
         }
     }
+
+    // 渲染死子標記
+    if (isScoringMode) {
+        Object.keys(deadStones).forEach(key => {
+            const [x, y] = key.split('-').map(Number);
+            // 畫一個紅色的叉叉 (MA 是 WGo.js 內建的叉叉標記)
+            board.addObject({ x: x, y: y, type: WGo.Board.drawHandlers.MA, c: "#ff0000" });
+        });
+    }
+
     board.redraw();
+}
+
+function toggleDeadStone(x, y) {
+    if (!isScoringMode) return;
+
+    // 檢查該點是否有棋子
+    const tempGame = new WGo.Game(boardSize);
+    moveHistory.forEach((m) => {
+        if (m.x === -1) tempGame.pass(m.color === "B" ? WGo.B : WGo.W);
+        else tempGame.play(m.x, m.y, m.color === "B" ? WGo.B : WGo.W);
+    });
+    if (tempGame.position.get(x, y) === 0) return;
+
+    const key = `${x}-${y}`;
+    if (deadStones[key]) {
+        delete deadStones[key];
+    } else {
+        deadStones[key] = true;
+    }
+
+    // 將死子狀態與確認狀態同步到 Firebase
+    fbDb.ref(`games/${gameId}/deadStones`).set(deadStones);
+    fbDb.ref(`games/${gameId}/scoringReady`).remove(); // 改變標記後，雙方的確認都要重置
+    scoringReady = {};
+    updateUI();
+    renderBoard();
 }
 
 function attemptMove(color, x, y) {
@@ -590,13 +629,16 @@ function pushMove(moveData) {
     fbDb.ref(`games/${gameId}/moves`).push(moveData);
     fbDb.ref(`games/${gameId}/currentTurn`).set(currentTurn);
     fbDb.ref(`games/${gameId}/lastMoveTime`).set(firebase.database.ServerValue.TIMESTAMP);
-
     fbDb.ref(`games/${gameId}/undoRequest`).remove();
 
+    // 檢查是否雙方連續 Pass
     if (moveHistory.length >= 2) {
         const last = moveHistory[moveHistory.length - 1];
         const prev = moveHistory[moveHistory.length - 2];
-        if (last.x === -1 && prev.x === -1) calculateAndEndGame();
+        if (last.x === -1 && prev.x === -1) {
+            // 進入點目模式
+            fbDb.ref(`games/${gameId}/status`).set("scoring");
+        }
     }
 }
 
@@ -627,6 +669,7 @@ function handleUndoResponse(agree) {
     }
 }
 
+// 🌟 計算最終分數 (剔除死子)
 function calculateAndEndGame() {
     if (!gameId || !fbDb) return;
     const game = new WGo.Game(boardSize);
@@ -636,6 +679,13 @@ function calculateAndEndGame() {
     });
     
     const pos = game.position;
+    
+    // 剔除死子 (將死子位置的顏色改為空地 0)
+    Object.keys(deadStones).forEach(key => {
+        const [x, y] = key.split('-').map(Number);
+        pos.set(x, y, 0);
+    });
+
     const visited = Array.from({ length: boardSize }, () => Array(boardSize).fill(false));
     let blackStones = 0, whiteStones = 0, blackTerritory = 0, whiteTerritory = 0;
 
@@ -667,17 +717,16 @@ function calculateAndEndGame() {
         }
     }
 
+    // 中國規則：子 + 地
     const bScore = blackStones + blackTerritory;
     const wScore = whiteStones + whiteTerritory + komi;
     let winner = bScore > wScore ? "B" : "W";
-    let detailMsg = `⚫ 黑方：${bScore} 子 (空地 ${blackTerritory})\n⚪ 白方：${wScore} 子 (貼目 ${komi})\n\n`;
+    let detailMsg = `⚫ 黑方：${bScore} 子 (空地 ${blackTerritory})\n⚪ 白方：${wScore} 子 (空地 ${whiteTerritory} + 貼目 ${komi})\n\n`;
     detailMsg += `<strong style="color:var(--accent); font-size:1.3rem;">${winner === "B" ? "⚫ 黑方" : "⚪ 白方"} 獲勝！</strong>`;
 
     fbDb.ref(`games/${gameId}/status`).set("finished");
     fbDb.ref(`games/${gameId}/result`).set(`${winner}+${Math.abs(bScore-wScore).toFixed(1)}`);
     fbDb.ref(`games/${gameId}/resultDetail`).set(detailMsg);
-    
-    saveGameToHistory(winner, `${winner}+${Math.abs(bScore-wScore).toFixed(1)}`);
 }
 
 function resignGame() {
@@ -688,8 +737,6 @@ function resignGame() {
         fbDb.ref(`games/${gameId}/status`).set("finished");
         fbDb.ref(`games/${gameId}/result`).set(`${winner}+R`);
         fbDb.ref(`games/${gameId}/resultDetail`).set(detailMsg);
-        
-        saveGameToHistory(winner, `${winner}+Resign`);
     });
 }
 
@@ -705,12 +752,20 @@ function updateUI() {
     const isMyTurn = currentTurn === myColor;
     
     const overlayHidden = document.getElementById("game-overlay").classList.contains("hidden");
-    turnEl.textContent = overlayHidden ? `輪到：${colorName}${isMyTurn ? "（你的回合）" : ""}` : "對局準備中…";
+    
+    if (isScoringMode) {
+        turnEl.textContent = "🛑 點目模式";
+    } else {
+        turnEl.textContent = overlayHidden ? `輪到：${colorName}${isMyTurn ? "（你的回合）" : ""}` : "對局準備中…";
+    }
 
-    document.getElementById("board").classList.toggle("my-turn", isMyTurn && overlayHidden);
-    document.getElementById("btn-pass").disabled = !isMyTurn || !overlayHidden;
-    document.getElementById("btn-resign").disabled = !isMyTurn || !overlayHidden;
-    document.getElementById("btn-undo").disabled = !isMyTurn || moveHistory.length === 0 || !overlayHidden;
+    document.getElementById("board").classList.toggle("my-turn", isMyTurn && overlayHidden && !isScoringMode);
+    document.getElementById("board").classList.toggle("scoring-mode", isScoringMode);
+    
+    const canOperate = isMyTurn && overlayHidden && !isScoringMode;
+    document.getElementById("btn-pass").disabled = !canOperate;
+    document.getElementById("btn-resign").disabled = !canOperate;
+    document.getElementById("btn-undo").disabled = !canOperate || moveHistory.length === 0;
     document.getElementById("btn-export-sgf").disabled = moveHistory.length === 0;
 }
 
@@ -721,7 +776,7 @@ function startTimer(lastMoveTime) {
     const timerEl = document.getElementById("timer-display");
     
     timerInterval = setInterval(() => {
-        if (!gameId || !currentTurn || isGameOver || isCountdownRunning) { 
+        if (!gameId || !currentTurn || isGameOver || isCountdownRunning || isScoringMode) { 
             timerEl.textContent = "時間：--"; return; 
         }
         const now = Date.now() + serverTimeOffset;
@@ -745,6 +800,7 @@ function startTimer(lastMoveTime) {
 function showGameOver(detailMsg) {
     isGameOver = true;
     currentTurn = null;
+    isScoringMode = false;
     updateUI();
     document.getElementById("result-details").innerHTML = detailMsg.replace(/\n/g, '<br>');
     document.getElementById("game-over-modal").classList.remove("hidden");
@@ -752,75 +808,7 @@ function showGameOver(detailMsg) {
 }
 
 /* ================================================================
-   7. 歷史紀錄儲存與讀取
-   ================================================================ */
-function saveGameToHistory(winner, resultStr) {
-    if (!currentUser || !gameId) return; 
-
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
-    let sgf = `(;GM[1]FF[4]CA[UTF-8]AP[Firebase-Go:1.0]RU[Chinese]SZ[${boardSize}]KM[${komi}]DT[${dateStr}]PB[Black]PW[White]RE[${resultStr}]`;
-    moveHistory.forEach((m) => { sgf += m.x === -1 ? `;${m.color}[]` : `;${m.color}[${m.sgfCoord}]`; });
-    sgf += `)`;
-
-    fbDb.ref(`users/${currentUser.uid}/history/${gameId}`).set({
-        gameId, date: Date.now(), result: resultStr,
-        myColor, boardSize, komi, sgf
-    }).then(() => log("☁️ 對局已自動存檔至雲端歷史紀錄", "ok"))
-      .catch((err) => log("❌ 雲端存檔失敗：" + err.message, "error"));
-}
-
-function openHistory() {
-    document.getElementById("history-modal").classList.remove("hidden");
-    const listEl = document.getElementById("history-list");
-    listEl.innerHTML = "<div style='text-align:center;color:#888;'>載入中…</div>";
-
-    fbDb.ref(`users/${currentUser.uid}/history`).orderByChild("date").once("value", (snap) => {
-        listEl.innerHTML = "";
-        if (!snap.exists()) {
-            listEl.innerHTML = "<div style='text-align:center;color:#888;'>目前沒有歷史對局</div>";
-            return;
-        }
-
-        const arr = [];
-        snap.forEach((child) => { arr.push(child.val()); });
-        arr.sort((a, b) => b.date - a.date);
-
-        arr.forEach((item) => {
-            const d = new Date(item.date);
-            const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-            const isWin = (item.result.startsWith("B") && item.myColor === "B") || (item.result.startsWith("W") && item.myColor === "W");
-            
-            let resultText = item.result.includes("Resign") ? "對手認輸" : item.result;
-            if (!isWin) resultText = item.result.includes("Resign") ? "我方認輸" : "落敗";
-
-            const div = document.createElement("div");
-            div.className = "history-item";
-            div.innerHTML = `
-                <div class="info">
-                    <div style="font-weight:bold; color:${isWin ? 'var(--success)' : 'var(--danger)'}">
-                        ${isWin ? '🎉 勝利' : '💀 落敗'} (${item.myColor === 'B' ? '執黑' : '執白'})
-                    </div>
-                    <div class="date">${dateStr} · ${item.boardSize}路 · ${resultText}</div>
-                </div>
-                <button class="primary" style="flex: none; padding: 6px 12px; font-size: 0.8rem; min-width: auto;" onclick="downloadSGF('${item.sgf}', '${item.gameId}')">下載 SGF</button>
-            `;
-            listEl.appendChild(div);
-        });
-    });
-}
-
-window.downloadSGF = function(sgfContent, id) {
-    const blob = new Blob([sgfContent], { type: "application/x-go-sgf;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `game_${id.slice(-6)}.sgf`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-};
-
-/* ================================================================
-   8. 建立 / 加入 / 監聽
+   7. 建立 / 加入 / 監聽
    ================================================================ */
 async function createGame() {
     try {
@@ -838,6 +826,9 @@ async function createGame() {
         gameId = newRef.key;
         myColor = "B"; boardSize = size; komi = komiVal; moveHistory = []; currentTurn = "B";
         isGameOver = false;
+        isScoringMode = false;
+        deadStones = {};
+        scoringReady = {};
         
         localStorage.setItem("go_gameId", gameId);
         
@@ -861,6 +852,9 @@ async function joinGame(id) {
 
         gameId = id; boardSize = data.boardSize || 19; komi = data.komi || 7.5;
         isGameOver = (data.status === "finished");
+        isScoringMode = (data.status === "scoring");
+        deadStones = data.deadStones || {};
+        scoringReady = data.scoringReady || {};
 
         if (!data.whitePlayer && data.blackPlayer !== currentUser.uid) {
             myColor = "W";
@@ -937,13 +931,23 @@ function listenToGame(id) {
         }
     });
 
-    // 3. 監聽整體遊戲狀態
+    // 3. 監聽點目狀態
+    fbDb.ref(`games/${id}/deadStones`).on("value", (snap) => {
+        deadStones = snap.val() || {};
+        if (isScoringMode) renderBoard();
+    });
+
+    fbDb.ref(`games/${id}/scoringReady`).on("value", (snap) => {
+        scoringReady = snap.val() || {};
+        if (isScoringMode) updateScoringUI();
+    });
+
+    // 4. 監聽整體遊戲狀態
     gameStateListener = fbDb.ref(`games/${id}`);
     gameStateListener.on("value", (snap) => {
         const data = snap.val();
         if (!data || isGameOver) return;
         
-        // 處理結束
         if (data.status === "finished") {
             if (!isGameOver) {
                 fbDb.ref(`games/${id}/resultDetail`).once("value").then((rSnap) => {
@@ -953,19 +957,39 @@ function listenToGame(id) {
             return;
         }
 
-        // 處理等待加入
         if (!data.whitePlayer) {
             setOverlay("waiting");
             return;
         }
 
-        // 處理已經開始下棋
+        if (data.status === "scoring") {
+            if (!isScoringMode) {
+                isScoringMode = true;
+                setOverlay("none");
+                document.getElementById("scoring-panel").classList.remove("hidden");
+                document.getElementById("game-controls").classList.add("hidden"); // 隱藏一般按鈕
+                updateUI();
+                renderBoard();
+                log("🛑 雙方連續虛手，進入點目模式。請標記死子並確認。", "ok");
+            }
+            updateScoringUI();
+            return;
+        }
+
         if (data.status === "playing") {
+            if (isScoringMode) { // 從點目返回對局
+                isScoringMode = false;
+                document.getElementById("scoring-panel").classList.add("hidden");
+                document.getElementById("game-controls").classList.remove("hidden");
+                fbDb.ref(`games/${id}/deadStones`).remove();
+                renderBoard();
+                log("▶️ 恢復對局", "ok");
+            }
             setOverlay("none");
             return;
         }
 
-        // 處理準備狀態
+        // 準備階段
         const ready = data.readyPlayers || {};
         const bReady = !!ready.B;
         const wReady = !!ready.W;
@@ -1003,6 +1027,19 @@ function listenToGame(id) {
     });
 }
 
+function updateScoringUI() {
+    const btnConfirm = document.getElementById("btn-confirm-score");
+    const myReady = scoringReady[myColor];
+    
+    if (myReady) {
+        btnConfirm.disabled = true;
+        btnConfirm.textContent = "已確認，等待對手…";
+    } else {
+        btnConfirm.disabled = false;
+        btnConfirm.textContent = "確認點目";
+    }
+}
+
 function startCountdown(onComplete) {
     if (isCountdownRunning) return;
     isCountdownRunning = true;
@@ -1027,6 +1064,41 @@ function startCountdown(onComplete) {
 }
 
 /* ================================================================
+   8. SGF 匯出 與 邀請複製
+   ================================================================ */
+function exportSGF() {
+    if (moveHistory.length === 0) return;
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+
+    let sgf = `(;GM[1]FF[4]CA[UTF-8]AP[Firebase-Go:1.0]RU[Chinese]SZ[${boardSize}]KM[${komi}]DT[${dateStr}]PB[Black]PW[White]`;
+    
+    if (isGameOver) sgf += `RE[B+Resign]`; 
+
+    moveHistory.forEach((m) => { sgf += m.x === -1 ? `;${m.color}[]` : `;${m.color}[${m.sgfCoord}]`; });
+    sgf += `)`;
+
+    const blob = new Blob([sgf], { type: "application/x-go-sgf;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `game_${gameId || "local"}_${dateStr}.sgf`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    log("📥 SGF 已匯出", "ok");
+}
+
+function copyInviteLink() {
+    const copyText = document.getElementById("invite-link");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(copyText.value).then(() => {
+        log("📋 已複製邀請連結！", "ok");
+        document.getElementById("btn-copy-link").textContent = "✅ 已複製";
+        setTimeout(() => { document.getElementById("btn-copy-link").textContent = "複製邀請"; }, 2000);
+    });
+}
+
+/* ================================================================
    9. 事件綁定與啟動
    ================================================================ */
 document.getElementById("btn-create").addEventListener("click", () => { if (currentUser) createGame(); });
@@ -1037,26 +1109,29 @@ document.getElementById("btn-undo").addEventListener("click", requestUndo);
 document.getElementById("btn-export-sgf").addEventListener("click", exportSGF);
 document.getElementById("btn-copy-link").addEventListener("click", copyInviteLink);
 
-document.getElementById("btn-history").addEventListener("click", openHistory);
-document.getElementById("btn-close-history").addEventListener("click", () => {
-    document.getElementById("history-modal").classList.add("hidden");
-});
-
 document.getElementById("btn-ready").addEventListener("click", function() {
-    if (!gameId || !myColor) {
-        alert("系統尚未準備就緒，請稍後再試。");
-        return;
-    }
+    if (!gameId || !myColor) return;
     this.textContent = "傳送中...";
     fbDb.ref(`games/${gameId}/readyPlayers/${myColor}`).set(true)
-        .then(() => {
-            log("✅ 已送出準備，等待對手…", "ok");
-        })
+        .then(() => log("✅ 已送出準備，等待對手…", "ok"))
         .catch((err) => {
             log("❌ 準備失敗：" + err.message, "error");
             this.textContent = "準備好了！";
             alert("準備失敗，請檢查網路連線！");
         });
+});
+
+// 🌟 點目面板事件
+document.getElementById("btn-confirm-score").addEventListener("click", () => {
+    if (!isScoringMode || !myColor) return;
+    fbDb.ref(`games/${gameId}/scoringReady/${myColor}`).set(true);
+});
+
+document.getElementById("btn-resume-game").addEventListener("click", () => {
+    if (!isScoringMode) return;
+    showConfirm("返回對局", "確定要取消點目，繼續下棋嗎？", () => {
+        fbDb.ref(`games/${gameId}/status`).set("playing");
+    });
 });
 
 document.getElementById("btn-confirm-ok").addEventListener("click", () => {
@@ -1071,4 +1146,44 @@ document.getElementById("btn-confirm-cancel").addEventListener("click", () => {
 });
 
 document.getElementById("btn-back-lobby").addEventListener("click", () => {
-    if (moveListener) moveListener.
+    if (moveListener) moveListener.off();
+    if (statusListener) statusListener.off();
+    if (undoListener) undoListener.off();
+    if (presenceListener) presenceListener.off();
+    if (gameStateListener) gameStateListener.off();
+    clearInterval(timerInterval);
+    
+    if (gameId && currentUser) {
+        fbDb.ref(`games/${gameId}/players/${currentUser.uid}`).remove();
+    }
+
+    gameId = null; myColor = null; currentTurn = null; moveHistory = [];
+    isScoringMode = false; deadStones = {}; scoringReady = {};
+    localStorage.removeItem("go_gameId");
+    document.getElementById("input-game-id").value = "";
+    window.history.replaceState({}, document.title, window.location.pathname);
+    switchView("lobby");
+    log("已返回大廳", "ok");
+});
+
+window.addEventListener("resize", () => {
+    if (board && !document.getElementById("board-wrapper").classList.contains("hidden")) {
+        const container = document.getElementById("board");
+        const boardPx = Math.min(container.clientWidth, container.clientHeight) || 600;
+        board.setDimensions(boardPx, boardPx);
+        renderBoard();
+    }
+});
+
+document.getElementById("btn-start-tutorial").addEventListener("click", () => {
+    document.getElementById("tutorial-modal").classList.add("hidden");
+    log("🚀 系統就緒。請建立新對局，或輸入房間 ID 加入。", "ok");
+});
+
+initFirebase().then(() => {
+    initBoard(19);
+});
+</script>
+
+</body>
+</html>
