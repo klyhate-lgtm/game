@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>黑色奏鳴曲 · Black Sonata</title>
+<style>
+/* ========== 基礎 ========== */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;touch-action:manipulation}
+body{
+  font-family:Georgia,"Times New Roman","Songti TC","Noto Serif TC",serif;
+  background:#0d0a06;color:#e8dcc8;
+  -webkit-user-select:none;user-select:none;
+}
+#app{
+  position:relative;display:flex;flex-direction:column;
+  height:100vh;height:100dvh;max-width:1000px;margin:0 auto;
+  background:
+    radial-gradient(ellipse at 50% 0%,rgba(96,74,42,.35),transparent 65%),
+    linear-gradient(180deg,#241c12,#15100b 55%,#1a140c);
+  overflow:hidden;
+}
+#app::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:60;
+  box-shadow:inset 0 0 130px 34px rgba(0,0,0,.78);
+}
+
+/* ========== 頂部狀態 ========== */
+#topbar{
+  flex-shrink:0;position:relative;z-index:10;
+  display:flex;justify-content:space-around;align-items:center;
+  padding:7px 4px;
+  background:linear-gradient(180deg,rgba(62,50,32,.92),rgba(24,18,12,.92));
+  border-bottom:1px solid #6a5535;
+}
+.stat{display:flex;align-items:center;gap:3px;font-size:11px;color:#c0ae8a;letter-spacing:.3px}
+.stat .ic{font-size:14px}
+.stat .v{font-size:14px;color:#f2e4c2;font-weight:bold;min-width:14px;text-align:center}
+
+/* ========== 黑夫人行跡條 ========== */
+#ladyBar{
+  flex-shrink:0;position:relative;z-index:9;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:5px 10px;font-size:12px;color:#a8987a;
+  background:rgba(30,22,14,.85);
+  border-bottom:1px solid #3a2c1a;
+}
+#ladySymbol{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:17px;line-height:1.2;padding:1px 10px;border-radius:5px;
+  background:rgba(80,60,30,.5);border:1px solid #6a5535;
+  min-width:70px;justify-content:center;
+}
+#ladySymbol small{font-size:11px;color:#d8c8a4}
+
+/* ========== 地圖 ========== */
+#mapWrap{
+  flex:1;min-height:0;position:relative;z-index:5;
+  display:flex;align-items:center;justify-content:center;
+  padding:4px;overflow:hidden;
+}
+#mapSvg{width:100%;height:100%;display:block;overflow:visible}
+.loc text{pointer-events:none}
+.loc.target circle{filter:drop-shadow(0 0 6px rgba(240,200,96,.9))}
+.loc.target{cursor:pointer}
+
+/* ========== 行動列 ========== */
+#actions{
+  flex-shrink:0;position:relative;z-index:10;
+  display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+  padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(180deg,rgba(20,15,10,.4),rgba(20,15,10,.96));
+  border-top:1px solid #3a2c1a;
+  min-height:58px;
+}
+
+/* ========== 按鈕 ========== */
+.btn{
+  flex:1 1 auto;min-width:70px;max-width:170px;
+  padding:10px 10px;border-radius:7px;
+  background:linear-gradient(180deg,#4a3a25,#2a2118);
+  border:1px solid #8a7040;color:#e8dcc8;
+  font-family:inherit;font-size:13px;line-height:1.25;
+  cursor:pointer;transition:transform .12s,background .15s,box-shadow .15s;
+  box-shadow:0 2px 5px rgba(0,0,0,.5);
+}
+.btn:hover:not(:disabled){background:linear-gradient(180deg,#6a5230,#3a2a18);box-shadow:0 0 10px rgba(200,160,90,.4)}
+.btn:active:not(:disabled){transform:scale(.95)}
+.btn:disabled{opacity:.32;cursor:not-allowed;box-shadow:none}
+.btn.primary{background:linear-gradient(180deg,#8b2500,#5a1800);border-color:#c06030}
+.btn.primary:hover:not(:disabled){background:linear-gradient(180deg,#a93500,#6a2000)}
+.btn.gold{background:linear-gradient(180deg,#8a6a20,#5a4410);border-color:#e0b850}
+.btn.small{font-size:11px;padding:7px 8px;min-width:52px}
+
+/* ========== 底部導航 ========== */
+#bottomNav{
+  flex-shrink:0;position:relative;z-index:10;
+  display:flex;gap:2px;padding:3px 3px calc(3px + env(safe-area-inset-bottom,0px));
+  background:#0b0805;border-top:1px solid #3a2c1a;overflow-x:auto;
+}
+#bottomNav button{
+  flex:1 0 52px;min-width:52px;padding:6px 2px;
+  background:transparent;border:none;color:#94845f;
+  font-family:inherit;font-size:9.5px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  border-radius:6px;transition:background .15s,color .15s;
+}
+#bottomNav button:active{background:rgba(120,100,60,.3);color:#e8dcc8}
+#bottomNav button .em{font-size:16px;line-height:1.1}
+
+/* ========== 彈窗 ========== */
+#modalRoot{
+  position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.78);backdrop-filter:blur(3px);
+  z-index:200;padding:10px;
+}
+#modalRoot.show{display:flex}
+.modal{
+  background:linear-gradient(180deg,#2a2118,#1a1410);
+  border:2px solid #7a5f35;border-radius:11px;
+  max-width:620px;width:100%;max-height:88vh;
+  display:flex;flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,.85);
+  animation:modalIn .25s ease;
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+.modal-head{
+  padding:13px 16px;border-bottom:1px solid #4a3a25;
+  font-size:16px;color:#e8c878;letter-spacing:1px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.modal-head .x{background:none;border:none;color:#94845f;font-size:20px;cursor:pointer;padding:0 4px}
+.modal-body{
+  padding:14px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  font-size:13.5px;line-height:1.8;color:#d8ccb4;
+}
+.modal-foot{
+  padding:10px 16px;border-top:1px solid #4a3a25;
+  display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
+}
+.modal-body h3{
+  color:#e8c878;font-size:14px;margin:14px 0 6px;letter-spacing:.5px;
+  border-left:3px solid #8a6a30;padding-left:8px;
+}
+.modal-body h3:first-child{margin-top:0}
+.modal-body p{margin:6px 0}
+.modal-body ul{margin:6px 0 6px 20px}
+.modal-body li{margin:3px 0}
+.modal-body b{color:#f0d8a0}
+.hl{color:#f0c860;font-weight:bold}
+.dim{color:#94845f}
+
+/* ========== 提示 Toast ========== */
+#toastRoot{
+  position:fixed;left:0;right:0;bottom:calc(120px + env(safe-area-inset-bottom,0px));
+  z-index:300;display:flex;flex-direction:column;align-items:center;gap:6px;
+  pointer-events:none;padding:0 14px;
+}
+.toast{
+  background:rgba(30,22,14,.96);border:1px solid #8a7040;
+  color:#f0e2c0;padding:9px 16px;border-radius:8px;
+  font-size:13px;max-width:420px;text-align:center;
+  box-shadow:0 6px 24px rgba(0,0,0,.7);
+  animation:toastIn .28s ease;
+}
+.toast.out{animation:toastOut .3s ease forwards}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-10px)}}
+
+/* ========== 線索牌 ========== */
+#clueStrip{
+  display:flex;flex-wrap:nowrap;overflow-x:auto;gap:9px;
+  padding:6px 2px 12px;align-items:stretch;-webkit-overflow-scrolling:touch;
+}
+.clue-card{
+  flex:0 0 152px;width:152px;
+  background:linear-gradient(180deg,#3a2e1e,#241c12);
+  border:1.5px solid #8a7040;border-radius:9px;
+  display:flex;flex-direction:column;align-items:center;
+  padding:8px 6px;position:relative;
+}
+.clue-portrait svg{display:block;border-radius:50%;border:2px solid #a8863a;box-shadow:0 0 12px rgba(200,160,80,.35)}
+.clue-name{font-size:11px;color:#f0d8a0;margin-top:5px;text-align:center;font-style:italic}
+.clue-feats{display:flex;gap:5px;margin:5px 0 6px;font-size:14px}
+.clue-match{width:100%;border-top:1px dashed #5a4a30;padding-top:5px;display:flex;flex-direction:column;gap:1px}
+.mrow{display:flex;justify-content:space-between;font-size:10.5px;line-height:1.5;padding:0 3px;border-radius:3px}
+.mrow span:first-child{color:#c8b896}
+.mrow .num{font-weight:bold}
+
+/* ========== 推理網格 ========== */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.feat-card{
+  background:linear-gradient(180deg,#332818,#1e170f);
+  border:1.5px solid #5a4a30;border-radius:9px;
+  padding:9px 5px;display:flex;flex-direction:column;align-items:center;gap:4px;
+  transition:all .2s;
+}
+.feat-card.confirm{border-color:#4caf50;background:linear-gradient(180deg,#1e3a1e,#12240f);box-shadow:0 0 12px rgba(76,175,80,.35)}
+.feat-card.exclude{opacity:.4;border-color:#8b2500}
+.feat-card.exclude .fname{text-decoration:line-through}
+.feat-card .fico{font-size:22px}
+.feat-card .fname{font-size:10.5px;color:#d8ccb4;text-align:center;line-height:1.25}
+.fbtns{display:flex;gap:5px;margin-top:2px}
+.fbtns button{
+  width:28px;height:24px;border-radius:5px;border:1px solid #6a5535;
+  background:#241c12;color:#c8b896;font-size:12px;cursor:pointer;font-family:inherit;
+}
+.fbtns button.on-yes{background:#2e6b2e;border-color:#5cbf5c;color:#fff}
+.fbtns button.on-no{background:#6b2e2e;border-color:#bf5c5c;color:#fff}
+
+/* ========== 歷史紀錄 ========== */
+.hist-item{
+  display:flex;gap:8px;align-items:center;padding:5px 8px;
+  border-bottom:1px solid #2a2118;font-size:12px;
+}
+.hist-item .t{color:#94845f;min-width:38px}
+.hist-item .a{color:#e8c878;min-width:46px}
+.hist-item .l{color:#c8b896}
+
+/* ========== 結算 ========== */
+.result-big{font-size:44px;text-align:center;margin:6px 0 10px}
+.result-title{font-size:20px;text-align:center;color:#e8c878;letter-spacing:2px;margin-bottom:8px}
+.score-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dotted #3a2c1a;font-size:13px}
+.score-row.total{color:#f0c860;font-weight:bold;font-size:15px;border-bottom:none;margin-top:6px;padding-top:8px;border-top:1px solid #5a4a30}
+
+/* ========== 打字機 ========== */
+.typer{min-height:1.6em}
+.cursor{display:inline-block;width:8px;background:#e8c878;animation:blink .7s steps(1) infinite;vertical-align:-2px;height:15px}
+@keyframes blink{50%{opacity:0}}
+
+/* 小螢幕微調 */
+@media (max-width:420px){
+  .stat{font-size:10px}
+  .stat .v{font-size:13px}
+  .btn{font-size:12px;padding:9px 8px;min-width:62px}
+  .feat-grid{gap:5px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="stat"><span class="ic">🕯️</span><span>回合</span><span class="v" id="statTurn">1</span></div>
+    <div class="stat"><span class="ic">🗺️</span><span>牌堆</span><span class="v" id="statDeck">26</span></div>
+    <div class="stat"><span class="ic">🔍</span><span>線索</span><span class="v" id="statClues">0</span></div>
+    <div class="stat"><span class="ic">🌫️</span><span>迷霧</span><span class="v" id="statFog">10</span></div>
+    <div class="stat"><span class="ic">⏳</span><span>倒數</span><span class="v" id="statTimer">2</span></div>
+  </header>
+
+  <div id="ladyBar">
+    <span>黑夫人行跡</span>
+    <span id="ladySymbol">—</span>
+  </div>
+
+  <main id="mapWrap">
+    <svg id="mapSvg" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid meet"></svg>
+  </main>
+
+  <section id="actions"></section>
+
+  <nav id="bottomNav">
+    <button onclick="openHelp()"><span class="em">📖</span>說明</button>
+    <button onclick="openClues()"><span class="em">🔍</span>線索</button>
+    <button onclick="openDeduction()"><span class="em">🧩</span>推理</button>
+    <button onclick="openHistory()"><span class="em">📜</span>紀錄</button>
+    <button onclick="saveGame()"><span class="em">💾</span>存檔</button>
+    <button onclick="toggleSound()"><span class="em" id="soundIcon">🔊</span>音效</button>
+  </nav>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   1. 資料定義
+   ========================================================= */
+const FEATURES = {
+  literary: {icon:'✒️', name:'有文學修養'},
+  music:    {icon:'🎵', name:'喜愛音樂'},
+  married:  {icon:'💍', name:'已婚'},
+  children: {icon:'👶', name:'有子女'},
+  royal:    {icon:'👑', name:'有皇室血統'},
+  lewd:     {icon:'❤️', name:'淫亂'}
+};
+const FEATURE_IDS = Object.keys(FEATURES);
+
+const SUITS = {
+  rose:     {name:'玫瑰',   color:'#e05a4a', icon:'🌹', match:'1'},
+  oak:      {name:'櫟葉',   color:'#4caf50', icon:'🍃', match:'0或2'},
+  bluebell: {name:'風鈴草', color:'#4a9fd8', icon:'🪻', match:'2'},
+  acorn:    {name:'橡實',   color:'#d4a017', icon:'🌰', match:'0或2'},
+  thistle:  {name:'薊',     color:'#22b8a0', icon:'🌿', match:'1'},
+  sage:     {name:'洋蘇草', color:'#a06bd8', icon:'🌱', match:'1'}
+};
+
+/* 12 位歷史女性，六種花色各 2 人，特徵組合互不相同 */
+const LADIES = [
+  {name:'Anne Hathaway',     suit:'rose',     feats:['literary','married','children']},
+  {name:'Emilia Lanier',     suit:'rose',     feats:['literary','music','married']},
+  {name:'Mary Fitton',       suit:'oak',      feats:['music','royal','lewd']},
+  {name:'Lucy Negro',        suit:'oak',      feats:['literary','music','lewd']},
+  {name:'Jacqueline Field',  suit:'bluebell', feats:['literary','children','lewd']},
+  {name:'Jane Davenant',     suit:'bluebell', feats:['music','married','children']},
+  {name:'Marie Mountjoy',    suit:'acorn',    feats:['literary','married','royal']},
+  {name:'Elizabeth Vernon',  suit:'acorn',    feats:['married','royal','lewd']},
+  {name:'Penelope Devereux', suit:'thistle',  feats:['literary','royal','lewd']},
+  {name:'Anne Whateley',     suit:'thistle',  feats:['literary','children','royal']},
+  {name:'Henry Wriothesley', suit:'sage',     feats:['music','children','royal']},
+  {name:'William Herbert',   suit:'sage',     feats:['music','married','royal']}
+];
+
+/* 11 個倫敦地點 */
+const LOCS = [
+  {name:'克勒肯維爾', sym:'⚜️', x:110, y:80},
+  {name:'克里普爾蓋特', sym:'🏰', x:300, y:95},
+  {name:'肖迪奇',     sym:'🎭', x:600, y:60},
+  {name:'主教門',     sym:'✝️', x:690, y:170},
+  {name:'康希爾',     sym:'⛲', x:540, y:215},
+  {name:'聖保羅',     sym:'⛪', x:355, y:200},
+  {name:'黑衣修士',   sym:'🎪', x:250, y:320},
+  {name:'東齊普',     sym:'🏠', x:670, y:300},
+  {name:'倫敦橋',     sym:'🌉', x:575, y:380},
+  {name:'薩瑟克',     sym:'🐻', x:510, y:455},
+  {name:'克林克',     sym:'🏟️', x:270, y:440}
+];
+
+const EDGES = [
+  [0,1],[1,2],[1,4],[1,5],[2,3],[3,4],[3,7],[4,5],[4,7],
+  [5,6],[6,8],[6,10],[7,8],[8,9],[9,10]
+];
+
+/* 建立鄰接表 */
+const NEIGHBORS = LOCS.map(()=>[]);
+EDGES.forEach(([a,b])=>{ NEIGHBORS[a].push(b); NEIGHBORS[b].push(a); });
+
+/* 10 張迷霧牌 */
+const FOG_CARDS = [
+  {advance:1, text:'濃霧襲來，黑夫人加快腳步。'},
+  {advance:1, text:'霧氣翻湧，她悄然前行。'},
+  {advance:1, text:'伸手不見五指，黑夫人移動一次。'},
+  {advance:2, text:'迷失霧中，黑夫人連走兩步。'},
+  {advance:2, text:'濃霧遮蔽，黑夫人再度移動。'},
+  {advance:2, text:'霧中身影閃動，她走了兩步。'},
+  {advance:3, text:'霧鎖倫敦，黑夫人迅速遁去。'},
+  {advance:3, text:'大霧瀰漫，黑夫人連走三步。'},
+  {advance:4, text:'重重迷霧，黑夫人疾行四步。'},
+  {advance:4, text:'霧靄深沉，她消失於四步之外。'}
+];
+
+const TRAIL_LEN = 26;      // 行跡牌堆長度（原版基準 26）
+
+/* =========================================================
+   2. 遊戲狀態
+   ========================================================= */
+const G = {
+  phase:'idle',            // idle | player | move | over
+  turn:1,
+  playerLoc:4,
+  visited:new Set(),
+  deck:[],
+  fogDeck:[],
+  darkLady:null,
+  partner:null,
+  clueDeck:[],
+  clues:[],
+  deductions:{},
+  history:[],
+  soundOn:true,
+  gameOver:null,
+  partnerRevealed:false,
+  busy:false
+};
+
+/* =========================================================
+   3. 工具函式
+   ========================================================= */
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+const rnd = n => Math.floor(Math.random()*n);
+
+/* --- Web Audio 音效 --- */
+let actx=null;
+function initAudio(){
+  if(!actx){
+    try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  if(actx && actx.state==='suspended') actx.resume();
+}
+function beep(freq,dur,type='sine',vol=.08){
+  if(!G.soundOn) return;
+  initAudio();
+  if(!actx) return;
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type=type; o.frequency.value=freq;
+  g.gain.setValueAtTime(vol, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime+dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(); o.stop(actx.currentTime+dur);
+}
+const SFX = {
+  click:()=>beep(520,.07,'triangle',.06),
+  move: ()=>{beep(380,.08,'sine',.07);setTimeout(()=>beep(520,.09,'sine',.06),70);},
+  found:()=>{[523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.16,'sine',.09),i*80));},
+  fail: ()=>{beep(220,.16,'sawtooth',.05);setTimeout(()=>beep(160,.22,'sawtooth',.05),120);},
+  fog:  ()=>{beep(300,.3,'sine',.05);setTimeout(()=>beep(240,.3,'sine',.04),150);},
+  win:  ()=>{[523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>beep(f,.25,'triangle',.1),i*110));},
+  lose: ()=>{[392,330,262,196].forEach((f,i)=>setTimeout(()=>beep(f,.35,'sawtooth',.08),i*180));}
+};
+
+function toast(msg, ms=2300){
+  const root=document.getElementById('toastRoot');
+  const el=document.createElement('div');
+  el.className='toast'; el.textContent=msg;
+  root.appendChild(el);
+  setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),320);},ms);
+}
+
+/* =========================================================
+   4. 彈窗
+   ========================================================= */
+function openModal(title, bodyHtml, buttons, closable=true){
+  const root=document.getElementById('modalRoot');
+  let foot = '';
+  if(buttons && buttons.length){
+    foot = `<div class="modal-foot">${buttons.map((b,i)=>
+      `<button class="btn ${b.cls||''}" data-i="${i}">${b.text}</button>`).join('')}</div>`;
+  }
+  root.innerHTML = `
+    <div class="modal">
+      <div class="modal-head">
+        <span>${title}</span>
+        ${closable?'<button class="x" data-close="1">✕</button>':''}
+      </div>
+      <div class="modal-body">${bodyHtml}</div>
+      ${foot}
+    </div>`;
+  root.classList.add('show');
+  if(buttons){
+    root.querySelectorAll('.modal-foot button').forEach((btn,i)=>{
+      btn.onclick = ()=>{ SFX.click(); buttons[i].fn(); };
+    });
+  }
+  const x = root.querySelector('[data-close]');
+  if(x) x.onclick = ()=>{ SFX.click(); closeModal(); };
+}
+function closeModal(){
+  const root=document.getElementById('modalRoot');
+  root.classList.remove('show');
+  root.innerHTML='';
+}
+
+/* =========================================================
+   5. 遊戲初始化
+   ========================================================= */
+function newGame(){
+  // 選定黑夫人與同花色搭檔
+  const suitKeys = Object.keys(SUITS);
+  const s = suitKeys[rnd(suitKeys.length)];
+  const pair = LADIES.filter(l=>l.suit===s);
+  const dl = pair[rnd(2)];
+  const partner = pair.find(l=>l!==dl);
+
+  G.darkLady = dl;
+  G.partner  = partner;
+  G.clueDeck = shuffle(LADIES.filter(l=>l!==dl && l!==partner));
+  G.clues = [];
+  G.deductions = {};
+  FEATURE_IDS.forEach(f=>G.deductions[f]='unknown');
+
+  // 迷霧牌堆
+  G.fogDeck = shuffle(FOG_CARDS.map((c,i)=>({...c, id:i})));
+
+  // 行跡牌堆
+  G.deck = buildTrailDeck();
+
+  // 玩家
+  G.playerLoc = rnd(LOCS.length);
+  G.visited = new Set([G.playerLoc]);
+  G.turn = 1;
+  G.gameOver = null;
+  G.phase = 'player';
+  G.history = [];
+  G.partnerRevealed = false;
+  G.busy = false;
+
+  pushHistory('start', `旅程自 ${LOCS[G.playerLoc].name} 開始`);
+  render();
+}
+
+function buildTrailDeck(){
+  let cur = rnd(LOCS.length);
+  const cards = [];
+  for(let i=0;i<TRAIL_LEN;i++){
+    cards.push({type:'location', loc:cur});
+    const nb = NEIGHBORS[cur];
+    cur = nb[rnd(nb.length)];
+  }
+  // 切牌（保留相對順序，只隨機化起點）
+  const cut = rnd(TRAIL_LEN);
+  const rotated = cards.slice(cut).concat(cards.slice(0,cut));
+  // 倒數牌放最底，數字 2 朝上
+  rotated.push({type:'countdown', value:2});
+  return rotated;
+}
+
+/* =========================================================
+   6. 牌堆操作
+   ========================================================= */
+function resolveCountdown(){
+  let guard=0;
+  while(G.deck.length && G.deck[0].type==='countdown' && guard++<100){
+    const cd = G.deck.shift();
+    cd.value -= 1;
+    if(cd.value <= 0){
+      endGame('lose-time');
+      return false;
+    }
+    G.deck.push(cd);
+    pushHistory('timer', `倒數牌轉到 ${cd.value}`);
+  }
+  return true;
+}
+
+/** 把牌堆頂 n 張「行跡牌」移到最底（倒數牌不計數，但會轉動） */
+function moveCards(n){
+  let moved=0, guard=0;
+  while(moved<n && guard++<2000){
+    if(!G.deck.length) break;
+    const c = G.deck.shift();
+    if(c.type==='countdown'){
+      c.value -= 1;
+      if(c.value <= 0){ endGame('lose-time'); return false; }
+      G.deck.push(c);
+      pushHistory('timer', `倒數牌轉到 ${c.value}`);
+      continue;
+    }
+    G.deck.push(c);
+    moved++;
+  }
+  return true;
+}
+
+/* =========================================================
+   7. 回合流程
+   ========================================================= */
+function beginTurn(){
+  if(G.gameOver) return;
+  G.busy = false;
+  G.turn++;
+
+  // 步驟 1：更新黑夫人的位置（牌堆頂移到底）
+  const top = G.deck.shift();
+  G.deck.push(top);
+  if(!resolveCountdown()) return;
+
+  G.phase = 'player';
+  render();
+}
+
+function endTurn(){
+  if(G.gameOver) return;
+  G.phase = 'transition';
+  render();
+  setTimeout(()=>{ beginTurn(); }, 260);
+}
+
+/* --- 行動 A：移動 --- */
+function startMove(){
+  if(G.phase!=='player') return;
+  SFX.click();
+  G.phase = 'move';
+  render();
+}
+function cancelMove(){
+  SFX.click();
+  G.phase = 'player';
+  render();
+}
+function doMove(target){
+  if(G.phase!=='move' && G.phase!=='player') return;
+  if(!NEIGHBORS[G.playerLoc].includes(target)) return;
+  SFX.move();
+  const wasNew = !G.visited.has(target);
+  G.playerLoc = target;
+  G.visited.add(target);
+  pushHistory('move', `移動至 ${LOCS[target].name}${wasNew?'（新地點）':''}`);
+
+  // 全部地點到訪 → 揭開同花色黑夫人牌
+  if(G.visited.size===LOCS.length && !G.partnerRevealed){
+    G.partnerRevealed = true;
+    setTimeout(()=>{
+      toast('🎁 你已走遍倫敦全部地點！同花色的黑夫人牌被揭開了。', 4000);
+      openPartnerReveal();
+    }, 320);
+  }
+  G.phase='player';
+  render();
+  endTurn();
+}
+
+/* --- 行動 B：尋找黑夫人 --- */
+function doSearch(){
+  if(G.phase!=='player' || G.busy) return;
+  if(G.deck[0].type==='fog'){
+    toast('濃霧籠罩，此刻無法搜尋黑夫人。'); SFX.fail(); return;
+  }
+  if(G.fogDeck.length===0){
+    endGame('lose-fog'); return;
+  }
+
+  G.busy = true;
+
+  // 1. 插入迷霧牌於第一張之下
+  const fog = G.fogDeck.shift();
+  G.deck.splice(1,0,{type:'fog', advance:fog.advance, text:fog.text});
+
+  // 2. 翻開頂牌比對
+  const top = G.deck.shift();
+  const found = (top.type==='location' && top.loc===G.playerLoc);
+
+  // 3. 棄置該行跡牌（不回牌堆）
+  if(found){
+    pushHistory('search', `在 ${LOCS[G.playerLoc].name} 找到黑夫人的身影！`);
+    if(canVisit()){
+      // 可以選擇拜訪
+      openModal('🎭 找到了黑夫人！',
+        `<p class="typer">你終於再次捕捉到她的身影。此刻，你可以繼續收集線索，也可以直接上前揭開她的真面目。</p>
+         <p class="dim">你目前已確認 <span class="hl">3</span> 個特徵，若推斷錯誤將直接失敗。</p>`,
+        [
+          {text:'繼續抽線索牌', fn:()=>{ closeModal(); finishSearch(found); }},
+          {text:'拜訪黑夫人', cls:'primary', fn:()=>{ closeModal(); resolveVisit(); }}
+        ], false);
+      return;
+    }
+    SFX.found();
+  }else{
+    SFX.fail();
+    pushHistory('search', `在 ${LOCS[G.playerLoc].name} 搜尋，未果。`);
+  }
+  finishSearch(found);
+}
+
+function finishSearch(found){
+  if(found){
+    if(G.clueDeck.length>0){
+      const c = G.clueDeck.shift();
+      G.clues.push(c);
+      toast(`🔍 找到她了！獲得線索：${c.name}`, 3000);
+    }
+  }else{
+    toast('這裡沒有她的身影……她已經溜走了。');
+  }
+
+  // 每有一張線索牌 → 移動一張行跡牌
+  const n = G.clues.length;
+  if(n>0){
+    if(!moveCards(n)) return;
+    if(!resolveCountdown()) return;
+  }else{
+    if(!resolveCountdown()) return;
+  }
+
+  G.phase='player';
+  render();
+  endTurn();
+}
+
+/* --- 行動 C：使用迷霧牌 --- */
+function doFog(){
+  if(G.phase!=='player' || G.busy) return;
+  if(G.deck[0].type!=='fog'){ toast('目前牌堆頂不是迷霧牌。'); return; }
+  if(G.fogDeck.length===0){ endGame('lose-fog'); return; }
+
+  G.busy = true;
+  SFX.fog();
+
+  // 插入新迷霧牌於頂部迷霧牌之下
+  const nf = G.fogDeck.shift();
+  G.deck.splice(1,0,{type:'fog', advance:nf.advance, text:nf.text});
+
+  // 翻開頂部迷霧牌
+  const topFog = G.deck.shift();
+  pushHistory('fog', `迷霧事件：${topFog.text}`);
+
+  // 放回迷霧牌堆底
+  G.fogDeck.push({advance:topFog.advance, text:topFog.text});
+
+  // 強制執行效果
+  openModal('🌫️ 迷霧牌',
+    `<p class="typer">「${topFog.text}」</p>
+     <p>行跡牌堆將前進 <span class="hl">${topFog.advance}</span> 張牌。</p>`,
+    [{text:'執行', cls:'primary', fn:()=>{
+      closeModal();
+      if(!moveCards(topFog.advance)) return;
+      if(!resolveCountdown()) return;
+      G.phase='player'; render();
+      endTurn();
+    }}], false);
+}
+
+/* --- 行動 D：跳過 --- */
+function doSkip(){
+  if(G.phase!=='player') return;
+  SFX.click();
+  pushHistory('skip','按兵不動');
+  endTurn();
+}
+
+/* =========================================================
+   8. 推理與拜訪
+   ========================================================= */
+function canVisit(){
+  return FEATURE_IDS.filter(f=>G.deductions[f]==='confirm').length===3;
+}
+
+function resolveVisit(){
+  const guessed = FEATURE_IDS.filter(f=>G.deductions[f]==='confirm');
+  if(guessed.length!==3){ toast('必須確認三個特徵才能拜訪。'); return; }
+  const actual = G.darkLady.feats;
+  const correct = guessed.every(f=>actual.includes(f));
+  if(correct){ endGame('win'); }
+  else       { endGame('lose-wrong'); }
+}
+
+/* =========================================================
+   9. 結束與計分
+   ========================================================= */
+function computeScore(){
+  const cdIdx = G.deck.findIndex(c=>c.type==='countdown');
+  const before = cdIdx<0 ? G.deck.length : cdIdx;
+  const cd = G.deck.find(c=>c.type==='countdown');
+  const cv = cd ? cd.value : 0;
+  return before + cv*TRAIL_LEN + G.fogDeck.length*2;
+}
+
+function endGame(reason){
+  if(G.gameOver) return;
+  G.gameOver = reason;
+  G.phase='over';
+  G.busy = false;
+  render();
+
+  const dl = G.darkLady;
+  const featHtml = dl.feats.map(f=>
+    `<span style="display:inline-block;margin:2px 4px;padding:2px 9px;border:1px solid #8a7040;border-radius:12px;font-size:12px">${FEATURES[f].icon} ${FEATURES[f].name}</span>`
+  ).join('');
+
+  let icon='', title='', body='', btns=[];
+  const score = computeScore();
+  let rank='';
+  if(score<20) rank='掃煙囪的童工（Chimney-sweeper）';
+  else if(score<=40) rank='金童玉女（Golden lad/lass）';
+  else if(score<=60) rank='俊美青年（Fair youth/maid）';
+  else rank='不朽的詩人（Immortal Bard）';
+
+  if(reason==='win'){
+    SFX.win(); icon='🏆'; title='勝利！';
+    body = `
+      <div class="result-big">🎭</div>
+      <p class="typer">你揭開了黑夫人的面紗——她是 <span class="hl">${dl.name}</span>（${SUITS[dl.suit].icon} ${SUITS[dl.suit].name}）。</p>
+      <p style="margin-top:10px">${featHtml}</p>
+      <h3>最終計分</h3>
+      <div class="score-row"><span>剩餘行跡牌</span><span>${G.deck.findIndex(c=>c.type==='countdown')<0?G.deck.length:G.deck.findIndex(c=>c.type==='countdown')}</span></div>
+      <div class="score-row"><span>倒數 × ${TRAIL_LEN}</span><span>${(G.deck.find(c=>c.type==='countdown')?.value||0)*TRAIL_LEN}</span></div>
+      <div class="score-row"><span>剩餘迷霧牌 × 2</span><span>${G.fogDeck.length*2}</span></div>
+      <div class="score-row total"><span>總分</span><span>${score}</span></div>
+      <p class="dim" style="text-align:center;margin-top:6px">評級：${rank}</p>`;
+    btns=[{text:'再玩一次', cls:'primary', fn:()=>{ closeModal(); newGame(); }}];
+  }else if(reason==='lose-time'){
+    SFX.lose(); icon='⏳'; title='時間耗盡';
+    body = `
+      <div class="result-big">🕯️</div>
+      <p class="typer">倒數牌轉到了 0。霧氣吞沒了整條街，黑夫人已經悄然離開倫敦……</p>
+      <h3>她的真實身分</h3>
+      <p class="hl">${dl.name}</p><p>${featHtml}</p>`;
+    btns=[{text:'再試一次', cls:'primary', fn:()=>{ closeModal(); newGame(); }}];
+  }else if(reason==='lose-fog'){
+    SFX.lose(); icon='🌫️'; title='迷霧吞噬';
+    body = `
+      <div class="result-big">🌫️</div>
+      <p class="typer">迷霧牌堆耗盡了。黑夫人的身影徹底隱匿在倫敦的濃霧之中，你再無從尋覓……</p>
+      <h3>她的真實身分</h3>
+      <p class="hl">${dl.name}</p><p>${featHtml}</p>`;
+    btns=[{text:'再試一次', cls:'primary', fn:()=>{ closeModal(); newGame(); }}];
+  }else if(reason==='lose-wrong'){
+    SFX.lose(); icon='💔'; title='推斷錯誤';
+    body = `
+      <div class="result-big">💔</div>
+      <p class="typer">你自信滿滿地揭開面具，卻發現推斷有誤。人們失去了對你的信任，這場追尋以失敗告終。</p>
+      <h3>她的真實身分</h3>
+      <p class="hl">${dl.name}</p><p>${featHtml}</p>`;
+    btns=[{text:'再試一次', cls:'primary', fn:()=>{ closeModal(); newGame(); }}];
+  }
+
+  pushHistory('end', title);
+  openModal(`${icon} ${title}`, body, btns, false);
+}
+
+/* =========================================================
+   10. 渲染
+   ========================================================= */
+function render(){
+  renderTopbar();
+  renderLadyBar();
+  renderMap();
+  renderActions();
+}
+
+function renderTopbar(){
+  document.getElementById('statTurn').textContent  = G.turn;
+  document.getElementById('statDeck').textContent  = G.deck.filter(c=>c.type!=='countdown').length;
+  document.getElementById('statClues').textContent = G.clues.length;
+  document.getElementById('statFog').textContent   = G.fogDeck.length;
+  const cd = G.deck.find(c=>c.type==='countdown');
+  document.getElementById('statTimer').textContent = cd ? cd.value : '—';
+}
+
+function renderLadyBar(){
+  const el = document.getElementById('ladySymbol');
+  if(G.gameOver){ el.innerHTML = '—'; return; }
+  const top = G.deck[0];
+  if(!top){ el.innerHTML='—'; return; }
+  if(top.type==='fog'){
+    el.innerHTML = `🌫️ <small>霧中</small>`;
+  }else if(top.type==='countdown'){
+    el.innerHTML = `⏳ <small>時間</small>`;
+  }else{
+    el.innerHTML = `${LOCS[top.loc].sym} <small>${LOCS[top.loc].name}</small>`;
+  }
+}
+
+function renderMap(){
+  const svg = document.getElementById('mapSvg');
+  let h = '';
+
+  // 羊皮紙底
+  h += `<defs>
+    <radialGradient id="parchGrad" cx="50%" cy="45%" r="75%">
+      <stop offset="0%" stop-color="#3d3020"/>
+      <stop offset="100%" stop-color="#1a140c"/>
+    </radialGradient>
+    <radialGradient id="tokenGrad">
+      <stop offset="0%" stop-color="#ffe8a0"/>
+      <stop offset="100%" stop-color="#c89020"/>
+    </radialGradient>
+  </defs>`;
+  h += `<rect x="-20" y="-20" width="840" height="560" fill="url(#parchGrad)" rx="8"/>`;
+
+  // 泰晤士河
+  h += `<path d="M -20 470 Q 110 430 250 452 T 500 466 T 830 434 L 830 545 L -20 545 Z"
+        fill="rgba(40,72,100,0.42)" stroke="rgba(90,140,180,0.25)" stroke-width="1.5"/>`;
+  h += `<text x="400" y="508" fill="rgba(150,195,225,0.42)" font-size="15"
+        text-anchor="middle" font-style="italic" letter-spacing="3">Thames</text>`;
+
+  // 路線
+  EDGES.forEach(([a,b])=>{
+    h += `<line x1="${LOCS[a].x}" y1="${LOCS[a].y}" x2="${LOCS[b].x}" y2="${LOCS[b].y}"
+          stroke="#6a5535" stroke-width="2.6" stroke-linecap="round" opacity="0.68"/>`;
+  });
+
+  // 地點
+  LOCS.forEach((L,i)=>{
+    const here = i===G.playerLoc;
+    const vis  = G.visited.has(i);
+    const isTarget = (G.phase==='move') && NEIGHBORS[G.playerLoc].includes(i);
+
+    let fill   = vis ? 'rgba(96,74,42,0.92)' : 'rgba(38,29,19,0.88)';
+    let stroke = '#8a7040';
+    let sw     = 2;
+    if(isTarget){ stroke='#f0c860'; sw=3; }
+    if(here){ stroke='#ffd75e'; sw=3.5; fill='rgba(120,92,40,0.95)'; }
+
+    h += `<g class="loc ${isTarget?'target':''}" ${isTarget?`data-loc="${i}"`:''}>`;
+    h += `<circle cx="${L.x}" cy="${L.y}" r="25" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    if(isTarget){
+      h += `<circle cx="${L.x}" cy="${L.y}" r="25" fill="none" stroke="#f0c860" stroke-width="1.5" opacity="0.6">
+            <animate attributeName="r" values="25;33;25" dur="1.8s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.6;0;0.6" dur="1.8s" repeatCount="indefinite"/>
+            </circle>`;
+    }
+    h += `<text x="${L.x}" y="${L.y+8}" text-anchor="middle" font-size="24">${L.sym}</text>`;
+    h += `<text x="${L.x}" y="${L.y+44}" text-anchor="middle" font-size="14"
+          fill="${vis?'#e8dcc8':'#8a7a5a'}" style="text-shadow:0 1px 3px #000">${L.name}</text>`;
+    h += `</g>`;
+  });
+
+  // 玩家棋子
+  const P = LOCS[G.playerLoc];
+  h += `<g pointer-events="none">
+    <circle cx="${P.x+19}" cy="${P.y-19}" r="15" fill="none" stroke="#ffd75e" stroke-width="1.5" opacity="0.55">
+      <animate attributeName="r" values="13;20;13" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.55;0;0.55" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="${P.x+19}" cy="${P.y-19}" r="9" fill="url(#tokenGrad)" stroke="#4a3010" stroke-width="2.2"/>
+    <circle cx="${P.x+16}" cy="${P.y-22}" r="3" fill="rgba(255,255,255,0.75)"/>
+  </g>`;
+
+  svg.innerHTML = h;
+
+  // 綁定點擊
+  svg.querySelectorAll('.loc.target').forEach(g=>{
+    g.addEventListener('click', ()=>{
+      const i = parseInt(g.getAttribute('data-loc'),10);
+      doMove(i);
+    });
+  });
+}
+
+function renderActions(){
+  const el = document.getElementById('actions');
+  if(G.gameOver){ el.innerHTML = `<span style="color:#94845f;font-size:13px;align-self:center">遊戲已結束</span>`; return; }
+
+  if(G.phase==='player'){
+    const isFog = G.deck[0] && G.deck[0].type==='fog';
+    const visitReady = canVisit();
+    el.innerHTML = `
+      <button class="btn" id="btnMove">🚶 移動</button>
+      <button class="btn primary" id="btnSearch" ${isFog?'disabled':''}>
+        ${visitReady?'🎭 尋找/拜訪':'🔍 尋找'}
+      </button>
+      <button class="btn" id="btnFog" ${isFog?'':'disabled'}>🌫️ 迷霧</button>
+      <button class="btn" id="btnSkip">⏭️ 跳過</button>`;
+    document.getElementById('btnMove').onclick   = ()=>{ SFX.click(); startMove(); };
+    document.getElementById('btnSearch').onclick = ()=>{ SFX.click(); doSearch(); };
+    document.getElementById('btnFog').onclick    = ()=>{ SFX.click(); doFog(); };
+    document.getElementById('btnSkip').onclick   = ()=>{ doSkip(); };
+  }else if(G.phase==='move'){
+    const nbs = NEIGHBORS[G.playerLoc];
+    el.innerHTML = `
+      <button class="btn" id="btnCancel">↩ 取消</button>
+      ${nbs.map(n=>`<button class="btn gold" data-go="${n}">➡ ${LOCS[n].name}</button>`).join('')}`;
+    document.getElementById('btnCancel').onclick = ()=>{ cancelMove(); };
+    el.querySelectorAll('[data-go]').forEach(b=>{
+      b.onclick = ()=>{ doMove(parseInt(b.getAttribute('data-go'),10)); };
+    });
+  }else{
+    el.innerHTML = `<span style="color:#94845f;font-size:13px;align-self:center">…</span>`;
+  }
+}
+
+/* =========================================================
+   11. 人物肖像 SVG
+   ========================================================= */
+function hashStr(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h; }
+
+function portraitSvg(name, size=68){
+  const hue = hashStr(name)%360;
+  const id = 'pg'+hue;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="${id}" cx="45%" cy="35%" r="70%">
+        <stop offset="0%" stop-color="hsl(${hue},32%,62%)"/>
+        <stop offset="100%" stop-color="hsl(${hue},38%,26%)"/>
+      </radialGradient>
+    </defs>
+    <rect width="100" height="100" fill="#181209"/>
+    <ellipse cx="50" cy="72" rx="36" ry="26" fill="hsl(${hue},22%,20%)"/>
+    <path d="M50 66 L50 100" stroke="rgba(0,0,0,.3)" stroke-width="2"/>
+    <ellipse cx="50" cy="68" rx="15" ry="7" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="2.5"/>
+    <ellipse cx="50" cy="46" rx="23" ry="29" fill="url(#${id})"/>
+    <path d="M27 42 Q28 12 50 12 Q72 12 73 42 Q71 22 50 21 Q29 22 27 42 Z" fill="hsl(${hue},28%,14%)"/>
+    <ellipse cx="42" cy="45" rx="3" ry="4" fill="rgba(0,0,0,.45)"/>
+    <ellipse cx="58" cy="45" rx="3" ry="4" fill="rgba(0,0,0,.45)"/>
+    <path d="M45 58 Q50 61 55 58" stroke="rgba(0,0,0,.35)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+
+/* =========================================================
+   12. 各面板
+   ========================================================= */
+function openHelp(){
+  SFX.click();
+  const html = `
+    <h3>🎯 遊戲目標</h3>
+    <p>你回到伊莉莎白時代的倫敦，追蹤莎士比亞筆下神秘的「<b>黑夫人</b>」。每次在正確地點找到她的身影，就能獲得一張<span class="hl">線索牌</span>。收集足夠線索後，推斷出她的三個關鍵特徵，最後親自拜訪她——揭開真相就能贏得勝利。</p>
+
+    <h3>🖥️ 看懂畫面</h3>
+    <ul>
+      <li><b>頂部五個數字</b>：🕯️ 回合數｜🗺️ 行跡牌堆剩餘｜🔍 已獲線索｜🌫️ 剩餘迷霧牌｜⏳ 倒數牌數值。</li>
+      <li><b>中間羊皮紙地圖</b>：11 個倫敦地點。金色圓圈＝你目前所在；<span class="hl">發光的地點</span>＝可移動過去（直接點擊也可以）。</li>
+      <li><b>地圖上方「黑夫人行跡」</b>：顯示她目前所在地點的圖示。若顯示 🌫️ 代表她隱身霧中，位置不明。</li>
+      <li><b>底部四個按鈕</b>：🚶 移動｜🔍 尋找｜🌫️ 迷霧｜⏭️ 跳過。</li>
+      <li><b>最底導航列</b>：說明、線索、推理、紀錄、存檔、音效。</li>
+    </ul>
+
+    <h3>🔁 每回合流程</h3>
+    <ol style="margin-left:20px">
+      <li><b>黑夫人移動</b>：系統自動把行跡牌堆最上面的牌移到最底，新的頂牌就是她現在的藏身處。</li>
+      <li><b>你選擇一個行動</b>：
+        <ul>
+          <li>🚶 <b>移動</b>：走到相鄰地點。首次踏足的地點會被記錄。</li>
+          <li>🔍 <b>尋找</b>：若她正好在你腳下，就能拿到線索牌！但無論成敗，這張行跡牌都會被棄掉，而且<span class="hl">每張線索牌都會讓她多溜走一步</span>。</li>
+          <li>🌫️ <b>迷霧</b>：只有當牌堆頂是迷霧牌時可用，會強制推進她的移動。</li>
+          <li>⏭️ <b>跳過</b>：什麼都不做。</li>
+        </ul>
+      </li>
+    </ol>
+
+    <h3>🧩 推理</h3>
+    <p>每張線索牌左側是該女性的三個特徵，右側則告訴你：對於「黑夫人的花色」，她與黑夫人有幾個特徵相同。例如 🌹 顯示「1」，代表黑夫人與她恰好共有 1 個特徵。</p>
+    <p>打開 <b>🧩 推理</b>，把確定的特徵打 ✔，排除的打 ✖。集滿 3 個 ✔ 後，再次成功找到黑夫人，就能選擇「拜訪」揭曉答案。</p>
+
+    <h3>🌫️ 迷霧與倒數</h3>
+    <ul>
+      <li>每次搜尋都會消耗一張迷霧牌。<span class="hl">迷霧牌用完 = 失敗</span>。</li>
+      <li>行跡牌堆裡藏著倒數牌。每當它繞一圈回到頂部，數值就減一。<span class="hl">變成 0 時黑夫人就逃走了 = 失敗</span>。</li>
+    </ul>
+
+    <h3>🎁 特殊獎勵</h3>
+    <ul>
+      <li>到訪全部 11 個地點後，可以揭開被地點牌壓住的那張「同花色黑夫人牌」，這是決定性的線索！</li>
+      <li>勝利計分：剩餘行跡牌 + 倒數值 × 26 + 剩餘迷霧牌 × 2，分數越高越好。</li>
+    </ul>
+
+    <h3>💡 小訣竅</h3>
+    <ul>
+      <li>追著她跑之前，先看清「黑夫人行跡」條——她就在那裡。</li>
+      <li>線索越多，她跑得越快，所以別亂搜。</li>
+      <li>「0或2」型的花色線索比較曖昧，搭配其他線索一起推理。</li>
+    </ul>`;
+  openModal('📖 遊戲說明', html,
+    [{text:'我準備好了，開始遊戲', cls:'primary', fn:()=>{
+      closeModal();
+      if(G.phase==='idle') newGame();
+    }}], G.phase!=='idle');
+}
+
+function openClues(){
+  SFX.click();
+  if(G.clues.length===0){
+    openModal('🔍 線索牌', `<p class="dim">你尚未獲得任何線索牌。成功找到黑夫人的身影即可獲得。</p>`,
+      [{text:'關閉', cls:'primary', fn:closeModal}]);
+    return;
+  }
+  const cards = G.clues.map(l=>clueCardHtml(l)).join('');
+  const partnerHtml = G.partnerRevealed
+    ? `<h3>🎁 同花色黑夫人牌（已揭開）</h3><div id="clueStrip">${clueCardHtml(G.partner)}</div>`
+    : `<h3>🎁 同花色黑夫人牌</h3><p class="dim">走遍全部 11 個地點後即可揭開這張決定性的線索牌。</p>`;
+
+  openModal('🔍 線索牌', `
+    <p>目前持有 <span class="hl">${G.clues.length}</span> 張線索牌。</p>
+    <div id="clueStrip">${cards}</div>
+    ${partnerHtml}
+    <h3>如何解讀？</h3>
+    <p class="dim">每張牌右側列出六種花色。若黑夫人是該花色，數字代表此牌上的女性與黑夫人<b>共有幾個特徵</b>。「0或2」代表無法確定是 0 個還是 2 個。</p>
+  `, [{text:'關閉', cls:'primary', fn:closeModal}]);
+}
+
+function clueCardHtml(lady){
+  const suit = SUITS[lady.suit];
+  const featIcons = lady.feats.map(f=>
+    `<span title="${FEATURES[f].name}">${FEATURES[f].icon}</span>`).join('');
+  const rows = Object.entries(SUITS).map(([k,s])=>`
+    <div class="mrow">
+      <span>${s.icon} ${s.name}</span>
+      <span class="num" style="color:${s.color}">${s.match}</span>
+    </div>`).join('');
+  return `<div class="clue-card">
+    <div class="clue-portrait">${portraitSvg(lady.name,68)}</div>
+    <div class="clue-name">${lady.name}</div>
+    <div class="clue-feats">${featIcons}</div>
+    <div class="clue-match">${rows}</div>
+  </div>`;
+}
+
+function openPartnerReveal(){
+  const p = G.partner;
+  openModal('🎁 決定性的線索',
+    `<p class="typer">你走遍了倫敦的每一條街。那張被地點牌壓住的牌終於可以翻開了——</p>
+     <div id="clueStrip" style="justify-content:center">${clueCardHtml(p)}</div>
+     <p class="dim" style="margin-top:8px">這是與黑夫人<b>相同花色</b>的另一位女性。根據右側對應花色的數字，你可以推斷黑夫人與她共有幾個特徵。</p>`,
+    [{text:'我明白了', cls:'primary', fn:closeModal}]);
+}
+
+function openDeduction(){
+  SFX.click();
+  renderDeductionModal();
+}
+
+function renderDeductionModal(){
+  const confirmed = FEATURE_IDS.filter(f=>G.deductions[f]==='confirm');
+  const grid = FEATURE_IDS.map(f=>{
+    const st = G.deductions[f];
+    return `<div class="feat-card ${st}">
+      <div class="fico">${FEATURES[f].icon}</div>
+      <div class="fname">${FEATURES[f].name}</div>
+      <div class="fbtns">
+        <button class="${st==='confirm'?'on-yes':''}" data-f="${f}" data-v="confirm">✔</button>
+        <button class="${st==='exclude'?'on-no':''}" data-f="${f}" data-v="exclude">✖</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const status = confirmed.length===3
+    ? `<p style="color:#7ddc7d;margin-top:10px">✔ 已確認三個特徵。再次成功找到黑夫人時，即可選擇「拜訪黑夫人」。</p>`
+    : `<p class="dim" style="margin-top:10px">已確認 ${confirmed.length} / 3 個特徵。</p>`;
+
+  const body = `
+    <p>點選 <b>✔</b> 表示你確定黑夫人具有該特徵；點選 <b>✖</b> 表示排除。再次點擊同一按鈕可取消。</p>
+    <div class="feat-grid" style="margin-top:10px">${grid}</div>
+    ${status}
+    ${G.clues.length? `<h3>目前線索</h3><div id="clueStrip">${G.clues.map(clueCardHtml).join('')}</div>`:''}`;
+
+  const root = document.getElementById('modalRoot');
+  openModal('🧩 推理板', body, [{text:'關閉', cls:'primary', fn:closeModal}]);
+
+  root.querySelectorAll('.fbtns button').forEach(b=>{
+    b.onclick = ()=>{
+      const f = b.getAttribute('data-f');
+      const v = b.getAttribute('data-v');
+      G.deductions[f] = (G.deductions[f]===v) ? 'unknown' : v;
+      SFX.click();
+      renderDeductionModal();
+      render();
+    };
+  });
+}
+
+function openHistory(){
+  SFX.click();
+  if(G.history.length===0){
+    openModal('📜 歷史紀錄', `<p class="dim">尚無紀錄。</p>`,[{text:'關閉',cls:'primary',fn:closeModal}]);
+    return;
+  }
+  const items = G.history.slice().reverse().map(h=>{
+    const label = {
+      start:'啟程', move:'移動', search:'搜尋', fog:'迷霧',
+      skip:'跳過', timer:'倒數', end:'結束'
+    }[h.type]||h.type;
+    return `<div class="hist-item"><span class="t">#${h.turn}</span><span class="a">${label}</span><span class="l">${h.text}</span></div>`;
+  }).join('');
+  openModal('📜 歷史紀錄', `<div style="max-height:50vh;overflow:auto">${items}</div>`,
+    [{text:'關閉', cls:'primary', fn:closeModal}]);
+}
+
+function pushHistory(type, text){
+  G.history.push({turn:G.turn, type, text});
+  if(G.history.length>200) G.history.shift();
+}
+
+/* =========================================================
+   13. 存檔 / 讀檔
+   ========================================================= */
+const SAVE_KEY = 'blackSonataSave_v1';
+
+function saveGame(){
+  SFX.click();
+  try{
+    const data = {
+      v:1,
+      phase:G.phase, turn:G.turn, playerLoc:G.playerLoc,
+      visited:[...G.visited],
+      deck:G.deck, fogDeck:G.fogDeck,
+      darkLady:G.darkLady, partner:G.partner,
+      clueDeck:G.clueDeck, clues:G.clues,
+      deductions:{...G.deductions},
+      history:G.history, soundOn:G.soundOn,
+      gameOver:G.gameOver, partnerRevealed:G.partnerRevealed
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    toast('💾 遊戲已存檔');
+  }catch(e){
+    toast('存檔失敗：' + e.message);
+  }
+}
+
+function loadGame(){
+  SFX.click();
+  let raw;
+  try{ raw = localStorage.getItem(SAVE_KEY); }catch(e){ raw=null; }
+  if(!raw){
+    toast('沒有找到存檔。');
+    return;
+  }
+  try{
+    const d = JSON.parse(raw);
+    G.phase=d.phase; G.turn=d.turn; G.playerLoc=d.playerLoc;
+    G.visited=new Set(d.visited||[]);
+    G.deck=d.deck||[]; G.fogDeck=d.fogDeck||[];
+    G.darkLady=d.darkLady; G.partner=d.partner;
+    G.clueDeck=d.clueDeck||[]; G.clues=d.clues||[];
+    G.deductions=d.deductions||{};
+    FEATURE_IDS.forEach(f=>{ if(!G.deductions[f]) G.deductions[f]='unknown'; });
+    G.history=d.history||[];
+    G.soundOn = d.soundOn!==false;
+    G.gameOver=d.gameOver||null;
+    G.partnerRevealed=!!d.partnerRevealed;
+    G.busy=false;
+    document.getElementById('soundIcon').textContent = G.soundOn?'🔊':'🔇';
+    render();
+    toast('📂 存檔已載入');
+  }catch(e){
+    toast('讀檔失敗：' + e.message);
+  }
+}
+
+function toggleSound(){
+  G.soundOn = !G.soundOn;
+  document.getElementById('soundIcon').textContent = G.soundOn?'🔊':'🔇';
+  if(G.soundOn){ SFX.click(); }
+  toast(G.soundOn?'🔊 音效已開啟':'🔇 音效已關閉');
+}
+
+/* =========================================================
+   14. 啟動
+   ========================================================= */
+window.addEventListener('load', ()=>{
+  render();
+  // 若有存檔，詢問是否繼續
+  let hasSave=false;
+  try{ hasSave = !!localStorage.getItem(SAVE_KEY); }catch(e){}
+  if(hasSave){
+    openModal('黑色奏鳴曲',
+      `<p class="typer">倫敦的霧氣中，那位神秘的女士再次出現了……</p>
+       <p class="dim">偵測到先前的存檔。</p>`,
+      [
+        {text:'📂 繼續之前的旅程', cls:'primary', fn:()=>{ closeModal(); loadGame(); }},
+        {text:'📖 查看說明並開始新遊戲', fn:()=>{ closeModal(); G.phase='idle'; openHelp(); }}
+      ], false);
+  }else{
+    G.phase='idle';
+    openHelp();
+  }
+});
+
+// 防止雙擊縮放
+document.addEventListener('gesturestart', e=>e.preventDefault());
+</script>
+</body>
+</html>
