@@ -66,11 +66,19 @@
             background: rgba(0, 0, 0, 0.85); border-radius: 8px; z-index: 10;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: var(--accent); text-align: center; padding: 20px;
+            pointer-events: auto; /* 確保遮罩可以接收點擊 */
         }
         #game-overlay .spinner { width: 40px; height: 40px; border: 4px solid var(--surface); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
         #game-overlay h2 { font-size: 1.5rem; margin-bottom: 10px; }
         #game-overlay p { color: #ccc; margin-bottom: 20px; font-size: 1rem; }
         
+        /* 🌟 強制提升準備按鈕的層級，防止被其他元素阻擋 */
+        #btn-ready {
+            position: relative;
+            z-index: 100;
+            pointer-events: auto;
+        }
+
         /* 倒數計時動畫 */
         #countdown-text {
             font-size: 5rem; font-weight: bold; color: var(--accent);
@@ -268,7 +276,8 @@
         <div id="overlay-ready" class="hidden">
             <h2>對局準備</h2>
             <p id="ready-status-text">請雙方點擊準備開始對局</p>
-            <button id="btn-ready" class="success btn-full" style="max-width: 200px; margin: 0 auto;">準備好了！</button>
+            <!-- 加上 inline style 確保一定可以點 -->
+            <button id="btn-ready" class="success btn-full" style="max-width: 200px; margin: 0 auto; cursor: pointer;">準備好了！</button>
         </div>
         <div id="overlay-countdown" class="hidden">
             <div id="countdown-text">3</div>
@@ -319,7 +328,7 @@ let moveListener = null;
 let statusListener = null;
 let undoListener = null;
 let presenceListener = null;
-let gameStateListener = null; // 替換原先的 readyListener
+let gameStateListener = null;
 let currentLastMoveTime = 0;
 let hasAutoPassed = false;
 let serverTimeOffset = 0;
@@ -920,7 +929,7 @@ function listenToGame(id) {
         }
     });
 
-    // 3. 監聽整體遊戲狀態 (取代原本的 checkReadyState)
+    // 3. 監聽整體遊戲狀態
     gameStateListener = fbDb.ref(`games/${id}`);
     gameStateListener.on("value", (snap) => {
         const data = snap.val();
@@ -975,8 +984,13 @@ function listenToGame(id) {
 
             const myReady = myColor === "B" ? bReady : wReady;
             const btn = document.getElementById("btn-ready");
-            btn.disabled = myReady;
-            btn.textContent = myReady ? "等待對手..." : "準備好了！";
+            if (myReady) {
+                btn.disabled = true;
+                btn.textContent = "已準備，等待對手…";
+            } else {
+                btn.disabled = false;
+                btn.textContent = "準備好了！";
+            }
         }
     });
 }
@@ -1020,18 +1034,24 @@ document.getElementById("btn-close-history").addEventListener("click", () => {
     document.getElementById("history-modal").classList.add("hidden");
 });
 
-// 🌟 修復點擊沒反應的問題
-document.getElementById("btn-ready").addEventListener("click", (e) => {
-    if (!gameId || !myColor) return;
-    e.target.disabled = true;
-    e.target.textContent = "傳送中...";
+// 🌟 修復點擊沒反應的問題，使用最直接的方式綁定
+document.getElementById("btn-ready").addEventListener("click", function() {
+    if (!gameId || !myColor) {
+        alert("系統尚未準備就緒，請稍後再試。");
+        return;
+    }
+    
+    // 直接在畫面上給出反饋
+    this.textContent = "傳送中...";
     
     fbDb.ref(`games/${gameId}/readyPlayers/${myColor}`).set(true)
-        .then(() => log("✅ 已送出準備，等待對手…", "ok"))
+        .then(() => {
+            log("✅ 已送出準備，等待對手…", "ok");
+        })
         .catch((err) => {
             log("❌ 準備失敗：" + err.message, "error");
-            e.target.disabled = false;
-            e.target.textContent = "準備好了！";
+            this.textContent = "準備好了！";
+            alert("準備失敗，請檢查網路連線！");
         });
 });
 
