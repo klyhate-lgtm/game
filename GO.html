@@ -52,11 +52,14 @@
         #board-wrapper {
             position: relative; width: 100%; max-width: 600px; aspect-ratio: 1 / 1;
             touch-action: none;
+            margin: 0 auto;
         }
         #board-container {
             width: 100%; height: 100%; background: #dcb35c; border-radius: 8px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.5); overflow: hidden; position: relative;
+            display: flex; justify-content: center; align-items: center;
         }
+        /* WGo 會在這裡插入 Canvas，強制設定寬度讓它自動計算比例 */
         #board { width: 100%; height: 100%; cursor: default; transition: cursor 0.2s; }
         #board.my-turn { cursor: crosshair; }
 
@@ -492,10 +495,16 @@ function initBoard(size) {
     const container = document.getElementById("board");
     container.innerHTML = "";
     
+    const rect = container.getBoundingClientRect();
+    const dim = rect.width > 0 ? rect.width : 600;
+
     board = new WGo.Board(container, {
-        size: size, width: 600, height: 600, background: "#dcb35c",
+        size: size, 
+        width: dim, 
+        height: dim, 
+        background: "#dcb35c",
         coordinates: true, 
-        section: { top: 1.5, right: 1.5, bottom: 1.5, left: 1.5 },
+        // 🌟 移除 section，讓 WGo 自動繪製完整 19x19 與邊距
         lineWidth: size === 19 ? 1 : 1.5, 
         stoneHandler: WGo.Board.drawHandlers.NORMAL,
         theme: { coordinatesColor: "#4a3317", font: "sans-serif" }
@@ -1033,16 +1042,12 @@ document.getElementById("btn-close-history").addEventListener("click", () => {
     document.getElementById("history-modal").classList.add("hidden");
 });
 
-// 🌟 修復點擊沒反應的問題，使用最直接的方式綁定
 document.getElementById("btn-ready").addEventListener("click", function() {
     if (!gameId || !myColor) {
         alert("系統尚未準備就緒，請稍後再試。");
         return;
     }
-    
-    // 直接在畫面上給出反饋
     this.textContent = "傳送中...";
-    
     fbDb.ref(`games/${gameId}/readyPlayers/${myColor}`).set(true)
         .then(() => {
             log("✅ 已送出準備，等待對手…", "ok");
@@ -1066,70 +1071,4 @@ document.getElementById("btn-confirm-cancel").addEventListener("click", () => {
 });
 
 document.getElementById("btn-back-lobby").addEventListener("click", () => {
-    if (moveListener) moveListener.off();
-    if (statusListener) statusListener.off();
-    if (undoListener) undoListener.off();
-    if (presenceListener) presenceListener.off();
-    if (gameStateListener) gameStateListener.off();
-    clearInterval(timerInterval);
-    
-    if (gameId && currentUser) {
-        fbDb.ref(`games/${gameId}/players/${currentUser.uid}`).remove();
-    }
-
-    gameId = null; myColor = null; currentTurn = null; moveHistory = [];
-    localStorage.removeItem("go_gameId");
-    document.getElementById("input-game-id").value = "";
-    window.history.replaceState({}, document.title, window.location.pathname);
-    switchView("lobby");
-    log("已返回大廳", "ok");
-});
-
-window.addEventListener("resize", () => {
-    if (board && !document.getElementById("board-wrapper").classList.contains("hidden")) {
-        const container = document.getElementById("board");
-        board.setDimensions(container.clientWidth, container.clientHeight);
-        renderBoard();
-    }
-});
-
-document.getElementById("btn-start-tutorial").addEventListener("click", () => {
-    document.getElementById("tutorial-modal").classList.add("hidden");
-    log("🚀 系統就緒。請建立新對局，或輸入房間 ID 加入。", "ok");
-});
-
-function exportSGF() {
-    if (moveHistory.length === 0) return;
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
-    let sgf = `(;GM[1]FF[4]CA[UTF-8]AP[Firebase-Go:1.0]RU[Chinese]SZ[${boardSize}]KM[${komi}]DT[${dateStr}]PB[Black]PW[White]`;
-    if (isGameOver) sgf += `RE[B+Resign]`; 
-    moveHistory.forEach((m) => { sgf += m.x === -1 ? `;${m.color}[]` : `;${m.color}[${m.sgfCoord}]`; });
-    sgf += `)`;
-    const blob = new Blob([sgf], { type: "application/x-go-sgf;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `game_${gameId || "local"}_${dateStr}.sgf`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-    log("📥 SGF 已匯出", "ok");
-}
-
-function copyInviteLink() {
-    const copyText = document.getElementById("invite-link");
-    copyText.select();
-    copyText.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(copyText.value).then(() => {
-        log("📋 已複製邀請連結！", "ok");
-        document.getElementById("btn-copy-link").textContent = "✅ 已複製";
-        setTimeout(() => { document.getElementById("btn-copy-link").textContent = "複製邀請"; }, 2000);
-    });
-}
-
-initFirebase().then(() => {
-    initBoard(19);
-});
-</script>
-
-</body>
-</html>
+    if (moveListener) moveListener.
