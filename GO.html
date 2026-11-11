@@ -84,17 +84,16 @@
         }
         @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 
-        /* 點目模式面板 */
+        /* 🌟 將點目面板移出棋盤，放到棋盤下方 */
         #scoring-panel {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.9); padding: 15px 20px; border-radius: 12px;
-            border: 2px solid var(--accent); z-index: 900; text-align: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5); width: 90%; max-width: 400px;
+            margin-top: 16px; background: var(--surface); padding: 16px; border-radius: 8px;
+            border: 1px solid var(--accent); text-align: center; width: 100%; max-width: 600px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
-        #scoring-panel h3 { color: var(--accent); margin-bottom: 10px; font-size: 1.1rem; }
-        #scoring-panel p { color: #ccc; font-size: 0.85rem; margin-bottom: 15px; line-height: 1.4; }
+        #scoring-panel h3 { color: var(--accent); margin-bottom: 8px; font-size: 1.1rem; }
+        #scoring-panel p { color: #ccc; font-size: 0.85rem; margin-bottom: 12px; line-height: 1.4; }
         .scoring-btns { display: flex; gap: 10px; justify-content: center; }
-        .scoring-btns button { flex: 1; padding: 8px; font-size: 0.9rem; }
+        .scoring-btns button { flex: 1; padding: 10px; font-size: 0.95rem; }
 
         #game-controls {
             margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;
@@ -269,15 +268,15 @@
             <p>對局即將開始</p>
         </div>
     </div>
+</div>
 
-    <!-- 🌟 點目模式面板 -->
-    <div id="scoring-panel" class="hidden">
-        <h3>🛑 點目模式</h3>
-        <p>請點擊盤面上的<b>死子</b>標記為死棋（會畫上紅叉），雙方確認無誤後請點擊「確認點目」。</p>
-        <div class="scoring-btns">
-            <button id="btn-confirm-score" class="success">確認點目</button>
-            <button id="btn-resume-game" class="warning">返回對局</button>
-        </div>
+<!-- 🌟 點目模式面板 (已移出棋盤外) -->
+<div id="scoring-panel" class="hidden">
+    <h3>🛑 點目模式</h3>
+    <p>請點擊盤面上的<b>死子</b>標記為死棋（會畫上紅叉），雙方確認無誤後請點擊「確認點目」。</p>
+    <div class="scoring-btns">
+        <button id="btn-confirm-score" class="success">確認點目</button>
+        <button id="btn-resume-game" class="warning">返回對局</button>
     </div>
 </div>
 
@@ -335,8 +334,8 @@ const TIME_LIMIT = 30;
 
 // 點目相關變數
 let isScoringMode = false;
-let deadStones = {}; // 格式: {"x-y": true}
-let scoringReady = {}; // 格式: {B: true, W: false}
+let deadStones = {}; 
+let scoringReady = {}; 
 
 /* ================================================================
    3. 工具函式與 UI 切換
@@ -378,6 +377,7 @@ function switchView(view) {
     const bar = document.getElementById("status-bar");
     const boardW = document.getElementById("board-wrapper");
     const controls = document.getElementById("game-controls");
+    const scoring = document.getElementById("scoring-panel");
     
     if (view === "lobby") {
         lobby.classList.remove("hidden");
@@ -385,6 +385,7 @@ function switchView(view) {
         bar.classList.add("hidden");
         boardW.classList.add("hidden");
         controls.classList.add("hidden");
+        scoring.classList.add("hidden");
         document.getElementById("game-over-modal").classList.add("hidden");
         isGameOver = false;
         isCountdownRunning = false;
@@ -393,7 +394,6 @@ function switchView(view) {
         lobby.classList.add("hidden");
         bar.classList.remove("hidden");
         boardW.classList.remove("hidden");
-        controls.classList.remove("hidden");
     }
 }
 
@@ -436,13 +436,29 @@ function initFirebase() {
         serverTimeOffset = snap.val() || 0;
     });
     
-    return fbAuth.signInAnonymously().then((cred) => {
+    // 🌟 加上 10 秒超時機制
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("連線超時，請檢查網路或關閉廣告攔截器")), 10000);
+    });
+
+    const authPromise = fbAuth.signInAnonymously().then((cred) => {
         currentUser = cred.user;
+        return cred;
+    });
+
+    return Promise.race([authPromise, timeoutPromise]).then(() => {
         document.getElementById("global-loading").classList.add("hidden");
         checkAutoReconnect();
     }).catch((err) => {
         log("❌ 認證失敗：" + err.message, "error");
-        document.getElementById("global-loading").innerHTML = "<div style='color:red'>連線失敗，請重新整理</div>";
+        document.getElementById("global-loading").innerHTML = `
+            <div style="color:var(--danger); text-align:center; padding: 20px;">
+                <div style="font-size:2rem; margin-bottom:10px;">⚠️</div>
+                <h2>無法連線至伺服器</h2>
+                <p style="color:#aaa; margin:10px 0; font-size:0.9rem;">${err.message}</p>
+                <button onclick="location.reload()" style="margin-top:15px; padding:10px 20px; font-size:1rem; background:var(--accent); border:none; border-radius:6px; cursor:pointer; font-weight:bold;">重新整理重試</button>
+            </div>
+        `;
     });
 }
 
@@ -553,7 +569,6 @@ function renderBoard() {
     if (isScoringMode) {
         Object.keys(deadStones).forEach(key => {
             const [x, y] = key.split('-').map(Number);
-            // 畫一個紅色的叉叉 (MA 是 WGo.js 內建的叉叉標記)
             board.addObject({ x: x, y: y, type: WGo.Board.drawHandlers.MA, c: "#ff0000" });
         });
     }
@@ -564,7 +579,6 @@ function renderBoard() {
 function toggleDeadStone(x, y) {
     if (!isScoringMode) return;
 
-    // 檢查該點是否有棋子
     const tempGame = new WGo.Game(boardSize);
     moveHistory.forEach((m) => {
         if (m.x === -1) tempGame.pass(m.color === "B" ? WGo.B : WGo.W);
@@ -579,7 +593,6 @@ function toggleDeadStone(x, y) {
         deadStones[key] = true;
     }
 
-    // 將死子狀態與確認狀態同步到 Firebase
     fbDb.ref(`games/${gameId}/deadStones`).set(deadStones);
     fbDb.ref(`games/${gameId}/scoringReady`).remove(); // 改變標記後，雙方的確認都要重置
     scoringReady = {};
@@ -937,9 +950,16 @@ function listenToGame(id) {
         if (isScoringMode) renderBoard();
     });
 
+    // 🌟 監聽點目確認狀態，並加上「觸發結算」的邏輯
     fbDb.ref(`games/${id}/scoringReady`).on("value", (snap) => {
         scoringReady = snap.val() || {};
-        if (isScoringMode) updateScoringUI();
+        if (isScoringMode) {
+            updateScoringUI();
+            // 如果雙方都確認了，就進行結算！
+            if (scoringReady.B && scoringReady.W) {
+                calculateAndEndGame();
+            }
+        }
     });
 
     // 4. 監聽整體遊戲狀態
@@ -967,7 +987,7 @@ function listenToGame(id) {
                 isScoringMode = true;
                 setOverlay("none");
                 document.getElementById("scoring-panel").classList.remove("hidden");
-                document.getElementById("game-controls").classList.add("hidden"); // 隱藏一般按鈕
+                document.getElementById("game-controls").classList.add("hidden"); 
                 updateUI();
                 renderBoard();
                 log("🛑 雙方連續虛手，進入點目模式。請標記死子並確認。", "ok");
@@ -977,7 +997,7 @@ function listenToGame(id) {
         }
 
         if (data.status === "playing") {
-            if (isScoringMode) { // 從點目返回對局
+            if (isScoringMode) { 
                 isScoringMode = false;
                 document.getElementById("scoring-panel").classList.add("hidden");
                 document.getElementById("game-controls").classList.remove("hidden");
@@ -1121,7 +1141,7 @@ document.getElementById("btn-ready").addEventListener("click", function() {
         });
 });
 
-// 🌟 點目面板事件
+// 點目面板事件
 document.getElementById("btn-confirm-score").addEventListener("click", () => {
     if (!isScoringMode || !myColor) return;
     fbDb.ref(`games/${gameId}/scoringReady/${myColor}`).set(true);
