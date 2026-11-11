@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>王國製圖師 - 完整單人網頁版</title>
+    <style>
+        :root {
+            --bg-color: #2b1f16;
+            --paper-color: #f4e4bc;
+            --ink-color: #3b2a1a;
+            --gold: #d4af37;
+            --water: #4a90e2;
+            --forest: #2ecc71;
+            --field: #f1c40f;
+            --village: #e74c3c;
+            --mountain: #7f8c8d;
+            --monster: #8e44ad;
+            --ruin: #8d6e63;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            font-family: 'Georgia', 'Noto Serif TC', serif;
+            color: var(--ink-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 頂部狀態列 */
+        #top-bar {
+            background: #1a130e;
+            color: var(--paper-color);
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            border-bottom: 2px solid var(--gold);
+            z-index: 10;
+            flex-shrink: 0;
+        }
+        .stat { display: flex; align-items: center; gap: 5px; }
+        
+        /* 主畫面區域 */
+        #main-game {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background-image: radial-gradient(circle, #3a2b1d, #1a130e);
+            padding: 10px;
+            gap: 15px;
+        }
+
+        /* 地圖區域 */
+        #map-container {
+            background: var(--paper-color);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            position: relative;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.3), 0 5px 15px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            grid-template-rows: repeat(11, 1fr);
+            gap: 1px;
+            background-color: #ccc;
+            border: 2px solid var(--ink-color);
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1/1;
+        }
+
+        .cell {
+            background-color: rgba(255, 255, 255, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px;
+            transition: background-color 0.1s;
+            position: relative;
+        }
+        .cell:hover { background-color: rgba(212, 175, 55, 0.3); }
+        
+        /* 地形顏色 */
+        .cell.water { background-color: var(--water); }
+        .cell.forest { background-color: var(--forest); }
+        .cell.field { background-color: var(--field); }
+        .cell.village { background-color: var(--village); }
+        .cell.mountain { background-color: var(--mountain); }
+        .cell.monster { background-color: var(--monster); }
+        .cell.ruin { background-color: var(--ruin); }
+        .cell.ruin::after { content: "🏚️"; font-size: 16px; }
+        .cell.monster::after { content: "👹"; font-size: 16px; }
+
+        /* 預覽樣式 */
+        .cell.preview-valid { 
+            background-color: rgba(46, 204, 113, 0.6) !important; 
+            border: 1px solid rgba(46, 204, 113, 1);
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+        }
+        .cell.preview-invalid { 
+            background-color: rgba(231, 76, 60, 0.6) !important; 
+            border: 1px solid rgba(231, 76, 60, 1);
+        }
+
+        /* 卡牌區域 */
+        .card-row {
+            display: flex;
+            overflow-x: auto;
+            gap: 10px;
+            padding: 5px;
+            scrollbar-width: thin;
+            flex-shrink: 0;
+        }
+        .card-row::-webkit-scrollbar { height: 6px; }
+        .card-row::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+
+        .card {
+            min-width: 120px;
+            background: var(--paper-color);
+            border: 2px solid var(--ink-color);
+            border-radius: 6px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .card .shape-preview {
+            display: grid;
+            gap: 2px;
+            margin-bottom: 8px;
+        }
+        .shape-cell { width: 18px; height: 18px; background: transparent; }
+        .shape-cell.active { background: var(--gold); border: 1px solid #b8860b; }
+
+        .card .label {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            font-size: 12px;
+            padding: 4px;
+            border-radius: 3px;
+            text-align: center;
+            width: 100%;
+            line-height: 1.2;
+        }
+
+        /* 雙地形切換按鈕 */
+        .terrain-toggle {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        .terrain-btn {
+            background: #ddd;
+            border: 1px solid #999;
+            border-radius: 3px;
+            padding: 2px 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .terrain-btn.active {
+            background: var(--gold);
+            border-color: #b8860b;
+            box-shadow: 0 0 5px rgba(212, 175, 55, 0.8);
+        }
+
+        /* 底部導航 */
+        #bottom-nav {
+            background: #1a130e;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            border-top: 2px solid var(--gold);
+            z-index: 10;
+            flex-shrink: 0;
+        }
+        #bottom-nav button {
+            background: var(--paper-color);
+            border: 1px solid var(--gold);
+            color: var(--ink-color);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        #bottom-nav button:active { transform: scale(0.95); }
+        #bottom-nav button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* 彈窗系統 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--paper-color);
+            padding: 25px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
+            border: 2px solid var(--gold);
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .modal-content h2 { margin-top: 0; color: #3b2a1a; border-bottom: 2px solid #3b2a1a; padding-bottom: 10px;}
+        .modal-content p, .modal-content li { font-size: 15px; line-height: 1.6; }
+        .modal-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            background: var(--gold);
+            color: var(--ink-color);
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: background 0.2s;
+        }
+        .modal-btn:hover { background: #b8860b; }
+
+        /* 歷史紀錄側邊欄 */
+        #history-sidebar {
+            position: fixed;
+            top: 0; right: -320px;
+            width: 320px; height: 100%;
+            background: var(--paper-color);
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            transition: right 0.3s ease;
+            z-index: 90;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 2px solid var(--gold);
+        }
+        #history-sidebar.open { right: 0; }
+        #history-list { list-style: none; padding: 0; font-size: 14px; }
+        #history-list li { border-bottom: 1px dashed #ccc; padding: 10px 0; }
+
+        /* 提示 Toast */
+        #toast {
+            position: fixed;
+            bottom: 80px; left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+            z-index: 200;
+            border: 1px solid var(--gold);
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        @media (max-width: 600px) {
+            .card { min-width: 100px; padding: 5px; }
+            .shape-cell { width: 14px; height: 14px; }
+            #top-bar { font-size: 12px; }
+            .modal-content { padding: 15px; }
+            .modal-content h2 { font-size: 18px; }
+            .modal-content p, .modal-content li { font-size: 13px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="top-bar">
+        <div class="stat">🗓️ <span id="ui-season">春季</span></div>
+        <div class="stat">🔄 <span id="ui-round">1</span>/<span id="ui-max-round">8</span></div>
+        <div class="stat">💰 <span id="ui-coins">0</span></div>
+        <div class="stat">⭐ <span id="ui-score">0</span></div>
+    </div>
+
+    <div id="main-game">
+        <div style="text-align: center; font-size: 12px; color: var(--gold); margin-bottom: -5px;">📜 當前法令 (賽季結束計分)</div>
+        <div class="card-row" id="edict-row" style="justify-content: center;">
+            <!-- 法令卡將由此生成 -->
+        </div>
+
+        <div id="map-container">
+            <div id="grid"></div>
+        </div>
+
+        <div style="text-align: center; font-size: 12px; color: var(--gold); margin-bottom: -5px;">🗺️ 當前探索卡</div>
+        <div class="card-row" id="explore-row" style="justify-content: center;">
+            <!-- 探索卡將由此生成 -->
+        </div>
+        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 5px;">
+            <button id="btn-rotate" class="modal-btn" style="width: auto; padding: 8px 20px; font-size: 14px; margin: 0;">🔄 旋轉</button>
+            <button id="btn-flip" class="modal-btn" style="width: auto; padding: 8px 20px; font-size: 14px; margin: 0;">🔃 翻轉</button>
+        </div>
+    </div>
+
+    <div id="bottom-nav">
+        <button id="btn-help">❓ 說明</button>
+        <button id="btn-save">💾 存檔</button>
+        <button id="btn-load">📂 讀檔</button>
+        <button id="btn-history">📜 紀錄</button>
+        <button id="btn-sound">🔊 音效</button>
+    </div>
+
+    <div id="history-sidebar">
+        <h3 style="margin-top:0; border-bottom: 1px solid #ccc; padding-bottom: 10px;">📜 歷史紀錄</h3>
+        <button id="btn-close-history" style="position:absolute; top:15px; right:15px; background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+        <ul id="history-list"></ul>
+    </div>
+
+    <div id="toast"></div>
+
+    <div class="modal" id="modal-help">
+        <div class="modal-content">
+            <h2>📜 王國製圖師 - 遊戲說明</h2>
+            <p><strong>遊戲目標：</strong><br>你是女王麾下的製圖師。在四個季節中，透過繪製地形來滿足女王頒布的「法令卡」，獲取最高的聲望（⭐）。</p>
+            
+            <h3>👀 看懂畫面</h3>
+            <ul>
+                <li><strong>頂部狀態列</strong>：顯示當前 🗓️ 季節、🔄 回合數、💰 金幣與 ⭐ 聲望。</li>
+                <li><strong>法令區 (📜)</strong>：顯示本季節結束時會計算分數的兩張規則卡。</li>
+                <li><strong>地圖 (🗺️)</strong>：11x11 方格。中央有 🏚️ 廢墟，四個角落有 👹 哥布林。</li>
+                <li><strong>探索卡</strong>：顯示你必須繪製的「地形」與「形狀」。若為雙地形卡（如小漁村），可點擊按鈕切換。</li>
+            </ul>
+
+            <h3>🕹️ 操作步驟</h3>
+            <ol>
+                <li>查看下方的「當前探索卡」。你可以點擊「🔄 旋轉」或「🔃 翻轉」調整形狀。</li>
+                <li><strong>滑鼠懸停</strong>在地圖上，會預覽放置後的位置與形狀。綠色代表可放置，紅色代表不可放置。</li>
+                <li>點擊地圖上的格子進行放置。若放置成功會自動抽下一張卡。</li>
+                <li>季節結束時，系統會自動結算法令分數，並扣除未被包圍的哥布林分數。</li>
+            </ol>
+
+            <h3>⚠️ 特殊機制</h3>
+            <ul>
+                <li><strong>哥布林 👹</strong>：若哥布林與地圖邊緣相連（四向連通），每隻會扣 2 分！請用其他地形把牠們完全包圍起來。</li>
+                <li><strong>廢墟 🏚️</strong>：放置地形時不能覆蓋廢墟或哥布林，但某些法令會依據廢墟周遭計分。</li>
+                <li><strong>金幣 💰</strong>：部分探索卡會提供金幣，累積金幣可用於未來的擴充機制。</li>
+            </ul>
+
+            <button class="modal-btn" id="btn-start-game">✅ 我準備好了，開始遊戲</button>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-score">
+        <div class="modal-content">
+            <h2 id="score-title">季節結算</h2>
+            <div id="score-details"></div>
+            <button class="modal-btn" id="btn-next-season">繼續</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 遊戲資料定義 ---
+        const TERRAINS = {
+            'water': { name: '水塘', color: 'var(--water)', icon: '🌊' },
+            'forest': { name: '森林', color: 'var(--forest)', icon: '🌲' },
+            'field': { name: '農田', color: 'var(--field)', icon: '🌾' },
+            'village': { name: '村莊', color: 'var(--village)', icon: '🏘️' },
+            'mountain': { name: '高山', color: 'var(--mountain)', icon: '⛰️' },
+            'monster': { name: '哥布林', color: 'var(--monster)', icon: '👹' },
+            'ruin': { name: '廢墟', color: 'var(--ruin)', icon: '🏚️' }
+        };
+
+        const SHAPES = {
+            '1x1': [[0,0]],
+            '1x2': [[0,0], [0,1]],
+            '1x3': [[0,0], [0,1], [0,2]],
+            '2x2': [[0,0], [0,1], [1,0], [1,1]],
+            'L-shape': [[0,0], [1,0], [2,0], [2,1]],
+            'T-shape': [[0,0], [0,1], [0,2], [1,1]],
+            'Z-shape': [[0,0], [0,1], [1,1], [1,2]],
+            'plus': [[0,1], [1,0], [1,1], [1,2], [2,1]]
+        };
+
+        const EXPLORE_CARDS = [
+            { id: 'river', name: '大江大河', terrains: ['water'], shape: '1x2', coins: 1 },
+            { id: 'village_water', name: '小漁村', terrains: ['village', 'water'], shape: '2x2', coins: 0 },
+            { id: 'swamp', name: '沼澤地', terrains: ['forest', 'water'], shape: '1x2', coins: 1 },
+            { id: 'small_village', name: '小村莊', terrains: ['village'], shape: '1x1', coins: 1 },
+            { id: 'forgotten_forest', name: '遺忘森林', terrains: ['forest'], shape: '2x2', coins: 1 },
+            { id: 'tree_village', name: '樹屋村莊', terrains: ['village', 'forest'], shape: '1x3', coins: 0 },
+            { id: 'watchtower', name: '哨塔遺跡', terrains: ['ruin'], shape: '1x1', coins: 0 },
+            { id: 'temple', name: '神廟遺跡', terrains: ['ruin'], shape: '2x2', coins: 0 },
+            { id: 'farmland', name: '廣闊平原', terrains: ['field'], shape: 'Z-shape', coins: 0 },
+            { id: 'mountain_pass', name: '險峻山口', terrains: ['mountain'], shape: 'L-shape', coins: 0 },
+            { id: 'great_forest', name: '茂密叢林', terrains: ['forest'], shape: 'plus', coins: 0 },
+            { id: 'big_village', name: '繁華城鎮', terrains: ['village'], shape: 'L-shape', coins: 0 },
+            { id: 'water_falls', name: '瀑布', terrains: ['water'], shape: '1x1', coins: 0 }
+        ];
+
+        // 完整法令組 (A, B, C, D)
+        const EDICTS = {
+            A: [
+                { id: 'A1', name: '地大物博', desc: '與水域和地圖邊緣不相鄰的農田群落，每組得3分。', score: scoreA1 },
+                { id: 'A2', name: '膏腴之地', desc: '與廢墟相鄰的水域格得1分；建在廢墟上的農田格得3分。', score: scoreA2 },
+                { id: 'A3', name: '巫術山谷', desc: '與高山相鄰的水域格得2分；與高山相鄰的農田格得1分。', score: scoreA3 }
+            ],
+            B: [
+                { id: 'B1', name: '丰饒平原', desc: '與3種或以上不同地形相鄰的村落群落，每組得3分。', score: scoreB1 },
+                { id: 'B2', name: '偉大都市', desc: '最大的村落群落（不與高山相鄰），每格得1分。', score: scoreB2 },
+                { id: 'B3', name: '人丁興旺', desc: '6格或以上的村落群落，每組得8分。', score: scoreB3 }
+            ],
+            C: [
+                { id: 'C1', name: '枝繁葉茂', desc: '地圖每一行與每一列，只要至少有一個森林格，各得1分。', score: scoreC1 },
+                { id: 'C2', name: '高山林海', desc: '通過森林相連的高山群落，每格得3分。', score: scoreC2 },
+                { id: 'C3', name: '樹木哨塔', desc: '被完全包圍（四周皆為已填格子或邊緣）的森林格，每格得1分。', score: scoreC3 }
+            ],
+            D: [
+                { id: 'D1', name: '森林崗哨', desc: '與地圖邊緣相鄰的森林格，每格得1分。', score: scoreD1 },
+                { id: 'D2', name: '銅牆鐵壁', desc: '第二大的村落群落，每格得2分。', score: scoreD2 },
+                { id: 'D3', name: '遺忘封地', desc: '找到地圖中最大的已填充正方形區域，其邊長每格得3分。', score: scoreD3 },
+                { id: 'D4', name: '殘垣古道', desc: '由左側邊緣至下側邊緣的對角線上，全滿的每條對角線得3分。', score: scoreD4 },
+                { id: 'D5', name: '未知領域', desc: '被完全包圍的空白格子，每格得1分。', score: scoreD5 }
+            ]
+        };
+
+        const SEASONS = [
+            { name: '春季', rounds: 8, edicts: ['A', 'B'] },
+            { name: '夏季', rounds: 8, edicts: ['B', 'C'] },
+            { name: '秋季', rounds: 7, edicts: ['C', 'D'] },
+            { name: '冬季', rounds: 6, edicts: ['D', 'A'] }
+        ];
+
+        // --- 狀態機 ---
+        let gameState = {
+            status: 'INIT', // INIT, PLAYING, SCORING, GAMEOVER, PAUSED
+            seasonIndex: 0,
+            round: 1,
+            coins: 0,
+            totalScore: 0,
+            map: [],
+            currentCard: null,
+            currentTerrainChoice: null,
+            currentRotation: 0,
+            currentFlip: false,
+            activeEdicts: [],
+            drawnEdicts: { A: null, B: null, C: null, D: null },
+            history: [],
+            soundEnabled: true,
+            gridSize: 11
+        };
+
+        let audioCtx;
+        function playSound(type) {
+            if (!gameState.soundEnabled) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            if (type === 'click') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            } else if (type === 'place') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            } else if (type === 'error') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            }
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function initMap() {
+            const size = gameState.gridSize;
+            const map = Array(size).fill(null).map(() => Array(size).fill(null));
+            map[5][5] = 'ruin';
+            const monsters = [[1,1], [1,9], [9,1], [9,9]];
+            monsters.forEach(([r, c]) => { map[r][c] = 'monster'; });
+            return map;
+        }
+
+        function getCurrentShapeCells() {
+            let cells = SHAPES[gameState.currentCard.shape];
+            if (gameState.currentFlip) {
+                cells = cells.map(([r, c]) => [r, -c]);
+            }
+            for (let i = 0; i < gameState.currentRotation; i++) {
+                cells = cells.map(([r, c]) => [c, -r]);
+            }
+            const minR = Math.min(...cells.map(c => c[0]));
+            const minC = Math.min(...cells.map(c => c[1]));
+            return cells.map(([r, c]) => [r - minR, c - minC]);
+        }
+
+        function renderMap() {
+            const gridEl = document.getElementById('grid');
+            gridEl.innerHTML = '';
+            for (let r = 0; r < gameState.gridSize; r++) {
+                for (let c = 0; c < gameState.gridSize; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.r = r;
+                    cell.dataset.c = c;
+                    const terrain = gameState.map[r][c];
+                    if (terrain) {
+                        cell.classList.add(terrain, 'occupied');
+                        cell.textContent = TERRAINS[terrain].icon;
+                    } else {
+                        cell.addEventListener('mouseenter', () => handleHover(r, c));
+                        cell.addEventListener('mouseleave', clearPreview);
+                        cell.addEventListener('click', () => handleCellClick(r, c));
+                    }
+                    gridEl.appendChild(cell);
+                }
+            }
+        }
+
+        function handleHover(r, c) {
+            if (gameState.status !== 'PLAYING' || !gameState.currentCard) return;
+            clearPreview();
+            
+            const shapeCells = getCurrentShapeCells();
+            let canPlace = true;
+            
+            // 檢查是否可以放置
+            for (const [dr, dc] of shapeCells) {
+                const nr = r + dr;
+                const nc = c + dc;
+                if (nr >= gameState.gridSize || nc >= gameState.gridSize || gameState.map[nr][nc] !== null) {
+                    canPlace = false;
+                }
+            }
+
+            const cls = canPlace ? 'preview-valid' : 'preview-invalid';
+            for (const [dr, dc] of shapeCells) {
+                const nr = r + dr;
+                const nc = c + dc;
+                if (nr < gameState.gridSize && nc < gameState.gridSize) {
+                    const cellEl = document.querySelector(`.cell[data-r="${nr}"][data-c="${nc}"]`);
+                    if (cellEl) cellEl.classList.add(cls);
+                }
+            }
+        }
+
+        function clearPreview() {
+            document.querySelectorAll('.cell').forEach(c => {
+                c.classList.remove('preview-valid', 'preview-invalid');
+            });
+        }
+
+        function renderUI() {
+            document.getElementById('ui-season').textContent = SEASONS[gameState.seasonIndex].name;
+            document.getElementById('ui-round').textContent = gameState.round;
+            document.getElementById('ui-max-round').textContent = SEASONS[gameState.seasonIndex].rounds;
+            document.getElementById('ui-coins').textContent = gameState.coins;
+            document.getElementById('ui-score').textContent = gameState.totalScore;
+
+            // 法令
+            const edictRow = document.getElementById('edict-row');
+            edictRow.innerHTML = '';
+            gameState.activeEdicts.forEach(edict => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.minWidth = '160px';
+                card.innerHTML = `
+                    <div style="font-weight:bold; margin-bottom:5px; color:var(--ink-color); font-size:14px;">${edict.name}</div>
+                    <div style="font-size:12px; text-align:center; color:#333;">${edict.desc}</div>
+                `;
+                edictRow.appendChild(card);
+            });
+
+            // 探索卡
+            const exploreRow = document.getElementById('explore-row');
+            exploreRow.innerHTML = '';
+            if (gameState.currentCard && gameState.status === 'PLAYING') {
+                const card = document.createElement('div');
+                card.className = 'card';
+                const terrainKey = gameState.currentTerrainChoice;
+                const terrain = TERRAINS[terrainKey];
+                const cells = getCurrentShapeCells();
+                const maxR = Math.max(...cells.map(c => c[0]));
+                const maxC = Math.max(...cells.map(c => c[1]));
+                
+                let shapeHTML = `<div class="shape-preview" style="grid-template-columns: repeat(${maxC+1}, 1fr); grid-template-rows: repeat(${maxR+1}, 1fr);">`;
+                for (let r = 0; r <= maxR; r++) {
+                    for (let c = 0; c <= maxC; c++) {
+                        const isActive = cells.some(([cr, cc]) => cr === r && cc === c);
+                        shapeHTML += `<div class="shape-cell ${isActive ? 'active' : ''}"></div>`;
+                    }
+                }
+                shapeHTML += '</div>';
+
+                let terrainToggleHTML = '';
+                if (gameState.currentCard.terrains.length > 1) {
+                    terrainToggleHTML = `<div class="terrain-toggle">`;
+                    gameState.currentCard.terrains.forEach(t => {
+                        terrainToggleHTML += `<div class="terrain-btn ${t === terrainKey ? 'active' : ''}" onclick="changeTerrain('${t}')">${TERRAINS[t].icon}</div>`;
+                    });
+                    terrainToggleHTML += `</div>`;
+                }
+                
+                card.innerHTML = `
+                    ${terrainToggleHTML}
+                    ${shapeHTML}
+                    <div class="label">${gameState.currentCard.name}<br>${terrain.icon} ${terrain.name}</div>
+                `;
+                exploreRow.appendChild(card);
+            }
+        }
+
+        function changeTerrain(t) {
+            gameState.currentTerrainChoice = t;
+            renderUI();
+            playSound('click');
+        }
+
+        function handleCellClick(r, c) {
+            if (gameState.status !== 'PLAYING' || !gameState.currentCard) return;
+            const shapeCells = getCurrentShapeCells();
+            
+            let canPlace = true;
+            for (const [dr, dc] of shapeCells) {
+                const nr = r + dr;
+                const nc = c + dc;
+                if (nr >= gameState.gridSize || nc >= gameState.gridSize || gameState.map[nr][nc] !== null) {
+                    canPlace = false;
+                    break;
+                }
+            }
+
+            if (!canPlace) {
+                showToast('❌ 無法放置：超出邊界或與現有地形重疊。');
+                playSound('error');
+                return;
+            }
+
+            playSound('place');
+            for (const [dr, dc] of shapeCells) {
+                gameState.map[r + dr][c + dc] = gameState.currentTerrainChoice;
+            }
+
+            if (gameState.currentCard.coins > 0) {
+                gameState.coins += gameState.currentCard.coins;
+                showToast(`💰 獲得 ${gameState.currentCard.coins} 金幣！`);
+            }
+
+            addHistory(`第 ${gameState.round} 回合：放置了 ${gameState.currentCard.name} (${TERRAINS[gameState.currentTerrainChoice].name})`);
+
+            gameState.round++;
+            if (gameState.round > SEASONS[gameState.seasonIndex].rounds) {
+                endSeason();
+            } else {
+                drawCard();
+            }
+            
+            renderMap();
+            renderUI();
+            saveGame();
+        }
+
+        function drawCard() {
+            const rand = Math.floor(Math.random() * EXPLORE_CARDS.length);
+            gameState.currentCard = EXPLORE_CARDS[rand];
+            gameState.currentTerrainChoice = gameState.currentCard.terrains[0];
+            gameState.currentRotation = 0;
+            gameState.currentFlip = false;
+        }
+
+        function endSeason() {
+            gameState.status = 'SCORING';
+            playSound('place');
+            
+            let seasonScore = 0;
+            let detailsHTML = `<h3>${SEASONS[gameState.seasonIndex].name} 結算</h3><ul>`;
+            
+            gameState.activeEdicts.forEach(edict => {
+                const pts = edict.score(gameState.map);
+                seasonScore += pts;
+                detailsHTML += `<li><strong>${edict.name}</strong>: +${pts} 分</li>`;
+            });
+
+            // 哥布林連通懲罰
+            const monsterPenalty = calculateMonsterPenalty(gameState.map);
+            if (monsterPenalty > 0) {
+                detailsHTML += `<li style="color:#d32f2f;"><strong>👹 哥布林作亂</strong>: -${monsterPenalty} 分</li>`;
+                seasonScore -= monsterPenalty;
+            }
+
+            gameState.totalScore += seasonScore;
+            detailsHTML += `</ul><p style="font-size:18px; text-align:center; border-top:1px solid #ccc; padding-top:10px;"><strong>本季總計：${seasonScore} 分</strong></p>`;
+            detailsHTML += `<p style="text-align:center;">目前總聲望：<strong>${gameState.totalScore}</strong></p>`;
+
+            document.getElementById('score-title').textContent = `${SEASONS[gameState.seasonIndex].name} 結算`;
+            document.getElementById('score-details').innerHTML = detailsHTML;
+            
+            if (gameState.seasonIndex === SEASONS.length - 1) {
+                document.getElementById('btn-next-season').textContent = '🏆 查看最終結果';
+                document.getElementById('btn-next-season').onclick = () => {
+                    closeModal('modal-score');
+                    showGameOver();
+                };
+            } else {
+                document.getElementById('btn-next-season').textContent = '➡️ 進入下一個季節';
+                document.getElementById('btn-next-season').onclick = () => {
+                    closeModal('modal-score');
+                    startNextSeason();
+                };
+            }
+
+            document.getElementById('modal-score').classList.add('active');
+            addHistory(`${SEASONS[gameState.seasonIndex].name}結束，獲得 ${seasonScore} 分。`);
+            saveGame();
+        }
+
+        function startNextSeason() {
+            gameState.seasonIndex++;
+            gameState.round = 1;
+            gameState.status = 'PLAYING';
+            
+            // 更新當前法令
+            const season = SEASONS[gameState.seasonIndex];
+            gameState.activeEdicts = season.edicts.map(key => gameState.drawnEdicts[key]);
+            
+            drawCard();
+            renderMap();
+            renderUI();
+            document.getElementById('btn-rotate').disabled = false;
+            document.getElementById('btn-flip').disabled = false;
+            saveGame();
+        }
+
+        function showGameOver() {
+            gameState.status = 'GAMEOVER';
+            document.getElementById('score-title').textContent = '🏆 遊戲結束 - 傳奇製圖師';
+            let finalHTML = `<h3 style="text-align:center;">最終總聲望：<span style="color:#b8860b; font-size:28px;">${gameState.totalScore}</span></h3>`;
+            
+            let achievement = '';
+            if (gameState.totalScore >= 80) achievement = '🌟 傳奇製圖師 (完美！)';
+            else if (gameState.totalScore >= 50) achievement = '✨ 優秀的製圖師';
+            else if (gameState.totalScore >= 30) achievement = '📜 合格的製圖師';
+            else achievement = '🍃 新手見習生 (再接再厲！)';
+            
+            finalHTML += `<p style="font-size:18px; text-align:center;">成就解鎖：<strong>${achievement}</strong></p>`;
+            finalHTML += `<p style="text-align:center;">感謝您的遊玩！您已經將這片土地繪製完畢。</p>`;
+            
+            document.getElementById('score-details').innerHTML = finalHTML;
+            document.getElementById('btn-next-season').textContent = '🔄 重新開始';
+            document.getElementById('btn-next-season').onclick = () => {
+                closeModal('modal-score');
+                location.reload();
+            };
+            document.getElementById('modal-score').classList.add('active');
+            document.getElementById('btn-rotate').disabled = true;
+            document.getElementById('btn-flip').disabled = true;
+        }
+
+        // --- 計分函數 ---
+        function getNeighbors(map, r, c) {
+            const neighbors = [];
+            const dirs = [[0,1], [0,-1], [1,0], [-1,0]];
+            for (const [dr, dc] of dirs) {
+                const nr = r + dr, nc = c + dc;
+                if (nr >= 0 && nr < map.length && nc >= 0 && nc < map[0].length) {
+                    neighbors.push(map[nr][nc]);
+                } else {
+                    neighbors.push('edge');
+                }
+            }
+            return neighbors;
+        }
+
+        function findClusters(map, terrainType) {
+            const visited = Array(map.length).fill(null).map(() => Array(map[0].length).fill(false));
+            const clusters = [];
+            for (let r = 0; r < map.length; r++) {
+                for (let c = 0; c < map[0].length; c++) {
+                    if (map[r][c] === terrainType && !visited[r][c]) {
+                        const cluster = [];
+                        const queue = [[r, c]];
+                        visited[r][c] = true;
+                        while (queue.length > 0) {
+                            const [cr, cc] = queue.shift();
+                            cluster.push([cr, cc]);
+                            const dirs = [[0,1], [0,-1], [1,0], [-1,0]];
+                            for (const [dr, dc] of dirs) {
+                                const nr = cr + dr, nc = cc + dc;
+                                if (nr >= 0 && nr < map.length && nc >= 0 && nc < map[0].length && 
+                                    map[nr][nc] === terrainType && !visited[nr][nc]) {
+                                    visited[nr][nc] = true;
+                                    queue.push([nr, nc]);
+                                }
+                            }
+                        }
+                        clusters.push(cluster);
+                    }
+                }
+            }
+            return clusters;
+        }
+
+        function calculateMonsterPenalty(map) {
+            let penalty = 0;
+            const visited = Array(map.length).fill(null).map(() => Array(map[0].length).fill(false));
+            
+            for (let r = 0; r < map.length; r++) {
+                for (let c = 0; c < map[0].length; c++) {
+                    if (map[r][c] === 'monster' && !visited[r][c]) {
+                        let touchesEdge = false;
+                        let clusterSize = 0;
+                        const queue = [[r, c]];
+                        visited[r][c] = true;
+                        
+                        while (queue.length > 0) {
+                            const [cr, cc] = queue.shift();
+                            clusterSize++;
+                            if (cr === 0 || cr === map.length-1 || cc === 0 || cc === map[0].length-1) {
+                                touchesEdge = true;
+                            }
+                            const dirs = [[0,1], [0,-1], [1,0], [-1,0]];
+                            for (const [dr, dc] of dirs) {
+                                const nr = cr + dr, nc = cc + dc;
+                                if (nr >= 0 && nr < map.length && nc >= 0 && nc < map[0].length) {
+                                    if (map[nr][nc] === 'monster' && !visited[nr][nc]) {
+                                        visited[nr][nc] = true;
+                                        queue.push([nr, nc]);
+                                    }
+                                }
+                            }
+                        }
+                        if (touchesEdge) penalty += clusterSize * 2; // 每隻相連邊緣的哥布林扣2分
+                    }
+                }
+            }
+            return penalty;
+        }
+
+        function scoreA1(map) {
+            let score = 0;
+            findClusters(map, 'field').forEach(cluster => {
+                let touchesWaterOrEdge = false;
+                cluster.forEach(([r, c]) => {
+                    const neighbors = getNeighbors(map, r, c);
+                    if (neighbors.includes('water') || neighbors.includes('edge')) touchesWaterOrEdge = true;
+                });
+                if (!touchesWaterOrEdge) score += 3;
+            });
+            return score;
+        }
+
+        function scoreA2(map) {
+            let score = 0;
+            for (let r = 0; r < map.length; r++) {
+                for (let c = 0; c < map[0].length; c++) {
+                    if (map[r][c] === 'water' && getNeighbors(map, r, c).includes('ruin')) score += 1;
+                    if (map[r][c] === 'field' && map[r][c] === 'ruin') score += 3; // 簡化廢墟判定
+                }
+            }
+            return score;
+        }
+
+        function scoreA3(map) {
+            let score = 0;
+            for (let r = 0; r < map.length; r++) {
+                for (let c = 0; c < map[0].length; c++) {
+                    if (getNeighbors(map, r, c).includes('mountain')) {
+                        if (map[r][c] === 'water') score += 2;
+                        if (map[r][c] === 'field') score += 1;
+                    }
+                }
+            }
+            return score;
+        }
+
+        function scoreB1(map) {
+            let score = 0;
+            findClusters(map, 'village').forEach(cluster => {
+                const uniqueTerrains = new Set();
+                cluster.forEach(([r, c]) => {
+                    getNeighbors(map, r, c).forEach(t => { if (t && t !== 'edge') uniqueTerrains.add(t); });
+                });
+                if (uniqueTerrains.size >= 3) score += 3;
+            });
+            return score;
+        }
+
+        function scoreB2(map) {
+            let maxSize = 0;
+            findClusters(map, 'village').forEach(cluster => {
+                let touchesMountain = false;
+                cluster.forEach(([r, c]) => {
+                    if (getNeighbors(map, r, c).includes('mountain')) touchesMountain = true;
+                });
+                if (!touchesMountain && cluster.length > maxSize) maxSize = cluster.length;
+            });
+            return maxSize;
+        }
+
+        function scoreB3(map) {
+            let score = 0;
+            findClusters(map, 'village').forEach(cluster => {
+                if (cluster.length >= 6) score += 8;
+            });
+            return score;
+        }
+
+        function scoreC1(map) {
+            let score = 0;
+            for (let r = 0; r < map.length; r++) if (map[r].includes('forest')) score += 1;
+            for (let c = 0; c < map[0].length; c++) {
+                let hasForest = false;
+                for (let r = 0; r < map.length; r++) { if (map[r][c] === 'forest') hasForest = true; }
+                if (hasForest) score += 1;
+            }
+            return score;
+        }
+
+        function scoreC2(map) {
+            let score = 0;
+            findClusters(map, 'mountain').forEach(cluster => {
+                let connectedByForest = false;
+                cluster.forEach(([r, c]) => {
+                    if (getNeighbors(map, r, c).includes('forest')) connectedByForest = true;
+                });
+                if (connectedByForest) score += cluster.length * 3;
+            });
+            return score;
+        }
+
+        function scoreC3(map) {
+            let score = 0;
+            for (let r = 0; r < map.length; r++) {
+                for (let c = 0; c < map[0].length; c++) {
+                    if (map[r][c] === 'forest') {
+                        const neighbors = getNeighbors(map, r, c);
+                        if (neighbors.every(n => n !== null)) score += 1;
+                    }
+                }
+            }
+            return score;
+        }
+
+        function scoreD1(map) {
+            let score = 0;
+            for (let i = 0; i < map.length; i++) {
+                if (map[0][i] === 'forest' || map[10][i] === 'forest') score += 1;
+                if (map[i][0] === 'forest' || map[i][10] === 'forest') score += 1;
+            }
+            return score;
+        }
+
+        function scoreD2(map) {
+            const clusters = findClusters(map, 'village');
+            if (clusters.length < 2) return 0;
+            clusters.sort((a, b) => b.length - a.length);
+            return clusters[1].length * 2;
+        }
+
+        function scoreD3(map) {
+            let maxSide = 0;
+            const size = map.length;
+            const dp = Array(size).fill(0).map(() => Array(size).fill(0));
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (map[r][c] !== null) {
+                        if (r === 0 || c === 0) dp[r][c] = 1;
+                        else dp[r][c] = Math.min(dp[r-1][c], dp[r][c-1], dp[r-1][c-1]) + 1;
+                        maxSide = Math.max(maxSide, dp[r][c]);
+                    }
+                }
+            }
+            return maxSide * 3;
+        }
+
+        function scoreD4(map) {
+            let score = 0;
+            const size = map.length;
+            for (let d = 0; d < size * 2 - 1; d++) {
+                let isFull = true;
+                for (let r = 0; r < size; r++) {
+                    let c = d - r;
+                    if (c >= 0 && c < size) {
+                        if (map[r][c] === null) isFull = false;
+                    }
+                }
+                if (isFull) score += 3;
+            }
+            return score;
+        }
+
+        function scoreD5(map) {
+            let score = 0;
+            for (let r = 0; r < map.length; r++) {
+                for (let c = 0; c < map[0].length; c++) {
+                    if (map[r][c] === null) {
+                        const neighbors = getNeighbors(map, r, c);
+                        if (neighbors.every(n => n !== null)) score += 1;
+                    }
+                }
+            }
+            return score;
+        }
+
+        // --- 系統函數 ---
+        function addHistory(text) {
+            gameState.history.push(text);
+            const list = document.getElementById('history-list');
+            const li = document.createElement('li');
+            li.textContent = text;
+            list.prepend(li);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        function saveGame() {
+            localStorage.setItem('cartographers_save', JSON.stringify(gameState));
+            showToast('💾 遊戲已儲存！');
+        }
+
+        function loadGame() {
+            const saved = localStorage.getItem('cartographers_save');
+            if (saved) {
+                gameState = JSON.parse(saved);
+                gameState.status = 'PLAYING';
+                renderMap();
+                renderUI();
+                document.getElementById('btn-rotate').disabled = false;
+                document.getElementById('btn-flip').disabled = false;
+                showToast('📂 遊戲已讀取！');
+                playSound('click');
+            } else {
+                showToast('❌ 沒有找到存檔！');
+                playSound('error');
+            }
+        }
+
+        document.getElementById('btn-rotate').addEventListener('click', () => {
+            if (gameState.status === 'PLAYING') {
+                gameState.currentRotation = (gameState.currentRotation + 1) % 4;
+                renderUI();
+                clearPreview();
+                playSound('click');
+            }
+        });
+
+        document.getElementById('btn-flip').addEventListener('click', () => {
+            if (gameState.status === 'PLAYING') {
+                gameState.currentFlip = !gameState.currentFlip;
+                renderUI();
+                clearPreview();
+                playSound('click');
+            }
+        });
+
+        document.getElementById('btn-help').addEventListener('click', () => {
+            playSound('click');
+            document.getElementById('modal-help').classList.add('active');
+            if (gameState.status === 'PLAYING') gameState.status = 'PAUSED';
+        });
+
+        document.getElementById('btn-start-game').addEventListener('click', () => {
+            playSound('click');
+            closeModal('modal-help');
+            if (gameState.status === 'PAUSED') {
+                gameState.status = 'PLAYING';
+            } else if (gameState.status === 'INIT') {
+                startNewGame();
+            }
+        });
+
+        document.getElementById('btn-save').addEventListener('click', saveGame);
+        document.getElementById('btn-load').addEventListener('click', loadGame);
+        
+        document.getElementById('btn-history').addEventListener('click', () => {
+            playSound('click');
+            document.getElementById('history-sidebar').classList.add('open');
+        });
+        
+        document.getElementById('btn-close-history').addEventListener('click', () => {
+            playSound('click');
+            document.getElementById('history-sidebar').classList.remove('open');
+        });
+
+        document.getElementById('btn-sound').addEventListener('click', (e) => {
+            gameState.soundEnabled = !gameState.soundEnabled;
+            e.target.textContent = gameState.soundEnabled ? '🔊 音效' : '🔇 靜音';
+            if (gameState.soundEnabled) playSound('click');
+        });
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function startNewGame() {
+            // 抽定整局的 4 張法令卡
+            const drawnA = EDICTS.A[Math.floor(Math.random() * EDICTS.A.length)];
+            const drawnB = EDICTS.B[Math.floor(Math.random() * EDICTS.B.length)];
+            const drawnC = EDICTS.C[Math.floor(Math.random() * EDICTS.C.length)];
+            const drawnD = EDICTS.D[Math.floor(Math.random() * EDICTS.D.length)];
+
+            gameState = {
+                status: 'PLAYING',
+                seasonIndex: 0,
+                round: 1,
+                coins: 0,
+                totalScore: 0,
+                map: initMap(),
+                currentCard: null,
+                currentTerrainChoice: null,
+                currentRotation: 0,
+                currentFlip: false,
+                activeEdicts: [],
+                drawnEdicts: { A: drawnA, B: drawnB, C: drawnC, D: drawnD },
+                history: [],
+                soundEnabled: gameState.soundEnabled,
+                gridSize: 11
+            };
+            
+            // 設定第一季法令
+            gameState.activeEdicts = [drawnA, drawnB];
+            
+            drawCard();
+            renderMap();
+            renderUI();
+            addHistory('遊戲開始！踏上製圖師的旅程。');
+            document.getElementById('btn-rotate').disabled = false;
+            document.getElementById('btn-flip').disabled = false;
+            saveGame();
+        }
+
+        window.onload = () => {
+            document.getElementById('modal-help').classList.add('active');
+            gameState.status = 'INIT';
+        };
+
+    </script>
+</body>
+</html>
