@@ -298,6 +298,7 @@ let statusListener = null;
 let undoListener = null;
 let presenceListener = null;
 let readyListener = null;
+let whitePlayerListener = null;
 let currentLastMoveTime = 0;
 let hasAutoPassed = false;
 let serverTimeOffset = 0;
@@ -664,7 +665,6 @@ function updateUI() {
     const colorName = currentTurn === "B" ? "⚫ 黑方" : "⚪ 白方";
     const isMyTurn = currentTurn === myColor;
     
-    // 如果在倒數或準備階段，UI 顯示暫停
     const overlayHidden = document.getElementById("game-overlay").classList.contains("hidden");
     turnEl.textContent = overlayHidden ? `輪到：${colorName}${isMyTurn ? "（你的回合）" : ""}` : "對局準備中…";
 
@@ -735,7 +735,7 @@ async function createGame() {
         
         localStorage.setItem("go_gameId", gameId);
         
-        initBoard(size); renderBoard(); switchView("game"); setOverlay("waiting"); updateUI(); listenToGame(gameId);
+        initBoard(size); renderBoard(); switchView("game"); updateUI(); listenToGame(gameId);
         setupPresence(gameId);
         
         const inviteUrl = `${window.location.origin}${window.location.pathname}?join=${gameId}`;
@@ -775,8 +775,6 @@ async function joinGame(id) {
         
         if (isGameOver) {
             fbDb.ref(`games/${id}/resultDetail`).once("value").then(r => showGameOver(r.val() || "對局結束"));
-        } else if (data.status === "waiting") {
-            setOverlay("waiting");
         }
         
         log(`🤝 已加入對局，你是${myColor === "B" ? "黑方" : "白方"}`, "ok");
@@ -789,6 +787,7 @@ function listenToGame(id) {
     if (statusListener) statusListener.off();
     if (undoListener) undoListener.off();
     if (readyListener) readyListener.off();
+    if (whitePlayerListener) whitePlayerListener.off();
     
     moveListener = fbDb.ref(`games/${id}/moves`);
     moveListener.on("child_added", (snap) => {
@@ -831,40 +830,60 @@ function listenToGame(id) {
         }
     });
 
-    // 監聽準備狀態
-    readyListener = fbDb.ref(`games/${id}/readyPlayers`);
-    readyListener.on("value", (snap) => {
-        const readyPlayers = snap.val() || {};
-        const bReady = !!readyPlayers.B;
-        const wReady = !!readyPlayers.W;
-        
-        if (bReady && wReady) {
-            setOverlay("countdown");
-            startCountdown(() => {
-                setOverlay("none");
-                fbDb.ref(`games/${gameId}/status`).set("playing");
-                // 只有黑方設定初始時間，避免重複觸發
-                if (myColor === "B" && moveHistory.length === 0) {
-                    fbDb.ref(`games/${gameId}/lastMoveTime`).set(firebase.database.ServerValue.TIMESTAMP);
-                }
-                startTimer(Date.now());
-                updateUI();
-            });
+    // 監聽白方是否加入
+    whitePlayerListener = fbDb.ref(`games/${id}/whitePlayer`);
+    whitePlayerListener.on("value", (snap) => {
+        if (!snap.val()) {
+            setOverlay("waiting");
         } else {
-            setOverlay("ready");
-            const text = document.getElementById("ready-status-text");
-            if (bReady && !wReady) text.textContent = "等待白方準備…";
-            else if (wReady && !bReady) text.textContent = "等待黑方準備…";
-            else text.textContent = "請雙方點擊準備開始對局";
-
-            // 同步自己的準備按鈕狀態
-            const myReady = myColor === "B" ? bReady : wReady;
-            const btn = document.getElementById("btn-ready");
-            btn.disabled = myReady;
-            btn.textContent = myReady ? "等待對手…" : "準備好了！";
+            checkReadyState(); // 白方加入，檢查準備狀態
         }
     });
 
+    // 監聽準備狀態
+    readyListener = fbDb.ref(`games/${id}/readyPlayers`);
+    readyListener.on("value", () => {
+        checkReadyState();
+    });
+
+    // 統一處理準備狀態
+    function checkReadyState() {
+        fbDb.ref(`games/${id}/whitePlayer`).once("value", (wSnap) => {
+            if (!wSnap.val()) return; // 白方還沒來，不用查準備
+
+            fbDb.ref(`games/${id}/readyPlayers`).once("value", (rSnap) => {
+                const readyPlayers = rSnap.val() || {};
+                const bReady = !!readyPlayers.B;
+                const wReady = !!readyPlayers.W;
+
+                if (bReady && wReady) {
+                    setOverlay("countdown");
+                    startCountdown(() => {
+                        setOverlay("none");
+                        fbDb.ref(`games/${gameId}/status`).set("playing");
+                        if (myColor === "B" && moveHistory.length === 0) {
+                            fbDb.ref(`games/${gameId}/lastMoveTime`).set(firebase.database.ServerValue.TIMESTAMP);
+                        }
+                        startTimer(Date.now());
+                        updateUI();
+                    });
+                } else {
+                    setOverlay("ready");
+                    const text = document.getElementById("ready-status-text");
+                    if (bReady && !wReady) text.textContent = "等待白方準備…";
+                    else if (wReady && !bReady) text.textContent = "等待黑方準備…";
+                    else text.textContent = "請雙方點擊準備開始對局";
+
+                    const myReady = myColor === "B" ? bReady : wReady;
+                    const btn = document.getElementById("btn-ready");
+                    btn.disabled = myReady;
+                    btn.textContent = myReady ? "等待對手…" : "準備好了！";
+                }
+            });
+        });
+    }
+
+    // 只監聽結束狀態，不干涉準備與等待
     statusListener = fbDb.ref(`games/${id}/status`);
     statusListener.on("value", (snap) => {
         const status = snap.val();
@@ -872,8 +891,6 @@ function listenToGame(id) {
             fbDb.ref(`games/${id}/resultDetail`).once("value").then((rSnap) => {
                 showGameOver(rSnap.val() || "對局結束");
             });
-        } else if (status === "waiting") {
-            setOverlay("waiting");
         }
     });
 }
@@ -971,6 +988,7 @@ document.getElementById("btn-back-lobby").addEventListener("click", () => {
     if (undoListener) undoListener.off();
     if (presenceListener) presenceListener.off();
     if (readyListener) readyListener.off();
+    if (whitePlayerListener) whitePlayerListener.off();
     clearInterval(timerInterval);
     
     if (gameId && currentUser) {
