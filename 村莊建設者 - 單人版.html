@@ -11,9 +11,9 @@
             --card-bg: #fff9eb;
             --border-color: #8d6e63;
             --accent: #d32f2f;
+            --highlight: #4caf50;
             --card-w: 100px;
             --card-h: 140px;
-            --gap: 10px;
         }
         body, html {
             margin: 0; padding: 0; height: 100%; overflow: hidden;
@@ -43,8 +43,7 @@
         }
         #grid-area {
             position: relative; width: 3000px; height: 3000px; 
-            transform-origin: 0 0; /* 允許動態平移以居中顯示 */
-            transition: transform 0.3s;
+            transform-origin: 0 0; transition: transform 0.3s;
         }
         
         /* 卡牌樣式 */
@@ -52,12 +51,25 @@
             width: var(--card-w); height: var(--card-h); background: var(--card-bg);
             border: 2px solid var(--border-color); border-radius: 8px;
             position: absolute; display: flex; flex-direction: column; align-items: center;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s, box-shadow 0.2s;
             cursor: pointer; box-sizing: border-box; padding: 5px; text-align: center;
         }
         .card.lvl-2 { border-color: silver; box-shadow: inset 0 0 10px silver; }
         .card.lvl-3 { border-color: gold; box-shadow: inset 0 0 10px gold; }
-        .card:hover { transform: scale(1.05); z-index: 10; }
+        
+        /* 派遣階段：可派遣卡牌的高亮 */
+        .card.can-work {
+            border-color: var(--highlight) !important;
+            box-shadow: 0 0 15px var(--highlight) !important;
+            animation: pulse 1.5s infinite;
+        }
+        .card.can-work:hover { transform: scale(1.05); z-index: 10; }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 5px var(--highlight); }
+            50% { box-shadow: 0 0 20px var(--highlight); }
+            100% { box-shadow: 0 0 5px var(--highlight); }
+        }
         
         /* 卡牌內容 */
         .card-title { font-size: 0.8rem; font-weight: bold; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
@@ -71,22 +83,27 @@
         .conn-right { right: -8px; top: 50%; transform: translateY(-50%); }
         
         /* 工人標記 */
-        .worker-icon { position: absolute; top: 5px; left: 5px; font-size: 1.2rem; filter: drop-shadow(0 0 2px white); }
+        .worker-icon { position: absolute; top: 5px; left: 5px; font-size: 1.2rem; filter: drop-shadow(0 0 2px white); animation: bounce 1s infinite alternate; }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-5px); } }
 
-        /* 有效放置提示 */
+        /* 有效放置提示 (增強版) */
         .valid-placement {
             position: absolute; width: var(--card-w); height: var(--card-h);
-            border: 2px dashed var(--accent); border-radius: 8px; background: rgba(211, 47, 47, 0.1);
-            display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--accent);
-            cursor: pointer; z-index: 5;
+            border: 4px dashed #ff0000; border-radius: 8px; background: rgba(255, 0, 0, 0.2);
+            display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #ff0000;
+            cursor: pointer; z-index: 5; font-weight: bold; text-shadow: 0 0 10px white;
+            animation: flash-border 0.8s infinite alternate;
         }
-        .valid-placement:hover { background: rgba(211, 47, 47, 0.3); }
+        .valid-placement:hover { background: rgba(255, 0, 0, 0.5); transform: scale(1.05); }
+        @keyframes flash-border {
+            0% { box-shadow: 0 0 10px #ff0000; border-color: rgba(255,0,0,0.5); }
+            100% { box-shadow: 0 0 30px #ff0000; border-color: rgba(255,0,0,1); }
+        }
 
         /* 手牌區 */
         #hand-area {
             height: 160px; display: flex; align-items: center;
-            overflow-x: auto; padding: 10px; background: rgba(0,0,0,0.1); flex-shrink: 0;
-            gap: 10px;
+            overflow-x: auto; padding: 10px; background: rgba(0,0,0,0.1); flex-shrink: 0; gap: 10px;
         }
         #hand-area .card { position: relative; flex-shrink: 0; }
 
@@ -105,30 +122,35 @@
 
         /* 彈窗 */
         .overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8);
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85);
             display: flex; justify-content: center; align-items: center; z-index: 1000;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s; padding: 20px;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s; padding: 10px;
         }
         .overlay.active { opacity: 1; pointer-events: auto; }
         .modal {
-            background: var(--bg-color); padding: 20px; border-radius: 10px; max-width: 100%; max-height: 90vh;
+            background: var(--bg-color); padding: 20px; border-radius: 10px; max-width: 100%; max-height: 85vh;
             overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 3px solid var(--border-color);
             width: 600px; box-sizing: border-box;
         }
-        .modal h2 { margin-top: 0; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+        .modal h2 { margin-top: 0; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 10px; font-size: 1.5rem; }
+        .modal h3 { color: #5d4037; margin-top: 15px; margin-bottom: 5px; font-size: 1.2rem; }
+        .modal p, .modal li { line-height: 1.6; font-size: 1rem; margin-bottom: 8px; }
+        .modal ul { padding-left: 20px; }
+        .highlight-text { color: var(--accent); font-weight: bold; }
         
         #toast {
             position: fixed; top: 10%; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.9); color: white; padding: 10px 20px; border-radius: 20px;
             z-index: 2000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-weight: bold; font-size: 1rem; white-space: nowrap;
         }
 
         @media (max-width: 600px) {
-            :root { --card-w: 80px; --card-h: 110px; --gap: 8px; }
+            :root { --card-w: 80px; --card-h: 110px; }
             .card-title { font-size: 0.7rem; }
             .card-desc { font-size: 0.55rem; }
             button { padding: 8px 10px; font-size: 0.8rem; }
+            .modal { padding: 15px; }
         }
     </style>
 </head>
@@ -154,33 +176,78 @@
 
     <div id="bottom-bar">
         <button id="btn-draw" class="primary" onclick="game.drawPhase()">1. 抽牌</button>
-        <button id="btn-work" onclick="game.workPhase()">2. 派遣村民</button>
+        <button id="btn-work" onclick="game.confirmWork()">2. 完成派遣</button>
         <button id="btn-collect" onclick="game.collectPhase()">3. 收集</button>
         <button id="btn-build" onclick="game.buildPhase()">4. 建造</button>
         <button id="btn-end" onclick="game.endTurn()">結束回合</button>
     </div>
 </div>
 
+<!-- 初始教學彈窗 -->
 <div id="overlay-tutorial" class="overlay active">
     <div class="modal">
         <h2>🏰 歡迎來到村莊建設者</h2>
-        <div id="tutorial-text" style="line-height: 1.6; height: 40vh; overflow-y: auto; padding-right:10px;">
-            <!-- 說明文字 -->
-        </div>
-        <button class="primary" style="width: 100%; margin-top: 15px;" onclick="ui.closeTutorial()">我準備好了，開始遊戲</button>
+        <div id="tutorial-text" style="height: 50vh; overflow-y: auto; padding-right:10px;"></div>
+        <button class="primary" style="width: 100%; margin-top: 15px; padding: 15px;" onclick="ui.closeTutorial()">我準備好了，開始遊戲</button>
     </div>
 </div>
 
+<!-- 選單彈窗 -->
 <div id="overlay-menu" class="overlay">
     <div class="modal">
         <h2>⚙️ 遊戲選單</h2>
         <div style="display: flex; flex-direction: column; gap: 10px;">
             <button onclick="game.saveGame()">💾 存檔</button>
             <button onclick="game.loadGame()">📂 讀檔</button>
-            <button onclick="ui.showRules()">📜 完整規則</button>
+            <button onclick="ui.showRules()">📖 完整規則說明</button>
             <button onclick="ui.toggleSound()" id="btn-sound">🔊 音效: 開</button>
             <button onclick="ui.toggleMenu()">❌ 返回遊戲</button>
         </div>
+    </div>
+</div>
+
+<!-- 規則說明彈窗 -->
+<div id="overlay-rules" class="overlay">
+    <div class="modal">
+        <h2>📖 完整遊戲規則</h2>
+        <h3>🎯 遊戲目標</h3>
+        <p>建立繁華的村莊，在遊戲結束時獲得最多的勝利點數 (VP)。</p>
+        
+        <h3>🖥️ 看懂畫面</h3>
+        <ul>
+            <li>頂部資源列：顯示你的 <span class="highlight-text">🪙 金幣、🪵 木頭、🪨 石頭、👷 村民(可用/上限)</span> 以及剩餘牌堆。</li>
+            <li>中央棋盤：你已建造的村莊。相鄰的建築會組成「建築群」。</li>
+            <li>下方手牌區：你抽到的卡牌。每張手牌在建造時都價值 1 枚金幣。</li>
+        </ul>
+
+        <h3>🔄 回合流程</h3>
+        <ol>
+            <li><strong>抽牌階段：</strong>點擊底部「抽牌」，補滿至手牌上限（預設5張）。</li>
+            <li><strong>工作階段：</strong>點擊棋盤上<span class="highlight-text">發出綠光</span>的建築，派遣村民去工作。</li>
+            <li><strong>收集階段：</strong>點擊「收集」，結算村民產出的資源。</li>
+            <li><strong>建造階段：</strong>點擊下方手牌，再點擊棋盤上的紅色虛線框來建造。</li>
+            <li><strong>結束回合：</strong>若不想建造，點擊「結束回合」，會強制棄掉一半手牌。</li>
+        </ol>
+
+        <h3>🏗️ 建造規則</h3>
+        <ul>
+            <li>新建築必須與舊建築 <strong>「十字相鄰」</strong>（上下左右）。</li>
+            <li>同一行或同一列的連續建築 <strong>不得超過 5 棟</strong>。</li>
+            <li>若你想建造 2 級建築，必須放置在同類型的 1 級建築上（升級）。</li>
+            <li>你無法覆蓋「起始建築」。</li>
+        </ul>
+
+        <h3>✨ 特殊連接</h3>
+        <p>有些卡牌邊緣有半圓形圖案（如金幣、星星）。若新卡牌的半圓與相鄰卡牌的半圓<strong>完美拼接</strong>，將立即獲得對應的獎勵！</p>
+
+        <h3>🏆 計分方式</h3>
+        <ul>
+            <li><strong>住宅 (Residential)：</strong> 建築群數量 × 該群最高等級。</li>
+            <li><strong>商業 (Commercial)：</strong> 建築群中「不同名稱」的數量 × 該群最高等級。</li>
+            <li><strong>工業 (Industrial)：</strong> 木材屋與礦場分開計算，群體數量即為分數。</li>
+            <li><strong>特殊 (Special)：</strong> 依據卡牌說明加分（例如雕像提供 5VP）。</li>
+        </ul>
+        <button class="primary" style="width: 100%; margin-top: 15px;" onclick="ui.closeRules()">我明白了</button>
     </div>
 </div>
 
@@ -188,40 +255,24 @@
 
 <script>
 // ==========================================
-// 1. 卡牌資料庫 (精確對應 PDF)
+// 1. 卡牌資料庫
 // ==========================================
 const CARD_DB = {
-    // 起始建築 (不可被覆蓋升級)
     "Peasant Hut": { type: "Residential", lvl: 1, cost: 2, effect: "gain_worker_1", name: "農民小屋", desc: "獲得1個額外村民(上限8)", isStart: true, leftConn: null, rightConn: "star" },
     "Lumber Hut": { type: "Industrial", lvl: "X", cost: 3, effect: "gain_wood_1", name: "木材屋", desc: "放置村民獲得1木頭", isStart: true, leftConn: null, rightConn: "half" },
     "Ore Mine": { type: "Industrial", lvl: "X", cost: 3, effect: "gain_stone_1", name: "礦場", desc: "放置村民獲得1石頭", isStart: true, leftConn: "half", rightConn: null },
-    
-    // 1級建築
     "Market": { type: "Commercial", lvl: 1, cost: 5, effect: "trade_1", name: "市場", desc: "用1資源換任何資源", leftConn: null, rightConn: "coin" },
     "Workshop": { type: "Special", lvl: 1, cost: 4, effect: "score_residential", name: "作坊", desc: "每個相鄰住宅建築+1VP", leftConn: null, rightConn: null },
     "Vineyard": { type: "Special", lvl: 1, cost: 6, effect: "score_commercial", name: "葡萄園", desc: "每個相鄰商業建築+1VP", leftConn: null, rightConn: null },
-    "Tannery": { type: "Special", lvl: 1, cost: 5, effect: "score_agriculture", name: "製革廠", desc: "每個相鄰農業建築+2VP", leftConn: null, rightConn: null },
-    
-    // 2級建築
     "Patrician House": { type: "Residential", lvl: 2, cost: 4, effect: "gain_worker_2", name: "地主之家", desc: "放置村民獲得2村民(上限8)", leftConn: null, rightConn: "star" },
     "Big Bazaar": { type: "Commercial", lvl: 2, cost: 7, effect: "draw_7", name: "大集市", desc: "抽牌階段抽到7張", leftConn: "coin", rightConn: null },
-    "Noble House": { type: "Residential", lvl: 2, cost: 6, effect: "gain_worker_2", name: "貴族之家", desc: "放置村民獲得2村民(上限8)", leftConn: null, rightConn: "star" },
-    
-    // 3級建築
     "Bazaar": { type: "Commercial", lvl: 3, cost: 6, effect: "draw_6", name: "集市", desc: "抽牌階段抽到6張", leftConn: "coin", rightConn: null },
-    "Big Market": { type: "Commercial", lvl: 3, cost: 12, effect: "trade_any", name: "大市場", desc: "用任意數量資源換其他", leftConn: "coin", rightConn: null },
-    
-    // 獨特建築 (U級)
     "Statue": { type: "Special", lvl: "U", cost: 10, effect: "vp_5", name: "雕像", desc: "遊戲結束獲得5VP", unique: true, leftConn: null, rightConn: null },
     "Surgery": { type: "Special", lvl: "U", cost: 4, effect: "immune_plague", name: "手術室", desc: "免疫瘟疫卡效果", unique: true, leftConn: null, rightConn: null },
-    "Fortress": { type: "Special", lvl: "U", cost: 10, effect: "vp_5", name: "要塞", desc: "遊戲結束獲得5VP", unique: true, leftConn: null, rightConn: null },
-    
-    // 事件卡
     "Plague": { type: "Event", lvl: 0, cost: 0, effect: "event_plague", name: "瘟疫", desc: "人口降至2" },
     "Fire": { type: "Event", lvl: 0, cost: 0, effect: "event_fire", name: "火災", desc: "燒毀2棟非起始建築" }
 };
 
-// 輔助函數：生成卡牌
 function createCard(key) {
     return { id: 'c_' + Date.now() + Math.random().toString(36).substr(2, 5), key: key, ...CARD_DB[key] };
 }
@@ -238,6 +289,7 @@ const AudioSys = {
         osc.connect(gain); gain.connect(this.ctx.destination);
         if (type === 'click') { osc.type = 'sine'; osc.frequency.setValueAtTime(600, this.ctx.currentTime); gain.gain.setValueAtTime(0.1, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1); osc.start(); osc.stop(this.ctx.currentTime + 0.1); }
         else if (type === 'build') { osc.type = 'triangle'; osc.frequency.setValueAtTime(300, this.ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.2); gain.gain.setValueAtTime(0.1, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3); osc.start(); osc.stop(this.ctx.currentTime + 0.3); }
+        else if (type === 'work') { osc.type = 'square'; osc.frequency.setValueAtTime(400, this.ctx.currentTime); gain.gain.setValueAtTime(0.05, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15); osc.start(); osc.stop(this.ctx.currentTime + 0.15); }
     }
 };
 
@@ -256,31 +308,29 @@ const ui = {
         game.init();
     },
     toggleMenu() { AudioSys.play('click'); document.getElementById('overlay-menu').classList.toggle('active'); },
+    showRules() { document.getElementById('overlay-menu').classList.remove('active'); document.getElementById('overlay-rules').classList.add('active'); },
+    closeRules() { AudioSys.play('click'); document.getElementById('overlay-rules').classList.remove('active'); },
     toggleSound() { AudioSys.enabled = !AudioSys.enabled; document.getElementById('btn-sound').innerText = AudioSys.enabled ? "🔊 音效: 開" : "🔇 音效: 關"; },
-    showRules() {
-        alert("規則提示：\n1. 建築必須十字相鄰，同一行/列連續不可超過5。\n2. 2級卡必須建在同類型1級卡上。\n3. 特殊連接(卡牌左右半圓)相鄰時觸發。\n4. 若回合不建造，需棄掉一半手牌。\n5. 計分：住宅(數量x最高級)、商業(不同名稱數量x最高級)、工業(同類型數量)。");
-    },
-    typeWriter(text, element, speed = 30) {
+    typeWriter(text, element, speed = 20) {
         let i = 0; element.innerHTML = '';
         const timer = setInterval(() => { if (i < text.length) { element.innerHTML += text.charAt(i); i++; } else { clearInterval(timer); } }, speed);
     }
 };
 
 // ==========================================
-// 4. 遊戲核心 (嚴格狀態機)
+// 4. 遊戲核心
 // ==========================================
 const game = {
     state: {
-        phase: 'INIT', // INIT, DRAW, WORK, COLLECT, BUILD, END
+        phase: 'INIT',
         deck: [], discard: [],
         hand: [],
-        grid: new Map(), // key: "x,y" -> 卡牌陣列 (最上面的是當前建築)
+        grid: new Map(),
         coins: 2, wood: 0, stone: 0,
         maxWorkers: 2, availableWorkers: 2,
         handLimit: 5,
-        workAssignments: new Map(), // key: "x,y" -> workerCount
-        selectedCard: null, // 用於建造時選擇的卡
-        pendingEvent: null
+        workAssignments: new Map(),
+        selectedCard: null
     },
 
     init() {
@@ -292,22 +342,20 @@ const game = {
         this.state.coins = 2; this.state.wood = 0; this.state.stone = 0;
         this.state.maxWorkers = 2; this.state.availableWorkers = 2;
         
-        // 放置起始建築
         this.state.grid.set("0,0", [createCard("Peasant Hut")]);
         this.state.grid.set("-1,0", [createCard("Lumber Hut")]);
         
-        // 生成牌堆 (簡化為 40 張，包含災難)
         const pool = Object.keys(CARD_DB).filter(k => CARD_DB[k].type !== 'Event' && !CARD_DB[k].isStart);
         for(let i=0; i<38; i++) this.state.deck.push(createCard(pool[Math.floor(Math.random()*pool.length)]));
         this.state.deck.push(createCard("Plague"));
         this.state.deck.push(createCard("Fire"));
-        this.state.deck.sort(() => Math.random() - 0.5); // 洗牌
+        this.state.deck.sort(() => Math.random() - 0.5);
 
         this.updateUI();
         this.showPhaseButton('DRAW');
+        ui.showToast("請點擊下方「1. 抽牌」開始你的回合。");
     },
 
-    // 1. 抽牌階段
     drawPhase() {
         AudioSys.play('click');
         if (this.state.phase !== 'DRAW') return;
@@ -328,20 +376,23 @@ const game = {
         this.state.phase = 'WORK';
         this.updateUI();
         this.showPhaseButton('WORK');
-        if (drawn > 0) ui.showToast(`抽了 ${drawn} 張牌。請點擊村莊內的建築派遣村民。`);
+        ui.showToast(`抽了 ${drawn} 張牌。請點擊上方「發出綠光」的建築派遣村民！`);
     },
 
-    // 2. 工作階段
-    workPhase() {
+    confirmWork() {
         AudioSys.play('click');
         if (this.state.phase !== 'WORK') return;
+        
+        if (this.state.workAssignments.size === 0) {
+            ui.showToast("你沒有派遣任何村民，直接進入收集階段。");
+        } else {
+            ui.showToast("派遣完成！請點擊「3. 收集」結算資源。");
+        }
         this.state.phase = 'COLLECT';
         this.updateUI();
         this.showPhaseButton('COLLECT');
-        ui.showToast("點擊「收集」來結算村民的工作成果。");
     },
 
-    // 3. 收集階段
     collectPhase() {
         AudioSys.play('click');
         if (this.state.phase !== 'COLLECT') return;
@@ -350,45 +401,51 @@ const game = {
         for (let [key, workers] of this.state.workAssignments) {
             if (workers > 0) {
                 const card = this.state.grid.get(key).at(-1);
-                if (card.effect === 'gain_wood_1') { this.state.wood = Math.min(5, this.state.wood + 1); gathered += "🪵"; }
-                if (card.effect === 'gain_stone_1') { this.state.stone = Math.min(5, this.state.stone + 1); gathered += "🪨"; }
-                if (card.effect === 'gain_worker_1') { this.state.maxWorkers += 1; this.state.availableWorkers += 1; gathered += "👷"; }
-                // 依此類推其他效果...
+                if (card.effect === 'gain_wood_1') { this.state.wood = Math.min(5, this.state.wood + 1); gathered += "🪵 "; }
+                if (card.effect === 'gain_stone_1') { this.state.stone = Math.min(5, this.state.stone + 1); gathered += "🪨 "; }
+                if (card.effect === 'gain_worker_1') { this.state.maxWorkers += 1; this.state.availableWorkers += 1; gathered += "👷 "; }
             }
         }
         this.state.workAssignments.clear();
         this.state.phase = 'BUILD';
         this.updateUI();
         this.showPhaseButton('BUILD');
-        if (gathered) ui.showToast(`收集完成！獲得: ${gathered}`);
-        else ui.showToast("沒有派遣村民或無資源產出。請選擇手牌建造，或結束回合。");
+        if (gathered) ui.showToast(`收集完成！獲得: ${gathered}。請點擊手牌建造。`);
+        else ui.showToast("沒有產出資源。請點擊手牌建造，或點擊「結束回合」。");
     },
 
-    // 4. 建造階段 (點擊手牌觸發)
     buildPhase() {
+        AudioSys.play('click');
         if (this.state.phase !== 'BUILD') return;
-        ui.showToast("請點擊手牌選擇要建造的建築。");
+        ui.showToast("請點擊下方手牌選擇要建造的建築。");
     },
 
-    // 點擊手牌
     selectHandCard(card) {
         if (this.state.phase !== 'BUILD') { ui.showToast("現在不是建造階段！"); return; }
         this.state.selectedCard = card;
-        this.updateUI(); // 這會渲染出有效放置點
-        ui.showToast(`選擇了 ${card.name}，請點擊棋盤上閃爍的虛線框放置。`);
+        this.updateUI();
+        
+        // 自動對焦到第一個合法放置點
+        setTimeout(() => {
+            const firstValid = document.querySelector('.valid-placement');
+            if (firstValid) {
+                firstValid.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                ui.showToast(`選擇了 ${card.name}，已為你跳轉至放置位置，請點擊紅色虛線框。`);
+            } else {
+                ui.showToast(`選擇了 ${card.name}，但目前沒有合法的放置位置！`);
+            }
+        }, 100);
     },
 
-    // 嘗試放置
     tryPlaceCard(x, y) {
         if (!this.state.selectedCard) return;
         const card = this.state.selectedCard;
         
         if (!this.isValidPlacement(x, y, card)) {
-            ui.showToast("無法放置在這裡！(需十字相鄰、不超過5連或升級規則不符)"); return;
+            ui.showToast("無法放置！(需十字相鄰、不超過5連或升級規則不符)"); return;
         }
         
-        // 支付成本 (手牌算1金)
-        let totalMoney = this.state.coins + this.state.hand.length - 1; // 扣除自己
+        let totalMoney = this.state.coins + this.state.hand.length - 1;
         if (totalMoney < card.cost) { ui.showToast("金幣/手牌不足！"); return; }
         
         let costRemaining = card.cost;
@@ -397,7 +454,6 @@ const game = {
         } else {
             costRemaining -= this.state.coins;
             this.state.coins = 0;
-            // 棄手牌抵錢 (保留要建造的那張)
             for (let i = this.state.hand.length - 1; i >= 0; i--) {
                 if (this.state.hand[i].id !== card.id && costRemaining > 0) {
                     this.state.discard.push(this.state.hand.splice(i, 1)[0]);
@@ -406,22 +462,18 @@ const game = {
             }
         }
         
-        // 從手牌移除
         const hIdx = this.state.hand.findIndex(c => c.id === card.id);
         if (hIdx > -1) this.state.hand.splice(hIdx, 1);
         
-        // 放置到網格
         const key = `${x},${y}`;
         if (this.state.grid.has(key)) {
-            this.state.grid.get(key).push(card); // 升級
+            this.state.grid.get(key).push(card);
         } else {
             this.state.grid.set(key, [card]);
         }
         
-        // 檢查特殊連接
         this.checkConnections(x, y, card);
         
-        // 住宅增加上限
         if (card.type === 'Residential') {
             this.state.maxWorkers += 2;
             this.state.availableWorkers += 2;
@@ -433,25 +485,21 @@ const game = {
         ui.showToast(`成功建造 ${card.name}！`);
     },
 
-    // 核心規則：十字相鄰、5連限制、升級檢查
     isValidPlacement(x, y, card) {
         const key = `${x},${y}`;
         const isOccupied = this.state.grid.has(key);
         
-        // 升級規則
         if (card.lvl === 2) {
             if (!isOccupied) return false;
             const below = this.state.grid.get(key).at(-1);
             if (below.isStart || below.type !== card.type || below.lvl !== 1) return false;
         } else {
-            if (isOccupied) return false; // 1級不能建在已有建築上
+            if (isOccupied) return false;
         }
         
-        // 相鄰規則
         const neighbors = [`${x+1},${y}`, `${x-1},${y}`, `${x},${y+1}`, `${x},${y-1}`];
         if (!neighbors.some(k => this.state.grid.has(k))) return false;
         
-        // 5連限制
         let tempGrid = new Map(this.state.grid);
         if (isOccupied) tempGrid.get(key).push(card);
         else tempGrid.set(key, [card]);
@@ -471,11 +519,10 @@ const game = {
         return true;
     },
 
-    // 特殊連接檢查
     checkConnections(x, y, card) {
         const dirs = [
-            { dx: 1, dy: 0, myConn: 'rightConn', theirConn: 'leftConn', text: "右側" },
-            { dx: -1, dy: 0, myConn: 'leftConn', theirConn: 'rightConn', text: "左側" }
+            { dx: 1, dy: 0, myConn: 'rightConn', theirConn: 'leftConn' },
+            { dx: -1, dy: 0, myConn: 'leftConn', theirConn: 'rightConn' }
         ];
         dirs.forEach(d => {
             const nKey = `${x+d.dx},${y+d.dy}`;
@@ -489,13 +536,11 @@ const game = {
         });
     },
 
-    // 結束回合 (不建造則棄牌)
     endTurn() {
         AudioSys.play('click');
         if (this.state.phase !== 'BUILD') { ui.showToast("現在不能結束回合！"); return; }
         
         if (!this.state.selectedCard) {
-            // 必須棄掉一半手牌 (向下取整)
             const discardCount = Math.floor(this.state.hand.length / 2);
             for (let i = 0; i < discardCount; i++) {
                 this.state.discard.push(this.state.hand.pop());
@@ -509,6 +554,7 @@ const game = {
             this.state.phase = 'DRAW';
             this.updateUI();
             this.showPhaseButton('DRAW');
+            ui.showToast("新的一輪開始，請點擊「1. 抽牌」。");
         }
     },
 
@@ -526,9 +572,7 @@ const game = {
             const keys = Array.from(this.state.grid.keys());
             for (let k of keys) {
                 if (this.state.grid.get(k).at(-1).isStart) continue;
-                if (removed < 2) {
-                    this.state.grid.delete(k); removed++;
-                }
+                if (removed < 2) { this.state.grid.delete(k); removed++; }
             }
             ui.showToast(`發生火災！燒毀了 ${removed} 棟建築！`);
         }
@@ -537,8 +581,6 @@ const game = {
     endGame() {
         this.state.phase = 'END';
         let score = 0;
-        
-        // 住宅計分
         let visited = new Set();
         for (let [key, stack] of this.state.grid) {
             if (visited.has(key)) continue;
@@ -547,16 +589,11 @@ const game = {
                 let comp = this.getComponent(key, 'Residential');
                 comp.forEach(k => visited.add(k));
                 if (comp.length > 1) {
-                    let maxLvl = Math.max(...comp.map(k => {
-                        let l = this.state.grid.get(k).at(-1).lvl;
-                        return (l === 'X' || l === 'U') ? 1 : l;
-                    }));
+                    let maxLvl = Math.max(...comp.map(k => { let l = this.state.grid.get(k).at(-1).lvl; return (l === 'X' || l === 'U') ? 1 : l; }));
                     score += comp.length * maxLvl;
                 }
             }
         }
-        
-        // 商業計分
         visited.clear();
         for (let [key, stack] of this.state.grid) {
             if (visited.has(key)) continue;
@@ -566,16 +603,11 @@ const game = {
                 comp.forEach(k => visited.add(k));
                 if (comp.length > 1) {
                     let distinct = new Set(comp.map(k => this.state.grid.get(k).at(-1).name));
-                    let maxLvl = Math.max(...comp.map(k => {
-                        let l = this.state.grid.get(k).at(-1).lvl;
-                        return (l === 'X' || l === 'U') ? 1 : l;
-                    }));
+                    let maxLvl = Math.max(...comp.map(k => { let l = this.state.grid.get(k).at(-1).lvl; return (l === 'X' || l === 'U') ? 1 : l; }));
                     score += distinct.size * maxLvl;
                 }
             }
         }
-
-        // 工業計分 (依據 PDF 文本，木材屋與礦場分開算群體)
         visited.clear();
         for (let [key, stack] of this.state.grid) {
             if (visited.has(key)) continue;
@@ -591,20 +623,13 @@ const game = {
                 }
             }
         }
-
-        // 特殊建築計分
         for (let [key, stack] of this.state.grid) {
             const card = stack.at(-1);
             if (card.effect === 'vp_5') score += 5;
             if (card.effect === 'vp_3') score += 3;
-            if (card.effect === 'score_residential') {
-                score += this.getAdjacentCards(key).filter(c => c.type === 'Residential').length;
-            }
-            if (card.effect === 'score_commercial') {
-                score += this.getAdjacentCards(key).filter(c => c.type === 'Commercial').length;
-            }
+            if (card.effect === 'score_residential') score += this.getAdjacentCards(key).filter(c => c.type === 'Residential').length;
+            if (card.effect === 'score_commercial') score += this.getAdjacentCards(key).filter(c => c.type === 'Commercial').length;
         }
-
         alert(`遊戲結束！\n最終分數：${score} VP\n感謝遊玩！`);
         location.reload();
     },
@@ -616,10 +641,8 @@ const game = {
             const [x, y] = curr.split(',').map(Number);
             const neighbors = [`${x+1},${y}`, `${x-1},${y}`, `${x},${y+1}`, `${x},${y-1}`];
             for (let n of neighbors) {
-                if (this.state.grid.has(n) && !visited.has(n)) {
-                    if (this.state.grid.get(n).at(-1).type === type) {
-                        visited.add(n); queue.push(n);
-                    }
+                if (this.state.grid.has(n) && !visited.has(n) && this.state.grid.get(n).at(-1).type === type) {
+                    visited.add(n); queue.push(n);
                 }
             }
         }
@@ -632,7 +655,6 @@ const game = {
         return neighbors.filter(n => this.state.grid.has(n)).map(n => this.state.grid.get(n).at(-1));
     },
 
-    // 渲染 UI
     updateUI() {
         document.getElementById('res-coin').innerText = this.state.coins;
         document.getElementById('res-wood').innerText = this.state.wood;
@@ -640,7 +662,6 @@ const game = {
         document.getElementById('res-worker').innerText = `${this.state.availableWorkers}/${this.state.maxWorkers}`;
         document.getElementById('res-deck').innerText = this.state.deck.length;
 
-        // 渲染手牌
         const handArea = document.getElementById('hand-area');
         handArea.innerHTML = '';
         this.state.hand.forEach(card => {
@@ -649,49 +670,53 @@ const game = {
             handArea.appendChild(div);
         });
 
-        // 渲染棋盤
         const gridArea = document.getElementById('grid-area');
         gridArea.innerHTML = '';
         
-        // 計算偏移量使棋盤居中
         let minX = 0, maxX = 0, minY = 0, maxY = 0;
         for (let key of this.state.grid.keys()) {
             const [x, y] = key.split(',').map(Number);
             minX = Math.min(minX, x); maxX = Math.max(maxX, x);
             minY = Math.min(minY, y); maxY = Math.max(maxY, y);
         }
-        const offsetX = 1500 - (maxX + minX) * 50; 
+        const offsetX = 1500 - (maxX + minX) * 55; 
         const offsetY = 1500 - (maxY + minY) * 75;
         gridArea.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
 
-        // 繪製已建建築
         for (let [key, stack] of this.state.grid) {
             const [x, y] = key.split(',').map(Number);
             const card = stack.at(-1);
             const div = this.createCardElement(card, true, stack.length > 1);
-            div.style.left = `${x * 110}px`; // 間距
+            div.style.left = `${x * 110}px`;
             div.style.top = `${y * 150}px`;
             
-            // 工人顯示
-            if (this.state.workAssignments.has(key) && this.state.workAssignments.get(key) > 0) {
+            const hasWorker = this.state.workAssignments.has(key) && this.state.workAssignments.get(key) > 0;
+            if (this.state.phase === 'WORK' && !hasWorker && this.state.availableWorkers > 0) {
+                div.classList.add('can-work');
+                const hint = document.createElement('div');
+                hint.innerText = '👷 點擊派遣';
+                hint.style.cssText = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(76,175,80,0.9);color:white;padding:5px;border-radius:5px;font-size:0.8rem;font-weight:bold;pointer-events:none;box-shadow:0 2px 5px rgba(0,0,0,0.5);white-space:nowrap;";
+                div.appendChild(hint);
+            }
+
+            if (hasWorker) {
                 const w = document.createElement('div'); w.className = 'worker-icon'; w.innerText = '👷'; div.appendChild(w);
             }
             
-            // 點擊派遣工人
             div.onclick = () => {
                 if (this.state.phase !== 'WORK') { ui.showToast("現在不是派遣階段！"); return; }
                 if (this.state.availableWorkers <= 0) { ui.showToast("沒有可用村民了！"); return; }
-                const current = this.state.workAssignments.get(key) || 0;
-                if (current > 0) { ui.showToast("此建築已有村民！"); return; }
+                if (hasWorker) { ui.showToast("此建築已經有村民了！"); return; }
                 
+                AudioSys.play('work');
                 this.state.workAssignments.set(key, 1);
                 this.state.availableWorkers--;
                 this.updateUI();
+                ui.showToast(`已派遣村民到 ${card.name}。`);
             };
             gridArea.appendChild(div);
         }
 
-        // 渲染有效放置點 (如果選擇了手牌)
         if (this.state.selectedCard) {
             const validSpots = this.getValidPlacements(this.state.selectedCard);
             validSpots.forEach(({x, y}) => {
@@ -725,7 +750,6 @@ const game = {
         const div = document.createElement('div');
         div.className = `card lvl-${card.lvl !== 'X' && card.lvl !== 'U' ? card.lvl : 1}`;
         
-        // 特殊連接標記
         let connHTML = '';
         if (card.leftConn) connHTML += `<div class="conn-marker conn-left" title="左連接"></div>`;
         if (card.rightConn) connHTML += `<div class="conn-marker conn-right" title="右連接"></div>`;
@@ -784,9 +808,7 @@ const game = {
     }
 };
 
-// ==========================================
-// 5. 初始化與教學文字
-// ==========================================
+// 初始教學文字
 const tutorialText = `歡迎來到《村莊建設者》！
 這是一款嚴格考驗空間佈局的單人桌遊，你的目標是建立一個繁華村莊並獲得最高 VP。
 
@@ -797,19 +819,18 @@ const tutorialText = `歡迎來到《村莊建設者》！
 📜 牌堆：剩餘卡牌數量。
 
 【操作流程】
-1. 抽牌階段：點擊「抽牌」，補至手牌上限（預設5張）。
-2. 工作階段：點擊棋盤上的建築派遣村民（每張卡限1人）。
-3. 收集階段：點擊「收集」結算獲得的資源。
-4. 建造階段：點擊手牌選擇建築，再點擊棋盤上的「➕」放置。
+1. 抽牌階段：點擊底部「1. 抽牌」，補至手牌上限。
+2. 工作階段：點擊上方「發出綠光」的建築派遣村民。
+3. 收集階段：點擊「3. 收集」結算獲得的資源。
+4. 建造階段：點擊手牌選擇建築，畫面會自動跳轉並顯示紅色虛線框。
    - 建築必須十字相鄰，同一行/列連續不可超過5。
    - 2級卡必須升級在同類型1級卡上。
-   - 若不想建造，點擊「結束回合」會強制棄掉一半手牌。
 5. 特殊連接：卡牌左右半圓若與相鄰卡牌匹配，可獲得獎勵！
 6. 災難：抽到瘟疫或火災會立即結算。
 
 準備好就開始吧！`;
 
-ui.typeWriter(tutorialText, document.getElementById('tutorial-text'), 20);
+ui.typeWriter(tutorialText, document.getElementById('tutorial-text'), 15);
 
 </script>
 </body>
