@@ -60,14 +60,23 @@
         #board { width: 100%; height: 100%; cursor: default; transition: cursor 0.2s; }
         #board.my-turn { cursor: crosshair; }
 
-        /* 等待對手遮罩 */
-        #waiting-overlay {
+        /* 等待與準備遮罩 */
+        #game-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.75); border-radius: 8px; z-index: 10;
+            background: rgba(0, 0, 0, 0.85); border-radius: 8px; z-index: 10;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: var(--accent); font-size: 1.2rem; font-weight: bold;
+            color: var(--accent); text-align: center; padding: 20px;
         }
-        #waiting-overlay .spinner { width: 40px; height: 40px; border: 4px solid var(--surface); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
+        #game-overlay .spinner { width: 40px; height: 40px; border: 4px solid var(--surface); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
+        #game-overlay h2 { font-size: 1.5rem; margin-bottom: 10px; }
+        #game-overlay p { color: #ccc; margin-bottom: 20px; font-size: 1rem; }
+        
+        /* 倒數計時動畫 */
+        #countdown-text {
+            font-size: 5rem; font-weight: bold; color: var(--accent);
+            animation: pop 1s ease-out infinite; text-shadow: 0 0 20px rgba(226, 176, 74, 0.5);
+        }
+        @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 
         #game-controls {
             margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;
@@ -83,6 +92,8 @@
         button:disabled { opacity: 0.4; cursor: not-allowed; }
         button.primary { background: var(--accent); color: #000; font-weight: 600; border-color: var(--accent); }
         button.primary:hover { background: #f0c060; }
+        button.success { background: var(--success); color: #000; font-weight: bold; border-color: var(--success); }
+        button.success:hover { background: #27ae60; }
         button.danger { color: var(--danger); border-color: var(--danger); }
         button.danger:hover { background: rgba(231, 76, 60, 0.2); }
         button.warning { color: var(--accent); border-color: var(--accent); }
@@ -159,6 +170,7 @@
         <ul>
             <li>狀態列：<span class="highlight">輪到：⚫ 黑方（你的回合）</span> 代表現在該你下棋。</li>
             <li>⏱️ <span class="highlight">剩餘：XXs</span> 是你的思考時間。若超時，系統會自動幫你「虛手」。</li>
+            <li>棋盤邊緣顯示了 A~T（跳過 I）與 1~19 的座標，方便口頭覆盤。</li>
             <li>棋盤上的紅圈代表「最後一手棋」。</li>
             <li><strong>提子數：</strong> 顯示雙方目前吃掉對方多少顆棋子。</li>
         </ul>
@@ -223,17 +235,31 @@
     <div id="board-container">
         <div id="board"></div>
     </div>
-    <div id="waiting-overlay" class="hidden">
-        <div class="spinner"></div>
-        <div>等待對手加入中…</div>
+    
+    <!-- 對局狀態遮罩 (等待、準備、倒數) -->
+    <div id="game-overlay">
+        <div id="overlay-waiting" class="hidden">
+            <div class="spinner"></div>
+            <h2>等待對手加入…</h2>
+            <p>請將邀請連結分享給朋友</p>
+        </div>
+        <div id="overlay-ready" class="hidden">
+            <h2>對局準備</h2>
+            <p id="ready-status-text">請雙方點擊準備開始對局</p>
+            <button id="btn-ready" class="success btn-full" style="max-width: 200px;">準備好了！</button>
+        </div>
+        <div id="overlay-countdown" class="hidden">
+            <div id="countdown-text">3</div>
+            <p>對局即將開始</p>
+        </div>
     </div>
 </div>
 
 <div id="game-controls" class="hidden">
     <button id="btn-undo" class="warning" disabled>請求悔棋</button>
-    <button id="btn-pass">虛手 (Pass)</button>
-    <button id="btn-resign" class="danger">認輸</button>
-    <button id="btn-export-sgf">匯出 SGF</button>
+    <button id="btn-pass" disabled>虛手 (Pass)</button>
+    <button id="btn-resign" class="danger" disabled>認輸</button>
+    <button id="btn-export-sgf" disabled>匯出 SGF</button>
 </div>
 
 <div id="log"></div>
@@ -271,12 +297,14 @@ let moveListener = null;
 let statusListener = null;
 let undoListener = null;
 let presenceListener = null;
+let readyListener = null;
 let currentLastMoveTime = 0;
 let hasAutoPassed = false;
 let serverTimeOffset = 0;
 let totalCaptures = { B: 0, W: 0 };
 let isGameOver = false;
 let confirmCallback = null;
+let isCountdownRunning = false;
 const TIME_LIMIT = 30;
 
 /* ================================================================
@@ -328,6 +356,7 @@ function switchView(view) {
         controls.classList.add("hidden");
         document.getElementById("game-over-modal").classList.add("hidden");
         isGameOver = false;
+        isCountdownRunning = false;
     } else if (view === "game") {
         lobby.classList.add("hidden");
         bar.classList.remove("hidden");
@@ -336,16 +365,33 @@ function switchView(view) {
     }
 }
 
-function checkWaitingState(isWaiting) {
-    document.getElementById("waiting-overlay").classList.toggle("hidden", !isWaiting);
-}
-
 // 🛡️ 通用確認彈窗
 function showConfirm(title, msg, callback) {
     document.getElementById("confirm-title").textContent = title;
     document.getElementById("confirm-msg").textContent = msg;
     document.getElementById("confirm-modal").classList.remove("hidden");
     confirmCallback = callback;
+}
+
+// 🎭 控制對局遮罩狀態 (等待 / 準備 / 倒數 / 無)
+function setOverlay(state) {
+    const overlay = document.getElementById("game-overlay");
+    const elWaiting = document.getElementById("overlay-waiting");
+    const elReady = document.getElementById("overlay-ready");
+    const elCountdown = document.getElementById("overlay-countdown");
+
+    if (state === "none") {
+        overlay.classList.add("hidden");
+        return;
+    }
+    overlay.classList.remove("hidden");
+    elWaiting.classList.add("hidden");
+    elReady.classList.add("hidden");
+    elCountdown.classList.add("hidden");
+
+    if (state === "waiting") elWaiting.classList.remove("hidden");
+    if (state === "ready") elReady.classList.remove("hidden");
+    if (state === "countdown") elCountdown.classList.remove("hidden");
 }
 
 /* ================================================================
@@ -392,9 +438,6 @@ function checkAutoReconnect() {
 // ⚠️ 設定在線狀態與斷線偵測
 function setupPresence(id) {
     const userStatusRef = fbDb.ref(`games/${id}/players/${currentUser.uid}`);
-    const opponentId = myColor === "B" ? "whitePlayer" : "blackPlayer";
-    
-    // 標記自己上線
     userStatusRef.set("online");
     userStatusRef.onDisconnect().set("offline");
 
@@ -402,8 +445,7 @@ function setupPresence(id) {
     presenceListener = fbDb.ref(`games/${id}/players`);
     presenceListener.on("value", (snap) => {
         const players = snap.val() || {};
-        const oppUid = myColor === "B" ? Object.keys(players).find(k => k !== currentUser.uid) : Object.keys(players).find(k => k !== currentUser.uid);
-        
+        const oppUid = Object.keys(players).find(k => k !== currentUser.uid);
         const oppStatus = oppUid ? players[oppUid] : "offline";
         const statusEl = document.getElementById("online-status");
         
@@ -422,14 +464,19 @@ function initBoard(size) {
     boardSize = size;
     const container = document.getElementById("board");
     container.innerHTML = "";
+    
     board = new WGo.Board(container, {
         size: size, width: 600, height: 600, background: "#dcb35c",
-        lineWidth: size === 19 ? 1 : 1.5, stoneHandler: WGo.Board.drawHandlers.NORMAL
+        coordinates: true, 
+        section: { top: 1.5, right: 1.5, bottom: 1.5, left: 1.5 },
+        lineWidth: size === 19 ? 1 : 1.5, 
+        stoneHandler: WGo.Board.drawHandlers.NORMAL,
+        theme: { coordinatesColor: "#4a3317", font: "sans-serif" }
     });
 
     board.addEventListener("click", (x, y) => {
         if (typeof x !== "number" || typeof y !== "number") return;
-        if (isGameOver) return log("❌ 對局已結束", "error");
+        if (isGameOver || isCountdownRunning || document.getElementById("game-overlay").classList.contains("hidden") === false) return;
         if (!gameId || !currentTurn) return;
         if (currentTurn !== myColor) return log("⏳ 請等待對手落子", "error");
         attemptMove(currentTurn, x, y);
@@ -508,7 +555,6 @@ function pushMove(moveData) {
     fbDb.ref(`games/${gameId}/currentTurn`).set(currentTurn);
     fbDb.ref(`games/${gameId}/lastMoveTime`).set(firebase.database.ServerValue.TIMESTAMP);
 
-    // 如果有悔棋請求，下棋後自動取消
     fbDb.ref(`games/${gameId}/undoRequest`).remove();
 
     if (moveHistory.length >= 2) {
@@ -518,11 +564,9 @@ function pushMove(moveData) {
     }
 }
 
-// 悔棋請求
 function requestUndo() {
     if (isGameOver || moveHistory.length === 0) return;
     if (moveHistory[moveHistory.length - 1].color === myColor) {
-        // 如果最後一手是自己的，直接允許撤銷，或走 Firebase 同步
         showConfirm("請求悔棋", "確定要向對手請求悔棋嗎？", () => {
             fbDb.ref(`games/${gameId}/undoRequest`).set(myColor);
             log("已發送悔棋請求，等待對手同意…");
@@ -532,18 +576,12 @@ function requestUndo() {
     }
 }
 
-// 處理悔棋
 function handleUndoResponse(agree) {
     if (!gameId) return;
     if (agree) {
-        // 執行悔棋：刪除最後兩手（或一手，視情況）
-        // 我們約定好，悔棋就是退回自己落子前的狀態，所以對方請求時，通常是退 1 手（對方剛下）或 2 手（自己下完換對方）
-        // 為了簡單起見，退回最後一手
         fbDb.ref(`games/${gameId}/moves`).limitToLast(1).once("value", (snap) => {
-            snap.forEach((child) => {
-                child.ref.remove();
-            });
-            fbDb.ref(`games/${gameId}/currentTurn`).set(myColor === "B" ? "B" : "W"); // 回歸到請求者的回合
+            snap.forEach((child) => { child.ref.remove(); });
+            fbDb.ref(`games/${gameId}/currentTurn`).set(myColor);
             fbDb.ref(`games/${gameId}/undoRequest`).remove();
             log("✅ 對手同意了悔棋", "ok");
         });
@@ -625,12 +663,15 @@ function updateUI() {
     const turnEl = document.getElementById("turn-indicator");
     const colorName = currentTurn === "B" ? "⚫ 黑方" : "⚪ 白方";
     const isMyTurn = currentTurn === myColor;
-    turnEl.textContent = `輪到：${colorName}${isMyTurn ? "（你的回合）" : ""}`;
+    
+    // 如果在倒數或準備階段，UI 顯示暫停
+    const overlayHidden = document.getElementById("game-overlay").classList.contains("hidden");
+    turnEl.textContent = overlayHidden ? `輪到：${colorName}${isMyTurn ? "（你的回合）" : ""}` : "對局準備中…";
 
-    document.getElementById("board").classList.toggle("my-turn", isMyTurn);
-    document.getElementById("btn-pass").disabled = !isMyTurn;
-    document.getElementById("btn-resign").disabled = !isMyTurn;
-    document.getElementById("btn-undo").disabled = !isMyTurn || moveHistory.length === 0;
+    document.getElementById("board").classList.toggle("my-turn", isMyTurn && overlayHidden);
+    document.getElementById("btn-pass").disabled = !isMyTurn || !overlayHidden;
+    document.getElementById("btn-resign").disabled = !isMyTurn || !overlayHidden;
+    document.getElementById("btn-undo").disabled = !isMyTurn || moveHistory.length === 0 || !overlayHidden;
     document.getElementById("btn-export-sgf").disabled = moveHistory.length === 0;
 }
 
@@ -641,7 +682,10 @@ function startTimer(lastMoveTime) {
     const timerEl = document.getElementById("timer-display");
     
     timerInterval = setInterval(() => {
-        if (!gameId || !currentTurn || isGameOver) { timerEl.textContent = "時間：--"; return; }
+        if (!gameId || !currentTurn || isGameOver || isCountdownRunning) { 
+            timerEl.textContent = "時間：--"; 
+            return; 
+        }
         const now = Date.now() + serverTimeOffset;
         const elapsed = Math.floor((now - currentLastMoveTime) / 1000);
         const remaining = TIME_LIMIT - elapsed;
@@ -681,7 +725,8 @@ async function createGame() {
         await newRef.set({
             boardSize: size, komi: komiVal, blackPlayer: currentUser.uid,
             whitePlayer: null, status: "waiting", currentTurn: "B",
-            lastMoveTime: firebase.database.ServerValue.TIMESTAMP, moves: {}
+            lastMoveTime: firebase.database.ServerValue.TIMESTAMP, moves: {},
+            readyPlayers: {}
         });
 
         gameId = newRef.key;
@@ -690,9 +735,8 @@ async function createGame() {
         
         localStorage.setItem("go_gameId", gameId);
         
-        initBoard(size); renderBoard(); switchView("game"); updateUI(); listenToGame(gameId);
+        initBoard(size); renderBoard(); switchView("game"); setOverlay("waiting"); updateUI(); listenToGame(gameId);
         setupPresence(gameId);
-        checkWaitingState(true); 
         
         const inviteUrl = `${window.location.origin}${window.location.pathname}?join=${gameId}`;
         document.getElementById("invite-link").value = inviteUrl;
@@ -715,7 +759,6 @@ async function joinGame(id) {
         if (!data.whitePlayer && data.blackPlayer !== currentUser.uid) {
             myColor = "W";
             await fbDb.ref(`games/${id}/whitePlayer`).set(currentUser.uid);
-            await fbDb.ref(`games/${id}/status`).set("playing");
         } else if (data.blackPlayer === currentUser.uid) { myColor = "B"; }
         else if (data.whitePlayer === currentUser.uid) { myColor = "W"; }
         else { log("❌ 該房間已滿", "error"); return; }
@@ -730,15 +773,14 @@ async function joinGame(id) {
         currentTurn = data.currentTurn || (moveHistory.length % 2 === 0 ? "B" : "W");
         updateUI(); listenToGame(id); setupPresence(id);
         
-        checkWaitingState(data.status === "waiting" && myColor === "B");
-        log(`🤝 已加入對局，你是${myColor === "B" ? "黑方" : "白方"}`, "ok");
-        
-        const timeSnap = await fbDb.ref(`games/${id}/lastMoveTime`).once("value");
-        if (timeSnap.val()) startTimer(timeSnap.val());
-
         if (isGameOver) {
             fbDb.ref(`games/${id}/resultDetail`).once("value").then(r => showGameOver(r.val() || "對局結束"));
+        } else if (data.status === "waiting") {
+            setOverlay("waiting");
         }
+        
+        log(`🤝 已加入對局，你是${myColor === "B" ? "黑方" : "白方"}`, "ok");
+        
     } catch (err) { log("❌ 加入失敗：" + err.message, "error"); }
 }
 
@@ -746,8 +788,8 @@ function listenToGame(id) {
     if (moveListener) moveListener.off();
     if (statusListener) statusListener.off();
     if (undoListener) undoListener.off();
+    if (readyListener) readyListener.off();
     
-    // 監聽落子
     moveListener = fbDb.ref(`games/${id}/moves`);
     moveListener.on("child_added", (snap) => {
         const m = snap.val();
@@ -761,9 +803,7 @@ function listenToGame(id) {
         log(`📥 對手落子：${m.color === "B" ? "黑" : "白"} ${humanCoord(m.x, m.y)}`);
     });
 
-    // 監聽悔棋移除
     moveListener.on("child_removed", (snap) => {
-        // 如果 Firebase 移除了，本地也要跟著移除
         const m = snap.val();
         moveHistory = moveHistory.filter(h => !(h.x === m.x && h.y === m.y && h.color === m.color));
         currentTurn = moveHistory.length % 2 === 0 ? "B" : "W";
@@ -776,10 +816,11 @@ function listenToGame(id) {
     });
 
     fbDb.ref(`games/${id}/lastMoveTime`).on("value", (snap) => {
-        if (snap.val()) startTimer(snap.val());
+        if (snap.val() && document.getElementById("game-overlay").classList.contains("hidden")) {
+            startTimer(snap.val());
+        }
     });
 
-    // 監聽悔棋請求
     undoListener = fbDb.ref(`games/${id}/undoRequest`);
     undoListener.on("value", (snap) => {
         const reqColor = snap.val();
@@ -790,17 +831,75 @@ function listenToGame(id) {
         }
     });
 
-    // 監聽狀態
+    // 監聽準備狀態
+    readyListener = fbDb.ref(`games/${id}/readyPlayers`);
+    readyListener.on("value", (snap) => {
+        const readyPlayers = snap.val() || {};
+        const bReady = !!readyPlayers.B;
+        const wReady = !!readyPlayers.W;
+        
+        if (bReady && wReady) {
+            setOverlay("countdown");
+            startCountdown(() => {
+                setOverlay("none");
+                fbDb.ref(`games/${gameId}/status`).set("playing");
+                // 只有黑方設定初始時間，避免重複觸發
+                if (myColor === "B" && moveHistory.length === 0) {
+                    fbDb.ref(`games/${gameId}/lastMoveTime`).set(firebase.database.ServerValue.TIMESTAMP);
+                }
+                startTimer(Date.now());
+                updateUI();
+            });
+        } else {
+            setOverlay("ready");
+            const text = document.getElementById("ready-status-text");
+            if (bReady && !wReady) text.textContent = "等待白方準備…";
+            else if (wReady && !bReady) text.textContent = "等待黑方準備…";
+            else text.textContent = "請雙方點擊準備開始對局";
+
+            // 同步自己的準備按鈕狀態
+            const myReady = myColor === "B" ? bReady : wReady;
+            const btn = document.getElementById("btn-ready");
+            btn.disabled = myReady;
+            btn.textContent = myReady ? "等待對手…" : "準備好了！";
+        }
+    });
+
     statusListener = fbDb.ref(`games/${id}/status`);
     statusListener.on("value", (snap) => {
-        if (snap.val() === "finished" && !isGameOver) {
+        const status = snap.val();
+        if (status === "finished" && !isGameOver) {
             fbDb.ref(`games/${id}/resultDetail`).once("value").then((rSnap) => {
                 showGameOver(rSnap.val() || "對局結束");
             });
-        } else if (snap.val() === "playing") {
-            checkWaitingState(false);
+        } else if (status === "waiting") {
+            setOverlay("waiting");
         }
     });
+}
+
+// 3-2-1 倒數邏輯
+function startCountdown(onComplete) {
+    if (isCountdownRunning) return;
+    isCountdownRunning = true;
+    
+    let count = 3;
+    const el = document.getElementById("countdown-text");
+    el.textContent = count;
+    
+    const interval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            el.textContent = count;
+        } else {
+            clearInterval(interval);
+            el.textContent = "開始！";
+            setTimeout(() => {
+                isCountdownRunning = false;
+                onComplete();
+            }, 500);
+        }
+    }, 1000);
 }
 
 /* ================================================================
@@ -813,11 +912,7 @@ function exportSGF() {
 
     let sgf = `(;GM[1]FF[4]CA[UTF-8]AP[Firebase-Go:1.0]RU[Chinese]SZ[${boardSize}]KM[${komi}]DT[${dateStr}]PB[Black]PW[White]`;
     
-    // 如果有結果，寫入 SGF
-    const resultText = document.getElementById("result-title").textContent;
-    if (isGameOver) {
-        sgf += `RE[${resultText.includes("黑") ? "B" : "W"}+Resign]`; 
-    }
+    if (isGameOver) sgf += `RE[B+Resign]`; 
 
     moveHistory.forEach((m) => { sgf += m.x === -1 ? `;${m.color}[]` : `;${m.color}[${m.sgfCoord}]`; });
     sgf += `)`;
@@ -853,7 +948,12 @@ document.getElementById("btn-undo").addEventListener("click", requestUndo);
 document.getElementById("btn-export-sgf").addEventListener("click", exportSGF);
 document.getElementById("btn-copy-link").addEventListener("click", copyInviteLink);
 
-// 確認彈窗按鈕
+document.getElementById("btn-ready").addEventListener("click", () => {
+    if (!gameId) return;
+    fbDb.ref(`games/${gameId}/readyPlayers/${myColor}`).set(true);
+    log("✅ 已送出準備，等待對手…", "ok");
+});
+
 document.getElementById("btn-confirm-ok").addEventListener("click", () => {
     document.getElementById("confirm-modal").classList.add("hidden");
     if (confirmCallback) confirmCallback(true);
@@ -870,9 +970,9 @@ document.getElementById("btn-back-lobby").addEventListener("click", () => {
     if (statusListener) statusListener.off();
     if (undoListener) undoListener.off();
     if (presenceListener) presenceListener.off();
+    if (readyListener) readyListener.off();
     clearInterval(timerInterval);
     
-    // 清理 Firebase 上的在線狀態
     if (gameId && currentUser) {
         fbDb.ref(`games/${gameId}/players/${currentUser.uid}`).remove();
     }
