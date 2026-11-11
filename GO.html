@@ -97,6 +97,7 @@
         button.danger { color: var(--danger); border-color: var(--danger); }
         button.danger:hover { background: rgba(231, 76, 60, 0.2); }
         button.warning { color: var(--accent); border-color: var(--accent); }
+        button.secondary { background: #333; }
 
         #log {
             margin-top: 12px; width: 100%; max-width: 600px; max-height: 120px;
@@ -122,6 +123,18 @@
             flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border);
             background: #000; color: var(--accent); font-size: 0.85rem;
         }
+
+        /* 歷史紀錄列表 */
+        .history-list {
+            width: 100%; text-align: left; margin-top: 16px; max-height: 300px; overflow-y: auto;
+        }
+        .history-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #111; padding: 10px 12px; border-radius: 6px;
+            margin-bottom: 8px; border: 1px solid var(--border); font-size: 0.9rem;
+        }
+        .history-item .info { flex: 1; }
+        .history-item .info .date { color: #888; font-size: 0.8rem; margin-top: 4px; }
 
         /* 彈窗共用樣式 */
         .modal-overlay {
@@ -172,9 +185,17 @@
             <li>⏱️ <span class="highlight">剩餘：XXs</span> 是你的思考時間。若超時，系統會自動幫你「虛手」。</li>
             <li>棋盤邊緣顯示了 A~T（跳過 I）與 1~19 的座標，方便口頭覆盤。</li>
             <li>棋盤上的紅圈代表「最後一手棋」。</li>
-            <li><strong>提子數：</strong> 顯示雙方目前吃掉對方多少顆棋子。</li>
         </ul>
         <button id="btn-start-tutorial" class="btn-full primary">✅ 我準備好了，開始下棋</button>
+    </div>
+</div>
+
+<!-- 歷史對局彈窗 -->
+<div id="history-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h2>📂 我的歷史對局</h2>
+        <div id="history-list" class="history-list"></div>
+        <button id="btn-close-history" class="btn-full secondary">關閉</button>
     </div>
 </div>
 
@@ -216,6 +237,7 @@
     <button id="btn-create" class="primary">建立新對局</button>
     <input id="input-game-id" type="text" placeholder="輸入房間 ID" />
     <button id="btn-join">加入對局</button>
+    <button id="btn-history" class="secondary">📂 歷史對局</button>
 </div>
 
 <div id="invite-area" class="invite-box hidden">
@@ -246,7 +268,7 @@
         <div id="overlay-ready" class="hidden">
             <h2>對局準備</h2>
             <p id="ready-status-text">請雙方點擊準備開始對局</p>
-            <button id="btn-ready" class="success btn-full" style="max-width: 200px;">準備好了！</button>
+            <button id="btn-ready" class="success btn-full" style="max-width: 200px; margin: 0 auto;">準備好了！</button>
         </div>
         <div id="overlay-countdown" class="hidden">
             <div id="countdown-text">3</div>
@@ -297,8 +319,7 @@ let moveListener = null;
 let statusListener = null;
 let undoListener = null;
 let presenceListener = null;
-let readyListener = null;
-let whitePlayerListener = null;
+let gameStateListener = null; // 替換原先的 readyListener
 let currentLastMoveTime = 0;
 let hasAutoPassed = false;
 let serverTimeOffset = 0;
@@ -366,7 +387,6 @@ function switchView(view) {
     }
 }
 
-// 🛡️ 通用確認彈窗
 function showConfirm(title, msg, callback) {
     document.getElementById("confirm-title").textContent = title;
     document.getElementById("confirm-msg").textContent = msg;
@@ -374,7 +394,6 @@ function showConfirm(title, msg, callback) {
     confirmCallback = callback;
 }
 
-// 🎭 控制對局遮罩狀態 (等待 / 準備 / 倒數 / 無)
 function setOverlay(state) {
     const overlay = document.getElementById("game-overlay");
     const elWaiting = document.getElementById("overlay-waiting");
@@ -436,7 +455,6 @@ function checkAutoReconnect() {
     }
 }
 
-// ⚠️ 設定在線狀態與斷線偵測
 function setupPresence(id) {
     const userStatusRef = fbDb.ref(`games/${id}/players/${currentUser.uid}`);
     userStatusRef.set("online");
@@ -641,6 +659,8 @@ function calculateAndEndGame() {
     fbDb.ref(`games/${gameId}/status`).set("finished");
     fbDb.ref(`games/${gameId}/result`).set(`${winner}+${Math.abs(bScore-wScore).toFixed(1)}`);
     fbDb.ref(`games/${gameId}/resultDetail`).set(detailMsg);
+    
+    saveGameToHistory(winner, `${winner}+${Math.abs(bScore-wScore).toFixed(1)}`);
 }
 
 function resignGame() {
@@ -651,6 +671,8 @@ function resignGame() {
         fbDb.ref(`games/${gameId}/status`).set("finished");
         fbDb.ref(`games/${gameId}/result`).set(`${winner}+R`);
         fbDb.ref(`games/${gameId}/resultDetail`).set(detailMsg);
+        
+        saveGameToHistory(winner, `${winner}+Resign`);
     });
 }
 
@@ -683,8 +705,7 @@ function startTimer(lastMoveTime) {
     
     timerInterval = setInterval(() => {
         if (!gameId || !currentTurn || isGameOver || isCountdownRunning) { 
-            timerEl.textContent = "時間：--"; 
-            return; 
+            timerEl.textContent = "時間：--"; return; 
         }
         const now = Date.now() + serverTimeOffset;
         const elapsed = Math.floor((now - currentLastMoveTime) / 1000);
@@ -714,7 +735,75 @@ function showGameOver(detailMsg) {
 }
 
 /* ================================================================
-   7. 建立 / 加入 / 監聽
+   7. 歷史紀錄儲存與讀取
+   ================================================================ */
+function saveGameToHistory(winner, resultStr) {
+    if (!currentUser || !gameId) return; 
+
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+    let sgf = `(;GM[1]FF[4]CA[UTF-8]AP[Firebase-Go:1.0]RU[Chinese]SZ[${boardSize}]KM[${komi}]DT[${dateStr}]PB[Black]PW[White]RE[${resultStr}]`;
+    moveHistory.forEach((m) => { sgf += m.x === -1 ? `;${m.color}[]` : `;${m.color}[${m.sgfCoord}]`; });
+    sgf += `)`;
+
+    fbDb.ref(`users/${currentUser.uid}/history/${gameId}`).set({
+        gameId, date: Date.now(), result: resultStr,
+        myColor, boardSize, komi, sgf
+    }).then(() => log("☁️ 對局已自動存檔至雲端歷史紀錄", "ok"))
+      .catch((err) => log("❌ 雲端存檔失敗：" + err.message, "error"));
+}
+
+function openHistory() {
+    document.getElementById("history-modal").classList.remove("hidden");
+    const listEl = document.getElementById("history-list");
+    listEl.innerHTML = "<div style='text-align:center;color:#888;'>載入中…</div>";
+
+    fbDb.ref(`users/${currentUser.uid}/history`).orderByChild("date").once("value", (snap) => {
+        listEl.innerHTML = "";
+        if (!snap.exists()) {
+            listEl.innerHTML = "<div style='text-align:center;color:#888;'>目前沒有歷史對局</div>";
+            return;
+        }
+
+        const arr = [];
+        snap.forEach((child) => { arr.push(child.val()); });
+        arr.sort((a, b) => b.date - a.date);
+
+        arr.forEach((item) => {
+            const d = new Date(item.date);
+            const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            const isWin = (item.result.startsWith("B") && item.myColor === "B") || (item.result.startsWith("W") && item.myColor === "W");
+            
+            let resultText = item.result.includes("Resign") ? "對手認輸" : item.result;
+            if (!isWin) resultText = item.result.includes("Resign") ? "我方認輸" : "落敗";
+
+            const div = document.createElement("div");
+            div.className = "history-item";
+            div.innerHTML = `
+                <div class="info">
+                    <div style="font-weight:bold; color:${isWin ? 'var(--success)' : 'var(--danger)'}">
+                        ${isWin ? '🎉 勝利' : '💀 落敗'} (${item.myColor === 'B' ? '執黑' : '執白'})
+                    </div>
+                    <div class="date">${dateStr} · ${item.boardSize}路 · ${resultText}</div>
+                </div>
+                <button class="primary" style="flex: none; padding: 6px 12px; font-size: 0.8rem; min-width: auto;" onclick="downloadSGF('${item.sgf}', '${item.gameId}')">下載 SGF</button>
+            `;
+            listEl.appendChild(div);
+        });
+    });
+}
+
+window.downloadSGF = function(sgfContent, id) {
+    const blob = new Blob([sgfContent], { type: "application/x-go-sgf;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `game_${id.slice(-6)}.sgf`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+};
+
+/* ================================================================
+   8. 建立 / 加入 / 監聽
    ================================================================ */
 async function createGame() {
     try {
@@ -786,9 +875,9 @@ function listenToGame(id) {
     if (moveListener) moveListener.off();
     if (statusListener) statusListener.off();
     if (undoListener) undoListener.off();
-    if (readyListener) readyListener.off();
-    if (whitePlayerListener) whitePlayerListener.off();
-    
+    if (gameStateListener) gameStateListener.off();
+
+    // 1. 監聽落子
     moveListener = fbDb.ref(`games/${id}/moves`);
     moveListener.on("child_added", (snap) => {
         const m = snap.val();
@@ -820,6 +909,7 @@ function listenToGame(id) {
         }
     });
 
+    // 2. 監聽悔棋請求
     undoListener = fbDb.ref(`games/${id}/undoRequest`);
     undoListener.on("value", (snap) => {
         const reqColor = snap.val();
@@ -830,72 +920,67 @@ function listenToGame(id) {
         }
     });
 
-    // 監聽白方是否加入
-    whitePlayerListener = fbDb.ref(`games/${id}/whitePlayer`);
-    whitePlayerListener.on("value", (snap) => {
-        if (!snap.val()) {
-            setOverlay("waiting");
-        } else {
-            checkReadyState(); // 白方加入，檢查準備狀態
+    // 3. 監聽整體遊戲狀態 (取代原本的 checkReadyState)
+    gameStateListener = fbDb.ref(`games/${id}`);
+    gameStateListener.on("value", (snap) => {
+        const data = snap.val();
+        if (!data || isGameOver) return;
+        
+        // 處理結束
+        if (data.status === "finished") {
+            if (!isGameOver) {
+                fbDb.ref(`games/${id}/resultDetail`).once("value").then((rSnap) => {
+                    showGameOver(rSnap.val() || "對局結束");
+                });
+            }
+            return;
         }
-    });
 
-    // 監聽準備狀態
-    readyListener = fbDb.ref(`games/${id}/readyPlayers`);
-    readyListener.on("value", () => {
-        checkReadyState();
-    });
+        // 處理等待加入
+        if (!data.whitePlayer) {
+            setOverlay("waiting");
+            return;
+        }
 
-    // 統一處理準備狀態
-    function checkReadyState() {
-        fbDb.ref(`games/${id}/whitePlayer`).once("value", (wSnap) => {
-            if (!wSnap.val()) return; // 白方還沒來，不用查準備
+        // 處理已經開始下棋
+        if (data.status === "playing") {
+            setOverlay("none");
+            return;
+        }
 
-            fbDb.ref(`games/${id}/readyPlayers`).once("value", (rSnap) => {
-                const readyPlayers = rSnap.val() || {};
-                const bReady = !!readyPlayers.B;
-                const wReady = !!readyPlayers.W;
+        // 處理準備狀態
+        const ready = data.readyPlayers || {};
+        const bReady = !!ready.B;
+        const wReady = !!ready.W;
 
-                if (bReady && wReady) {
-                    setOverlay("countdown");
-                    startCountdown(() => {
-                        setOverlay("none");
-                        fbDb.ref(`games/${gameId}/status`).set("playing");
-                        if (myColor === "B" && moveHistory.length === 0) {
-                            fbDb.ref(`games/${gameId}/lastMoveTime`).set(firebase.database.ServerValue.TIMESTAMP);
-                        }
-                        startTimer(Date.now());
-                        updateUI();
-                    });
-                } else {
-                    setOverlay("ready");
-                    const text = document.getElementById("ready-status-text");
-                    if (bReady && !wReady) text.textContent = "等待白方準備…";
-                    else if (wReady && !bReady) text.textContent = "等待黑方準備…";
-                    else text.textContent = "請雙方點擊準備開始對局";
+        if (bReady && wReady) {
+            if (!isCountdownRunning) {
+                setOverlay("countdown");
+                startCountdown(() => {
+                    setOverlay("none");
+                    fbDb.ref(`games/${gameId}/status`).set("playing");
+                    if (myColor === "B" && moveHistory.length === 0) {
+                        fbDb.ref(`games/${gameId}/lastMoveTime`).set(firebase.database.ServerValue.TIMESTAMP);
+                    }
+                    startTimer(Date.now());
+                    updateUI();
+                });
+            }
+        } else {
+            setOverlay("ready");
+            const text = document.getElementById("ready-status-text");
+            if (bReady && !wReady) text.textContent = "等待白方準備…";
+            else if (wReady && !bReady) text.textContent = "等待黑方準備…";
+            else text.textContent = "請雙方點擊準備開始對局";
 
-                    const myReady = myColor === "B" ? bReady : wReady;
-                    const btn = document.getElementById("btn-ready");
-                    btn.disabled = myReady;
-                    btn.textContent = myReady ? "等待對手…" : "準備好了！";
-                }
-            });
-        });
-    }
-
-    // 只監聽結束狀態，不干涉準備與等待
-    statusListener = fbDb.ref(`games/${id}/status`);
-    statusListener.on("value", (snap) => {
-        const status = snap.val();
-        if (status === "finished" && !isGameOver) {
-            fbDb.ref(`games/${id}/resultDetail`).once("value").then((rSnap) => {
-                showGameOver(rSnap.val() || "對局結束");
-            });
+            const myReady = myColor === "B" ? bReady : wReady;
+            const btn = document.getElementById("btn-ready");
+            btn.disabled = myReady;
+            btn.textContent = myReady ? "等待對手..." : "準備好了！";
         }
     });
 }
 
-// 3-2-1 倒數邏輯
 function startCountdown(onComplete) {
     if (isCountdownRunning) return;
     isCountdownRunning = true;
@@ -920,41 +1005,6 @@ function startCountdown(onComplete) {
 }
 
 /* ================================================================
-   8. SGF 匯出 與 邀請複製
-   ================================================================ */
-function exportSGF() {
-    if (moveHistory.length === 0) return;
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
-
-    let sgf = `(;GM[1]FF[4]CA[UTF-8]AP[Firebase-Go:1.0]RU[Chinese]SZ[${boardSize}]KM[${komi}]DT[${dateStr}]PB[Black]PW[White]`;
-    
-    if (isGameOver) sgf += `RE[B+Resign]`; 
-
-    moveHistory.forEach((m) => { sgf += m.x === -1 ? `;${m.color}[]` : `;${m.color}[${m.sgfCoord}]`; });
-    sgf += `)`;
-
-    const blob = new Blob([sgf], { type: "application/x-go-sgf;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `game_${gameId || "local"}_${dateStr}.sgf`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-    log("📥 SGF 已匯出", "ok");
-}
-
-function copyInviteLink() {
-    const copyText = document.getElementById("invite-link");
-    copyText.select();
-    copyText.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(copyText.value).then(() => {
-        log("📋 已複製邀請連結！", "ok");
-        document.getElementById("btn-copy-link").textContent = "✅ 已複製";
-        setTimeout(() => { document.getElementById("btn-copy-link").textContent = "複製邀請"; }, 2000);
-    });
-}
-
-/* ================================================================
    9. 事件綁定與啟動
    ================================================================ */
 document.getElementById("btn-create").addEventListener("click", () => { if (currentUser) createGame(); });
@@ -965,10 +1015,24 @@ document.getElementById("btn-undo").addEventListener("click", requestUndo);
 document.getElementById("btn-export-sgf").addEventListener("click", exportSGF);
 document.getElementById("btn-copy-link").addEventListener("click", copyInviteLink);
 
-document.getElementById("btn-ready").addEventListener("click", () => {
-    if (!gameId) return;
-    fbDb.ref(`games/${gameId}/readyPlayers/${myColor}`).set(true);
-    log("✅ 已送出準備，等待對手…", "ok");
+document.getElementById("btn-history").addEventListener("click", openHistory);
+document.getElementById("btn-close-history").addEventListener("click", () => {
+    document.getElementById("history-modal").classList.add("hidden");
+});
+
+// 🌟 修復點擊沒反應的問題
+document.getElementById("btn-ready").addEventListener("click", (e) => {
+    if (!gameId || !myColor) return;
+    e.target.disabled = true;
+    e.target.textContent = "傳送中...";
+    
+    fbDb.ref(`games/${gameId}/readyPlayers/${myColor}`).set(true)
+        .then(() => log("✅ 已送出準備，等待對手…", "ok"))
+        .catch((err) => {
+            log("❌ 準備失敗：" + err.message, "error");
+            e.target.disabled = false;
+            e.target.textContent = "準備好了！";
+        });
 });
 
 document.getElementById("btn-confirm-ok").addEventListener("click", () => {
@@ -987,8 +1051,7 @@ document.getElementById("btn-back-lobby").addEventListener("click", () => {
     if (statusListener) statusListener.off();
     if (undoListener) undoListener.off();
     if (presenceListener) presenceListener.off();
-    if (readyListener) readyListener.off();
-    if (whitePlayerListener) whitePlayerListener.off();
+    if (gameStateListener) gameStateListener.off();
     clearInterval(timerInterval);
     
     if (gameId && currentUser) {
@@ -1015,6 +1078,34 @@ document.getElementById("btn-start-tutorial").addEventListener("click", () => {
     document.getElementById("tutorial-modal").classList.add("hidden");
     log("🚀 系統就緒。請建立新對局，或輸入房間 ID 加入。", "ok");
 });
+
+function exportSGF() {
+    if (moveHistory.length === 0) return;
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+    let sgf = `(;GM[1]FF[4]CA[UTF-8]AP[Firebase-Go:1.0]RU[Chinese]SZ[${boardSize}]KM[${komi}]DT[${dateStr}]PB[Black]PW[White]`;
+    if (isGameOver) sgf += `RE[B+Resign]`; 
+    moveHistory.forEach((m) => { sgf += m.x === -1 ? `;${m.color}[]` : `;${m.color}[${m.sgfCoord}]`; });
+    sgf += `)`;
+    const blob = new Blob([sgf], { type: "application/x-go-sgf;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `game_${gameId || "local"}_${dateStr}.sgf`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    log("📥 SGF 已匯出", "ok");
+}
+
+function copyInviteLink() {
+    const copyText = document.getElementById("invite-link");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(copyText.value).then(() => {
+        log("📋 已複製邀請連結！", "ok");
+        document.getElementById("btn-copy-link").textContent = "✅ 已複製";
+        setTimeout(() => { document.getElementById("btn-copy-link").textContent = "複製邀請"; }, 2000);
+    });
+}
 
 initFirebase().then(() => {
     initBoard(19);
