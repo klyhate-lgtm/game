@@ -66,7 +66,7 @@ ul.clean li{padding:3px 0;border-bottom:1px dotted #c6ad80}
   </header>
   <main id="main">
     <section id="scene"><svg id="svgScene" viewBox="0 0 900 190" preserveAspectRatio="xMidYMid slice"></svg></section>
-    <section id="storyPanel"><div id="story">準備冒險書……</div><div id="choices"></div></section>
+    <section id="storyPanel"><div id="story">正在準備冒險書……</div><div id="choices"></div></section>
     <aside id="sidePanel">
       <div class="panel"><h3>🔖 事件追蹤</h3><div id="eventsList" class="chipRow"><span class="muted">尚無</span></div></div>
       <div class="panel"><h3>🎒 物品欄</h3><ul id="inventoryList" class="clean"><li class="muted">尚無</li></ul></div>
@@ -89,12 +89,20 @@ ul.clean li{padding:3px 0;border-bottom:1px dotted #c6ad80}
 <div id="toast"></div>
 
 <script>
-const $=id=>document.getElementById(id);
-const SAVE_KEY='festivalTombs_final', ACH_KEY='festivalTombsAch_final';
+/* 使用 window. 確保變數在全域可訪問 */
+window.$ = function(id){ return document.getElementById(id); };
+const SAVE_KEY='festivalTombs_final_v2', ACH_KEY='festivalTombsAch_final_v2';
 const ACH_NAMES={success:'序章破案',wrong:'錯誤指控',partial:'部分真相',death:'死亡',fullClues:'全線索調查員',mainStart:'抵達切斯特拉爾',pirate:'海盜倖存',ghost:'幽靈船長',level2:'晉升 2 級',cityStart:'城市探索',bounty:'完成懸賞',seance:'成功通靈',watergate:'修復水閘',randomEnc:'擊敗隨機遭遇',paperwork:'完成官僚手續',boneQueen:'晉見骨后',enara:'揭發埃納拉',jotham:'揭露約坦',excavator:'揭發挖掘者',pandjed:'發現潘傑德',chiefReport:'向首席法師報告',trueEnding:'真結局：陵墓節英雄',boneQueenSlain:'擊敗骨后',fourThreats:'四線終結',allFiveThreats:'五線全通',duoMode:'雙人模式',appendixOpened:'查閱附錄'};
-function fresh(){return{phase:'manual',entry:'0000',hp:11,maxHp:11,gold:0,day:1,time:0,events:[],inventory:[],history:[],achievements:[],sound:true,clues:{},mission:null,companion:null,season:null,combat:null,level:1,bounties:[],threats:{},duo:false};}
+
+function fresh(){
+  return {phase:'manual',entry:'0000',hp:11,maxHp:11,gold:0,day:1,time:0,events:[],inventory:[],history:[],achievements:[],sound:true,clues:{},mission:null,companion:null,season:null,combat:null,level:1,bounties:[],threats:{},duo:false};
+}
 let state=fresh();
-state.achievements=JSON.parse(localStorage.getItem(ACH_KEY)||'[]');
+try {
+  state.achievements=JSON.parse(localStorage.getItem(ACH_KEY)||'[]');
+} catch(e) {
+  state.achievements=[];
+}
 
 function d20(m=0){return Math.floor(Math.random()*20)+1+m;}
 function rnd(n){return Math.floor(Math.random()*n)+1;}
@@ -106,42 +114,110 @@ function hist(t){state.history.push(`[第${state.day}天·${state.time}時] ${t}
 function adv(n=1){state.time=Math.min(5,state.time+n);if(state.time>=5)toast('時段已滿 5，建議回長羽旅館長休息。');}
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),2400);}
 function sfx(t='click'){if(!state.sound)return;try{const c=window._ac||(window._ac=new(window.AudioContext||window.webkitAudioContext)());const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value={click:440,hit:160,win:660,lose:110,dice:300}[t]||440;g.gain.setValueAtTime(.045,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.13);o.start();o.stop(c.currentTime+.13);}catch(e){}}
-function unlock(a){if(!state.achievements.includes(a)){state.achievements.push(a);localStorage.setItem(ACH_KEY,JSON.stringify(state.achievements));side();toast('🏆 '+(ACH_NAMES[a]||a));}}
+
+window.unlock = function(a){
+  if(!state.achievements.includes(a)){
+    state.achievements.push(a);
+    localStorage.setItem(ACH_KEY,JSON.stringify(state.achievements));
+    side();
+    toast('🏆 '+(ACH_NAMES[a]||a));
+  }
+}
 function countThreats(){return Object.values(state.threats).filter(Boolean).length;}
 
 let tmr=null,full='';
-function story(t){full=t||'';const el=$('story');el.textContent='';clearInterval(tmr);let i=0;el.onclick=()=>{clearInterval(tmr);el.textContent=full;};tmr=setInterval(()=>{if(i>=full.length){clearInterval(tmr);return;}el.textContent+=full[i++];},14);}
+function story(t){
+  full=t||'';
+  const el=$('story');
+  if(!el) return;
+  el.textContent='';
+  clearInterval(tmr);
+  let i=0;
+  el.onclick=()=>{clearInterval(tmr);el.textContent=full;};
+  tmr=setInterval(()=>{
+    if(i>=full.length){clearInterval(tmr);return;}
+    el.textContent+=full[i++];
+  },14);
+}
 
-function stats(){$('hp').textContent=Math.max(0,state.hp);$('maxHp').textContent=state.maxHp;$('gold').textContent=state.gold;$('day').textContent=state.day;$('time').textContent=state.time;$('invCount').textContent=state.inventory.length;$('eventCount').textContent=state.events.length;$('soundBtn').textContent='音效：'+(state.sound?'開':'關');$('modeStat').style.display=state.duo?'inline-block':'none';}
+function stats(){
+  if(!$('hp')) return;
+  $('hp').textContent=Math.max(0,state.hp);
+  $('maxHp').textContent=state.maxHp;
+  $('gold').textContent=state.gold;
+  $('day').textContent=state.day;
+  $('time').textContent=state.time;
+  $('invCount').textContent=state.inventory.length;
+  $('eventCount').textContent=state.events.length;
+  $('soundBtn').textContent='音效：'+(state.sound?'開':'關');
+  $('modeStat').style.display=state.duo?'inline-block':'none';
+}
 function side(){
+  if(!$('eventsList')) return;
   $('eventsList').innerHTML=state.events.length?state.events.map(e=>`<span class="chip">#${e}</span>`).join(''):'<span class="muted">尚無</span>';
   $('inventoryList').innerHTML=state.inventory.length?state.inventory.map(i=>`<li>${i}</li>`).join(''):'<li class="muted">尚無</li>';
   $('historyList').innerHTML=state.history.length?state.history.slice(-30).reverse().map(h=>`<li>${h}</li>`).join(''):'<li class="muted">尚無</li>';
   $('achievementList').innerHTML=state.achievements.length?state.achievements.map(a=>`<li>🏆 ${ACH_NAMES[a]||a}</li>`).join(''):'<li class="muted">尚無</li>';
 }
 
-function svg(type='ship'){
-  const stars=Array.from({length:26},(_,i)=>{const x=(i*67)%900,y=(i*31)%108,r=i%3===0?1.6:1;return`<circle cx="${x}" cy="${y}" r="${r}" fill="#ffe9a8" class="twinkle" style="animation-delay:${(i%7)*.3}s"/>`;}).join('');
-  const base=`<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07111d"/><stop offset="1" stop-color="#1d3147"/></linearGradient><linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16364a"/><stop offset="1" stop-color="#071018"/></linearGradient></defs><rect width="900" height="190" fill="url(#sky)"/>${stars}<rect y="128" width="900" height="62" fill="url(#water)"/><path d="M0 130 Q80 122 160 130 T320 130 T480 130 T640 130 T800 130 T900 128 V190 H0Z" fill="#0b1d28" opacity=".8"/>`;
-  if(type==='combat')return base+`<rect y="145" width="900" height="45" fill="#1b120b"/><path d="M0 150 Q120 138 240 150 T480 150 T720 150 T900 148 V190 H0Z" fill="#382313"/><g class="mist"><ellipse cx="450" cy="165" rx="260" ry="18" fill="#7ea88c" opacity=".18"/></g><text x="640" y="40" fill="#ffd27a" font-size="16" font-family="serif">戰鬥</text>`;
-  if(type==='city')return base+`<rect y="118" width="900" height="72" fill="#24170e"/>${[80,170,280,390,520,650,780].map((x,i)=>`<rect x="${x}" y="${58+(i%3)*14}" width="${70+i*4}" height="${92-(i%3)*14}" fill="#3b2a1b" stroke="#7d5b31"/><rect x="${x+10}" y="${74+(i%3)*14}" width="12" height="16" fill="#ffd27a" class="twinkle"/><rect x="${x+30}" y="${74+(i%3)*14}" width="12" height="16" fill="#ffd27a" class="twinkle" style="animation-delay:.4s"/>`).join('')}<text x="620" y="36" fill="#ffe1a0" font-size="16" font-family="serif">切斯特拉爾</text>`;
-  if(type==='temple')return base+`<rect y="118" width="900" height="72" fill="#24170e"/><path d="M350 190 V90 Q450 40 550 90 V190Z" fill="#6e4a25" stroke="#c99a4a" stroke-width="3"/><text x="380" y="40" fill="#ffe1a0" font-size="16" font-family="serif">安伯林神廟</text>`;
-  if(type==='seance')return base+`<rect y="118" width="900" height="72" fill="#1a0f10"/>${[180,320,460,600,740].map(x=>`<rect x="${x}" y="70" width="60" height="60" fill="#4a2a2a" stroke="#b8862e"/><circle cx="${x+30}" cy="88" r="6" fill="#a0d0e0" class="twinkle"/>`).join('')}<text x="600" y="36" fill="#ffe1a0" font-size="16" font-family="serif">降神會街</text>`;
-  if(type==='watermill')return base+`<rect y="118" width="900" height="72" fill="#24170e"/><circle cx="450" cy="120" r="50" fill="none" stroke="#8b6c3d" stroke-width="4"/><circle cx="450" cy="120" r="30" fill="none" stroke="#8b6c3d" stroke-width="2"/><text x="560" y="40" fill="#ffe1a0" font-size="16" font-family="serif">水磨·水門</text>`;
-  if(type==='sewer')return base+`<rect y="118" width="900" height="72" fill="#0d1a0d"/>${[160,290,420,550,680].map((x,i)=>`<rect x="${x}" y="${100-(i%3)*8}" width="60" height="60" fill="#1d2d1d" stroke="#3f5b3f"/><circle cx="${x+30}" cy="${120-(i%3)*8}" r="4" fill="#6fb86f" class="twinkle"/>`).join('')}<g class="mist"><ellipse cx="450" cy="150" rx="300" ry="14" fill="#5b8a5b" opacity=".22"/></g><text x="600" y="36" fill="#b8e0b8" font-size="16" font-family="serif">下水道</text>`;
-  if(type==='canal')return base+`<rect y="118" width="900" height="72" fill="#1a2a3a"/>${[220,380,540,700].map((x,i)=>`<path d="M${x} 145 Q${x+40} 135 ${x+80} 145 L${x+70} 165 L${x+10} 165Z" fill="#5c3a1d" stroke="#c99a4a"/>`).join('')}<text x="600" y="36" fill="#a8d4e8" font-size="16" font-family="serif">運河</text>`;
-  if(type==='bonequeen')return base+`<rect y="118" width="900" height="72" fill="#1a0d16"/><rect x="380" y="50" width="140" height="140" fill="#3b2a1b" stroke="#8b6c3d"/><circle cx="450" cy="100" r="20" fill="#6e4a25" stroke="#c99a4a" stroke-width="2"/><text x="550" y="40" fill="#ffe1a0" font-size="16" font-family="serif">骨后·廢墟</text>`;
-  if(type==='boat')return base+`<path d="M200 135 L700 135 L640 170 L260 170Z" fill="#5c3a1d" stroke="#c99a4a"/><text x="600" y="40" fill="#ffd27a" font-size="16" font-family="serif">救生艇</text>`;
-  if(type==='ghost')return base+`<rect y="145" width="900" height="45" fill="#101420"/><g class="mist"><ellipse cx="450" cy="150" rx="300" ry="20" fill="#a0d0e0" opacity=".22"/></g><path d="M400 50 Q430 20 470 50 Q500 30 500 80 L480 140 L440 140 L420 90 Q400 70 400 50Z" fill="#a0d0e0" opacity=".5"/><text x="560" y="40" fill="#ffd27a" font-size="16" font-family="serif">幽靈船長</text>`;
-  if(type==='chief')return base+`<rect y="118" width="900" height="72" fill="#2a1d12"/><rect x="330" y="60" width="240" height="130" fill="#3b2a1b" stroke="#b8862e" stroke-width="2"/><rect x="360" y="80" width="60" height="60" fill="#ffd27a" opacity=".5"/><rect x="480" y="80" width="60" height="60" fill="#a0d0e0" opacity=".5"/><text x="560" y="36" fill="#ffe1a0" font-size="16" font-family="serif">首席法師</text>`;
-  if(type==='festival')return base+`<rect y="118" width="900" height="72" fill="#24170e"/>${[120,240,360,480,600,720].map((x,i)=>`<path d="M${x} 190 L${x} 80 L${x+40} 80 L${x+40} 190Z" fill="#4a2a1a" stroke="#c99a4a"/><circle cx="${x+20}" cy="60" r="10" fill="#ffd27a" class="twinkle" style="animation-delay:${i*.3}s"/>`).join('')}<path d="M100 100 Q450 50 800 100" fill="none" stroke="#c99a4a" stroke-width="2"/><text x="600" y="36" fill="#ffe1a0" font-size="16" font-family="serif">陵墓節·週末慶典</text>`;
-  return base+`<path d="M170 132 L730 132 L660 172 L240 172Z" fill="#5c3a1d" stroke="#c99a4a"/><rect x="310" y="88" width="280" height="44" fill="#6e4a25" stroke="#c99a4a"/><rect x="350" y="96" width="30" height="22" fill="#ffd27a" class="twinkle"/><rect x="400" y="96" width="30" height="22" fill="#ffd27a" class="twinkle" style="animation-delay:.5s"/><rect x="450" y="96" width="30" height="22" fill="#ffd27a" class="twinkle" style="animation-delay:.9s"/><path d="M280 80 L450 45 L620 80" fill="none" stroke="#c99a4a" stroke-width="4"/><path class="flag" d="M450 45 L450 15 L500 28 L450 40" fill="#7a2e22"/><g class="mist"><ellipse cx="450" cy="150" rx="280" ry="16" fill="#8fb7c9" opacity=".18"/></g><text x="580" y="36" fill="#ffe1a0" font-size="16" font-family="serif">壯麗號</text>`;
+/* 將函數改名為 getSceneSVG 避免與內建衝突 */
+function getSceneSVG(type='ship'){
+  try {
+    const stars=Array.from({length:26},(_,i)=>{const x=(i*67)%900,y=(i*31)%108,r=i%3===0?1.6:1;return`<circle cx="${x}" cy="${y}" r="${r}" fill="#ffe9a8" class="twinkle" style="animation-delay:${(i%7)*0.3}s"/>`;}).join('');
+    const base=`<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07111d"/><stop offset="1" stop-color="#1d3147"/></linearGradient><linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16364a"/><stop offset="1" stop-color="#071018"/></linearGradient></defs><rect width="900" height="190" fill="url(#sky)"/>${stars}<rect y="128" width="900" height="62" fill="url(#water)"/><path d="M0 130 Q80 122 160 130 T320 130 T480 130 T640 130 T800 130 T900 128 V190 H0Z" fill="#0b1d28" opacity=".8"/>`;
+    if(type==='combat')return base+`<rect y="145" width="900" height="45" fill="#1b120b"/><path d="M0 150 Q120 138 240 150 T480 150 T720 150 T900 148 V190 H0Z" fill="#382313"/><g class="mist"><ellipse cx="450" cy="165" rx="260" ry="18" fill="#7ea88c" opacity=".18"/></g><text x="640" y="40" fill="#ffd27a" font-size="16" font-family="serif">戰鬥</text>`;
+    if(type==='city')return base+`<rect y="118" width="900" height="72" fill="#24170e"/>${[80,170,280,390,520,650,780].map((x,i)=>`<rect x="${x}" y="${58+(i%3)*14}" width="${70+i*4}" height="${92-(i%3)*14}" fill="#3b2a1b" stroke="#7d5b31"/><rect x="${x+10}" y="${74+(i%3)*14}" width="12" height="16" fill="#ffd27a" class="twinkle"/><rect x="${x+30}" y="${74+(i%3)*14}" width="12" height="16" fill="#ffd27a" class="twinkle" style="animation-delay:.4s"/>`).join('')}<text x="620" y="36" fill="#ffe1a0" font-size="16" font-family="serif">切斯特拉爾</text>`;
+    if(type==='temple')return base+`<rect y="118" width="900" height="72" fill="#24170e"/><path d="M350 190 V90 Q450 40 550 90 V190Z" fill="#6e4a25" stroke="#c99a4a" stroke-width="3"/><text x="380" y="40" fill="#ffe1a0" font-size="16" font-family="serif">安伯林神廟</text>`;
+    if(type==='seance')return base+`<rect y="118" width="900" height="72" fill="#1a0f10"/>${[180,320,460,600,740].map(x=>`<rect x="${x}" y="70" width="60" height="60" fill="#4a2a2a" stroke="#b8862e"/><circle cx="${x+30}" cy="88" r="6" fill="#a0d0e0" class="twinkle"/>`).join('')}<text x="600" y="36" fill="#ffe1a0" font-size="16" font-family="serif">降神會街</text>`;
+    if(type==='watermill')return base+`<rect y="118" width="900" height="72" fill="#24170e"/><circle cx="450" cy="120" r="50" fill="none" stroke="#8b6c3d" stroke-width="4"/><circle cx="450" cy="120" r="30" fill="none" stroke="#8b6c3d" stroke-width="2"/><text x="560" y="40" fill="#ffe1a0" font-size="16" font-family="serif">水磨·水門</text>`;
+    if(type==='sewer')return base+`<rect y="118" width="900" height="72" fill="#0d1a0d"/>${[160,290,420,550,680].map((x,i)=>`<rect x="${x}" y="${100-(i%3)*8}" width="60" height="60" fill="#1d2d1d" stroke="#3f5b3f"/><circle cx="${x+30}" cy="${120-(i%3)*8}" r="4" fill="#6fb86f" class="twinkle"/>`).join('')}<g class="mist"><ellipse cx="450" cy="150" rx="300" ry="14" fill="#5b8a5b" opacity=".22"/></g><text x="600" y="36" fill="#b8e0b8" font-size="16" font-family="serif">下水道</text>`;
+    if(type==='canal')return base+`<rect y="118" width="900" height="72" fill="#1a2a3a"/>${[220,380,540,700].map((x,i)=>`<path d="M${x} 145 Q${x+40} 135 ${x+80} 145 L${x+70} 165 L${x+10} 165Z" fill="#5c3a1d" stroke="#c99a4a"/>`).join('')}<text x="600" y="36" fill="#a8d4e8" font-size="16" font-family="serif">運河</text>`;
+    if(type==='bonequeen')return base+`<rect y="118" width="900" height="72" fill="#1a0d16"/><rect x="380" y="50" width="140" height="140" fill="#3b2a1b" stroke="#8b6c3d"/><circle cx="450" cy="100" r="20" fill="#6e4a25" stroke="#c99a4a" stroke-width="2"/><text x="550" y="40" fill="#ffe1a0" font-size="16" font-family="serif">骨后·廢墟</text>`;
+    if(type==='boat')return base+`<path d="M200 135 L700 135 L640 170 L260 170Z" fill="#5c3a1d" stroke="#c99a4a"/><text x="600" y="40" fill="#ffd27a" font-size="16" font-family="serif">救生艇</text>`;
+    if(type==='ghost')return base+`<rect y="145" width="900" height="45" fill="#101420"/><g class="mist"><ellipse cx="450" cy="150" rx="300" ry="20" fill="#a0d0e0" opacity=".22"/></g><path d="M400 50 Q430 20 470 50 Q500 30 500 80 L480 140 L440 140 L420 90 Q400 70 400 50Z" fill="#a0d0e0" opacity=".5"/><text x="560" y="40" fill="#ffd27a" font-size="16" font-family="serif">幽靈船長</text>`;
+    if(type==='chief')return base+`<rect y="118" width="900" height="72" fill="#2a1d12"/><rect x="330" y="60" width="240" height="130" fill="#3b2a1b" stroke="#b8862e" stroke-width="2"/><rect x="360" y="80" width="60" height="60" fill="#ffd27a" opacity=".5"/><rect x="480" y="80" width="60" height="60" fill="#a0d0e0" opacity=".5"/><text x="560" y="36" fill="#ffe1a0" font-size="16" font-family="serif">首席法師</text>`;
+    if(type==='festival')return base+`<rect y="118" width="900" height="72" fill="#24170e"/>${[120,240,360,480,600,720].map((x,i)=>`<path d="M${x} 190 L${x} 80 L${x+40} 80 L${x+40} 190Z" fill="#4a2a1a" stroke="#c99a4a"/><circle cx="${x+20}" cy="60" r="10" fill="#ffd27a" class="twinkle" style="animation-delay:${i*0.3}s"/>`).join('')}<path d="M100 100 Q450 50 800 100" fill="none" stroke="#c99a4a" stroke-width="2"/><text x="600" y="36" fill="#ffe1a0" font-size="16" font-family="serif">陵墓節·週末慶典</text>`;
+    return base+`<path d="M170 132 L730 132 L660 172 L240 172Z" fill="#5c3a1d" stroke="#c99a4a"/><rect x="310" y="88" width="280" height="44" fill="#6e4a25" stroke="#c99a4a"/><rect x="350" y="96" width="30" height="22" fill="#ffd27a" class="twinkle"/><rect x="400" y="96" width="30" height="22" fill="#ffd27a" class="twinkle" style="animation-delay:.5s"/><rect x="450" y="96" width="30" height="22" fill="#ffd27a" class="twinkle" style="animation-delay:.9s"/><path d="M280 80 L450 45 L620 80" fill="none" stroke="#c99a4a" stroke-width="4"/><path class="flag" d="M450 45 L450 15 L500 28 L450 40" fill="#7a2e22"/><g class="mist"><ellipse cx="450" cy="150" rx="280" ry="16" fill="#8fb7c9" opacity=".18"/></g><text x="580" y="36" fill="#ffe1a0" font-size="16" font-family="serif">壯麗號</text>`;
+  } catch(e) {
+    console.error(e);
+    return `<text x="20" y="40" fill="red">SVG 生成失敗</text>`;
+  }
 }
 
-function choices(list){const b=$('choices');b.innerHTML='';list.forEach(o=>{const btn=document.createElement('button');btn.className='choice';btn.textContent=o.label;btn.onclick=()=>{sfx('click');if(o.check&&!o.check()){toast(o.hint||'條件不足');return;}if(o.do)o.do();if(o.goto)go(o.goto);};b.appendChild(btn);});}
+function choices(list){
+  const b=$('choices');
+  if(!b) return;
+  b.innerHTML='';
+  list.forEach(o=>{
+    const btn=document.createElement('button');
+    btn.className='choice';
+    btn.textContent=o.label;
+    btn.onclick=()=>{
+      sfx('click');
+      if(o.check&&!o.check()){toast(o.hint||'條件不足');return;}
+      if(o.do)o.do();
+      if(o.goto)go(o.goto);
+    };
+    b.appendChild(btn);
+  });
+}
 
 const E={};
-function go(id){state.entry=id;const e=E[id];if(!e){story('缺少條目 '+id);choices([{label:'重新開始',do:resetGame}]);return;}if(e.onEnter)e.onEnter();$('svgScene').innerHTML=svg(e.scene||'ship');story(typeof e.text==='function'?e.text():e.text||'');choices((typeof e.choices==='function'?e.choices():e.choices)||[]);stats();side();}
+window.go = function(id){
+  state.entry=id;
+  const e=E[id];
+  if(!e){
+    story('缺少條目 '+id);
+    choices([{label:'重新開始',do:window.resetGame}]);
+    return;
+  }
+  if(e.onEnter)e.onEnter();
+  $('svgScene').innerHTML=getSceneSVG(e.scene||'ship');
+  story(typeof e.text==='function'?e.text():e.text||'');
+  choices((typeof e.choices==='function'?e.choices():e.choices)||[]);
+  stats();
+  side();
+}
 
 /* ============ 怪物 ============ */
 const MONSTERS={
@@ -170,9 +246,10 @@ function startCombat(cfg){
   renderCombat();
 }
 function renderCombat(){
-  const c=state.combat;if(!c){go(state.entry);return;}
+  const c=state.combat;
+  if(!c){go(state.entry);return;}
   state.phase='combat';
-  $('svgScene').innerHTML=svg('combat');
+  $('svgScene').innerHTML=getSceneSVG('combat');
   const enemy=c.enemies[0];
   const bonusInfo=c.bonus==='fog'?'\n【魔法迷霧】骨后可看穿迷霧，你看不清她——攻擊 -2 懲罰（本版簡化為 AC +2）。\n':'';
   story(`【戰鬥：${c.intro||enemy.name}】\n${enemy.desc}${bonusInfo}\n${enemy.name} HP：${Math.max(0,enemy.hp)}/${MONSTERS[enemy.key].hp}　AC：${enemy.ac+(c.bonus==='fog'?2:0)}\n你的 HP：${Math.max(0,state.hp)}/${state.maxHp}\n回合：${c.round}\n\n▶ 選擇行動。`);
@@ -200,7 +277,7 @@ function enemyTurn(){
 }
 
 /* ============ 結局 ============ */
-function endG(tag,text){state.phase='ended';unlock(tag);stats();side();story(text);choices([{label:'🔄 重新開始',do:resetGame},{label:'🏆 成就',do:openAchievements},{label:'🧭 歷史',do:openHistory}]);hist('結局：'+tag);}
+function endG(tag,text){state.phase='ended';unlock(tag);stats();side();story(text);choices([{label:'🔄 重新開始',do:window.resetGame},{label:'🏆 成就',do:window.openAchievements},{label:'🧭 歷史',do:window.openHistory}]);hist('結局：'+tag);}
 function win(){state.gold+=50;item('納明丁榮譽項鍊');item('貝殼護身符');mark('034');hist('正確指控提亞');endG('success',`你指出提亞利用搬運工從保險箱偷出石碑，並在船底艙殺人滅口。\n\n【序章成功結局】\n獲得 50 金幣、納明丁榮譽項鍊、貝殼護身符。`);}
 function wrong(t){endG('wrong',t+`\n\n【錯誤指控結局】`);}
 function partial(){state.gold+=10;endG('partial',`你報告搬運工下落。\n\n【部分真相結局】\n獲得 10 金幣。`);}
@@ -210,18 +287,28 @@ const M={duel:['130','決鬥審判'],medicine:['137','拉本靈藥'],brooch:['14
 const C={warrior:['150','戰士'],priest:['160','牧師'],rogue:['166','盜賊'],mage:['174','法師']};
 const S={winter:['190','冬至'],autumn:['204','秋分'],summer:['218','夏至'],spring:['237','春分']};
 
-/* 模式選擇 */
-E['mode_select']={scene:'ship',text:`選擇遊戲模式：\n\n▶ 單人模式：你獨自冒險，阿貝拉爾德是你的同伴。\n▶ 雙人模式：你與第二位玩家共同冒險。阿貝拉爾德僅作為劇情角色存在，不參與戰鬥。` ,choices:[
+E['mode_select']={scene:'ship',text:`選擇遊戲模式：\n\n▶ 單人模式：你獨自冒險，阿貝拉爾德是你的同伴。\n▶ 雙人模式：你與第二位玩家共同冒險。阿貝拉爾德僅作為劇情角色存在，不參與戰鬥（但提供生命 +5、攻擊 +1 的增益）。` ,choices:[
   {label:'👤 單人模式',do:()=>{state.duo=false;go('0000');}},
   {label:'👥 雙人模式（標記 #000）',do:()=>{state.duo=true;mark('000');unlock('duoMode');go('0000');}}
 ]};
 
+function pickM(k){
+  if(state.duo && !state._duoApplied){
+    state.maxHp+=5;
+    state.hp+=5;
+    state._duoApplied=true;
+    toast('👥 雙人模式：生命 +5、攻擊 +1');
+  }
+  mark(M[k][0]);
+  state.mission={k,name:M[k][1]};
+  go('0076');
+}
+
 E['0000']={scene:'ship',text:`0000\n渡輪的隊伍排得很長。「你今年去切斯特拉爾是為了什麼？」賈拉尼問。`,choices:[{label:'▶ 0162 決鬥',do:()=>pickM('duel')},{label:'▶ 0023 藥物',do:()=>pickM('medicine')},{label:'▶ 0039 胸針',do:()=>pickM('brooch')},{label:'▶ 0056 舊情人',do:()=>pickM('lover')}]};
-function pickM(k){mark(M[k][0]);state.mission={k,name:M[k][1]};go('0076');}
-E['0076']={scene:'ship',text:`0076\n覺醒節舉辦季節：`,choices:[{label:'0090 冬至',do:()=>pickS('winter')},{label:'0114 秋分',do:()=>pickS('autumn')},{label:'0099 夏至',do:()=>pickS('summer')},{label:'0121 春分',do:()=>pickS('spring')}]};
 function pickS(k){mark(S[k][0]);state.season={k};go('0169');}
-E['0169']={scene:'ship',text:`0169\n你是在……的時候認識阿貝拉爾德的。`,choices:[{label:'0003 小時候',do:()=>pickC('warrior')},{label:'0024 借錢',do:()=>pickC('priest')},{label:'0057 盜竊',do:()=>pickC('rogue')},{label:'0065 雇用',do:()=>pickC('mage')}]};
+E['0076']={scene:'ship',text:`0076\n覺醒節舉辦季節：`,choices:[{label:'0090 冬至',do:()=>pickS('winter')},{label:'0114 秋分',do:()=>pickS('autumn')},{label:'0099 夏至',do:()=>pickS('summer')},{label:'0121 春分',do:()=>pickS('spring')}]};
 function pickC(k){mark(C[k][0]);state.companion={k,name:C[k][1]};go('0077');}
+E['0169']={scene:'ship',text:`0169\n你是在……的時候認識阿貝拉爾德的。`,choices:[{label:'0003 小時候',do:()=>pickC('warrior')},{label:'0024 借錢',do:()=>pickC('priest')},{label:'0057 盜竊',do:()=>pickC('rogue')},{label:'0065 雇用',do:()=>pickC('mage')}]};
 E['0077']={scene:'ship',onEnter:()=>item('登船牌'),text:`0077\n檢票員遞給你登船牌。`,choices:[{label:'0115 繼續',goto:'0115'}]};
 E['0115']={scene:'ship',text:`0115\n▶ DC 8 力量。`,choices:[{label:'力量 DC 8',do:()=>{sfx('dice');const r=d20(2);toast(`力量：${r}`);if(r>=8)mark('015');adv();go('0172');}}]};
 E['0172']={scene:'ship',text:`0172\n渡輪啟航。`,choices:[{label:'0139 露天甲板',goto:'0139'},{label:'0173 慶典甲板',goto:'0173'},{label:'0010 乘客甲板',goto:'0010'},{label:'0027 統艙甲板',goto:'0027'}]};
@@ -267,11 +354,11 @@ E['0064']={scene:'ship',onEnter:()=>{mark('025');state.gold+=11;},text:`事務�
 E['0097']={scene:'ghost',text:`0097\n明輪罩幽靈船長。\n\n▶ DC 10 魅力。`,choices:[{label:'魅力 DC 10',do:()=>{sfx('dice');const r=d20(0);toast(`魅力：${r}`);if(r>=10){mark('012');mark('013');unlock('ghost');}else{state.hp-=rnd(4)+rnd(4);if(state.hp<=0){go('death_end');return;}mark('012');mark('013');}go('ghost_after');}}]};
 E['ghost_after']={scene:'ghost',text:`幽靈消散。`,choices:[{label:'返回',goto:'0027'}]};
 E['0034_flee']={scene:'combat',text:`成功逃回甲板。`,choices:[{label:'返回',goto:'0027'}]};
-E['0118']={scene:'combat',onEnter:()=>unlock('death'),text:`0118\n你在壯麗號上死亡。`,choices:[{label:'🔄 重新開始',do:resetGame}]};
+E['0118']={scene:'combat',onEnter:()=>unlock('death'),text:`0118\n你在壯麗號上死亡。`,choices:[{label:'🔄 重新開始',do:window.resetGame}]};
 E['0123']={scene:'combat',onEnter:()=>{mark('008');state.clues.body=true;item('紅木魔杖');adv();},text:`0123\n擊敗鼠群，取得魔杖（#008）。`,choices:[{label:'報告弗娜',check:()=>clueCount()>=2,hint:'需 2 線索。',goto:'report'},{label:'返回',goto:'0027'}]};
 E['report']={scene:'ship',text:()=>`弗娜等待指控。線索：${Object.keys(state.clues).filter(k=>state.clues[k]).join('、')||'無'}`,choices:[{label:'指控提亞（需 #008+#029）',do:()=>{if(state.clues.body&&state.clues.wizard)win();else toast('證據不足。');}},{label:'報告搬運工',do:()=>{if(state.clues.body)partial();else toast('未找到。');}},{label:'返回',goto:'0010'}]};
 function clueCount(){return Object.keys(state.clues).filter(k=>state.clues[k]).length;}
-E['death_end']={scene:'combat',onEnter:()=>unlock('death'),text:`你倒下了。`,choices:[{label:'🔄 重新開始',do:resetGame}]};
+E['death_end']={scene:'combat',onEnter:()=>unlock('death'),text:`你倒下了。`,choices:[{label:'🔄 重新開始',do:window.resetGame}]};
 E['0021']={scene:'ship',text:`0021\n夜間警報。`,choices:[{label:'0109 前往',do:()=>{state.day=2;state.time=0;go('0109');}}]};
 E['0109']={scene:'combat',text:`0109\n海盜襲擊。`,choices:[{label:'0002 跳救生艇',goto:'0002'},{label:'0147 戰鬥',do:()=>startCombat({enemies:['pirate'],victory:'0137',defeat:'0118',flee:'0185',intro:'海盜'})},{label:'0185 投降',goto:'0185'}]};
 E['0002']={scene:'boat',text:`0002\n▶ DC 12 力量，3 成功/失敗。`,choices:[{label:'檢定',do:()=>{sfx('dice');let s=0,f=0;for(let i=0;i<6&&s<3&&f<3;i++){const r=d20(2);if(r>=12)s++;else f++;}toast(`成功 ${s}/失敗 ${f}`);if(s>=3){mark('031');go('0137');}else{go('0185');}}}]};
@@ -311,7 +398,6 @@ function renderHub(){
 }
 E['city_hub']={scene:'city',text:()=>`【城市導航】\n📅 第 ${state.day} 天 ⏳ ${state.time}/5｜🪙 ${state.gold}｜❤️ ${state.hp}/${state.maxHp}\n任務：${state.mission?state.mission.name:'未定'}\n懸賞：${state.bounties.length?state.bounties.join('、'):'無'}\n威脅線：${countThreats()}/5 已揭露\n\n▶ 選擇前往地點。`,choices:()=>renderHub()};
 
-/* 旅館 */
 E['loc_inn']={scene:'city',text:`🏨 長羽旅館。`,choices:[
   {label:'🌙 長休息（滿 HP，日期+1）',do:()=>{state.hp=state.maxHp;state.day++;state.time=0;hist('長休息，第'+state.day+'天');toast(`第 ${state.day} 天。`);go('loc_inn');}},
   {label:'📋 懸賞板',goto:'bounty_board'},
@@ -340,7 +426,6 @@ E['bounty_sewer']={scene:'city',text:`💧 下水道物品。`,choices:[{label:'
 E['bounty_sewer_go']={scene:'combat',text:`陰影撲來。`,choices:[{label:'戰鬥',do:()=>startCombat({enemies:['shadow'],victory:'bounty_sewer_win',defeat:'death_end',flee:'loc_inn',intro:'下水道'})}]};
 E['bounty_sewer_win']={scene:'combat',text:`暗影驅散，找到戒指。`,choices:[{label:'帶回',do:()=>{state.gold+=50;mark('bounty_sewer_done');unlock('bounty');toast('獲得 50 金幣。');go('loc_inn');}}]};
 
-/* 神廟 */
 E['loc_temple']={scene:'temple',text:`⛪ 安伯林神廟。`,choices:[
   {label:'💊 買治療藥水（50 金）',check:()=>state.gold>=50,hint:'需 50 金幣。',do:()=>{state.gold-=50;item('治療藥水');go('loc_temple');}},
   {label:'🔍 詢問拉本靈藥',goto:'temple_panacea'},
@@ -348,7 +433,6 @@ E['loc_temple']={scene:'temple',text:`⛪ 安伯林神廟。`,choices:[
 ]};
 E['temple_panacea']={scene:'temple',onEnter:()=>mark('138'),text:`海倫斯抄寫員說需先取得出口許可（#138）。`,choices:[{label:'返回',goto:'loc_temple'}]};
 
-/* 降神會街 */
 E['loc_seance']={scene:'seance',text:`🔮 降神會街。`,choices:[
   {label:'🕯️ 登記通靈（2 金）',check:()=>state.gold>=2,hint:'需 2 金幣。',do:()=>{state.gold-=2;go('seance_choose');}},
   {label:'👂 聽人群（1 時段）',do:()=>{adv(1);toast('人群討論著最近燈籠熄滅、水閘問題。');go('loc_seance');}},
@@ -384,7 +468,6 @@ E['seance_watergate']={scene:'seance',text:`靈媒呼喚水閘靈魂。`,choices
   {label:'繼續',do:()=>{adv(1);mark('209');unlock('watergate');toast('「綁定不該是囚禁！」（#209）');go('loc_seance');}}
 ]};
 
-/* 水磨 */
 E['loc_watermill']={scene:'watermill',text:`💧 水磨・水門。`,choices:[
   {label:'🚶 觀察水門',goto:'watergate_observe'},
   {label:'🏭 找主管',goto:'watermill_director'},
@@ -396,7 +479,6 @@ E['watergate_observe']={scene:'watermill',onEnter:()=>{mark('207');adv();},text:
 E['watermill_director']={scene:'watermill',onEnter:()=>adv(),text:`0805\n主管告訴你問題在水門本身，給你靈魂名字（#207·#208）。`,choices:[{label:'前往降神會',do:()=>{mark('208');unlock('watergate');go('loc_seance');}},{label:'返回',goto:'loc_watermill'}]};
 E['watergate_fix']={scene:'watermill',onEnter:()=>{mark('250');state.gold+=30;unlock('watergate');hist('修復水閘');},text:`你把診斷交給首席法師助手，水閘恢復（#250）。\n\n獲得 30 金幣。`,choices:[{label:'返回城市',goto:'city_hub'}]};
 
-/* 檔案員廣場 */
 E['loc_archivists']={scene:'city',text:`🏛️ 檔案員廣場。`,choices:[
   {label:'📜 檔案大廳',goto:'hall_records'},
   {label:'🛡️ 民兵總部',do:()=>{adv(1);toast('民兵總部人滿為患。');go('loc_archivists');}},
@@ -410,7 +492,6 @@ E['hall_records']={scene:'city',text:`📜 檔案大廳`,choices:[
   {label:'返回',goto:'loc_archivists'}
 ]};
 
-/* 其他地點 */
 E['loc_market']={scene:'city',text:`🛒 城市集市。`,choices:[
   {label:'🛡️ 買治療藥水（50 金）',check:()=>state.gold>=50,hint:'需 50 金幣。',do:()=>{state.gold-=50;item('治療藥水');go('loc_market');}},
   {label:'🗣️ 問傳言（1 時段，隨機遭遇）',do:()=>{adv(1);randomEncounter('loc_market','city');}},
@@ -444,7 +525,6 @@ E['loc_ruins']={scene:'city',text:`🏚️ 老城廢墟。`,choices:[
 ]};
 E['jotham_win']={scene:'city',onEnter:()=>{mark('229');state.threats.jotham=true;unlock('jotham');},text:`擊敗約坦僕從（#229·約坦線！）`,choices:[{label:'返回城市',goto:'city_hub'}]};
 
-/* 下水道 */
 E['loc_sewer']={scene:'sewer',text:`🌊 市場下水道入口`,choices:[
   {label:'⬇️ 深入下水道',goto:'sewer_deep'},
   {label:'⬆️ 返回地面',goto:'city_hub'}
@@ -463,7 +543,6 @@ E['sewer_apartment_enter']={scene:'sewer',text:`公寓內，紅色奧術圓圈�
 ]};
 E['enara_win']={scene:'sewer',onEnter:()=>{mark('202');state.threats.enara=true;unlock('enara');state.gold+=30;},text:`擊敗埃納拉（#202·埃納拉線！）\n\n獲得 30 金幣。`,choices:[{label:'返回城市',goto:'city_hub'}]};
 
-/* 運河 */
 E['loc_canal']={scene:'canal',text:`🚢 東門運河。`,choices:[
   {label:'🔍 觀察水底',do:()=>{adv(1);mark('241');toast('水下有盔甲閃光（#241）。');go('loc_canal');}},
   {label:'🌊 潛水（DC 12 運動，需 #241）',check:()=>has('241'),hint:'需先觀察水底（#241）。',do:()=>{sfx('dice');const r=d20(2);toast(`運動：${r}`);if(r>=12){mark('242');go('canal_tomb');}else{state.hp-=rnd(6);if(state.hp<=0)return go('death_end');}}},
@@ -475,7 +554,6 @@ E['canal_tomb']={scene:'canal',onEnter:()=>adv(),text:`隱藏運河墓穴。`,ch
 ]};
 E['pandjed_win']={scene:'canal',onEnter:()=>{mark('244');state.threats.pandjed=true;unlock('pandjed');state.gold+=40;},text:`擊敗潘傑德與鬧鬼胸甲（#244·潘傑德線！）\n\n獲得 40 金幣。`,choices:[{label:'返回城市',goto:'city_hub'}]};
 
-/* 骨后 */
 E['loc_bonequeen']={scene:'bonequeen',text:`💀 骨后領地。`,choices:[
   {label:'🚶 聲稱探索',goto:'bonequeen_sentry'},
   {label:'💬 聲稱有事（DC 15 欺騙）',goto:'bonequeen_claim'},
@@ -498,7 +576,6 @@ E['bonequeen_fight']={scene:'bonequeen',text:`0910\n你激怒了骨后。她從�
 ]};
 E['bonequeen_win']={scene:'bonequeen',onEnter:()=>{mark('230');state.threats.boneQueen=true;unlock('boneQueenSlain');unlock('boneQueen');state.gold+=60;item('骨后的面具');},text:`你擊敗了骨后。她的骷髏僕從隨之倒下。\n\n（#230·骨后線終結！）\n\n獲得 60 金幣與「骨后的面具」。`,choices:[{label:'返回城市',goto:'city_hub'}]};
 
-/* 首席法師報告 */
 E['report_chief']={scene:'chief',text:()=>`🏛️ 首席法師辦公室\n\n首席法師聽取你的報告。你已揭露的威脅：\n${Object.keys(state.threats).length?Object.keys(state.threats).map(k=>({enara:'埃納拉（腐敗行政官）',jotham:'約坦（亡靈法師）',excavator:'挖掘者（任性幽靈）',pandjed:'潘傑德（龍裔食屍鬼）',boneQueen:'骨后（廢墟死靈女王）'})[k]).join('\n'):'尚無'}\n\n▶ 指認罪魁禍首（每條威脅線需先在本城市揭露）。`,choices:[
   {label:'指控埃納拉',check:()=>state.threats.enara,hint:'需先擊敗埃納拉（#202）。',goto:'chief_enara'},
   {label:'指控約坦',check:()=>state.threats.jotham,hint:'需先揭露約坦（#229）。',goto:'chief_jotham'},
@@ -513,7 +590,6 @@ E['chief_excavator']={scene:'chief',onEnter:()=>{mark('1009');unlock('chiefRepor
 E['chief_pandjed']={scene:'chief',onEnter:()=>{mark('0861');unlock('chiefReport');},text:`首席法師派遣隊伍潛入運河墓穴，掃蕩剩餘鬧鬼盔甲。\n\n「潘傑德的亡靈軍團已徹底清除。」`,choices:[{label:'繼續',goto:'report_chief'}]};
 E['chief_bonequeen']={scene:'chief',onEnter:()=>{mark('0270');unlock('chiefReport');},text:`首席法師對你擊敗骨后深感震驚與敬佩。\n\n「廢墟中的死靈社群將群龍無首。這為城市帶來了數十年的安全。」`,choices:[{label:'繼續',goto:'report_chief'}]};
 
-/* ============ 尾聲 ============ */
 E['report_lord']={scene:'city',text:()=>`👑 斯圖弗頓勳爵套房\n\n斯圖弗頓勳爵放下手中的信，抬頭看你。\n\n「我已經聽說了你在城市裡的作為。${countThreats()} 條威脅已揭露。\n\n週末慶典（Endweek）就在明天。陵墓節需要一位英雄——而你就是。」\n\n▶ 是否進入週末慶典尾聲？（建議至少揭露 3 條威脅線）`,choices:[
   {label:'🎉 進入週末慶典尾聲',check:()=>countThreats()>=3,hint:`目前僅揭露 ${countThreats()} 條威脅，至少需 3 條。`,do:()=>go('epilogue_start')},
   {label:'📋 查看目前戰績',do:()=>{toast(`擊敗/揭露 ${countThreats()}/5 條威脅線`);go('report_lord');}},
@@ -543,7 +619,6 @@ function triggerTrueEnding(){
   }
 }
 
-/* ============ 隨機遭遇 ============ */
 function randomEncounter(returnTo,area='ruins'){
   sfx('dice');
   const a=rnd(6),b=rnd(6);
@@ -624,7 +699,7 @@ const MONSTER_LIST=[
   {name:'殭屍',cr:'1/4',hp:22,ac:8,atk:'猛擊 +3（1d6+1）',desc:'不死殭屍，有「不死堅韌」。'}
 ];
 
-function openAppendix(){
+window.openAppendix = function(){
   unlock('appendixOpened');
   const tabs=[
     {id:'comp_warrior',label:'⚔️ 戰士'},
@@ -669,41 +744,45 @@ function openAppendix(){
   function renderTabs(){
     return tabs.map(t=>`<button style="margin:2px;padding:6px 10px;border:1px solid #6e4c24;border-radius:6px;background:${activeTab===t.id?'linear-gradient(#f7e8c4,#dcc18b)':'rgba(255,248,230,.4)'};cursor:pointer;" onclick="window._appTab('${t.id}')">${t.label}</button>`).join('');
   }
-  function render(){ $('modalTitle').textContent='📚 附錄'; $('modalBody').innerHTML=renderTabs()+'<div style="margin-top:12px">'+renderBody()+'</div>'; $('modalActions').innerHTML=''; const b=document.createElement('button');b.textContent='關閉';b.onclick=closeModal;$('modalActions').appendChild(b); $('modal').classList.remove('hidden'); }
+  function render(){ $('modalTitle').textContent='📚 附錄'; $('modalBody').innerHTML=renderTabs()+'<div style="margin-top:12px">'+renderBody()+'</div>'; $('modalActions').innerHTML=''; const b=document.createElement('button');b.textContent='關閉';b.onclick=window.closeModal;$('modalActions').appendChild(b); $('modal').classList.remove('hidden'); }
   window._appTab=function(id){activeTab=id;render();};
   render();
 }
 
-/* ============ 說明 / 歷史 / 成就 / 存讀檔 ============ */
-function openManual(){state.phase='manual';stats();$('modalTitle').textContent='📖 陵墓節：新手說明';$('modalBody').innerHTML=`<h3>🎯 遊戲目標</h3><p>序章：調查「壯麗號」失竊石碑。<br>主冒險：揭露五條威脅線（埃納拉／約坦／挖掘者／潘傑德／骨后），向首席法師指認，並向斯圖弗頓勳爵匯報，觸發週末慶典尾聲。<br>揭露 5 條威脅線可解鎖真結局。</p><h3>👀 看懂畫面</h3><p>頂部：❤️生命、🪙金幣、📅天、⏳時段0/5、🎒物品、🔖事件、👥雙人（若啟用）。中間是故事文字（點擊立即顯示），下方是選項。右側：事件追蹤、物品欄、歷史、成就。</p><h3>🕹️ 操作步驟</h3><p>1. 序章：模式選擇→任務→季節→夥伴→登船→調查→報告。<br>2. 城市導航選擇地點。<br>3. 揭露五條威脅線：天文台（挖掘者）、廢墟（約坦）、下水道（埃納拉）、運河（潘傑德）、骨后領地（骨后）。<br>4. 向首席法師指認。<br>5. 向斯圖弗頓勳爵匯報（需揭露 ≥3 條）觸發尾聲。</p><h3>⚙️ 特殊機制</h3><p>👥 雙人模式：攻擊 +1，生命 +5。<br>📚 附錄：可查閱阿貝拉爾德 4 職業 × 3 級屬性與 36 種怪物資料。<br>隨機遭遇 2d6 雙同觸發。骨后有魔法迷霧（攻擊 -2）。長休息恢復生命。</p><h3>💡 小訣竅</h3><p>揭露 ≥3 條威脅後可進尾聲，5 條可解鎖真結局。暗影優先擊殺。</p>`;$('modalActions').innerHTML='';const b=document.createElement('button');b.textContent='我準備好了，開始遊戲';b.onclick=()=>{sfx('click');closeModal();state.phase='playing';hist('開始遊戲');go('mode_select');};$('modalActions').appendChild(b);$('modal').classList.remove('hidden');}
-function closeModal(){$('modal').classList.add('hidden');}
-function openHistory(){const h=state.history.length?'<ol>'+state.history.slice().reverse().map(x=>`<li>${x}</li>`).join('')+'</ol>':'<p>尚無紀錄。</p>';$('modalTitle').textContent='🧭 歷史紀錄';$('modalBody').innerHTML=h;$('modalActions').innerHTML='';const b=document.createElement('button');b.textContent='關閉';b.onclick=closeModal;$('modalActions').appendChild(b);$('modal').classList.remove('hidden');}
-function openAchievements(){const h=state.achievements.length?'<ul>'+state.achievements.map(a=>`<li>🏆 ${ACH_NAMES[a]||a}</li>`).join('')+'</ul>':'<p>尚未解鎖成就。</p>';$('modalTitle').textContent='🏆 成就';$('modalBody').innerHTML=h;$('modalActions').innerHTML='';const b=document.createElement('button');b.textContent='關閉';b.onclick=closeModal;$('modalActions').appendChild(b);$('modal').classList.remove('hidden');}
-function saveGame(){localStorage.setItem(SAVE_KEY,JSON.stringify(state));toast('已存檔。');}
-function loadGame(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw){toast('沒有存檔。');return;}const o=JSON.parse(raw);state={...fresh(),...o};state.events=o.events||[];state.inventory=o.inventory||[];state.history=o.history||[];state.achievements=o.achievements||[];state.clues=o.clues||{};state.bounties=o.bounties||[];state.threats=o.threats||{};state.duo=o.duo||false;state.phase=o.phase==='ended'?'ended':'playing';closeModal();if(state.phase==='ended'){story('已讀取結局存檔。');choices([{label:'🔄 重新開始',do:resetGame}]);}else go(state.entry);toast('已讀取存檔。');}catch(e){toast('讀檔失敗。');}}
-function resetGame(){if(!confirm('確定重置？成就會保留。'))return;const a=state.achievements.slice();state=fresh();state.achievements=a;closeModal();stats();side();hist('重置遊戲');openManual();}
-function toggleSound(){state.sound=!state.sound;$('soundBtn').textContent='音效：'+(state.sound?'開':'關');if(state.sound)sfx('click');}
-
-/* 雙人模式加成 */
-function applyDuoBonus(){
-  if(state.duo){
-    state.maxHp=state.maxHp+5;
-    state.hp=state.hp+5;
-  }
+/* ============ 彈窗與存讀檔 ============ */
+window.openManual = function(){
+  state.phase='manual';
+  stats();
+  $('modalTitle').textContent='📖 陵墓節：新手說明';
+  $('modalBody').innerHTML=`<h3>🎯 遊戲目標</h3><p>序章：調查「壯麗號」失竊石碑。<br>主冒險：揭露五條威脅線（埃納拉／約坦／挖掘者／潘傑德／骨后），向首席法師指認，並向斯圖弗頓勳爵匯報，觸發週末慶典尾聲。<br>揭露 5 條威脅線可解鎖真結局。</p><h3>👀 看懂畫面</h3><p>頂部：❤️生命、🪙金幣、📅天、⏳時段0/5、🎒物品、🔖事件、👥雙人（若啟用）。中間是故事文字（點擊立即顯示），下方是選項。右側：事件追蹤、物品欄、歷史、成就。</p><h3>🕹️ 操作步驟</h3><p>1. 序章：模式選擇→任務→季節→夥伴→登船→調查→報告。<br>2. 城市導航選擇地點。<br>3. 揭露五條威脅線：天文台（挖掘者）、廢墟（約坦）、下水道（埃納拉）、運河（潘傑德）、骨后領地（骨后）。<br>4. 向首席法師指認。<br>5. 向斯圖弗頓勳爵匯報（需揭露 ≥3 條）觸發尾聲。</p><h3>⚙️ 特殊機制</h3><p>👥 雙人模式：攻擊 +1，生命 +5。<br>📚 附錄：可查閱阿貝拉爾德 4 職業 × 3 級屬性與 36 種怪物資料。<br>隨機遭遇 2d6 雙同觸發。骨后有魔法迷霧（攻擊 -2）。長休息恢復生命。</p><h3>💡 小訣竅</h3><p>揭露 ≥3 條威脅後可進尾聲，5 條可解鎖真結局。暗影優先擊殺。</p>`;
+  $('modalActions').innerHTML='';
+  const b=document.createElement('button');
+  b.textContent='我準備好了，開始遊戲';
+  b.onclick=()=>{sfx('click');window.closeModal();state.phase='playing';hist('開始遊戲');go('mode_select');};
+  $('modalActions').appendChild(b);
+  $('modal').classList.remove('hidden');
 }
 
-/* 覆寫 pickM 以套用雙人加成（僅第一次） */
-const origPickM=pickM;
-pickM=function(k){
-  if(state.duo && !state._duoApplied){
-    applyDuoBonus();
-    state._duoApplied=true;
-    toast('👥 雙人模式：生命 +5、攻擊 +1');
-  }
-  origPickM(k);
-};
+window.closeModal = function(){ $('modal').classList.add('hidden'); }
+window.openHistory = function(){const h=state.history.length?'<ol>'+state.history.slice().reverse().map(x=>`<li>${x}</li>`).join('')+'</ol>':'<p>尚無紀錄。</p>';$('modalTitle').textContent='🧭 歷史紀錄';$('modalBody').innerHTML=h;$('modalActions').innerHTML='';const b=document.createElement('button');b.textContent='關閉';b.onclick=window.closeModal;$('modalActions').appendChild(b);$('modal').classList.remove('hidden');}
+window.openAchievements = function(){const h=state.achievements.length?'<ul>'+state.achievements.map(a=>`<li>🏆 ${ACH_NAMES[a]||a}</li>`).join('')+'</ul>':'<p>尚未解鎖成就。</p>';$('modalTitle').textContent='🏆 成就';$('modalBody').innerHTML=h;$('modalActions').innerHTML='';const b=document.createElement('button');b.textContent='關閉';b.onclick=window.closeModal;$('modalActions').appendChild(b);$('modal').classList.remove('hidden');}
+window.saveGame = function(){localStorage.setItem(SAVE_KEY,JSON.stringify(state));toast('已存檔。');}
+window.loadGame = function(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw){toast('沒有存檔。');return;}const o=JSON.parse(raw);state={...fresh(),...o};state.events=o.events||[];state.inventory=o.inventory||[];state.history=o.history||[];state.achievements=o.achievements||[];state.clues=o.clues||{};state.bounties=o.bounties||[];state.threats=o.threats||{};state.duo=o.duo||false;state.phase=o.phase==='ended'?'ended':'playing';window.closeModal();if(state.phase==='ended'){story('已讀取結局存檔。');choices([{label:'🔄 重新開始',do:window.resetGame}]);}else go(state.entry);toast('已讀取存檔。');}catch(e){toast('讀檔失敗。');}}
+window.resetGame = function(){if(!confirm('確定重置？成就會保留。'))return;const a=state.achievements.slice();state=fresh();state.achievements=a;window.closeModal();stats();side();hist('重置遊戲');window.openManual();}
+window.toggleSound = function(){state.sound=!state.sound;$('soundBtn').textContent='音效：'+(state.sound?'開':'關');if(state.sound)sfx('click');}
 
-stats();side();$('svgScene').innerHTML=svg('ship');story('正在翻開古老的冒險書……');openManual();
+/* ============ 初始化 ============ */
+window.onload = function() {
+  try {
+    stats();
+    side();
+    $('svgScene').innerHTML = getSceneSVG('ship');
+    story('正在準備冒險書……');
+    window.openManual();
+  } catch(e) {
+    alert('遊戲初始化失敗: ' + e.message);
+  }
+};
 </script>
 </body>
 </html>
