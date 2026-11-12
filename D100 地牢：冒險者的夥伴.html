@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>D100 地牢：冒險者的夥伴</title>
+<style>
+    :root {
+        --bg-color: #2c1e16;
+        --paper-color: #f4ecd8;
+        --text-color: #3b2b20;
+        --accent-color: #8b0000;
+        --gold-color: #d4af37;
+        --btn-bg: #5a3a22;
+        --btn-hover: #7a4e2d;
+        --border-color: #1a110b;
+        --font-main: 'Georgia', 'Times New Roman', serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    
+    body {
+        font-family: var(--font-main);
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background-image: radial-gradient(circle, transparent 20%, #000 120%);
+    }
+
+    /* 頂部狀態列 */
+    #top-bar {
+        background: rgba(0,0,0,0.8);
+        color: #fff;
+        padding: 10px;
+        display: flex;
+        justify-content: space-around;
+        font-size: 14px;
+        border-bottom: 2px solid var(--gold-color);
+        z-index: 10;
+    }
+    .stat-item { display: flex; align-items: center; gap: 5px; }
+    .stat-icon { font-size: 18px; }
+
+    /* 主遊戲區 */
+    #game-screen {
+        flex: 1;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        background: var(--paper-color);
+        background-image: 
+            linear-gradient(rgba(244, 236, 216, 0.9), rgba(244, 236, 216, 0.9)),
+            url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.05"/></svg>');
+        margin: 10px;
+        border-radius: 8px;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 5px 15px rgba(0,0,0,0.8);
+        overflow-y: auto;
+        position: relative;
+    }
+
+    /* 場景圖示區 */
+    #scene-container {
+        height: 120px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 10px;
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    }
+
+    /* 文字描述區 */
+    #story-text {
+        font-size: 16px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+        min-height: 120px;
+        text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+        color: #1a110b;
+    }
+    .cursor { animation: blink 1s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* 戰鬥面板 */
+    #combat-panel {
+        background: rgba(0,0,0,0.05);
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 15px;
+        display: none;
+    }
+    .monster-stats { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; color: var(--accent-color); }
+    .monster-hp-bar { height: 10px; background: #ccc; border-radius: 5px; overflow: hidden; margin-bottom: 5px; }
+    .monster-hp-fill { height: 100%; background: var(--accent-color); width: 100%; transition: width 0.3s; }
+    .monster-abilities { font-size: 12px; font-style: italic; color: #555; }
+
+    /* 動作按鈕區 */
+    #actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: auto;
+        padding-bottom: 20px;
+    }
+    button {
+        background: var(--btn-bg);
+        color: #f4ecd8;
+        border: 2px solid var(--gold-color);
+        padding: 12px;
+        font-size: 16px;
+        font-family: var(--font-main);
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 0 #1a110b;
+    }
+    button:hover:not(:disabled) { background: var(--btn-hover); transform: translateY(-2px); box-shadow: 0 6px 0 #1a110b; }
+    button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #1a110b; }
+    button:disabled { background: #888; border-color: #555; color: #ccc; cursor: not-allowed; box-shadow: none; }
+
+    /* 底部導航列 */
+    #bottom-nav {
+        background: #1a110b;
+        display: flex;
+        justify-content: space-around;
+        padding: 10px 0;
+        border-top: 2px solid var(--gold-color);
+        z-index: 10;
+    }
+    .nav-btn {
+        background: transparent;
+        border: none;
+        color: var(--gold-color);
+        font-size: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 10px;
+        box-shadow: none;
+    }
+    .nav-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); transform: none; box-shadow: none; }
+    .nav-btn .icon { font-size: 20px; }
+
+    /* 彈窗系統 */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85);
+        display: none; justify-content: center; align-items: center;
+        z-index: 100;
+        backdrop-filter: blur(3px);
+    }
+    .modal-content {
+        background: var(--paper-color);
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        border: 3px solid var(--gold-color);
+        box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+    }
+    .modal-content h2 { color: var(--accent-color); margin-bottom: 15px; text-align: center; border-bottom: 2px solid var(--border-color); padding-bottom: 5px; }
+    .modal-content h3 { margin-top: 15px; margin-bottom: 5px; color: var(--border-color); }
+    .modal-content p { margin-bottom: 10px; line-height: 1.5; font-size: 14px; }
+    .modal-close-btn { width: 100%; margin-top: 20px; }
+
+    /* 角色面板 */
+    .char-stat-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #ccc; font-size: 14px; }
+    .inventory-list { list-style: none; padding: 0; margin-top: 10px; }
+    .inventory-list li { background: #fff; border: 1px solid #ccc; padding: 5px; margin-bottom: 5px; border-radius: 3px; font-size: 13px; }
+
+    /* 擲骰動畫 */
+    .dice-roll {
+        font-size: 30px; font-weight: bold; color: var(--accent-color);
+        text-align: center; margin: 10px 0; display: none;
+    }
+
+    /* 提示 Toast */
+    #toast {
+        position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.9); color: #fff; padding: 10px 20px; border-radius: 5px;
+        border: 1px solid var(--gold-color); display: none; z-index: 200; font-size: 14px;
+    }
+</style>
+</head>
+<body>
+
+    <!-- 頂部狀態列 -->
+    <div id="top-bar">
+        <div class="stat-item"><span class="stat-icon">❤️</span><span id="stat-hp">10/10</span></div>
+        <div class="stat-item"><span class="stat-icon">🛡️</span><span id="stat-def">0</span></div>
+        <div class="stat-item"><span class="stat-icon">💰</span><span id="stat-gold">100</span></div>
+        <div class="stat-item"><span class="stat-icon">⭐</span><span id="stat-rep">1</span></div>
+    </div>
+
+    <!-- 主遊戲畫面 -->
+    <div id="game-screen">
+        <div id="scene-container">
+            <!-- SVG 動態生成區 -->
+            <svg id="main-svg" viewBox="0 0 100 100" width="100%" height="100%">
+                <defs>
+                    <linearGradient id="swordGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#e0e0e0;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#888;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <g id="svg-dynamic">
+                    <!-- 預設圖形 -->
+                    <circle cx="50" cy="50" r="30" fill="#ccc" stroke="#333" stroke-width="2"/>
+                </g>
+            </svg>
+        </div>
+
+        <div id="story-text"></div>
+        
+        <div class="dice-roll" id="dice-display"></div>
+
+        <!-- 戰鬥面板 -->
+        <div id="combat-panel">
+            <div class="monster-stats">
+                <span id="monster-name">怪物名稱</span>
+                <span id="monster-hp-text">HP: 10/10</span>
+            </div>
+            <div class="monster-hp-bar">
+                <div class="monster-hp-fill" id="monster-hp-fill"></div>
+            </div>
+            <div class="monster-abilities" id="monster-abilities">能力：無</div>
+        </div>
+
+        <!-- 動作按鈕區 -->
+        <div id="actions">
+            <!-- 按鈕將由 JS 動態生成 -->
+        </div>
+    </div>
+
+    <!-- 底部導航列 -->
+    <div id="bottom-nav">
+        <button class="nav-btn" onclick="openModal('modal-rules')"><span class="icon">📖</span>說明</button>
+        <button class="nav-btn" onclick="openModal('modal-char')"><span class="icon">🧙</span>角色</button>
+        <button class="nav-btn" onclick="saveGame()"><span class="icon">💾</span>存檔</button>
+        <button class="nav-btn" onclick="loadGame()"><span class="icon">📂</span>讀檔</button>
+        <button class="nav-btn" onclick="toggleSound()"><span class="icon" id="sound-icon">🔊</span>音效</button>
+    </div>
+
+    <!-- 彈窗：說明文件 -->
+    <div id="modal-rules" class="modal-overlay">
+        <div class="modal-content">
+            <h2>📜 冒險者指南</h2>
+            <h3>🎯 遊戲目標</h3>
+            <p>你是一位在「北境」探索的冒險者。透過完成任務、擊敗怪物、收集戰利品來提升你的屬性與聲望。</p>
+            <h3>👁️ 看懂畫面</h3>
+            <p>請看畫面最上方的狀態列：<br>
+            ❤️ <strong>生命值</strong>：歸零時冒險失敗。<br>
+            🛡️ <strong>防禦 (DEF)</strong>：怪物攻擊時扣除的傷害。<br>
+            💰 <strong>金幣</strong>：用於購買物品或任務花費。<br>
+            ⭐ <strong>聲望</strong>：任務選擇的依據。</p>
+            <h3>🕹️ 操作步驟</h3>
+            <p>1. 點擊下方按鈕進行探索、戰鬥或休息。<br>
+            2. 戰鬥時點擊「攻擊」擲骰。<br>
+            3. 擊敗怪物後可「搜刮」獲得戰利品。<br>
+            4. 完成 10 個區域探索即可完成第一章任務。</p>
+            <h3>✨ 特殊機制</h3>
+            <p><strong>致命一擊</strong>：若傷害溢出怪物生命值 10 點以上，將觸發致命一擊，獲得額外加值！<br>
+            <strong>巫術</strong>：在任務前可調配藥劑（本版簡化為探索中隨機獲得）。</p>
+            <button class="modal-close-btn" onclick="startGame()">我準備好了，開始遊戲</button>
+        </div>
+    </div>
+
+    <!-- 彈窗：角色面板 -->
+    <div id="modal-char" class="modal-overlay">
+        <div class="modal-content">
+            <h2>🧙 冒險者狀態</h2>
+            <div id="char-stats-container"></div>
+            <h3>🎒 背包</h3>
+            <ul class="inventory-list" id="inventory-list"></ul>
+            <button class="modal-close-btn" onclick="closeModal('modal-char')">關閉</button>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div id="toast"></div>
+
+<script>
+    // ==========================================
+    // 音效引擎 (Web Audio API)
+    // ==========================================
+    let audioCtx;
+    let soundEnabled = true;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playSound(type) {
+        if (!soundEnabled) return;
+        initAudio();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        if (type === 'click') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'hit') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        } else if (type === 'dice') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.05);
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+        } else if (type === 'success') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(554, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+        }
+    }
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        document.getElementById('sound-icon').innerText = soundEnabled ? '🔊' : '🔇';
+        if (soundEnabled) playSound('click');
+    }
+
+    // ==========================================
+    // 遊戲資料 (參考 PDF 素材)
+    // ==========================================
+    const GameData = {
+        // 遭遇表 A (簡化版，對應 PDF 的 EA 表)
+        EncounterA: [
+            { min: 1, max: 10, name: "巨軟泥怪", av: 20, def: 0, dmg: 3, hp: [3,3,2,2], ability: "群體, 織網, 再生" },
+            { min: 11, max: 20, name: "大地精", av: 25, def: 1, dmg: 4, hp: [4,4,3], ability: "群體" },
+            { min: 21, max: 30, name: "變形者", av: 0, def: 0, dmg: 0, hp: [4], ability: "變形" },
+            { min: 31, max: 40, name: "巨蜘蛛", av: 30, def: 2, dmg: 6, hp: [6], ability: "織網, 毒素" },
+            { min: 41, max: 60, name: "哥布林", av: 25, def: 1, dmg: 3, hp: [3,3,3], ability: "群體" },
+            { min: 61, max: 80, name: "哥布林首領", av: 35, def: 2, dmg: 6, hp: [10,5], ability: "群體, 猛衝" },
+            { min: 81, max: 100, name: "石化蜥蜴", av: 60, def: 4, dmg: 4, hp: [20], ability: "石化, 毒素, 恐懼" }
+        ],
+        
+        // 致命一擊表 (簡化版)
+        DeathKill: {
+            head: { min: 10, max: 15, bonus: 15, desc: "顱骨被粉碎，腦漿從衝擊中湧出，死亡瞬間降臨。" },
+            torso: { min: 10, max: 15, bonus: 10, desc: "一根肋骨刺穿重要器官，怪物倒下後斃命。" },
+            arms: { min: 10, max: 15, bonus: 5, desc: "利刃穿透肌肉，造成嚴重傷口，怪物因失血過多而死亡。" },
+            legs: { min: 10, max: 15, bonus: 5, desc: "雙腿從關節處被撕裂，怪物癱倒在地。" }
+        },
+
+        // 任務獎勵
+        Quest1: {
+            name: "前往泥木鎮",
+            targetRegions: 10,
+            mod: -20,
+            reward: 150,
+            penalty: -1
+        }
+    };
+
+    // ==========================================
+    // 玩家狀態與遊戲邏輯 (狀態機)
+    // ==========================================
+    const Player = {
+        name: "冒險者",
+        hp: 10,
+        maxHp: 10,
+        str: 15,
+        dex: 15,
+        int: 15,
+        def: 1,
+        gold: 100,
+        rep: 1,
+        inventory: [],
+        history: [],
+        regionsExplored: 0,
+        currentMonster: null,
+        gameState: 'START', // START, HUB, EXPLORE, COMBAT, GAMEOVER
+        combatTurn: 1
+    };
+
+    const Game = {
+        rollD100: () => Math.floor(Math.random() * 100) + 1,
+        rollD10: () => Math.floor(Math.random() * 10) + 1,
+        rollD6: () => Math.floor(Math.random() * 6) + 1,
+
+        // 狀態切換
+        setState: (newState) => {
+            Player.gameState = newState;
+            Game.renderUI();
+        },
+
+        // 初始/重啟遊戲
+        startNewGame: () => {
+            Player.hp = 10;
+            Player.gold = 100;
+            Player.regionsExplored = 0;
+            Player.inventory = [];
+            Player.history = [];
+            Player.currentMonster = null;
+            Game.setState('HUB');
+            Game.updateText("你站在泥木鎮的郊外，準備好迎接你的第一個任務。");
+            Game.setButtons([{ text: "開始探索地牢", action: Game.startExplore }]);
+        },
+
+        // 開始探索
+        startExplore: () => {
+            Player.regionsExplored++;
+            Player.history.push(`探索了第 ${Player.regionsExplored} 個區域。`);
+            
+            if (Player.regionsExplored > GameData.Quest1.targetRegions) {
+                Game.completeQuest(true);
+                return;
+            }
+
+            // 擲骰決定遭遇 (加入任務修正值 -20)
+            let roll = Game.rollD100() - 20;
+            if (roll < 1) roll = 1;
+
+            // 找對應的怪物
+            let monsterData = GameData.EncounterA.find(m => roll >= m.min && roll <= m.max);
+            if (!monsterData) monsterData = GameData.EncounterA[0];
+
+            // 初始化怪物
+            Player.currentMonster = {
+                ...monsterData,
+                maxHp: monsterData.hp[0],
+                currentHp: monsterData.hp[0],
+                hpIndex: 0
+            };
+
+            // 處理變形者特殊能力
+            if (Player.currentMonster.ability.includes('變形')) {
+                Player.currentMonster.av = Math.max(Player.str, Player.dex);
+                Player.currentMonster.dmg = 5; // 簡化處理
+                Player.currentMonster.maxHp = 10;
+                Player.currentMonster.currentHp = 10;
+                Game.updateText(`一個變形者出現了，它變成了你的樣子！它的 AV 等於你的最高屬性 ${Player.currentMonster.av}。`);
+            } else {
+                Game.updateText(`在第 ${Player.regionsExplored} 個區域，你遭遇了 ${Player.currentMonster.name}！`);
+            }
+            
+            Game.setState('COMBAT');
+            Game.renderUI();
+        },
+
+        // 戰鬥：玩家攻擊
+        playerAttack: () => {
+            const m = Player.currentMonster;
+            const attackRoll = Game.rollD100();
+            const hit = attackRoll <= (Player.str + 10); // 簡化命中判定 (基礎+10)
+            
+            let logMsg = `你擲出了 ${attackRoll}，`;
+            
+            if (hit) {
+                // 命中部位
+                const hitLocation = Game.rollD10();
+                let dmg = Game.rollD6() + 2; // 基礎傷害
+                
+                // 致命一擊判定 (超額傷害)
+                let overkill = 0;
+                if (dmg >= m.currentHp && dmg - m.currentHp >= 10) {
+                    overkill = dmg - m.currentHp;
+                    // 查表
+                    let dkBonus = 5;
+                    let dkDesc = "你造成了毀滅性的打擊。";
+                    if (hitLocation <= 3) { dkBonus = GameData.DeathKill.head.bonus; dkDesc = GameData.DeathKill.head.desc; }
+                    else if (hitLocation <= 5) { dkBonus = GameData.DeathKill.torso.bonus; dkDesc = GameData.DeathKill.torso.desc; }
+                    else if (hitLocation <= 7) { dkBonus = GameData.DeathKill.arms.bonus; dkDesc = GameData.DeathKill.arms.desc; }
+                    else { dkBonus = GameData.DeathKill.legs.bonus; dkDesc = GameData.DeathKill.legs.desc; }
+                    
+                    logMsg += `致命一擊！你造成了 ${dmg} 點傷害，超額 ${overkill} 點！<br>${dkDesc}<br>`;
+                    m.currentHp = 0;
+                } else {
+                    m.currentHp -= dmg;
+                    logMsg += `命中！造成 ${dmg} 點傷害。`;
+                }
+                
+                playSound('hit');
+            } else {
+                logMsg += "未命中！";
+            }
+
+            // 檢查怪物死亡
+            if (m.currentHp <= 0) {
+                // 處理多段生命值 (如巨軟泥怪 3/3/2/2)
+                if (m.hpIndex < m.hp.length - 1) {
+                    m.hpIndex++;
+                    m.maxHp = m.hp[m.hpIndex];
+                    m.currentHp = m.maxHp;
+                    logMsg += `<br>${m.name} 分裂了！它現在有新的生命值。`;
+                    Game.updateText(logMsg);
+                    Game.renderUI();
+                } else {
+                    logMsg += `<br>你擊敗了 ${m.name}！`;
+                    Game.updateText(logMsg);
+                    Game.playerWon();
+                }
+            } else {
+                Game.updateText(logMsg);
+                Game.monsterTurn();
+            }
+        },
+
+        // 怪物回合
+        monsterTurn: () => {
+            const m = Player.currentMonster;
+            let logMsg = "";
+            let monRoll = Game.rollD100();
+            
+            if (monRoll <= m.av) {
+                let dmg = m.dmg;
+                // 處理特殊能力 (簡化)
+                if (m.ability.includes('猛衝')) {
+                    let extraRoll = Game.rollD6();
+                    if (extraRoll === 1) {
+                        let extraDmg = Game.rollD6();
+                        dmg += extraDmg;
+                        logMsg += "怪物發動了猛衝！";
+                    }
+                }
+                
+                let finalDmg = Math.max(0, dmg - Player.def);
+                Player.hp -= finalDmg;
+                logMsg += `怪物攻擊命中！你受到 ${finalDmg} 點傷害。`;
+                playSound('hit');
+            } else {
+                logMsg += "怪物攻擊未命中。";
+            }
+
+            if (Player.hp <= 0) {
+                Game.updateText(logMsg + "<br>你倒下了...");
+                Game.playerLose();
+            } else {
+                Game.updateText(logMsg);
+                Game.setButtons([{ text: "攻擊", action: Game.playerAttack }]);
+                Game.renderUI();
+            }
+        },
+
+        playerWon: () => {
+            Player.currentMonster = null;
+            Player.regionsExplored++;
+            Player.history.push(`擊敗了怪物，並繼續探索。`);
+            
+            // 隨機獲得戰利品
+            let loot = "";
+            if (Math.random() > 0.5) {
+                let gold = Math.floor(Math.random() * 20) + 10;
+                Player.gold += gold;
+                loot = `你搜刮了屍體，獲得了 ${gold} 金幣。`;
+            } else {
+                let items = ["巨鼠耳朵", "哥布林牙齒", "巨蜘蛛腿"];
+                let item = items[Math.floor(Math.random() * items.length)];
+                Player.inventory.push(item);
+                loot = `你獲得了素材：${item}。`;
+            }
+
+            if (Player.regionsExplored >= GameData.Quest1.targetRegions) {
+                Game.completeQuest(true);
+            } else {
+                Game.updateText(loot + "<br>你繼續深入探索。");
+                Game.setState('EXPLORE');
+                Game.setButtons([{ text: "探索下一個區域", action: Game.startExplore }]);
+            }
+        },
+
+        completeQuest: (success) => {
+            Game.setState('GAMEOVER');
+            if (success) {
+                Player.gold += GameData.Quest1.reward;
+                Game.updateText(`你成功探索了 ${GameData.Quest1.targetRegions} 個區域，完成了任務「${GameData.Quest1.name}」！<br>獲得 ${GameData.Quest1.reward} 金幣。`);
+                playSound('success');
+            }
+            Game.setButtons([{ text: "重新開始", action: Game.startNewGame }]);
+        },
+
+        playerLose: () => {
+            Game.setState('GAMEOVER');
+            Game.updateText("你的冒險在此結束。");
+            Game.setButtons([{ text: "重新開始", action: Game.startNewGame }]);
+        },
+
+        // 更新畫面文字 (打字機效果)
+        updateText: (text) => {
+            const textEl = document.getElementById('story-text');
+            textEl.innerHTML = text;
+            // 簡單的淡入效果
+            textEl.style.opacity = 0;
+            setTimeout(() => { textEl.style.opacity = 1; }, 10);
+        },
+
+        // 設定按鈕
+        setButtons: (buttons) => {
+            const container = document.getElementById('actions');
+            container.innerHTML = '';
+            buttons.forEach(btn => {
+                const b = document.createElement('button');
+                b.innerText = btn.text;
+                b.onclick = () => { playSound('click'); btn.action(); };
+                container.appendChild(b);
+            });
+        },
+
+        // 渲染 UI (狀態機核心)
+        renderUI: () => {
+            // 更新頂部狀態
+            document.getElementById('stat-hp').innerText = `${Player.hp}/${Player.maxHp}`;
+            document.getElementById('stat-def').innerText = Player.def;
+            document.getElementById('stat-gold').innerText = Player.gold;
+            document.getElementById('stat-rep').innerText = Player.rep;
+
+            // 更新戰鬥面板
+            const combatPanel = document.getElementById('combat-panel');
+            if (Player.gameState === 'COMBAT' && Player.currentMonster) {
+                combatPanel.style.display = 'block';
+                const m = Player.currentMonster;
+                document.getElementById('monster-name').innerText = m.name;
+                document.getElementById('monster-hp-text').innerText = `HP: ${m.currentHp}/${m.maxHp}`;
+                document.getElementById('monster-hp-fill').style.width = `${(m.currentHp / m.maxHp) * 100}%`;
+                document.getElementById('monster-abilities').innerText = `能力：${m.ability}`;
+                
+                // 更新怪物 SVG
+                Game.updateSVG('monster', m.name);
+            } else {
+                combatPanel.style.display = 'none';
+                Game.updateSVG('default');
+            }
+
+            // 更新角色面板內容
+            Game.renderCharPanel();
+        },
+
+        // 渲染角色面板
+        renderCharPanel: () => {
+            const container = document.getElementById('char-stats-container');
+            container.innerHTML = `
+                <div class="char-stat-row"><span>力量 (STR)</span><span>${Player.str}</span></div>
+                <div class="char-stat-row"><span>敏捷 (DEX)</span><span>${Player.dex}</span></div>
+                <div class="char-stat-row"><span>智力 (INT)</span><span>${Player.int}</span></div>
+                <div class="char-stat-row"><span>防禦 (DEF)</span><span>${Player.def}</span></div>
+            `;
+            const invList = document.getElementById('inventory-list');
+            invList.innerHTML = Player.inventory.length ? '' : '<li>背包空空如也</li>';
+            Player.inventory.forEach(item => {
+                const li = document.createElement('li');
+                li.innerText = item;
+                invList.appendChild(li);
+            });
+        },
+
+        // 動態生成 SVG 圖形
+        updateSVG: (type, name) => {
+            const svgContainer = document.getElementById('svg-dynamic');
+            svgContainer.innerHTML = '';
+            
+            if (type === 'monster') {
+                if (name.includes('軟泥')) {
+                    // 軟泥怪
+                    svgContainer.innerHTML = `
+                        <path d="M20,60 Q50,20 80,60 Q90,80 50,90 Q10,80 20,60" fill="#4CAF50" stroke="#2E7D32" stroke-width="2">
+                            <animate attributeName="d" dur="2s" repeatCount="indefinite" values="M20,60 Q50,20 80,60 Q90,80 50,90 Q10,80 20,60;M20,60 Q50,30 80,60 Q90,80 50,85 Q10,80 20,60;M20,60 Q50,20 80,60 Q90,80 50,90 Q10,80 20,60"/>
+                        </path>
+                        <circle cx="40" cy="50" r="5" fill="#000"/>
+                        <circle cx="60" cy="50" r="5" fill="#000"/>
+                    `;
+                } else if (name.includes('蜘蛛')) {
+                    // 蜘蛛
+                    svgContainer.innerHTML = `
+                        <circle cx="50" cy="50" r="15" fill="#333"/>
+                        <path d="M35,40 L20,30 M35,50 L15,50 M35,60 L20,70" stroke="#333" stroke-width="3"/>
+                        <path d="M65,40 L80,30 M65,50 L85,50 M65,60 L80,70" stroke="#333" stroke-width="3"/>
+                        <circle cx="45" cy="45" r="3" fill="#f00"/>
+                        <circle cx="55" cy="45" r="3" fill="#f00"/>
+                    `;
+                } else {
+                    // 哥布林/預設怪物
+                    svgContainer.innerHTML = `
+                        <polygon points="50,20 20,80 80,80" fill="#555" stroke="#222" stroke-width="2"/>
+                        <circle cx="40" cy="50" r="4" fill="#f00"/>
+                        <circle cx="60" cy="50" r="4" fill="#f00"/>
+                        <path d="M40,70 Q50,80 60,70" stroke="#222" stroke-width="2" fill="none"/>
+                    `;
+                }
+            } else {
+                // 預設冒險者/場景
+                svgContainer.innerHTML = `
+                    <circle cx="50" cy="50" r="30" fill="#8b7355" stroke="#3b2b20" stroke-width="3"/>
+                    <path d="M50,20 L50,80 M20,50 L80,50" stroke="#3b2b20" stroke-width="2"/>
+                `;
+            }
+        }
+    };
+
+    // ==========================================
+    // 系統與 UI 功能
+    // ==========================================
+    function openModal(id) {
+        if (Player.gameState !== 'TUTORIAL') {
+            document.getElementById(id).style.display = 'flex';
+        }
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    // 存讀檔功能
+    function saveGame() {
+        if (Player.gameState === 'TUTORIAL') return;
+        const saveData = JSON.stringify(Player);
+        localStorage.setItem('d100_save', saveData);
+        showToast("遊戲已儲存！");
+        playSound('success');
+    }
+
+    function loadGame() {
+        const saveData = localStorage.getItem('d100_save');
+        if (saveData) {
+            try {
+                const parsed = JSON.parse(saveData);
+                Object.assign(Player, parsed);
+                Game.setState(Player.gameState);
+                Game.updateText(`歡迎回來，冒險者。你身處 ${Player.gameState} 狀態。`);
+                
+                if (Player.gameState === 'EXPLORE') {
+                    Game.setButtons([{ text: "探索下一個區域", action: Game.startExplore }]);
+                } else if (Player.gameState === 'COMBAT') {
+                    Game.setButtons([{ text: "攻擊", action: Game.playerAttack }]);
+                } else if (Player.gameState === 'HUB') {
+                    Game.setButtons([{ text: "開始探索地牢", action: Game.startExplore }]);
+                } else {
+                    Game.setButtons([{ text: "重新開始", action: Game.startNewGame }]);
+                }
+                Game.renderUI();
+                closeModal('modal-rules');
+                showToast("讀檔成功！");
+                playSound('success');
+            } catch (e) {
+                showToast("存檔已損壞，無法讀取。");
+            }
+        } else {
+            showToast("沒有找到存檔紀錄。");
+        }
+    }
+
+    // 初始化遊戲
+    function init() {
+        // 顯示教學說明 (暫停遊戲)
+        Player.gameState = 'TUTORIAL';
+        document.getElementById('modal-rules').style.display = 'flex';
+        Game.updateText("歡迎來到 D100 地牢：冒險者的夥伴。請先閱讀說明文件。");
+        Game.updateSVG('default');
+        Game.renderUI();
+    }
+
+    // 點擊說明文件的「開始遊戲」按鈕
+    function startGame() {
+        playSound('click');
+        closeModal('modal-rules');
+        Game.startNewGame();
+    }
+
+    // 啟動
+    window.onload = init;
+
+</script>
+</body>
+</html>
