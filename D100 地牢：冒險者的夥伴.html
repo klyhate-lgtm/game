@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>D100 地牢：冒險者的夥伴</title>
+<title>D100 地牢：冒險者的夥伴 (完整版)</title>
 <style>
     :root {
-        --bg-dark: #1a110b;
-        --paper: #f4ecd8;
-        --ink: #2c1e16;
-        --accent: #8b0000;
-        --gold: #d4af37;
-        --btn: #5a3a22;
-        --btn-hover: #7a4e2d;
-        --font-main: 'Georgia', 'Times New Roman', serif;
+        --bg-dark: #120c08;
+        --paper: #f2e8d5;
+        --ink: #2b1d14;
+        --accent: #8b1e1e;
+        --gold: #cfa53b;
+        --btn: #4a3020;
+        --btn-hover: #6b462f;
+        --font-main: 'Palatino Linotype', 'Book Antiqua', 'Georgia', serif;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body {
@@ -21,51 +21,62 @@
         background-color: var(--bg-dark);
         color: var(--ink);
         height: 100vh; display: flex; flex-direction: column; overflow: hidden;
-        background-image: radial-gradient(circle, transparent 20%, #000 120%);
+        background-image: radial-gradient(circle, transparent 10%, #000 120%);
     }
     
     /* 頂部狀態列 */
     #top-bar {
-        background: rgba(0,0,0,0.85); color: #fff; padding: 8px 10px;
-        display: flex; justify-content: space-between; font-size: 13px;
-        border-bottom: 2px solid var(--gold); z-index: 10;
+        background: rgba(0,0,0,0.9); color: #fff; padding: 6px 10px;
+        display: flex; justify-content: space-between; font-size: 12px;
+        border-bottom: 2px solid var(--gold); z-index: 10; flex-wrap: wrap;
     }
-    .stat-item { display: flex; align-items: center; gap: 4px; }
+    .stat-item { display: flex; align-items: center; gap: 4px; margin-right: 8px; }
     
     /* 主畫面 */
     #game-screen {
-        flex: 1; padding: 15px; display: flex; flex-direction: column;
+        flex: 1; padding: 10px; display: flex; flex-direction: column;
         background: var(--paper);
         background-image: url('data:image/svg+xml;utf8,<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.08"/></svg>');
-        margin: 10px; border-radius: 5px;
-        box-shadow: inset 0 0 30px rgba(0,0,0,0.6), 0 5px 15px rgba(0,0,0,0.8);
+        margin: 5px; border-radius: 4px;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.7), 0 4px 10px rgba(0,0,0,0.8);
         overflow-y: auto; position: relative;
     }
 
     /* 場景與文字 */
-    #scene-box { height: 110px; display: flex; justify-content: center; align-items: center; margin-bottom: 10px; }
-    #story-text { font-size: 15px; line-height: 1.6; margin-bottom: 15px; min-height: 100px; color: #1a110b; }
+    #scene-box { height: 80px; display: flex; justify-content: center; align-items: center; margin-bottom: 5px; }
+    #story-text { font-size: 14px; line-height: 1.5; margin-bottom: 10px; min-height: 80px; color: #1a110b; }
     
+    /* 時間追蹤器 */
+    #time-tracker {
+        display: flex; gap: 2px; margin-bottom: 10px; padding: 5px;
+        background: rgba(0,0,0,0.1); border-radius: 4px; overflow-x: auto;
+    }
+    .time-box {
+        width: 20px; height: 20px; border: 1px solid var(--ink); border-radius: 50%;
+        display: flex; justify-content: center; align-items: center; font-size: 10px;
+    }
+    .time-box.filled { background: var(--ink); color: var(--paper); }
+
     /* 戰鬥面板 */
     #combat-panel {
-        background: rgba(0,0,0,0.05); border: 1px solid var(--ink);
-        border-radius: 5px; padding: 10px; margin-bottom: 15px; display: none;
+        background: rgba(0,0,0,0.05); border: 2px solid var(--accent);
+        border-radius: 4px; padding: 8px; margin-bottom: 10px; display: none;
     }
-    .m-stats { display: flex; justify-content: space-between; font-weight: bold; color: var(--accent); font-size: 14px; }
-    .m-hp-bar { height: 8px; background: #ccc; border-radius: 4px; overflow: hidden; margin: 5px 0; }
+    .m-stats { display: flex; justify-content: space-between; font-weight: bold; color: var(--accent); font-size: 13px; }
+    .m-hp-bar { height: 6px; background: #ccc; border-radius: 3px; overflow: hidden; margin: 4px 0; }
     .m-hp-fill { height: 100%; background: var(--accent); width: 100%; transition: width 0.3s; }
-    .m-abilities { font-size: 12px; font-style: italic; color: #555; }
+    .m-abilities { font-size: 11px; font-style: italic; color: #555; }
     
     /* 動作按鈕 */
-    #actions { display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding-bottom: 20px; }
+    #actions { display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding-bottom: 10px; }
     button {
-        background: var(--btn); color: var(--paper); border: 2px solid var(--gold);
-        padding: 12px; font-size: 15px; font-family: var(--font-main); border-radius: 5px;
-        cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px;
-        box-shadow: 0 4px 0 var(--ink);
+        background: var(--btn); color: var(--paper); border: 1px solid var(--gold);
+        padding: 10px; font-size: 14px; font-family: var(--font-main); border-radius: 4px;
+        cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px;
+        box-shadow: 0 3px 0 var(--bg-dark);
     }
-    button:hover:not(:disabled) { background: var(--btn-hover); transform: translateY(-2px); box-shadow: 0 6px 0 var(--ink); }
-    button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 var(--ink); }
+    button:hover:not(:disabled) { background: var(--btn-hover); transform: translateY(-1px); box-shadow: 0 4px 0 var(--bg-dark); }
+    button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--bg-dark); }
     button:disabled { background: #888; border-color: #555; color: #ccc; box-shadow: none; cursor: not-allowed; }
     
     /* 底部導航 */
@@ -75,40 +86,35 @@
 
     /* 彈窗 */
     .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(3px); }
-    .modal-content { background: var(--paper); padding: 20px; border-radius: 8px; max-width: 550px; width: 95%; max-height: 85vh; overflow-y: auto; border: 3px solid var(--gold); box-shadow: 0 0 30px rgba(212, 175, 55, 0.2); }
-    .modal-content h2 { color: var(--accent); text-align: center; border-bottom: 2px solid var(--ink); padding-bottom: 5px; margin-bottom: 15px; }
+    .modal-content { background: var(--paper); padding: 20px; border-radius: 6px; max-width: 600px; width: 95%; max-height: 85vh; overflow-y: auto; border: 2px solid var(--gold); }
+    .modal-content h2 { color: var(--accent); text-align: center; border-bottom: 1px solid var(--ink); padding-bottom: 5px; margin-bottom: 10px; }
     .modal-content h3 { margin: 10px 0 5px; color: var(--ink); font-size: 15px; }
     .modal-content p { font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
     .modal-close-btn { width: 100%; margin-top: 15px; }
     
     /* Toast */
-    #toast { position: fixed; top: 15%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #fff; padding: 10px 20px; border-radius: 5px; border: 1px solid var(--gold); display: none; z-index: 200; font-size: 14px; text-align: center; }
-    
-    /* 打字機游標 */
-    .cursor { animation: blink 1s step-end infinite; }
-    @keyframes blink { 50% { opacity: 0; } }
+    #toast { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #fff; padding: 8px 15px; border-radius: 4px; border: 1px solid var(--gold); display: none; z-index: 200; font-size: 13px; text-align: center; }
 </style>
 </head>
 <body>
 
-    <!-- 頂部狀態 -->
     <div id="top-bar">
-        <div class="stat-item">❤️ <span id="ui-hp">--</span></div>
+        <div class="stat-item">❤️ <span id="ui-hp">--/--</span></div>
         <div class="stat-item">🛡️ <span id="ui-def">--</span></div>
         <div class="stat-item">💰 <span id="ui-gold">--</span></div>
         <div class="stat-item">⭐ <span id="ui-rep">--</span></div>
+        <div class="stat-item">🎲 <span id="ui-state">準備</span></div>
     </div>
 
-    <!-- 遊戲主畫面 -->
     <div id="game-screen">
         <div id="scene-box">
             <svg id="main-svg" viewBox="0 0 100 100" width="100%" height="100%">
-                <defs>
-                    <radialGradient id="glow"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#333"/></radialGradient>
-                </defs>
+                <defs><radialGradient id="glow"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#333"/></radialGradient></defs>
                 <g id="svg-dynamic"></g>
             </svg>
         </div>
+        
+        <div id="time-tracker"></div>
         <div id="story-text"></div>
         
         <div id="combat-panel">
@@ -120,7 +126,6 @@
         <div id="actions"></div>
     </div>
 
-    <!-- 底部導航 -->
     <div id="bottom-nav">
         <button class="nav-btn" onclick="UI.openModal('modal-rules')"><span class="icon">📖</span>說明</button>
         <button class="nav-btn" onclick="UI.openModal('modal-char')"><span class="icon">🧙</span>角色</button>
@@ -129,30 +134,43 @@
         <button class="nav-btn" onclick="Audio.toggle()"><span class="icon" id="sound-icon">🔊</span>音效</button>
     </div>
 
-    <!-- 說明彈窗 -->
+    <!-- 彈窗區 -->
     <div id="modal-rules" class="modal">
         <div class="modal-content">
             <h2>📜 冒險者指南</h2>
             <h3>🎯 遊戲目標</h3>
-            <p>你將扮演一名冒險者，透過探索地牢、擊敗怪物來完成任務。本版本實作了《冒險者的夥伴》核心規則。</p>
+            <p>完成《哥布林與高腳杯》戰役任務。尋找失落的隱形高腳杯！</p>
             <h3>👁️ 看懂畫面</h3>
-            <p>頂部狀態列顯示你的 ❤️生命、🛡️防禦、💰金幣、⭐聲望。當生命歸零時遊戲結束。</p>
+            <p>頂部：❤️生命 / 🛡️防禦 / 💰金幣 / ⭐聲望 / 🎲當前狀態。<br>
+            中央：時間追蹤器（每探索一次會增加，滿了會觸發懲罰）。</p>
             <h3>🕹️ 操作步驟</h3>
-            <p>1. 依照指示點擊按鈕進行探索或戰鬥。<br>2. 戰鬥時點擊「攻擊」擲骰，系統會自動計算命中、傷害與致命一擊。<br>3. 擊敗怪物後可搜刮戰利品。<br>4. 完成指定區域探索即可完成任務。</p>
-            <h3>✨ 特殊機制</h3>
-            <p>包含完整的怪物能力（猛衝、變形、石化等）、巫術調配系統與致命一擊表格。</p>
-            <button class="modal-close-btn" id="btn-start-game">我準備好了，開始創建角色</button>
+            <p>1. 在「城鎮」階段可進行巫術調配或直接出發。<br>
+            2. 探索時會擲骰判定遭遇，遭遇怪物會進入戰鬥。<br>
+            3. 戰鬥中點擊攻擊，系統會判定命中、部位、致命一擊。<br>
+            4. 擊敗怪物後獲得戰利品。</p>
+            <button class="modal-close-btn" id="btn-start-game">我準備好了，開始遊戲</button>
         </div>
     </div>
 
-    <!-- 角色面板 -->
     <div id="modal-char" class="modal">
         <div class="modal-content">
             <h2>🧙 角色資訊</h2>
             <div id="char-details"></div>
             <h3>🎒 背包物品</h3>
-            <ul id="char-inv" style="font-size:13px; padding-left:20px; margin-top:5px;"></ul>
+            <ul id="char-inv" style="font-size:12px; padding-left:15px; margin-top:5px;"></ul>
             <button class="modal-close-btn" onclick="UI.closeModal('modal-char')">關閉</button>
+        </div>
+    </div>
+
+    <!-- 巫術介面 -->
+    <div id="modal-witchery" class="modal">
+        <div class="modal-content">
+            <h2>🧪 巫術調配</h2>
+            <p>選擇3個不同素材（目前擁有：<span id="mat-list"></span>）</p>
+            <div id="witchery-choices" style="display:flex; gap:5px; margin-bottom:10px; flex-wrap:wrap;"></div>
+            <button onclick="Game.attemptWitchery()">進行智力檢定</button>
+            <div id="witchery-result" style="margin-top:10px; font-weight:bold;"></div>
+            <button class="modal-close-btn" onclick="UI.closeModal('modal-witchery')">關閉</button>
         </div>
     </div>
 
@@ -160,125 +178,110 @@
 
 <script>
 // ==========================================
-// 1. 遊戲資料庫 (JSON 形式，忠實還原書中表格)
+// 1. 核心資料庫 (JSON 格式 - 完整收錄)
 // ==========================================
 const DB = {
-    // 英雄之路 (表 HA)
-    HeroPaths: [
-        { min: 1, max: 11, name: "騎士", mod: { str: 5, dex: 5, int: -10 }, skills: ["蠻力", "閃避"] },
-        { min: 12, max: 22, name: "聖騎士", mod: { str: 5, int: 5, dex: -10 }, skills: ["勇氣", "魔法"] },
-        { min: 23, max: 33, name: "刺客", mod: { dex: 5, str: 5, int: -10 }, skills: ["逃離", "警覺"] },
-        { min: 34, max: 44, name: "惡棍", mod: { dex: 5, int: 5, str: -10 }, skills: ["靈巧", "幸運"] },
-        { min: 45, max: 55, name: "術士", mod: { int: 5, str: 5, dex: -10 }, skills: ["魔法", "勇氣"] },
-        { min: 56, max: 66, name: "德魯伊", mod: { int: 5, dex: 5, str: -10 }, skills: ["魔法", "警覺"] },
-        { min: 67, max: 77, name: "野蠻人", mod: { str: 10, int: -10 }, skills: ["蠻力", "勇氣"] },
-        { min: 78, max: 88, name: "獵人", mod: { dex: 10, str: -10 }, skills: ["警覺", "靈巧"] },
-        { min: 89, max: 100, name: "奧術師", mod: { int: 10, dex: -10 }, skills: ["魔法", "幸運"] }
-    ],
-    // 種族 (表 RA)
-    Races: [
-        { min: 1, max: 20, name: "半身人", mod: { dex: 10 }, skill: "靈巧" },
-        { min: 21, max: 40, name: "半精靈", mod: { int: 10 }, skill: "逃離" },
-        { min: 41, max: 60, name: "半巨人", mod: { str: 10 }, skill: "勇氣" },
-        { min: 61, max: 80, name: "高精靈", mod: { int: 5, dex: 5 }, skill: "魔法" },
-        { min: 81, max: 100, name: "山地矮人", mod: { str: 10 }, skill: "陷阱" }
-    ],
-    // 遭遇表 A (EA - 完整 100 筆)
+    // 遭遇表 A (完整 100 筆)
     EncounterA: [
-        { min: 1, max: 10, name: "巨軟泥怪", av: 20, def: 0, dmg: 3, hp: [3,3,2,2], ab: "群體, 織網, 再生" },
-        { min: 11, max: 20, name: "大地精", av: 25, def: 1, dmg: 4, hp: [4,4,3], ab: "群體" },
-        { min: 21, max: 25, name: "蜥蜴人", av: 25, def: 1, dmg: 6, hp: [6], ab: "毒素" },
-        { min: 26, max: 30, name: "蜥蜴人投石手", av: 25, def: 1, dmg: 6, hp: [6], ab: "毒素, 突襲" },
-        { min: 31, max: 33, name: "亡靈精靈弓手", av: 30, def: 0, dmg: 5, hp: [5], ab: "突襲, 恐懼" },
-        { min: 34, max: 37, name: "亡靈矮人", av: 30, def: 1, dmg: 5, hp: [5], ab: "恐懼" },
-        { min: 38, max: 41, name: "亡靈精靈冠軍", av: 30, def: 0, dmg: 6, hp: [6], ab: "突襲, 恐懼" },
-        { min: 42, max: 42, name: "亡靈矮人冠軍", av: 30, def: 1, dmg: 6, hp: [6], ab: "恐懼" },
-        { min: 43, max: 44, name: "山獅", av: 35, def: 0, dmg: 5, hp: [5,4], ab: "群體, 猛衝" },
-        { min: 45, max: 46, name: "野獸人", av: 35, def: 1, dmg: 8, hp: [8], ab: "瘋狂" },
-        { min: 47, max: 47, name: "野獸人弓手", av: 35, def: 2, dmg: 10, hp: [10], ab: "瘋狂" },
-        { min: 48, max: 49, name: "巨野豬", av: 40, def: 1, dmg: 12, hp: [12], ab: "無" },
-        { min: 50, max: 51, name: "巨蜱", av: 40, def: 2, dmg: 8, hp: [8], ab: "飛行" },
-        { min: 52, max: 52, name: "半人馬", av: 45, def: 2, dmg: 8, hp: [8], ab: "無" },
-        { min: 53, max: 55, name: "巨蜂", av: 40, def: 1, dmg: 5, hp: [5,3,3], ab: "群體, 飛行, 昏迷" },
-        { min: 56, max: 57, name: "巨蜈蚣", av: 45, def: 2, dmg: 8, hp: [8], ab: "毒素" },
-        { min: 58, max: 59, name: "魅魔", av: 40, def: 1, dmg: 12, hp: [12], ab: "飛行, 黑暗魔法" },
-        { min: 60, max: 61, name: "巨螃蟹", av: 45, def: 3, dmg: 10, hp: [10], ab: "無" },
-        { min: 62, max: 65, name: "恐狼", av: 40, def: 2, dmg: 6, hp: [6,5,5,5], ab: "群體, 猛衝" },
-        { min: 66, max: 66, name: "野獸人冠軍", av: 40, def: 2, dmg: 16, hp: [16], ab: "瘋狂" },
-        { min: 67, max: 67, name: "半人馬冠軍", av: 45, def: 3, dmg: 16, hp: [16], ab: "無" },
-        { min: 68, max: 68, name: "女武神", av: 50, def: 2, dmg: 12, hp: [12], ab: "飛行" },
-        { min: 69, max: 70, name: "變形者", av: 0, def: 0, dmg: 0, hp: [14], ab: "變形" }, // 特殊處理
-        { min: 71, max: 71, name: "狼人", av: 45, def: 1, dmg: 7, hp: [7,7,6], ab: "群體, 猛衝, 瘋狂" },
-        { min: 72, max: 72, name: "野獸人巫婆", av: 45, def: 2, dmg: 16, hp: [16], ab: "瘋狂, 黑暗魔法" },
-        { min: 73, max: 73, name: "巨蠍", av: 55, def: 4, dmg: 15, hp: [15], ab: "毒素, 猛衝, 昏迷" },
-        { min: 74, max: 74, name: "幻影", av: 60, def: 4, dmg: 15, hp: [15], ab: "死亡之觸, 空靈, 恐懼" },
-        { min: 75, max: 75, name: "地獄獵犬", av: 55, def: 2, dmg: 6, hp: [6,6,5], ab: "群體, 猛衝" },
-        { min: 76, max: 76, name: "塞壬", av: 55, def: 3, dmg: 18, hp: [18], ab: "黑暗魔法" },
-        { min: 77, max: 77, name: "女妖", av: 50, def: 4, dmg: 24, hp: [24], ab: "死亡之觸, 空靈, 恐懼" },
-        { min: 78, max: 78, name: "溫迪戈", av: 55, def: 4, dmg: 22, hp: [22], ab: "恐懼" },
-        { min: 79, max: 79, name: "巴西利斯克", av: 60, def: 4, dmg: 24, hp: [24], ab: "石化, 毒素, 恐懼" },
-        { min: 80, max: 80, name: "斯芬克斯", av: 65, def: 4, dmg: 25, hp: [25], ab: "黑暗魔法" },
-        { min: 81, max: 81, name: "格里芬", av: 60, def: 3, dmg: 30, hp: [30], ab: "飛行, 恐懼" },
-        { min: 82, max: 82, name: "巨神鷹", av: 65, def: 3, dmg: 28, hp: [28], ab: "飛行, 恐懼" },
-        { min: 83, max: 83, name: "木乃伊", av: 55, def: 3, dmg: 30, hp: [30], ab: "恐懼, 疾病, 再生" },
-        { min: 84, max: 84, name: "哈爾庇厄", av: 65, def: 5, dmg: 28, hp: [28], ab: "飛行, 黑暗魔法" },
-        { min: 85, max: 85, name: "庫克羅普斯", av: 65, def: 5, dmg: 35, hp: [35], ab: "恐懼, 巨大, 昏迷" },
-        { min: 86, max: 86, name: "石愧儡", av: 60, def: 6, dmg: 35, hp: [35], ab: "巨大, 昏迷" },
-        { min: 87, max: 87, name: "曼提柯爾", av: 65, def: 4, dmg: 37, hp: [37], ab: "恐懼, 巨大, 毒素" },
-        { min: 88, max: 88, name: "刻耳伯洛斯", av: 60, def: 5, dmg: 10, hp: [10,10,10], ab: "群體, 恐懼" },
-        { min: 89, max: 89, name: "雞身蛇尾怪", av: 65, def: 6, dmg: 40, hp: [40], ab: "石化, 恐懼" },
-        { min: 90, max: 90, name: "火元素", av: 65, def: 7, dmg: 39, hp: [39], ab: "火焰, 巨大, 空靈" },
-        { min: 91, max: 91, name: "奇美拉", av: 70, def: 6, dmg: 40, hp: [40], ab: "飛行, 連擊2, 火焰, 恐懼" },
-        { min: 92, max: 92, name: "厄喀德娜", av: 75, def: 6, dmg: 38, hp: [38], ab: "石化, 毒素, 恐懼" },
-        { min: 93, max: 93, name: "拉彌亞", av: 75, def: 7, dmg: 44, hp: [44], ab: "黑暗魔法, 毒素, 恐懼" },
-        { min: 94, max: 94, name: "吸血鬼領主", av: 75, def: 7, dmg: 48, hp: [48], ab: "黑暗魔法, 飛行, 相位, 復活" },
-        { min: 95, max: 95, name: "雙足飛龍", av: 80, def: 8, dmg: 50, hp: [50], ab: "火焰, 飛行, 連擊2, 恐懼, 巨大" },
-        { min: 96, max: 96, name: "尼米亞猛獅", av: 75, def: 7, dmg: 22, hp: [22,20], ab: "群體, 猛衝, 恐懼" },
-        { min: 97, max: 97, name: "泰坦", av: 85, def: 7, dmg: 46, hp: [46], ab: "恐懼, 巨大, 昏迷" },
-        { min: 98, max: 98, name: "美杜莎", av: 90, def: 7, dmg: 47, hp: [47], ab: "石化, 毒素, 恐懼" },
-        { min: 99, max: 99, name: "海德拉", av: 70, def: 8, dmg: 10, hp: [10,9,9,8,8,7], ab: "群體, 巨大, 恐懼, 火焰, 僕從" },
-        { min: 100, max: 100, name: "鳳凰", av: 95, def: 9, dmg: 55, hp: [55], ab: "火焰, 飛行, 恐懼, 巨大, 復活" }
+        { min: 1, max: 10, name: "巨軟泥怪", av: 20, def: 0, dmg: 3, hp: [3,3,2,2], ab: "群體,織網,再生", reward: "表P (1d10 GP)" },
+        { min: 11, max: 20, name: "大地精", av: 25, def: 1, dmg: 4, hp: [4,4,3], ab: "群體", reward: "表I/W" },
+        { min: 21, max: 25, name: "蜥蜴人", av: 25, def: 1, dmg: 6, hp: [6], ab: "毒素", reward: "表A/I/W" },
+        { min: 26, max: 30, name: "蜥蜴人投石手", av: 25, def: 1, dmg: 6, hp: [6], ab: "毒素,突襲", reward: "表A/I/W" },
+        { min: 31, max: 33, name: "亡靈精靈弓手", av: 30, def: 0, dmg: 5, hp: [5], ab: "突襲,恐懼", reward: "表A/W" },
+        { min: 34, max: 37, name: "亡靈矮人", av: 30, def: 1, dmg: 5, hp: [5], ab: "恐懼", reward: "表A/W" },
+        { min: 38, max: 41, name: "亡靈精靈冠軍", av: 30, def: 0, dmg: 6, hp: [6], ab: "突襲,恐懼", reward: "表A/W" },
+        { min: 42, max: 42, name: "亡靈矮人冠軍", av: 30, def: 1, dmg: 6, hp: [6], ab: "恐懼", reward: "表A/W" },
+        { min: 43, max: 44, name: "山獅", av: 35, def: 0, dmg: 5, hp: [5,4], ab: "群體,猛衝", reward: "表P3" },
+        { min: 45, max: 46, name: "野獸人", av: 35, def: 1, dmg: 8, hp: [8], ab: "瘋狂", reward: "表A/I/W" },
+        { min: 47, max: 47, name: "野獸人弓手", av: 35, def: 2, dmg: 10, hp: [10], ab: "瘋狂", reward: "表A/I/W" },
+        { min: 48, max: 49, name: "巨野豬", av: 40, def: 1, dmg: 12, hp: [12], ab: "無", reward: "表P3" },
+        { min: 50, max: 51, name: "巨蜱", av: 40, def: 2, dmg: 8, hp: [8], ab: "飛行", reward: "2d10 GP" },
+        { min: 52, max: 52, name: "半人馬", av: 45, def: 2, dmg: 8, hp: [8], ab: "無", reward: "表A/I/W" },
+        { min: 53, max: 55, name: "巨蜂", av: 40, def: 1, dmg: 5, hp: [5,3,3], ab: "群體,飛行,昏迷", reward: "表P1" },
+        { min: 56, max: 57, name: "巨蜈蚣", av: 45, def: 2, dmg: 8, hp: [8], ab: "毒素", reward: "表P1" },
+        { min: 58, max: 59, name: "魅魔", av: 40, def: 1, dmg: 12, hp: [12], ab: "飛行,黑暗魔法", reward: "表P4/I/W" },
+        { min: 60, max: 61, name: "巨螃蟹", av: 45, def: 3, dmg: 10, hp: [10], ab: "無", reward: "表P1" },
+        { min: 62, max: 65, name: "恐狼", av: 40, def: 2, dmg: 6, hp: [6,5,5,5], ab: "群體,猛衝", reward: "表P3" },
+        { min: 66, max: 66, name: "野獸人冠軍", av: 40, def: 2, dmg: 16, hp: [16], ab: "瘋狂", reward: "表A+10/I/W+10" },
+        { min: 67, max: 67, name: "半人馬冠軍", av: 45, def: 3, dmg: 16, hp: [16], ab: "無", reward: "表A+10/I/W+10" },
+        { min: 68, max: 68, name: "女武神", av: 50, def: 2, dmg: 12, hp: [12], ab: "飛行", reward: "表A+15/I/W+15" },
+        { min: 69, max: 70, name: "變形者", av: 0, def: 0, dmg: 0, hp: [14], ab: "變形", reward: "表TA" },
+        { min: 71, max: 71, name: "狼人", av: 45, def: 1, dmg: 7, hp: [7,7,6], ab: "群體,猛衝,瘋狂", reward: "表P2/TA" },
+        { min: 72, max: 72, name: "野獸人巫婆", av: 45, def: 2, dmg: 16, hp: [16], ab: "瘋狂,黑暗魔法", reward: "表A+15/I/W+15" },
+        { min: 73, max: 73, name: "巨蠍", av: 55, def: 4, dmg: 15, hp: [15], ab: "毒素,猛衝,昏迷", reward: "表P1" },
+        { min: 74, max: 74, name: "幻影", av: 60, def: 4, dmg: 15, hp: [15], ab: "死亡之觸,空靈,恐懼", reward: "表TA+10" },
+        { min: 75, max: 75, name: "地獄獵犬", av: 55, def: 2, dmg: 6, hp: [6,6,5], ab: "群體,猛衝", reward: "表P3/TA+10" },
+        { min: 76, max: 76, name: "塞壬", av: 55, def: 3, dmg: 18, hp: [18], ab: "黑暗魔法", reward: "表I/W/TA+10" },
+        { min: 77, max: 77, name: "女妖", av: 50, def: 4, dmg: 24, hp: [24], ab: "死亡之觸,空靈,恐懼", reward: "表TA+15" },
+        { min: 78, max: 78, name: "溫迪戈", av: 55, def: 4, dmg: 22, hp: [22], ab: "恐懼", reward: "表TA+15" },
+        { min: 79, max: 79, name: "巴西利斯克", av: 60, def: 4, dmg: 24, hp: [24], ab: "石化,毒素,恐懼", reward: "表P3/TA+15" },
+        { min: 80, max: 80, name: "斯芬克斯", av: 65, def: 4, dmg: 25, hp: [25], ab: "黑暗魔法", reward: "表P3/TA+20" },
+        { min: 81, max: 81, name: "格里芬", av: 60, def: 3, dmg: 30, hp: [30], ab: "飛行,恐懼", reward: "表P4/TB" },
+        { min: 82, max: 82, name: "巨神鷹", av: 65, def: 3, dmg: 28, hp: [28], ab: "飛行,恐懼", reward: "表P4/TB" },
+        { min: 83, max: 83, name: "木乃伊", av: 55, def: 3, dmg: 30, hp: [30], ab: "恐懼,疾病,再生", reward: "表TB" },
+        { min: 84, max: 84, name: "哈爾庇厄", av: 65, def: 5, dmg: 28, hp: [28], ab: "飛行,黑暗魔法", reward: "表P4/TB+5" },
+        { min: 85, max: 85, name: "庫克羅普斯", av: 65, def: 5, dmg: 35, hp: [35], ab: "恐懼,巨大,昏迷", reward: "表P2/TB+5" },
+        { min: 86, max: 86, name: "石愧儡", av: 60, def: 6, dmg: 35, hp: [35], ab: "巨大,昏迷", reward: "表P2/TB+10" },
+        { min: 87, max: 87, name: "曼提柯爾", av: 65, def: 4, dmg: 37, hp: [37], ab: "恐懼,巨大,毒素", reward: "表P4/TB+10" },
+        { min: 88, max: 88, name: "刻耳伯洛斯", av: 60, def: 5, dmg: 10, hp: [10,10,10], ab: "群體(頭顱),恐懼", reward: "表P3/TB+15" },
+        { min: 89, max: 89, name: "雞身蛇尾怪", av: 65, def: 6, dmg: 40, hp: [40], ab: "石化,恐懼", reward: "表P4/TB+15" },
+        { min: 90, max: 90, name: "火元素", av: 65, def: 7, dmg: 39, hp: [39], ab: "火焰,巨大,空靈", reward: "表P2/TB+20" },
+        { min: 91, max: 91, name: "奇美拉", av: 70, def: 6, dmg: 40, hp: [40], ab: "飛行,連擊2,火焰,恐懼", reward: "表P4/TC" },
+        { min: 92, max: 92, name: "厄喀德娜", av: 75, def: 6, dmg: 38, hp: [38], ab: "石化,毒素,恐懼", reward: "表TC+5" },
+        { min: 93, max: 93, name: "拉彌亞", av: 75, def: 7, dmg: 44, hp: [44], ab: "黑暗魔法,毒素,恐懼", reward: "表TC+5" },
+        { min: 94, max: 94, name: "吸血鬼領主", av: 75, def: 7, dmg: 48, hp: [48], ab: "黑暗魔法,飛行,相位,復活", reward: "表A+20/I/W+40" },
+        { min: 95, max: 95, name: "雙足飛龍", av: 80, def: 8, dmg: 50, hp: [50], ab: "火焰,飛行,連擊2,恐懼,巨大", reward: "表P4/TC+10" },
+        { min: 96, max: 96, name: "尼米亞猛獅", av: 75, def: 7, dmg: 22, hp: [22,20], ab: "群體,猛衝,恐懼", reward: "表P3/TC+10" },
+        { min: 97, max: 97, name: "泰坦", av: 85, def: 7, dmg: 46, hp: [46], ab: "恐懼,巨大,昏迷", reward: "表P2/TC+15" },
+        { min: 98, max: 98, name: "美杜莎", av: 90, def: 7, dmg: 47, hp: [47], ab: "石化,毒素,恐懼", reward: "表P2/TC+15" },
+        { min: 99, max: 99, name: "海德拉", av: 70, def: 8, dmg: 10, hp: [10,9,9,8,8,7], ab: "群體,巨大,恐懼,火焰,僕從", reward: "表P3/TC+20" },
+        { min: 100, max: 100, name: "鳳凰", av: 95, def: 9, dmg: 55, hp: [55], ab: "火焰,飛行,恐懼,巨大,復活", reward: "表P4+90/TC+20" }
     ],
-    // 巫術 (表 0) - 取核心 20 項
+    // 巫術表 (完整)
     Witchery: [
-        { min: 1, max: 4, pName: "大力", pEff: "力量+5", aName: "虛弱", aEff: "力量-5", type: "力量" },
-        { min: 5, max: 8, pName: "飛快", pEff: "敏捷+5", aName: "龜速", aEff: "敏捷-5", type: "敏捷" },
-        { min: 9, max: 12, pName: "聰明", pEff: "智力+5", aName: "沉默", aEff: "智力-5", type: "智力" },
-        { min: 13, max: 16, pName: "堅韌", pEff: "DEF+0.5", aName: "脆弱", aEff: "DEF-0.5", type: "防禦" },
-        { min: 17, max: 20, pName: "強力", pEff: "DMG+1", aName: "疲勞", aEff: "DMG-1", type: "傷害" },
-        { min: 21, max: 24, pName: "健康", pEff: "HP+1", aName: "生病", aEff: "HP-1", type: "生命" },
-        { min: 25, max: 28, pName: "巫術影響", pEff: "獲得1點巫術影響力", aName: "巫術詛咒", aEff: "獎勵骰-10", type: "特殊" },
-        { min: 29, max: 32, pName: "力量", pEff: "武器/護甲獲得+5力量", aName: "詛咒力量", aEff: "-5力量", type: "塗料" },
-        { min: 33, max: 36, pName: "敏捷", pEff: "武器/護甲獲得+5敏捷", aName: "詛咒敏捷", aEff: "-5敏捷", type: "塗料" },
-        { min: 37, max: 40, pName: "智力", pEff: "武器/護甲獲得+5智力", aName: "詛咒智力", aEff: "-5智力", type: "塗料" },
-        { min: 41, max: 44, pName: "生命", pEff: "武器/護甲獲得+1生命", aName: "詛咒生命", aEff: "-1生命", type: "塗料" },
-        { min: 45, max: 48, pName: "防禦", pEff: "武器/護甲獲得+0.5DEF", aName: "詛咒防禦", aEff: "-0.5DEF", type: "塗料" },
-        { min: 49, max: 52, pName: "耐用", pEff: "受損塗黑半格", aName: "缺點", aEff: "受損額外塗黑1格", type: "塗料" },
-        { min: 53, max: 56, pName: "強化", pEff: "護甲A+1", aName: "破防", aEff: "護甲A-1", type: "塗料" },
-        { min: 57, max: 60, pName: "毒液", pEff: "武器DMG+1", aName: "強大敵人", aEff: "怪物+1傷害", type: "塗料" },
-        { min: 61, max: 64, pName: "反毒液", pEff: "中毒塗黑半格", aName: "敏感", aEff: "中毒額外塗黑", type: "藥劑" },
-        { min: 65, max: 68, pName: "免疫", pEff: "生病塗黑半格", aName: "疫病", aEff: "生病額外塗黑", type: "藥劑" },
-        { min: 69, max: 72, pName: "熟練", pEff: "隨機技能+5", aName: "笨拙", aEff: "隨機技能-5", type: "藥劑" },
-        { min: 73, max: 76, pName: "學習", pEff: "隨機技能經驗塗黑", aName: "遺忘學習", aEff: "取消塗黑", type: "藥劑" },
-        { min: 77, max: 80, pName: "巫術命運", pEff: "獲得1點巫術命運", aName: "詛咒命運", aEff: "無法使用命運點", type: "特殊" }
+        { min: 1, max: 4, pName: "大力", pEff: "力量+5", aName: "虛弱", aEff: "力量-5" },
+        { min: 5, max: 8, pName: "飛快", pEff: "敏捷+5", aName: "龜速", aEff: "敏捷-5" },
+        { min: 9, max: 12, pName: "聰明", pEff: "智力+5", aName: "沉默", aEff: "智力-5" },
+        { min: 13, max: 16, pName: "堅韌", pEff: "DEF+0.5", aName: "脆弱", aEff: "DEF-0.5" },
+        { min: 17, max: 20, pName: "強力", pEff: "DMG+1", aName: "疲勞", aEff: "DMG-1" },
+        { min: 21, max: 24, pName: "健康", pEff: "HP+1", aName: "生病", aEff: "HP-1" },
+        { min: 25, max: 28, pName: "巫術影響", pEff: "獲得1點巫術影響力", aName: "巫術詛咒", aEff: "獎勵骰-10" },
+        { min: 29, max: 32, pName: "力量", pEff: "武器+5力量", aName: "詛咒力量", aEff: "-5力量" },
+        { min: 33, max: 36, pName: "敏捷", pEff: "武器+5敏捷", aName: "詛咒敏捷", aEff: "-5敏捷" },
+        { min: 37, max: 40, pName: "智力", pEff: "武器+5智力", aName: "詛咒智力", aEff: "-5智力" },
+        { min: 41, max: 44, pName: "生命", pEff: "武器+1生命", aName: "詛咒生命", aEff: "-1生命" },
+        { min: 45, max: 48, pName: "防禦", pEff: "武器+0.5DEF", aName: "詛咒防禦", aEff: "-0.5DEF" },
+        { min: 49, max: 52, pName: "耐用", pEff: "受損塗黑半格", aName: "缺點", aEff: "受損額外塗黑" },
+        { min: 53, max: 56, pName: "強化", pEff: "護甲A+1", aName: "破防", aEff: "護甲A-1" },
+        { min: 57, max: 60, pName: "毒液", pEff: "武器DMG+1", aName: "強大敵人", aEff: "怪物+1傷害" },
+        { min: 61, max: 64, pName: "反毒液", pEff: "中毒塗黑半格", aName: "敏感", aEff: "中毒額外塗黑" },
+        { min: 65, max: 68, pName: "免疫", pEff: "生病塗黑半格", aName: "疫病", aEff: "生病額外塗黑" },
+        { min: 69, max: 72, pName: "熟練", pEff: "隨機技能+5", aName: "笨拙", aEff: "隨機技能-5" },
+        { min: 73, max: 76, pName: "學習", pEff: "隨機技能經驗塗黑", aName: "遺忘學習", aEff: "取消塗黑" },
+        { min: 77, max: 80, pName: "巫術命運", pEff: "獲得1點巫術命運", aName: "詛咒命運", aEff: "無法使用命運點" },
+        { min: 81, max: 84, pName: "巫術性命", pEff: "獲得1點巫術性命", aName: "詛咒性命", aEff: "無法使用性命點" },
+        { min: 85, max: 88, pName: "巫術魔法", pEff: "法術值+5", aName: "詛咒魔法", aEff: "施法失敗" },
+        { min: 89, max: 92, pName: "貪婪", pEff: "金幣翻倍", aName: "不幸", aEff: "金幣減半" },
+        { min: 93, max: 96, pName: "能力", pEff: "標記一個能力", aName: "能力詛咒", aEff: "所有能力取消" },
+        { min: 97, max: 100, pName: "時間錯位", pEff: "獲得時間妖法", aName: "延遲", aEff: "時間追蹤器+2" }
     ],
     // 致命一擊 (表 K)
     DeathKill: [
-        { min: 1, max: 3, area: "頭部", dmg: 10, bonus: 5, desc: "衝擊破裂了怪物腦部的血管，怪物向前倒下。" },
-        { min: 1, max: 3, area: "頭部", dmg: 12, bonus: 10, desc: "攻擊命中脖子，徹底粉碎脊椎，怪物無聲倒下。" },
-        { min: 1, max: 3, area: "頭部", dmg: 15, bonus: 15, desc: "顱骨被粉碎，腦漿湧出，死亡瞬間降臨。" },
-        { min: 4, max: 6, area: "軀幹", dmg: 10, bonus: 5, desc: "一記直擊命中胸口，將其狠狠擊退並擊斃。" },
-        { min: 4, max: 6, area: "軀幹", dmg: 12, bonus: 10, desc: "一根肋骨刺穿重要器官，怪物倒下後斃命。" },
-        { min: 4, max: 6, area: "軀幹", dmg: 15, bonus: 15, desc: "衝擊粉碎胸腔，斷骨刺穿了心臟。" },
-        { min: 7, max: 8, area: "雙臂", dmg: 10, bonus: 5, desc: "利刃穿透肌肉，造成嚴重傷口，失血過多死亡。" },
-        { min: 7, max: 8, area: "雙臂", dmg: 15, bonus: 15, desc: "肩膀被徹底摧毀，手臂無力斷裂墜地。" },
-        { min: 9, max: 10, area: "雙腿", dmg: 10, bonus: 5, desc: "雙腿從關節處被撕裂，怪物癱倒在地。" },
-        { min: 9, max: 10, area: "雙腿", dmg: 15, bonus: 15, desc: "肌肉從關節處被撕裂，骨骼碎片四處飛濺。" }
+        { min: 1, max: 3, dmg: 10, bonus: 5, desc: "衝擊破裂了怪物腦部的血管，怪物向前倒下。" },
+        { min: 1, max: 3, dmg: 12, bonus: 10, desc: "攻擊命中脖子，徹底粉碎脊椎，怪物無聲倒下。" },
+        { min: 1, max: 3, dmg: 15, bonus: 15, desc: "顱骨被粉碎，腦漿湧出，死亡瞬間降臨。" },
+        { min: 4, max: 5, dmg: 10, bonus: 5, desc: "一記直擊命中胸口，將其狠狠擊退並擊斃。" },
+        { min: 4, max: 5, dmg: 12, bonus: 10, desc: "一根肋骨刺穿重要器官，怪物倒下後斃命。" },
+        { min: 4, max: 5, dmg: 15, bonus: 15, desc: "衝擊粉碎胸腔，斷骨刺穿了心臟。" },
+        { min: 6, max: 7, dmg: 10, bonus: 5, desc: "利刃穿透肌肉，造成嚴重傷口，失血過多死亡。" },
+        { min: 6, max: 7, dmg: 15, bonus: 15, desc: "肩膀被徹底摧毀，手臂無力斷裂墜地。" },
+        { min: 8, max: 10, dmg: 10, bonus: 5, desc: "雙腿從關節處被撕裂，怪物癱倒在地。" },
+        { min: 8, max: 10, dmg: 15, bonus: 15, desc: "肌肉從關節處被撕裂，骨骼碎片四處飛濺。" }
     ]
 };
 
 // ==========================================
-// 2. 音效系統 (Web Audio API)
+// 2. 系統引擎 (音效與日誌)
 // ==========================================
 const Audio = {
     ctx: null, enabled: true,
@@ -301,11 +304,12 @@ const Audio = {
 };
 
 // ==========================================
-// 3. 玩家狀態與遊戲邏輯 (狀態機)
+// 3. 玩家狀態與核心邏輯 (狀態機)
 // ==========================================
 const Player = {
-    name: "冒險者", hp: 0, maxHp: 0, str: 0, dex: 0, int: 0, def: 0, gold: 0, rep: 0, fate: 0, life: 0,
-    skills: {}, inventory: [], regions: 0, currentMonster: null, state: 'INIT', deathKillBonus: 0
+    name: "冒險者", hp: 0, maxHp: 0, str: 0, dex: 0, int: 0, def: 0, gold: 0, rep: 0,
+    inventory: [], materials: [], timeTracker: 0, maxTime: 12, // 時間追蹤器上限 (簡化)
+    regions: 0, currentMonster: null, state: 'INIT', dkBonus: 0
 };
 
 const Game = {
@@ -313,16 +317,14 @@ const Game = {
     r10: () => Math.floor(Math.random() * 10) + 1,
     r6: () => Math.floor(Math.random() * 6) + 1,
 
-    setState: (s) => { Player.state = s; Game.render(); },
-    
-    // 更新文字與場景
-    updateUI: (text) => {
+    log: (text) => {
         const el = document.getElementById('story-text');
         el.style.opacity = 0;
         setTimeout(() => { el.innerHTML = text; el.style.opacity = 1; }, 50);
     },
-
-    // 按鈕渲染
+    
+    setState: (s) => { Player.state = s; Game.render(); },
+    
     renderBtns: (btns) => {
         const c = document.getElementById('actions'); c.innerHTML = '';
         btns.forEach(b => {
@@ -333,14 +335,23 @@ const Game = {
         });
     },
 
-    // 核心渲染
     render: () => {
         document.getElementById('ui-hp').innerText = `${Player.hp}/${Player.maxHp}`;
         document.getElementById('ui-def').innerText = Player.def;
         document.getElementById('ui-gold').innerText = Player.gold;
         document.getElementById('ui-rep').innerText = Player.rep;
-        
-        // 戰鬥面板
+        document.getElementById('ui-state').innerText = Player.state;
+
+        // 時間追蹤器渲染
+        const tt = document.getElementById('time-tracker');
+        tt.innerHTML = '';
+        for(let i=0; i<Player.maxTime; i++) {
+            let box = document.createElement('div');
+            box.className = 'time-box' + (i < Player.timeTracker ? ' filled' : '');
+            box.innerText = i+1;
+            tt.appendChild(box);
+        }
+
         const cp = document.getElementById('combat-panel');
         if(Player.state === 'COMBAT' && Player.currentMonster) {
             cp.style.display = 'block';
@@ -357,7 +368,6 @@ const Game = {
         Game.updateCharModal();
     },
 
-    // 動態 SVG
     drawSVG: (type) => {
         const el = document.getElementById('svg-dynamic');
         if(type === 'monster') {
@@ -370,86 +380,79 @@ const Game = {
         }
     },
 
-    // 更新角色面板
     updateCharModal: () => {
         document.getElementById('char-details').innerHTML = `
-            <p>力量 (STR): ${Player.str} | 敏捷 (DEX): ${Player.dex} | 智力 (INT): ${Player.int}</p>
-            <p>防禦 (DEF): ${Player.def} | 聲望 (REP): ${Player.rep}</p>
-            <p>命運點: ${Player.fate} | 性命點: ${Player.life}</p>
+            <p>力量(STR): ${Player.str} | 敏捷(DEX): ${Player.dex} | 智力(INT): ${Player.int}</p>
+            <p>防禦(DEF): ${Player.def} | 聲望(REP): ${Player.rep}</p>
         `;
         const inv = document.getElementById('char-inv');
-        inv.innerHTML = Player.inventory.length ? Player.inventory.map(i => `<li>${i}</li>`).join('') : '<li>空</li>';
+        let items = [...Player.inventory, ...Player.materials];
+        inv.innerHTML = items.length ? items.map(i => `<li>${i}</li>`).join('') : '<li>空</li>';
     },
 
     // ==========================================
-    // 遊戲流程
+    // 流程：創角 -> 城鎮 -> 探索 -> 戰鬥
     // ==========================================
     
-    // 創角 (快速通道)
     createChar: () => {
-        // 1. 基礎屬性 +1，聲望/命運/性命 +1，金幣 +100
-        let s = 11, d = 11, i = 11, h = 11, g = 100, r = 1, f = 1, l = 1;
-        let sk = {};
-        let allSkills = ["靈巧", "警覺", "勇氣", "閃避", "逃離", "鎖具", "幸運", "魔法", "蠻力", "陷阱"];
-        sk[allSkills[Game.r10()-1]] = 5; // 隨機技能+5
+        // 快速通道
+        Player.str = 16; Player.dex = 16; Player.int = 16;
+        Player.hp = 12; Player.maxHp = 12; Player.def = 1;
+        Player.gold = 100; Player.rep = 1;
+        Player.inventory = ["長劍 (AV+5, DMG 1d6+2)", "鑲釘皮甲 (DEF+1)"];
+        Player.materials = ["巨鼠耳朵", "巨蜘蛛腿", "哥布林牙齒"]; // 預設素材
+        Player.timeTracker = 0;
+        Player.regions = 0;
         
-        // 2. 英雄之路
-        let rh = Game.r100(), path = DB.HeroPaths.find(p => rh >= p.min && rh <= p.max);
-        s += path.mod.str || 0; d += path.mod.dex || 0; i += path.mod.int || 0;
-        path.skills.forEach(x => sk[x] = (sk[x]||0) + 5);
-        
-        // 3. 種族
-        let rr = Game.r100(), race = DB.Races.find(p => rr >= p.min && rr <= p.max);
-        s += race.mod.str || 0; d += race.mod.dex || 0; i += race.mod.int || 0;
-        sk[race.skill] = (sk[race.skill]||0) + 5;
-        
-        // 4. 訓練任務
-        let rt = Game.r100(), failed = 0;
-        if (rt <= 25) failed = 3; else if (rt <= 50) failed = 2; else if (rt <= 75) failed = 1;
-        if (failed === 1) { f -= 2; l -= 1; }
-        else if (failed === 2) { f -= 3; l -= 2; }
-        else if (failed === 3) { f -= 4; l -= 3; }
-
-        // 儲存角色
-        Player.hp = h; Player.maxHp = h; Player.str = s; Player.dex = d; Player.int = i;
-        Player.gold = g; Player.rep = r; Player.fate = f; Player.life = l; Player.skills = sk;
-        Player.inventory = ["基礎武器 (DMG+2)", "基礎護甲 (A+1)"]; // 簡化初始裝備
-        Player.def = 1; // 基礎防禦
-        
-        Game.updateUI(`創角完成！<br>英雄之路：${path.name} | 種族：${race.name}<br>你完成了訓練任務，但失敗了 ${failed} 次。<br>你準備好迎接第一個任務了。`);
-        Game.setState('HUB');
-        Game.renderBtns([{ text: "查看任務：前往泥木鎮", action: () => Game.startQuest() }]);
+        Game.log(`你完成了快速訓練，獲得了基礎裝備與素材。<br>目前身處於泥木鎮的「巨人之頭」酒館。`);
+        Game.setState('TOWN');
+        Game.renderBtns([
+            { text: "進行巫術調配", action: () => UI.openModal('modal-witchery') },
+            { text: "出發前往火洞 (任務 1)", action: Game.startQuest }
+        ]);
     },
 
     startQuest: () => {
         Player.regions = 0;
-        Game.updateUI(`【任務：前往泥木鎮】<br>遭遇修正值：-20。<br>目標：探索 10 個區域。`);
+        Player.timeTracker = 0;
+        Game.log(`【任務：前往泥木鎮/火洞】<br>遭遇修正值：-20。目標：探索 10 個區域。<br>請注意時間追蹤器，當所有圓圈被塗滿時，將發生不好的事情。`);
         Game.setState('EXPLORE');
-        Game.renderBtns([{ text: "探索第 1 個區域", action: Game.explore }]);
+        Game.renderBtns([{ text: "探索下一個區域", action: Game.explore }]);
     },
 
     explore: () => {
         Player.regions++;
-        if (Player.regions > 10) { Game.completeQuest(); return; }
+        Player.timeTracker++;
         
-        // 擲骰，套用 -20 修正
+        // 時間追蹤器觸發
+        if (Player.timeTracker >= Player.maxTime) {
+            Game.log("⚠️ 時間追蹤器已滿！火洞的熱氣與怪物讓你疲憊不堪，你必須撤退...");
+            Game.setState('GAMEOVER');
+            Game.renderBtns([{ text: "重新開始", action: Game.createChar }]);
+            return;
+        }
+
+        if (Player.regions > 10) {
+            Game.completeQuest();
+            return;
+        }
+
+        Audio.play('dice');
         let roll = Game.r100() - 20;
-        if (roll < 1) roll = 1; // 遭遇規則：低於1視為1 (此處簡化)
-        
+        if (roll < 1) roll = 1;
+
         let mData = DB.EncounterA.find(m => roll >= m.min && roll <= m.max);
         if(!mData) mData = DB.EncounterA[0];
         
-        // 初始化怪物
         let m = JSON.parse(JSON.stringify(mData));
         m.currentHp = m.hp[0]; m.maxHp = m.hp[0]; m.hpIdx = 0;
         
-        // 特殊能力：變形者
         if (m.ab.includes('變形')) {
-            m.av = Math.max(Player.str, Player.dex) + 10;
-            m.dmg = 6; // 簡化傷害
-            Game.updateUI(`遭遇【變形者】！它複製了你的力量，AV為 ${m.av}！`);
+            m.av = Math.max(Player.str, Player.dex) + 5;
+            m.dmg = 6;
+            Game.log(`遭遇【變形者】！它變成了你的樣子，AV為 ${m.av}！`);
         } else {
-            Game.updateUI(`區域 ${Player.regions}：你遭遇了【${m.name}】！`);
+            Game.log(`區域 ${Player.regions}：你遭遇了【${m.name}】！<br>AV:${m.av} DEF:${m.def} DMG:${m.dmg}`);
         }
         
         Player.currentMonster = m;
@@ -460,39 +463,36 @@ const Game = {
     playerAttack: () => {
         const m = Player.currentMonster;
         const atkRoll = Game.r100();
-        const targetAV = Player.str + 10; // 假設使用力量武器
+        const playerAV = Player.str + 5; // 基礎+武器
         
-        if (atkRoll > targetAV) {
-            Game.updateUI(`你擲出 ${atkRoll}，未命中！`);
+        if (atkRoll > playerAV) {
+            Game.log(`你擲出 ${atkRoll} (AV ${playerAV})，未命中！`);
             Game.monsterTurn();
             return;
         }
         
-        // 命中部位與傷害
         const loc = Game.r10();
-        let dmg = Game.r6() + 2; // 基礎傷害
+        let dmg = Game.r6() + 2; // 武器傷害
         
-        // 致命一擊判定 (溢出 10 點以上)
         let overkill = dmg - m.currentHp;
         if (m.currentHp > 0 && overkill >= 10) {
             let dk = DB.DeathKill.find(d => loc >= d.min && loc <= d.max && d.dmg <= overkill) || DB.DeathKill[0];
             m.currentHp = 0;
-            Player.deathKillBonus = dk.bonus;
-            Game.updateUI(`💥 致命一擊！你造成 ${dmg} 傷害，超額 ${overkill} 點。<br>${dk.desc}<br>下次搜刮獲得 +${dk.bonus} 加值。`);
+            Player.dkBonus = dk.bonus;
+            Game.log(`💥 致命一擊！(部位 ${loc}) 造成 ${dmg} 傷害，超額 ${overkill} 點。<br>${dk.desc}<br>下次搜刮獲得 +${dk.bonus} 加值。`);
             Audio.play('hit');
             Game.playerWon();
             return;
         }
         
         m.currentHp -= dmg;
-        Game.updateUI(`命中！造成 ${dmg} 點傷害。怪物剩餘 HP: ${m.currentHp}`);
+        Game.log(`命中！(部位 ${loc}) 造成 ${dmg} 點傷害。怪物剩餘 HP: ${m.currentHp}`);
         Audio.play('hit');
         
         if (m.currentHp <= 0) {
-            // 處理多段生命值
             if (m.hpIdx < m.hp.length - 1) {
                 m.hpIdx++; m.currentHp = m.hp[m.hpIdx]; m.maxHp = m.currentHp;
-                Game.updateUI(`${m.name} 進入了下一階段！HP: ${m.currentHp}`);
+                Game.log(`${m.name} 進入了下一階段！HP: ${m.currentHp}`);
                 Game.render();
                 Game.renderBtns([{ text: "繼續攻擊", action: Game.playerAttack }]);
             } else {
@@ -510,12 +510,10 @@ const Game = {
         
         if (mRoll <= m.av) {
             let dmg = m.dmg;
-            // 猛衝判定
             if (m.ab.includes('猛衝')) {
                 let extra = Game.r6();
-                if (extra === 1) { dmg += 3; log += "怪物發動猛衝！"; }
+                if (extra === 1) { dmg += 3; log += "怪物發動猛衝！<br>"; }
             }
-            // 瘋狂判定 (簡化：若玩家擲出1，怪物額外攻擊，這裡直接體現為傷害增加)
             let finalDmg = Math.max(0, dmg - Player.def);
             Player.hp -= finalDmg;
             log += `怪物反擊命中！你受到 ${finalDmg} 點傷害。`;
@@ -523,10 +521,9 @@ const Game = {
             log += "怪物攻擊未命中。";
         }
         
-        Game.updateUI(log);
-        
+        Game.log(log);
         if (Player.hp <= 0) {
-            Game.updateUI("你倒下了... 冒險結束。");
+            Game.log("你倒下了... 冒險結束。");
             Game.setState('GAMEOVER');
             Game.renderBtns([{ text: "重新開始", action: Game.createChar }]);
         } else {
@@ -536,53 +533,110 @@ const Game = {
     },
 
     playerWon: () => {
-        Player.currentMonster = null;
         let loot = "";
-        // 簡化搜刮
-        let g = Game.r10() * 10 + Player.deathKillBonus;
-        Player.gold += g;
-        loot = `你擊敗了怪物，搜刮獲得 ${g} 金幣。`;
-        Player.deathKillBonus = 0;
+        // 隨機獲得金幣或素材
+        if (Math.random() > 0.5) {
+            let g = Game.r10() * 10 + Player.dkBonus;
+            Player.gold += g;
+            loot = `搜刮獲得 ${g} 金幣。`;
+        } else {
+            let mats = ["巨鼠耳朵", "巨蜘蛛腿", "哥布林牙齒", "巨蝙蝠翅膀"];
+            let mat = mats[Math.floor(Math.random() * mats.length)];
+            Player.materials.push(mat);
+            loot = `獲得素材：${mat}。`;
+        }
+        Player.dkBonus = 0;
+        Player.currentMonster = null;
         
         if (Player.regions >= 10) {
             Game.completeQuest();
         } else {
-            Game.updateUI(loot);
+            Game.log(`擊敗了怪物。${loot}<br>你繼續深入探索。`);
             Game.setState('EXPLORE');
-            Game.renderBtns([{ text: `探索第 ${Player.regions + 1} 個區域`, action: Game.explore }]);
+            Game.renderBtns([{ text: "探索下一個區域", action: Game.explore }]);
         }
         Audio.play('success');
     },
 
     completeQuest: () => {
         Player.gold += 150;
-        Game.updateUI(`🎉 你成功完成了任務「前往泥木鎮」！<br>獲得 150 金幣。<br>目前你已解鎖戰役的第一章。`);
-        Game.setState('HUB');
-        Game.renderBtns([{ text: "重新開始 (New Game+)", action: Game.createChar }]);
+        Game.log(`🎉 你成功完成了任務目標，活著走出了地牢！<br>獲得 150 金幣。<br>你回到了城鎮，可以調配巫術或重新出發。`);
+        Game.setState('TOWN');
+        Game.renderBtns([
+            { text: "進行巫術調配", action: () => UI.openModal('modal-witchery') },
+            { text: "再次出發 (刷裝/練等)", action: Game.startQuest }
+        ]);
         Audio.play('success');
     },
 
-    save: () => { localStorage.setItem('d100_save', JSON.stringify(Player)); UI.toast("存檔成功！"); Audio.play('success'); },
+    // 巫術邏輯
+    attemptWitchery: () => {
+        if (Player.materials.length < 3) {
+            UI.toast("素材不足3個！");
+            return;
+        }
+        
+        // 簡化：隨機抽3個素材
+        let shuffled = [...Player.materials].sort(() => 0.5 - Math.random());
+        let used = shuffled.slice(0, 3);
+        
+        // 移除素材
+        used.forEach(m => {
+            let idx = Player.materials.indexOf(m);
+            if (idx > -1) Player.materials.splice(idx, 1);
+        });
+
+        let check = Game.r100();
+        let target = Player.int; // 智力檢定
+        
+        let resDiv = document.getElementById('witchery-result');
+        if (check <= target) {
+            let effRoll = Game.r100();
+            let eff = DB.Witchery.find(w => effRoll >= w.min && effRoll <= w.max);
+            Player.inventory.push(`巫術藥劑/塗料：${eff.pName} (${eff.pEff})`);
+            resDiv.innerHTML = `<span style="color:green;">檢定成功！(擲出 ${check} <= ${target})<br>製作了【${eff.pName}】：${eff.pEff}</span>`;
+            Audio.play('success');
+        } else {
+            let effRoll = Game.r100();
+            let eff = DB.Witchery.find(w => effRoll >= w.min && effRoll <= w.max);
+            // 簡化：直接扣血或屬性 (這裡演示扣血)
+            Player.hp -= 1;
+            resDiv.innerHTML = `<span style="color:red;">檢定失敗！(擲出 ${check} > ${target})<br>發生意外：【${eff.aName}】 ${eff.aEff}。<br>你受到了反噬傷害。</span>`;
+            Audio.play('hit');
+        }
+        
+        // 更新 UI
+        document.getElementById('mat-list').innerText = Player.materials.join(", ") || "無";
+        Game.render();
+    },
+
+    save: () => { localStorage.setItem('d100_save_full', JSON.stringify(Player)); UI.toast("存檔成功！"); },
     load: () => {
-        let d = localStorage.getItem('d100_save');
+        let d = localStorage.getItem('d100_save_full');
         if(!d) { UI.toast("沒有存檔"); return; }
         try {
             let p = JSON.parse(d); Object.assign(Player, p);
             Game.setState(Player.state);
-            Game.updateUI("讀檔成功。");
-            // 還原按鈕
+            Game.log("讀檔成功。");
             if(Player.state === 'COMBAT') Game.renderBtns([{ text: "攻擊", action: Game.playerAttack }]);
             else if(Player.state === 'EXPLORE') Game.renderBtns([{ text: "探索下一個區域", action: Game.explore }]);
+            else if(Player.state === 'TOWN') Game.renderBtns([{ text: "進行巫術調配", action: () => UI.openModal('modal-witchery') }, { text: "出發前往火洞", action: Game.startQuest }]);
             else Game.renderBtns([{ text: "重新開始", action: Game.createChar }]);
         } catch(e) { UI.toast("存檔損壞"); }
     }
 };
 
 // ==========================================
-// 4. UI 互動控制
+// 4. UI 互動與初始化
 // ==========================================
 const UI = {
-    openModal: (id) => { document.getElementById(id).style.display = 'flex'; },
+    openModal: (id) => { 
+        if(id === 'modal-witchery') {
+            document.getElementById('mat-list').innerText = Player.materials.join(", ") || "無";
+            document.getElementById('witchery-result').innerHTML = '';
+        }
+        document.getElementById(id).style.display = 'flex'; 
+    },
     closeModal: (id) => { document.getElementById(id).style.display = 'none'; },
     toast: (msg) => {
         const t = document.getElementById('toast');
@@ -591,16 +645,14 @@ const UI = {
     }
 };
 
-// 綁定開始按鈕
 document.getElementById('btn-start-game').onclick = () => {
     UI.closeModal('modal-rules');
     Game.createChar();
 };
 
-// 初始化
 window.onload = () => {
     Game.drawSVG('scene');
-    UI.openModal('modal-rules'); // 強制先看說明
+    UI.openModal('modal-rules');
 };
 </script>
 </body>
