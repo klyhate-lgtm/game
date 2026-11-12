@@ -1,0 +1,3746 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>D100 地牢 — 單人冒險遊戲</title>
+<style>
+/* ===================== 基礎與主題 ===================== */
+:root{
+  --parch:#f2e4c6;
+  --parch2:#e6d3ac;
+  --parch3:#d8c094;
+  --ink:#2a1c0d;
+  --ink2:#4d3822;
+  --ink3:#6b5236;
+  --gold:#a8791d;
+  --blood:#8b1a1a;
+  --green:#3d6b35;
+  --blue:#2f4f7a;
+  --border:#8b6f47;
+  --shadow:rgba(30,18,6,.35);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:"Noto Serif TC","Songti TC","STSong",Georgia,"Times New Roman",serif;
+  background:#171008;
+  color:var(--ink);
+  overscroll-behavior:none;
+  -webkit-font-smoothing:antialiased;
+}
+/* 羊皮紙紋理 + 暗角 */
+#app{
+  position:relative;
+  min-height:100vh;
+  min-height:100dvh;
+  padding-bottom:64px;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(255,255,255,.18), transparent 45%),
+    radial-gradient(ellipse at 80% 90%, rgba(120,80,20,.20), transparent 50%),
+    repeating-linear-gradient(45deg, rgba(160,120,60,.05) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(-45deg, rgba(120,80,20,.04) 0 2px, transparent 2px 7px),
+    linear-gradient(160deg,#f6e9cf 0%,#eddcb8 40%,#e2cda3 70%,#d8c094 100%);
+}
+#app::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:5;
+  background:radial-gradient(ellipse at center, transparent 45%, rgba(30,16,2,.28) 100%);
+}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ===================== 通用元件 ===================== */
+.panel{
+  background:linear-gradient(180deg,rgba(255,250,238,.85),rgba(240,226,196,.9));
+  border:1.5px solid var(--border);
+  border-radius:8px;
+  box-shadow:0 3px 10px var(--shadow), inset 0 0 24px rgba(180,150,100,.18);
+  padding:10px 12px;
+  margin:8px;
+}
+h1,h2,h3{font-weight:700;letter-spacing:.06em;margin:.3em 0;}
+h1{font-size:1.7rem;}
+h2{font-size:1.2rem;border-bottom:1.5px solid var(--border);padding-bottom:4px;}
+h3{font-size:1rem;color:var(--ink2);}
+p{line-height:1.65;margin:.45em 0;}
+small{color:var(--ink3);}
+button{
+  font-family:inherit;font-size:.95rem;
+  background:linear-gradient(180deg,#f7ecd4,#e3cfa6);
+  border:1.5px solid var(--border);
+  border-radius:6px;
+  color:var(--ink);
+  padding:9px 14px;
+  cursor:pointer;
+  box-shadow:0 2px 0 rgba(120,90,50,.4), 0 3px 8px rgba(0,0,0,.12);
+  transition:transform .06s, box-shadow .06s, background .15s;
+  font-weight:600;
+  letter-spacing:.03em;
+}
+button:hover:not(:disabled){background:linear-gradient(180deg,#fff6e2,#ecd9b2);transform:translateY(-1px);}
+button:active:not(:disabled){transform:translateY(2px);box-shadow:0 0 0 rgba(0,0,0,0), inset 0 2px 6px rgba(120,90,50,.4);}
+button:disabled{opacity:.42;cursor:not-allowed;filter:grayscale(.6);}
+button.primary{background:linear-gradient(180deg,#8b5a2b,#6b4220);color:#f8eeda;border-color:#4a2c12;text-shadow:0 1px 0 rgba(0,0,0,.4);}
+button.primary:hover:not(:disabled){background:linear-gradient(180deg,#a06a34,#7a4c26);}
+button.danger{background:linear-gradient(180deg,#a83232,#7a1d1d);color:#ffeaea;border-color:#5a1010;}
+button.ghost{background:transparent;box-shadow:none;border-color:var(--border);}
+
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.col{display:flex;flex-direction:column;gap:8px;}
+.spacer{flex:1;}
+
+/* ===================== 頂部狀態列 ===================== */
+#topbar{
+  position:sticky;top:0;z-index:20;
+  display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;
+  padding:8px 10px;
+  background:linear-gradient(180deg,rgba(60,40,18,.96),rgba(45,30,14,.93));
+  border-bottom:2px solid #c8a45c;
+  box-shadow:0 3px 12px rgba(0,0,0,.4);
+  scrollbar-width:none;
+}
+#topbar::-webkit-scrollbar{display:none;}
+.stat{
+  flex:0 0 auto;
+  display:flex;align-items:center;gap:4px;
+  background:rgba(240,226,196,.12);
+  border:1px solid rgba(220,190,130,.4);
+  border-radius:20px;
+  padding:4px 10px;
+  color:#f3e4c6;
+  font-size:.82rem;
+  white-space:nowrap;
+  font-weight:600;
+}
+.stat b{color:#ffd97a;font-size:.92rem;}
+.stat.hp b{color:#ff9b9b;}
+.stat.gold b{color:#ffd97a;}
+
+/* ===================== 主內容區 ===================== */
+#main{padding:4px 0 20px;}
+
+/* 地圖 */
+#mapwrap{
+  overflow-x:auto;overflow-y:hidden;
+  padding:8px;
+  scrollbar-width:thin;
+}
+#mapgrid{
+  position:relative;
+  min-width:100%;
+  height:190px;
+}
+.zone{
+  position:absolute;width:62px;height:62px;border-radius:5px;
+  border:2px solid rgba(60,40,15,.65);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.68rem;font-weight:700;color:rgba(0,0,0,.55);
+  cursor:pointer;transition:transform .15s, box-shadow .15s;
+  box-shadow:0 2px 5px rgba(0,0,0,.25);
+}
+.zone:hover{transform:scale(1.06);z-index:3;}
+.zone.cur{outline:3px solid #ffd97a;box-shadow:0 0 16px #ffd97a;z-index:4;}
+.zone.yellow{background:linear-gradient(160deg,#f5cf6b,#e0b13d);}
+.zone.red{background:linear-gradient(160deg,#e88b7a,#c85a48);}
+.zone.green{background:linear-gradient(160deg,#9ed08a,#6aa854);}
+.zone.blue{background:linear-gradient(160deg,#8ab4de,#5a86b8);}
+.zone .lbl{font-size:.6rem;position:absolute;bottom:1px;left:2px;opacity:.8;}
+.zone .mk{position:absolute;top:1px;right:3px;font-size:.62rem;}
+
+/* 動作列（橫向捲動、不換行） */
+#actions{
+  display:flex;gap:8px;overflow-x:auto;flex-wrap:nowrap;
+  padding:10px 8px;align-items:center;
+  scrollbar-width:thin;
+  min-height:60px;
+}
+#actions::-webkit-scrollbar{height:6px;}
+#actions::-webkit-scrollbar-thumb{background:rgba(120,90,50,.5);border-radius:3px;}
+#actions button{flex:0 0 auto;}
+
+/* 日誌 */
+#log{
+  max-height:230px;overflow-y:auto;
+  font-size:.86rem;line-height:1.55;
+  padding:4px 2px;
+}
+.logline{padding:3px 6px;border-bottom:1px dotted rgba(120,90,50,.28);}
+.logline.good{color:#2f6b2f;}
+.logline.bad{color:#93211f;}
+.logline.info{color:#4a5c8b;}
+.logline.warn{color:#8a5a10;}
+.logline.big{font-weight:700;font-size:.94rem;background:rgba(200,160,80,.15);border-radius:4px;}
+
+/* 卡片式怪物/物品 */
+.cardrow{display:flex;gap:10px;overflow-x:auto;flex-wrap:nowrap;padding:6px 2px;align-items:stretch;}
+.card{
+  flex:0 0 auto;width:118px;
+  background:linear-gradient(170deg,#fff8e8,#efdfbc);
+  border:1.5px solid var(--border);border-radius:8px;
+  padding:6px;text-align:center;
+  position:relative;box-shadow:0 3px 8px rgba(0,0,0,.18);
+}
+.card .art{height:74px;display:flex;align-items:center;justify-content:center;}
+.card .nm{font-size:.76rem;font-weight:700;margin-top:2px;}
+.card .ef{
+  font-size:.66rem;color:#f5e8cf;background:rgba(20,12,4,.72);
+  border-radius:4px;padding:3px 4px;margin-top:3px;line-height:1.3;
+}
+
+/* 彈窗 */
+#modal-backdrop{
+  position:fixed;inset:0;z-index:100;
+  background:rgba(15,9,3,.72);
+  display:flex;align-items:center;justify-content:center;
+  padding:12px;
+  backdrop-filter:blur(2px);
+  animation:fadein .18s ease;
+}
+#modal-backdrop.hidden{display:none;}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+#modal{
+  background:linear-gradient(170deg,#f8eed6,#e7d5b0);
+  border:2px solid var(--border);
+  border-radius:12px;
+  max-width:640px;width:100%;
+  max-height:88vh;overflow-y:auto;
+  padding:16px 18px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+  animation:pop .2s cubic-bezier(.2,1.3,.5,1);
+  position:relative;
+}
+@keyframes pop{from{transform:scale(.94);opacity:.4}to{transform:scale(1);opacity:1}}
+#modal h2{margin-top:0;}
+#modal .mbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;}
+
+/* 底部導航 */
+#bottomnav{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;
+  display:flex;
+  background:linear-gradient(180deg,rgba(52,34,15,.97),rgba(32,20,8,.99));
+  border-top:2px solid #c8a45c;
+  padding-bottom:env(safe-area-inset-bottom);
+  box-shadow:0 -3px 14px rgba(0,0,0,.5);
+}
+#bottomnav button{
+  flex:1;background:none;border:none;box-shadow:none;border-radius:0;
+  color:#e5d3ae;font-size:.68rem;padding:7px 2px 6px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-weight:600;
+}
+#bottomnav button .ic{font-size:1.15rem;line-height:1;}
+#bottomnav button:hover:not(:disabled){background:rgba(255,220,150,.12);transform:none;}
+#bottomnav button:active:not(:disabled){background:rgba(255,220,150,.2);}
+#bottomnav button:disabled{opacity:.35;}
+
+/* Toast */
+#toast{
+  position:fixed;left:50%;bottom:78px;transform:translateX(-50%) translateY(20px);
+  background:rgba(30,18,6,.94);color:#f5e8cf;
+  padding:10px 18px;border-radius:22px;border:1px solid #c8a45c;
+  font-size:.86rem;z-index:200;opacity:0;pointer-events:none;
+  transition:opacity .25s, transform .25s;max-width:90vw;text-align:center;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* 屬性條 */
+.statline{display:flex;gap:6px;align-items:center;font-size:.8rem;margin:3px 0;}
+.statline .bar{flex:1;height:11px;background:rgba(90,65,30,.25);border-radius:6px;overflow:hidden;border:1px solid rgba(90,65,30,.35);}
+.statline .bar>i{display:block;height:100%;background:linear-gradient(90deg,#7fa85a,#4c7a34);transition:width .3s;}
+.statline .bar.hp>i{background:linear-gradient(90deg,#d05a4a,#93211f);}
+.statline .bar.time>i{background:linear-gradient(90deg,#e0b13d,#a8791d);}
+.statline .bar.disease>i{background:linear-gradient(90deg,#7a9a4a,#4a6b2a);}
+.statline .bar.poison>i{background:linear-gradient(90deg,#8a5ab0,#5c2f80);}
+
+/* 標籤 */
+.tag{display:inline-block;font-size:.7rem;padding:1px 7px;border-radius:10px;background:rgba(120,90,50,.18);border:1px solid rgba(120,90,50,.35);margin:1px 2px;}
+.tag.red{background:rgba(160,40,40,.18);border-color:rgba(160,40,40,.4);color:#7a1d1d;}
+.tag.green{background:rgba(60,120,50,.18);border-color:rgba(60,120,50,.4);color:#2f6b2f;}
+.tag.blue{background:rgba(50,90,150,.18);border-color:rgba(50,90,150,.4);color:#28497a;}
+
+/* 建立角色 */
+.optgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}
+.opt{
+  border:2px solid var(--border);border-radius:10px;padding:10px;
+  background:linear-gradient(170deg,#fdf6e6,#eedcba);
+  cursor:pointer;text-align:center;transition:.15s;
+}
+.opt:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.2);}
+.opt.sel{border-color:#c8892b;background:linear-gradient(170deg,#ffeec4,#f0d49a);box-shadow:0 0 0 3px rgba(200,137,43,.28);}
+.opt h4{margin:4px 0;font-size:.94rem;}
+.opt small{display:block;font-size:.72rem;line-height:1.4;}
+
+/* 打字機效果 */
+.tw{border-left:3px solid var(--gold);padding-left:10px;font-style:italic;color:#4a3620;min-height:1.5em;}
+.cursor::after{content:"▌";animation:blink .8s steps(1) infinite;color:var(--gold);}
+@keyframes blink{50%{opacity:0;}}
+
+/* 響應式 */
+@media (max-width:520px){
+  h1{font-size:1.35rem;}
+  .card{width:100px;}
+  .card .art{height:62px;}
+  #modal{padding:14px;}
+  .zone{width:52px;height:52px;}
+}
+
+/* 動畫：閃爍星星 */
+@keyframes twinkle{0%,100%{opacity:.25}50%{opacity:1}}
+.twinkle{animation:twinkle 2.4s ease-in-out infinite;}
+
+/* 場景淡入淡出 */
+.screen.active{animation:sceneIn .35s ease;}
+@keyframes sceneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= 標題畫面 ================= -->
+  <div id="screen-title" class="screen active">
+    <div style="padding:36px 20px 12px;text-align:center;position:relative;">
+      <svg width="170" height="170" viewBox="0 0 200 200" style="filter:drop-shadow(0 6px 14px rgba(0,0,0,.35));">
+        <defs>
+          <radialGradient id="gg" cx="50%" cy="40%">
+            <stop offset="0%" stop-color="#ffd97a"/><stop offset="100%" stop-color="#a8791d"/>
+          </radialGradient>
+        </defs>
+        <!-- 地牢石拱 -->
+        <path d="M30 175 L30 85 Q30 25 100 25 Q170 25 170 85 L170 175 Z" fill="#3a2a16" opacity=".85"/>
+        <path d="M44 175 L44 88 Q44 39 100 39 Q156 39 156 88 L156 175 Z" fill="#241809"/>
+        <!-- 內部光 -->
+        <ellipse cx="100" cy="120" rx="46" ry="56" fill="url(#gg)" opacity=".55"/>
+        <!-- 劍 -->
+        <g transform="translate(100,40)">
+          <rect x="-3" y="0" width="6" height="72" fill="#d9d2c4"/>
+          <rect x="-14" y="70" width="28" height="6" rx="2" fill="#c8a45c"/>
+          <rect x="-3.5" y="76" width="7" height="22" fill="#7a5a30"/>
+          <circle cx="0" cy="101" r="5" fill="#c8a45c"/>
+        </g>
+        <!-- 星點 -->
+        <circle cx="62" cy="80" r="1.6" fill="#ffe9a8" class="twinkle"/>
+        <circle cx="140" cy="95" r="1.4" fill="#ffe9a8" class="twinkle" style="animation-delay:.8s"/>
+        <circle cx="78" cy="140" r="1.3" fill="#ffe9a8" class="twinkle" style="animation-delay:1.5s"/>
+        <circle cx="126" cy="150" r="1.5" fill="#ffe9a8" class="twinkle" style="animation-delay:.4s"/>
+      </svg>
+      <h1 style="margin:8px 0 2px;">D100 地牢</h1>
+      <div style="letter-spacing:.35em;font-size:.8rem;color:#6b5236;">單人冒險遊戲</div>
+      <p style="max-width:420px;margin:14px auto;font-size:.88rem;color:#4d3822;">
+        你是一名冒險者，將深入地底迷宮，尋找失落的寶藏、完成危險的任務。<br>
+        只需要鉛筆、橡皮擦、幾顆骰子，以及你的想像力。
+      </p>
+    </div>
+    <div class="row" style="justify-content:center;padding:0 16px 20px;">
+      <button class="primary" onclick="newGameFlow()">⚔️ 新的冒險</button>
+      <button onclick="loadGame()">📂 讀取存檔</button>
+      <button class="ghost" onclick="showHelp()">📖 遊戲說明</button>
+    </div>
+  </div>
+
+  <!-- ================= 建立角色 ================= -->
+  <div id="screen-create" class="screen">
+    <div class="panel">
+      <h2>⚔️ 創造冒險者</h2>
+      <div id="create-body"></div>
+    </div>
+  </div>
+
+  <!-- ================= 遊戲主畫面 ================= -->
+  <div id="screen-game" class="screen">
+    <div id="topbar"></div>
+    <div id="main">
+      <div class="panel" style="margin-top:6px;">
+        <div class="row" style="justify-content:space-between;">
+          <div><b id="quest-title">—</b></div>
+          <div id="turn-label" style="font-size:.78rem;color:#6b5236;"></div>
+        </div>
+        <div id="quest-desc" style="font-size:.8rem;color:#4d3822;margin-top:4px;"></div>
+        <div id="quest-progress" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="justify-content:space-between;">
+          <b style="font-size:.9rem;">🗺️ 地牢地圖</b>
+          <span id="zone-label" style="font-size:.76rem;color:#6b5236;"></span>
+        </div>
+        <div id="mapwrap"><div id="mapgrid"></div></div>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin-top:0;">📜 冒險紀錄</h3>
+        <div id="log"></div>
+      </div>
+
+      <div class="panel" id="card-panel" style="display:none;">
+        <h3 style="margin-top:0;" id="card-title">遭遇</h3>
+        <div class="cardrow" id="cards"></div>
+      </div>
+    </div>
+    <div id="actions"></div>
+  </div>
+
+  <!-- ================= 城鎮（任務之間） ================= -->
+  <div id="screen-town" class="screen">
+    <div id="topbar2"></div>
+    <div id="main">
+      <div class="panel">
+        <h2>🏰 回到城鎮</h2>
+        <p style="font-size:.86rem;">任務結束了。在挑選下一個任務之前，你可以治療、修復裝備、出售物品、購買必需品、訓練或投資。</p>
+        <div id="town-status"></div>
+      </div>
+      <div id="town-body"></div>
+    </div>
+    <div id="town-actions"></div>
+  </div>
+
+</div>
+
+<!-- 彈窗 -->
+<div id="modal-backdrop" class="hidden">
+  <div id="modal"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- 底部導航 -->
+<nav id="bottomnav">
+  <button onclick="showHelp()"><span class="ic">📖</span>說明</button>
+  <button onclick="showHeroPanel()"><span class="ic">🧙</span>角色</button>
+  <button onclick="showHistory()"><span class="ic">🕐</span>紀錄</button>
+  <button onclick="saveGame()"><span class="ic">💾</span>存檔</button>
+  <button onclick="toggleSound()"><span class="ic" id="sound-ic">🔊</span>音效</button>
+</nav>
+
+<script>
+/* =========================================================================
+   D100 DUNGEON — 單人冒險遊戲（網頁實作）
+   依據 Martin Knight《D100 Dungeon》規則書實作
+   ========================================================================= */
+
+/* ============================ 資料表 ============================ */
+
+const DIRS = { N:[0,-1], E:[1,0], S:[0,1], W:[-1,0] };
+const DIRNAME = { N:'北', E:'東', S:'南', W:'西' };
+const OPP = { N:'S', S:'N', E:'W', W:'E' };
+
+/* 護甲表 A（D100）— 完整 */
+const T_ARMOUR = [
+ {max:4,  slot:'feet',  name:'皮革靴',   a:0, gp:67,  fix:14},
+ {max:8,  slot:'legs',  name:'皮革腿甲', a:0, gp:68,  fix:14},
+ {max:12, slot:'waist', name:'皮革腰帶', a:0, gp:70,  fix:14},
+ {max:16, slot:'offhand',name:'小圓盾',  s:0, gp:79,  fix:16},
+ {max:20, slot:'hands', name:'皮革手套', a:0, gp:73,  fix:15},
+ {max:24, slot:'arms',  name:'皮革護臂', a:0, gp:66,  fix:14},
+ {max:28, slot:'torso', name:'皮革胸甲', a:0, gp:78,  fix:16},
+ {max:32, slot:'back',  name:'皮革斗篷', a:0, gp:67,  fix:14},
+ {max:36, slot:'head',  name:'皮革帽',   a:0, gp:75,  fix:15},
+ {max:39, slot:'feet',  name:'鑲釘皮靴', a:1, gp:87,  fix:18},
+ {max:42, slot:'legs',  name:'鑲釘皮腿甲',a:1,gp:89,  fix:18},
+ {max:45, slot:'waist', name:'鑲釘皮腰帶',a:1,gp:94,  fix:19},
+ {max:48, slot:'offhand',name:'圓盾',    s:1, gp:123, fix:25},
+ {max:51, slot:'hands', name:'鑲釘皮手套',a:1,gp:97,  fix:20},
+ {max:54, slot:'arms',  name:'鑲釘皮護腕',a:1,gp:83,  fix:17},
+ {max:56, slot:'torso', name:'鑲釘皮鎖甲',a:1,gp:123, fix:25},
+ {max:58, slot:'back',  name:'鑲釘皮披肩',a:1,gp:87,  fix:18},
+ {max:60, slot:'head',  name:'鑲釘皮頭盔',a:1,gp:104, fix:21},
+ {max:62, slot:'feet',  name:'鎖鏈鎧靴', a:2, gp:143, fix:29},
+ {max:64, slot:'legs',  name:'鎖鏈腿甲', a:2, gp:146, fix:30},
+ {max:66, slot:'waist', name:'襯墊鎖子腰帶',a:2,gp:165,fix:33},
+ {max:68, slot:'offhand',name:'熨形盾',  s:2, gp:189, fix:38},
+ {max:70, slot:'hands', name:'鎖鏈護手綁帶',a:2,gp:167,fix:34},
+ {max:72, slot:'arms',  name:'鎖鏈袖套', a:2, gp:134, fix:27},
+ {max:74, slot:'torso', name:'鎖鏈胸甲', a:2, gp:187, fix:38},
+ {max:76, slot:'head',  name:'鎖鏈頭盔', a:2, gp:178, fix:36},
+ {max:78, slot:'feet',  name:'鱗甲靴',   a:3, gp:190, fix:38},
+ {max:80, slot:'legs',  name:'鱗甲護膝', a:3, gp:236, fix:48},
+ {max:82, slot:'waist', name:'鱗甲腰甲', a:3, gp:243, fix:49},
+ {max:84, slot:'offhand',name:'穿形盾',  s:3, gp:267, fix:54},
+ {max:86, slot:'hands', name:'鱗甲手套', a:3, gp:256, fix:52},
+ {max:88, slot:'arms',  name:'鱗甲臂鎧', a:3, gp:234, fix:47},
+ {max:90, slot:'torso', name:'鱗甲胸甲', a:3, gp:266, fix:54},
+ {max:92, slot:'head',  name:'鱗甲頭盔', a:3, gp:265, fix:53},
+ {max:93, slot:'feet',  name:'板甲馬靴', a:4, gp:287, fix:58},
+ {max:94, slot:'legs',  name:'板甲護腿', a:4, gp:290, fix:58},
+ {max:95, slot:'waist', name:'板甲腰帶', a:4, gp:298, fix:60},
+ {max:96, slot:'offhand',name:'巨盾',    s:4, gp:467, fix:94},
+ {max:97, slot:'hands', name:'板甲護手', a:4, gp:367, fix:74},
+ {max:98, slot:'arms',  name:'板甲護腕', a:4, gp:278, fix:56},
+ {max:99, slot:'torso', name:'板甲胸甲', a:4, gp:420, fix:84},
+ {max:100,slot:'head',  name:'板甲大盔', a:4, gp:378, fix:76},
+];
+
+/* 武器表 W（D100）— 完整 */
+const T_WEAPON = [
+ {max:2,  name:'投石索',    dmg:-2, gp:12,  fix:3,  r:true,  h:false},
+ {max:4,  name:'彈弓',      dmg:-2, gp:15,  fix:3,  r:true,  h:false},
+ {max:6,  name:'木棍',      dmg:-2, gp:23,  fix:5,  r:false, h:true},
+ {max:8,  name:'木杖',      dmg:-2, gp:32,  fix:7,  r:false, h:true},
+ {max:10, name:'小刀',      dmg:-2, gp:44,  fix:9,  r:false, h:true},
+ {max:12, name:'木棒',      dmg:-1, gp:50,  fix:10, r:false, h:true},
+ {max:14, name:'鐵頭棒',    dmg:-1, gp:51,  fix:11, r:false, h:true},
+ {max:16, name:'飛刀',      dmg:-1, gp:54,  fix:11, r:true,  h:true},
+ {max:18, name:'匕首',      dmg:-1, gp:54,  fix:11, r:false, h:true},
+ {max:20, name:'尖刺棍',    dmg:0,  gp:57,  fix:12, r:false, h:true},
+ {max:22, name:'錘子',      dmg:0,  gp:60,  fix:12, r:false, h:true},
+ {max:24, name:'投槍',      dmg:0,  gp:66,  fix:14, r:true,  h:true},
+ {max:26, name:'短弓',      dmg:0,  gp:67,  fix:14, r:true,  h:false},
+ {max:28, name:'戰鎬',      dmg:0,  gp:68,  fix:14, r:false, h:true},
+ {max:30, name:'短劍',      dmg:0,  gp:70,  fix:14, r:false, h:true},
+ {max:32, name:'短彎刀',    dmg:0,  gp:73,  fix:15, r:false, h:true},
+ {max:34, name:'細劍',      dmg:0,  gp:75,  fix:15, r:false, h:true},
+ {max:36, name:'鐮刀',      dmg:0,  gp:75,  fix:15, r:false, h:true},
+ {max:38, name:'狼牙棒',    dmg:0,  gp:78,  fix:16, r:false, h:true},
+ {max:40, name:'投斧',      dmg:0,  gp:87,  fix:18, r:true,  h:true},
+ {max:42, name:'輪環飛刀',  dmg:0,  gp:89,  fix:18, r:true,  h:true},
+ {max:44, name:'連弩',      dmg:0,  gp:94,  fix:19, r:true,  h:false},
+ {max:46, name:'長槍',      dmg:1,  gp:123, fix:25, r:false, h:true},
+ {max:48, name:'長矛',      dmg:1,  gp:132, fix:27, r:true,  h:true},
+ {max:50, name:'半錘',      dmg:1,  gp:134, fix:27, r:false, h:true},
+ {max:52, name:'彎刃大刀',  dmg:1,  gp:143, fix:29, r:false, h:true},
+ {max:54, name:'弓',        dmg:1,  gp:146, fix:30, r:true,  h:false},
+ {max:56, name:'斧頭',      dmg:1,  gp:165, fix:33, r:false, h:true},
+ {max:58, name:'釘頭錘',    dmg:1,  gp:167, fix:34, r:false, h:true},
+ {max:60, name:'闊劍',      dmg:1,  gp:178, fix:36, r:false, h:true},
+ {max:62, name:'錘頭棍',    dmg:1,  gp:178, fix:36, r:false, h:true},
+ {max:64, name:'軍叉',      dmg:1,  gp:187, fix:38, r:false, h:true},
+ {max:66, name:'分叉矛',    dmg:1,  gp:189, fix:38, r:false, h:true},
+ {max:68, name:'長柄刀',    dmg:1,  gp:190, fix:38, r:false, h:true},
+ {max:70, name:'斧槍',      dmg:2,  gp:234, fix:47, r:false, h:true},
+ {max:72, name:'鉤鐮',      dmg:2,  gp:236, fix:48, r:false, h:true},
+ {max:74, name:'雙手連枷',  dmg:2,  gp:243, fix:49, r:false, h:true},
+ {max:76, name:'反曲弓',    dmg:2,  gp:256, fix:52, r:true,  h:false},
+ {max:78, name:'大錘',      dmg:2,  gp:265, fix:53, r:false, h:true},
+ {max:80, name:'戰鐮',      dmg:2,  gp:266, fix:54, r:false, h:true},
+ {max:82, name:'長柄斧',    dmg:2,  gp:267, fix:54, r:false, h:true},
+ {max:84, name:'長劍',      dmg:2,  gp:278, fix:56, r:false, h:true},
+ {max:86, name:'戰斧',      dmg:2,  gp:287, fix:58, r:false, h:true},
+ {max:88, name:'大劍',      dmg:2,  gp:290, fix:58, r:false, h:true},
+ {max:90, name:'十字弩',    dmg:2,  gp:298, fix:60, r:true,  h:false},
+ {max:92, name:'戰錘',      dmg:3,  gp:367, fix:74, r:false, h:true},
+ {max:94, name:'弩弓',      dmg:3,  gp:367, fix:74, r:true,  h:false},
+ {max:96, name:'長弓',      dmg:3,  gp:378, fix:76, r:true,  h:false},
+ {max:98, name:'半手劍',    dmg:3,  gp:378, fix:76, r:false, h:true},
+ {max:99, name:'巨劍',      dmg:4,  gp:420, fix:84, r:false, h:true},
+ {max:100,name:'超巨劍',    dmg:4,  gp:467, fix:94, r:false, h:true},
+];
+
+/* 遭遇表 E（D100） */
+const T_ENCOUNTER = [
+ {max:10, name:'巨鼠',        av:25, def:0, dmg:-2, hp:[3,2,2],    k:'P2',   ab:['疾病','群體']},
+ {max:20, name:'巨蝙蝠',      av:25, def:0, dmg:-3, hp:[2,3,3],    k:'P4',   ab:['飛行','突襲','群體']},
+ {max:25, name:'巨蟻',        av:20, def:2, dmg:-2, hp:[3,2,3,3],  k:'P1',   ab:['群體']},
+ {max:30, name:'巨蜘蛛',      av:30, def:2, dmg:-1, hp:[6],        k:'P1',   ab:['織網']},
+ {max:33, name:'地精',        av:25, def:0, dmg:-2, hp:[3,3,2],    k:'I/W',  ab:['群體']},
+ {max:37, name:'哥布林',      av:25, def:1, dmg:-1, hp:[2,3,3],    k:'A/I/W',ab:['群體']},
+ {max:41, name:'哥布林弓箭手',av:25, def:1, dmg:-1, hp:[2,3,3],    k:'A/I/W',ab:['群體','突襲']},
+ {max:42, name:'哥布林術士',  av:30, def:1, dmg:-1, hp:[7],        k:'I/TA', ab:['黑暗魔法']},
+ {max:44, name:'熊',          av:40, def:2, dmg:0,  hp:[10],       k:'P2',   ab:[]},
+ {max:46, name:'鼠人',        av:30, def:2, dmg:0,  hp:[3,3,4],    k:'A/I/W',ab:['群體','疾病']},
+ {max:47, name:'鼠人勇士',    av:40, def:2, dmg:0,  hp:[9],        k:'A/I/W',ab:['疾病']},
+ {max:49, name:'山羊人',      av:40, def:3, dmg:1,  hp:[11],       k:'A/I/W',ab:[]},
+ {max:51, name:'山羊人弓箭手',av:40, def:2, dmg:1,  hp:[9],        k:'A/I/W',ab:['突襲']},
+ {max:52, name:'山羊人祭司',  av:40, def:1, dmg:1,  hp:[15],       k:'I/TA', ab:['黑暗魔法']},
+ {max:55, name:'殭屍',        av:35, def:0, dmg:0,  hp:[4,4,4,5],  k:'',     ab:['疾病','群體']},
+ {max:57, name:'捉弄者',      av:35, def:1, dmg:0,  hp:[3,4,4],    k:'I/W',  ab:['群體','突襲','黑暗魔法']},
+ {max:59, name:'小惡魔',      av:35, def:1, dmg:1,  hp:[4,4,5,5],  k:'P2/I/W',ab:['火焰','群體']},
+ {max:61, name:'獸人',        av:45, def:3, dmg:1,  hp:[10],       k:'I/A/W',ab:[]},
+ {max:65, name:'獸人弓箭手',  av:45, def:2, dmg:1,  hp:[9],        k:'I/A/W',ab:['突襲']},
+ {max:66, name:'蜘蛛女王',    av:40, def:3, dmg:2,  hp:[14],       k:'P1',   ab:['織網','突襲','毒素']},
+ {max:67, name:'骷髏蜘蛛',    av:45, def:4, dmg:2,  hp:[15],       k:'P1',   ab:['再生','復活','織網','突襲']},
+ {max:68, name:'巨吸血鬼蝙蝠',av:45, def:3, dmg:1,  hp:[10],       k:'P4',   ab:['飛行','突襲','相位','復活']},
+ {max:70, name:'巨猿',        av:40, def:2, dmg:2,  hp:[8,8,9],    k:'P2',   ab:['群體']},
+ {max:71, name:'殭屍主宰',    av:50, def:1, dmg:1,  hp:[16],       k:'TA+10',ab:['疾病']},
+ {max:72, name:'骷髏',        av:50, def:4, dmg:1,  hp:[13],       k:'A/W',  ab:['恐懼','再生','復活']},
+ {max:73, name:'巨蛇',        av:55, def:3, dmg:2,  hp:[16],       k:'GOLD', ab:['毒素']},
+ {max:74, name:'獸人勇士',    av:55, def:5, dmg:2,  hp:[16],       k:'I/A/W',ab:[]},
+ {max:75, name:'食屍鬼',      av:50, def:3, dmg:3,  hp:[18],       k:'P2',   ab:['相位','恐懼']},
+ {max:76, name:'鬼魂',        av:55, def:4, dmg:3,  hp:[20],       k:'I/TA', ab:['飛行','恐懼','復活']},
+ {max:77, name:'獸人術士',    av:50, def:4, dmg:2,  hp:[22],       k:'I/TA', ab:['黑暗魔法']},
+ {max:78, name:'惡魔',        av:55, def:4, dmg:2,  hp:[20],       k:'P2/I/W',ab:['火焰']},
+ {max:79, name:'幽靈',        av:60, def:4, dmg:2,  hp:[24],       k:'TA',   ab:['死亡之觸','空靈','恐懼']},
+ {max:80, name:'吸血鬼',      av:65, def:5, dmg:3,  hp:[25],       k:'I/W/TA',ab:['黑暗魔法','飛行','相位','復活']},
+ {max:81, name:'幻影',        av:60, def:4, dmg:3,  hp:[28],       k:'TB',   ab:['死亡之觸','空靈','恐懼']},
+ {max:82, name:'死靈法師',    av:60, def:5, dmg:2,  hp:[25],       k:'I/W/TB',ab:['黑暗魔法','再生','復活']},
+ {max:83, name:'惡魔領主',    av:55, def:4, dmg:2,  hp:[29],       k:'P2/I/W/TB',ab:['火焰','巨大','恐懼','飛行']},
+ {max:84, name:'食人魔',      av:60, def:5, dmg:3,  hp:[30],       k:'P2/TB',ab:['恐懼','巨大']},
+ {max:85, name:'牛頭人',      av:65, def:6, dmg:3,  hp:[33],       k:'P2/TB',ab:['恐懼','巨大']},
+ {max:86, name:'巨人',        av:65, def:6, dmg:4,  hp:[35],       k:'P2/TB',ab:['恐懼','巨大','昏迷']},
+ {max:87, name:'巨魔',        av:60, def:5, dmg:3,  hp:[36],       k:'P2/TB',ab:['巨大','恐懼','再生']},
+ {max:88, name:'邪惡術士',    av:65, def:6, dmg:3,  hp:[34],       k:'TB',   ab:['黑暗魔法']},
+ {max:89, name:'巫妖王',      av:70, def:7, dmg:3,  hp:[35],       k:'TB',   ab:['黑暗魔法','再生','復活']},
+ {max:90, name:'石像鬼',      av:65, def:7, dmg:3,  hp:[38],       k:'P2/TB',ab:['恐懼','昏迷']},
+ {max:91, name:'蛟龍',        av:70, def:6, dmg:4,  hp:[40],       k:'P3/TC',ab:['恐懼','連擊2','巨大']},
+ {max:92, name:'炎蛟龍',      av:75, def:7, dmg:4,  hp:[42],       k:'P3/TC',ab:['火焰','恐懼','連擊2','巨大']},
+ {max:93, name:'霜蛟龍',      av:75, def:7, dmg:4,  hp:[45],       k:'P3/TC',ab:['凍結','恐懼','連擊2','巨大']},
+ {max:94, name:'白龍',        av:80, def:7, dmg:5,  hp:[47],       k:'TC',   ab:['飛行','恐懼','連擊2','巨大']},
+ {max:95, name:'綠龍',        av:80, def:8, dmg:5,  hp:[49],       k:'P4/TC',ab:['毒素','飛行','恐懼','連擊2','巨大']},
+ {max:96, name:'紅龍',        av:85, def:8, dmg:5,  hp:[44],       k:'P4/TC',ab:['火焰','飛行','恐懼','連擊2','巨大']},
+ {max:97, name:'藍龍',        av:80, def:7, dmg:5,  hp:[45],       k:'P4/TC',ab:['凍結','飛行','恐懼','連擊2','巨大']},
+ {max:98, name:'黑龍',        av:85, def:8, dmg:5,  hp:[47],       k:'P4/TC',ab:['黑暗魔法','飛行','恐懼','連擊2','巨大']},
+ {max:99, name:'骷髏龍',      av:90, def:9, dmg:6,  hp:[48],       k:'P4/TC',ab:['空靈','飛行','恐懼','連擊2','巨大']},
+ {max:100,name:'金龍',        av:90, def:9, dmg:6,  hp:[50],       k:'P4/TC',ab:['火焰','飛行','恐懼','連擊2','巨大','昏迷']},
+];
+
+/* 命中部位表 D10 */
+const T_HITLOC = [
+ {max:1, part:'頭部',   mod:3,  slot:'head'},
+ {max:2, part:'背部',   mod:2,  slot:'back'},
+ {max:3, part:'軀幹',   mod:1,  slot:'torso'},
+ {max:4, part:'雙臂',   mod:-5, slot:'arms'},
+ {max:5, part:'雙手',   mod:-6, slot:'hands'},
+ {max:6, part:'主手武器',mod:-7, slot:'mainhand'},
+ {max:7, part:'副手武器',mod:-8, slot:'offhand'},
+ {max:8, part:'腰部',   mod:0,  slot:'waist', belt:true},
+ {max:9, part:'雙腿',   mod:-1, slot:'legs'},
+ {max:10,part:'雙腳',   mod:-1, slot:'feet'},
+];
+
+/* 怪物反應表 1d10 */
+const MONSTER_REACTIONS = [
+ {max:1, kind:'attack', avBonusIfHalf:10},
+ {max:2, kind:'attack', avBonusIfHalf:5},
+ {max:3, kind:'attack'},{max:4, kind:'attack'},{max:5, kind:'attack'},
+ {max:6, kind:'attack'},{max:7, kind:'attack'},
+ {max:8, kind:'fleeIfHalf'},
+ {max:9, kind:'fleeIfHurt'},
+ {max:10,kind:'flee'},
+];
+
+/* 門表 D（D100） */
+const T_DOOR = [
+ {max:29,type:'O'},{max:31,type:'L1'},{max:33,type:'TL1'},{max:35,type:'J1'},
+ {max:37,type:'LV1'},{max:39,type:'T1'},{max:41,type:'M'},
+ {max:43,type:'O'},{max:45,type:'L2'},{max:47,type:'TL2'},{max:49,type:'J2'},
+ {max:51,type:'LV2'},{max:53,type:'T2'},{max:55,type:'M'},
+ {max:57,type:'O'},{max:59,type:'L3'},{max:61,type:'TL3'},{max:63,type:'J3'},
+ {max:65,type:'LV3'},{max:67,type:'T3'},{max:69,type:'M'},
+ {max:71,type:'O'},{max:73,type:'L4'},{max:75,type:'TL4'},{max:77,type:'J4'},
+ {max:79,type:'LV4'},{max:81,type:'T4'},{max:83,type:'M'},
+ {max:85,type:'O'},{max:87,type:'L5'},{max:89,type:'TL5'},{max:91,type:'J5'},
+ {max:93,type:'LV5'},{max:95,type:'T5'},{max:97,type:'M'},{max:100,type:'O'},
+];
+const DOOR_INFO = {
+  L1:{pen:0,dmg:0,kind:'lock'},  L2:{pen:-5,dmg:0,kind:'lock'},  L3:{pen:-10,dmg:0,kind:'lock'},
+  L4:{pen:-15,dmg:0,kind:'lock'},L5:{pen:-20,dmg:0,kind:'lock'},
+  TL1:{pen:0,dmg:1,kind:'locktrap'}, TL2:{pen:-5,dmg:1,kind:'locktrap'}, TL3:{pen:-10,dmg:1,kind:'locktrap'},
+  TL4:{pen:-15,dmg:1,kind:'locktrap'},TL5:{pen:-20,dmg:1,kind:'locktrap'},
+  J1:{pen:0,dmg:1,kind:'stuck'}, J2:{pen:-5,dmg:1,kind:'stuck'}, J3:{pen:-10,dmg:1,kind:'stuck'},
+  J4:{pen:-15,dmg:1,kind:'stuck'},J5:{pen:-20,dmg:1,kind:'stuck'},
+  LV1:{pen:0,dmg:1,kind:'lever'}, LV2:{pen:-5,dmg:1,kind:'lever'}, LV3:{pen:-10,dmg:1,kind:'lever'},
+  LV4:{pen:-15,dmg:1,kind:'lever'},LV5:{pen:-20,dmg:1,kind:'lever'},
+  T1:{pen:0,dmg:1,kind:'trap'}, T2:{pen:-5,dmg:2,kind:'trap'}, T3:{pen:-10,dmg:3,kind:'trap'},
+  T4:{pen:-15,dmg:3,kind:'trap'},T5:{pen:-20,dmg:5,kind:'trap'},
+  M:{kind:'magic'},
+};
+
+/* 寶藏 A */
+const T_TREASURE_A = [
+ {max:3, name:'小銀幣袋', gp:70, kind:'money'},
+ {max:6, name:'精緻傷害藥酒', gp:70, kind:'potion', eff:'nextDmg+2'},
+ {max:9, name:'精緻力量藥酒', gp:75, kind:'potion', eff:'nextRoll+5str'},
+ {max:12,name:'精緻敏捷藥酒', gp:75, kind:'potion', eff:'nextRoll+5dex'},
+ {max:15,name:'精緻智力藥酒', gp:75, kind:'potion', eff:'nextRoll+5int'},
+ {max:46,name:'目標物品', gp:100, kind:'objective'},
+ {max:49,name:'精緻防禦藥酒', gp:100, kind:'potion', eff:'def+2'},
+ {max:52,name:'精緻護甲', gp:0, kind:'armour'},
+ {max:55,name:'精緻武器', gp:0, kind:'weapon'},
+ {max:58,name:'銀幣袋', gp:140, kind:'money'},
+ {max:61,name:'精緻力量藥劑', gp:150, kind:'potion', eff:'str+5'},
+ {max:64,name:'精緻敏捷藥劑', gp:150, kind:'potion', eff:'dex+5'},
+ {max:67,name:'精緻智力藥劑', gp:150, kind:'potion', eff:'int+5'},
+ {max:70,name:'精緻解毒藥劑', gp:160, kind:'potion', eff:'curePoison4'},
+ {max:73,name:'精緻治療藥劑', gp:160, kind:'potion', eff:'heal8'},
+ {max:76,name:'精緻命運聖水', gp:200, kind:'potion', eff:'fate1'},
+ {max:79,name:'卷軸', gp:200, kind:'scroll'},
+ {max:82,name:'精緻治病藥劑', gp:260, kind:'potion', eff:'cureDisease4'},
+ {max:85,name:'大銀幣袋', gp:280, kind:'money'},
+ {max:88,name:'精緻力量聖水', gp:300, kind:'potion', eff:'strBase+1'},
+ {max:91,name:'精緻敏捷聖水', gp:300, kind:'potion', eff:'dexBase+1'},
+ {max:94,name:'精緻智力聖水', gp:300, kind:'potion', eff:'intBase+1'},
+ {max:95,name:'精緻生命聖水', gp:400, kind:'potion', eff:'hpBase+1'},
+ {max:96,name:'精緻命運藥劑', gp:800, kind:'potion', eff:'nextRoll+40'},
+ {max:97,name:'精緻性命聖水', gp:1000,kind:'potion', eff:'life+1'},
+ {max:98,name:'優秀寶藏', gp:0, kind:'upB'},
+ {max:99,name:'傳奇戒指', gp:0, kind:'legendRing'},
+ {max:100,name:'傳奇項鍊', gp:0, kind:'legendNeck'},
+];
+
+/* 寶藏 B */
+const T_TREASURE_B = [
+ {max:3, name:'優秀傷害藥酒', gp:105, kind:'potion', eff:'nextDmg+3'},
+ {max:6, name:'小金幣袋', gp:140, kind:'money'},
+ {max:9, name:'優秀防禦藥酒', gp:150, kind:'potion', eff:'def+3'},
+ {max:12,name:'優秀力量藥酒', gp:150, kind:'potion', eff:'nextRoll+10str'},
+ {max:15,name:'優秀敏捷藥酒', gp:150, kind:'potion', eff:'nextRoll+10dex'},
+ {max:18,name:'優秀智力藥酒', gp:150, kind:'potion', eff:'nextRoll+10int'},
+ {max:46,name:'目標物品', gp:150, kind:'objective'},
+ {max:49,name:'優秀智力藥酒', gp:150, kind:'potion', eff:'nextRoll+10int'},
+ {max:52,name:'優秀護甲', gp:0, kind:'armour'},
+ {max:55,name:'優秀武器', gp:0, kind:'weapon'},
+ {max:58,name:'優秀解毒藥劑', gp:240, kind:'potion', eff:'curePoison6'},
+ {max:61,name:'優秀治療藥劑', gp:240, kind:'potion', eff:'heal12'},
+ {max:64,name:'金幣袋', gp:280, kind:'money'},
+ {max:67,name:'優秀力量藥劑', gp:300, kind:'potion', eff:'str+10'},
+ {max:70,name:'優秀敏捷藥劑', gp:300, kind:'potion', eff:'dex+10'},
+ {max:73,name:'優秀智力藥劑', gp:300, kind:'potion', eff:'int+10'},
+ {max:76,name:'優秀治病藥劑', gp:390, kind:'potion', eff:'cureDisease6'},
+ {max:79,name:'優秀命運聖水', gp:400, kind:'potion', eff:'fate2'},
+ {max:82,name:'大金幣袋', gp:560, kind:'money'},
+ {max:85,name:'優秀生命聖水', gp:800, kind:'potion', eff:'hpBase+2'},
+ {max:88,name:'法術書', gp:800, kind:'spellbook'},
+ {max:91,name:'優秀力量聖水', gp:900, kind:'potion', eff:'strBase+3'},
+ {max:93,name:'優秀敏捷聖水', gp:900, kind:'potion', eff:'dexBase+3'},
+ {max:94,name:'優秀智力聖水', gp:900, kind:'potion', eff:'intBase+3'},
+ {max:95,name:'優秀命運藥劑', gp:1200,kind:'potion', eff:'nextRoll+60'},
+ {max:96,name:'優秀性命聖水', gp:3000,kind:'potion', eff:'life+3'},
+ {max:97,name:'卓越寶藏', gp:0, kind:'upC'},
+ {max:98,name:'傳奇戒指', gp:0, kind:'legendRing'},
+ {max:99,name:'傳奇項鍊', gp:0, kind:'legendNeck'},
+ {max:100,name:'傳奇武器', gp:0, kind:'legendWeapon'},
+];
+
+/* 寶藏 C */
+const T_TREASURE_C = [
+ {max:3, name:'卓越傷害藥酒', gp:140, kind:'potion', eff:'nextDmg+4'},
+ {max:6, name:'卓越防禦藥酒', gp:200, kind:'potion', eff:'def+4'},
+ {max:9, name:'卓越力量藥酒', gp:225, kind:'potion', eff:'nextRoll+15str'},
+ {max:12,name:'卓越敏捷藥酒', gp:225, kind:'potion', eff:'nextRoll+15dex'},
+ {max:15,name:'卓越智力藥酒', gp:225, kind:'potion', eff:'nextRoll+15int'},
+ {max:46,name:'目標物品', gp:250, kind:'objective'},
+ {max:49,name:'小寶石包', gp:280, kind:'money'},
+ {max:52,name:'卓越護甲', gp:0, kind:'armour'},
+ {max:55,name:'卓越武器', gp:0, kind:'weapon'},
+ {max:58,name:'卓越解毒藥劑', gp:320, kind:'potion', eff:'curePoison8'},
+ {max:61,name:'卓越治療藥劑', gp:320, kind:'potion', eff:'heal16'},
+ {max:64,name:'卓越力量藥劑', gp:450, kind:'potion', eff:'str+15'},
+ {max:67,name:'卓越敏捷藥劑', gp:450, kind:'potion', eff:'dex+15'},
+ {max:70,name:'卓越智力藥劑', gp:450, kind:'potion', eff:'int+15'},
+ {max:73,name:'優秀治病藥劑', gp:520, kind:'potion', eff:'cureDisease6'},
+ {max:76,name:'寶石包', gp:560, kind:'money'},
+ {max:79,name:'卓越命運聖水', gp:600, kind:'potion', eff:'fate3'},
+ {max:82,name:'大寶石包', gp:1120,kind:'money'},
+ {max:85,name:'卓越生命聖水', gp:1200,kind:'potion', eff:'hpBase+3'},
+ {max:88,name:'卓越力量聖水', gp:1500,kind:'potion', eff:'strBase+5'},
+ {max:91,name:'卓越敏捷聖水', gp:1500,kind:'potion', eff:'dexBase+5'},
+ {max:93,name:'卓越智力聖水', gp:1500,kind:'potion', eff:'intBase+5'},
+ {max:94,name:'法術書', gp:800, kind:'spellbook'},
+ {max:95,name:'卓越命運藥劑', gp:1600,kind:'potion', eff:'nextRoll+80'},
+ {max:96,name:'卓越性命聖水', gp:5000,kind:'potion', eff:'life+5'},
+ {max:97,name:'傳奇戒指', gp:0, kind:'legendRing'},
+ {max:98,name:'傳奇項鍊', gp:0, kind:'legendNeck'},
+ {max:99,name:'傳奇武器', gp:0, kind:'legendWeapon'},
+ {max:100,name:'傳奇護甲', gp:0, kind:'legendArmour'},
+];
+
+/* 傳奇詞綴 L */
+const T_LEGEND = [
+ {max:8, name:'螃蟹', def:1, gp:500, fix:100},
+ {max:17,name:'天空', int:5, gp:750, fix:150},
+ {max:26,name:'灰熊', str:5, gp:750, fix:150},
+ {max:31,name:'蜘蛛', dex:5, gp:750, fix:150},
+ {max:36,name:'巨人', dmg:3, gp:900, fix:180},
+ {max:41,name:'烏龜', def:2, gp:1000,fix:200},
+ {max:46,name:'領主', hp:3, gp:1200,fix:240},
+ {max:51,name:'巨像', dmg:4, gp:1200,fix:240},
+ {max:56,name:'法術', spell:true, gp:1200,fix:240},
+ {max:60,name:'群星', int:10,gp:1500,fix:300},
+ {max:64,name:'猛牛', str:10,gp:1500,fix:300},
+ {max:68,name:'眼鏡蛇',dex:10,gp:1500,fix:300},
+ {max:72,name:'泰坦', dmg:5, gp:1500,fix:300},
+ {max:76,name:'巨龍', def:3, gp:1500,fix:300},
+ {max:80,name:'巨猿', str:15,gp:2250,fix:450},
+ {max:83,name:'蠍子', dex:15,gp:2250,fix:450},
+ {max:86,name:'銀月', int:15,gp:2250,fix:450},
+ {max:89,name:'王之', hp:6, gp:2400,fix:480},
+ {max:93,name:'獵豹', dex:20,gp:3000,fix:600},
+ {max:96,name:'烈陽', int:20,gp:3000,fix:600},
+ {max:98,name:'雄獅', str:20,gp:3000,fix:600},
+ {max:100,name:'眾神',hp:9, gp:3600,fix:720},
+];
+
+/* 法術 S */
+const T_SPELL = [
+ {max:4, name:'開門術', cost:'1HP', lvl:10, desc:'打開一扇被魔法封住的門。'},
+ {max:8, name:'復活術', cost:'15STR', lvl:10, desc:'下次死亡時自動復活。'},
+ {max:12,name:'聖療術', cost:'10STR', lvl:20, desc:'恢復全部生命值。'},
+ {max:16,name:'治療術', cost:'5STR', lvl:20, desc:'恢復最多 10 點生命值。'},
+ {max:20,name:'火箭術', cost:'1HP', lvl:20, desc:'下一回合開始對怪物造成 2 點傷害（無視防禦）。'},
+ {max:24,name:'火球術', cost:'2HP', lvl:30, desc:'下一回合開始對怪物造成 4 點傷害（無視防禦）。'},
+ {max:28,name:'冰暴術', cost:'3HP', lvl:30, desc:'下一回合開始造成 1d10 傷害並凍結怪物。'},
+ {max:32,name:'魔甲術', cost:'2HP', lvl:30, desc:'遭遇結束前 +1 防禦。'},
+ {max:36,name:'強力術', cost:'1HP', lvl:40, desc:'下一次 d100 檢定 +10 力量。'},
+ {max:40,name:'靈敏術', cost:'1HP', lvl:40, desc:'下一次 d100 檢定 +10 敏捷。'},
+ {max:44,name:'智識術', cost:'1HP', lvl:40, desc:'下一次 d100 檢定 +10 智力。'},
+ {max:48,name:'全力術', cost:'2HP', lvl:50, desc:'下一次 d100 檢定 +20 力量。'},
+ {max:52,name:'迅捷術', cost:'2HP', lvl:50, desc:'下一次 d100 檢定 +20 敏捷。'},
+ {max:56,name:'博學術', cost:'2HP', lvl:50, desc:'下一次 d100 檢定 +20 智力。'},
+ {max:60,name:'時間術', cost:'3HP', lvl:50, desc:'時間追蹤器 −1 格。'},
+ {max:64,name:'替身術', cost:'3HP', lvl:60, desc:'召喚替身替你承受傷害。'},
+ {max:68,name:'笨拙術', cost:'3HP', lvl:60, desc:'遭遇結束前怪物 AV −10。'},
+ {max:72,name:'控制術', cost:'4HP', lvl:60, desc:'怪物必定攻擊，無需擲反應表。'},
+ {max:76,name:'反制術', cost:'2HP', lvl:70, desc:'取消怪物的黑暗魔法。'},
+ {max:80,name:'隱形術', cost:'4HP', lvl:70, desc:'無需檢定即可逃離遭遇。'},
+ {max:84,name:'閃電術', cost:'5HP', lvl:70, desc:'下一回合造成 1d10 傷害並使怪物 AV −10。'},
+ {max:88,name:'幻像術', cost:'5HP', lvl:80, desc:'召喚 4 個幻象迷惑怪物。'},
+ {max:92,name:'操縱術', cost:'2HP', lvl:80, desc:'重擲一次任意骰子。'},
+ {max:96,name:'召喚術', cost:'4HP', lvl:90, desc:'召喚怪物替你戰鬥。'},
+ {max:100,name:'吸血術', cost:'3HP', lvl:90, desc:'怪物失去的生命值恢復給你。'},
+];
+
+/* 任務 Q */
+const T_QUEST = [
+ {min:1,max:2,   name:'地牢訓練 1', enc:-40, reward:50,  fail:'-1gp', desc:'進入地牢，從怪物身上搜刮 3 個素材。', goal:{type:'loot',what:'part',n:3}},
+ {min:3,max:4,   name:'地牢訓練 2', enc:-30, reward:50,  fail:'-1gp', desc:'進入地牢，從怪物身上搜刮 3 把武器。', goal:{type:'loot',what:'weapon',n:3}},
+ {min:5,max:6,   name:'地牢訓練 3', enc:-30, reward:80,  fail:'-1gp', desc:'進入地牢，從怪物身上搜刮 3 件護甲。', goal:{type:'loot',what:'armour',n:3}},
+ {min:7,max:8,   name:'地牢訓練 4', enc:-30, reward:80,  fail:'-1gp', desc:'搜刮 1 個素材、1 把武器和 1 件護甲。', goal:{type:'lootmix',n:1}},
+ {min:9,max:10,  name:'地牢訓練 5', enc:-30, reward:100, fail:'-1gp', desc:'從表 TA 上收集 2 個寶藏。', goal:{type:'treasureA',n:2}},
+ {min:11,max:12, name:'地牢之旅',   enc:-20, reward:150, fail:'-1gp', desc:'探索到 2 黃、2 綠、2 紅、2 藍區域。', goal:{type:'explore',n:8}},
+ {min:13,max:14, name:'藥劑狩獵',   enc:-20, reward:180, fail:'-1gp', desc:'收集任意 4 瓶藥劑。', goal:{type:'potion',n:4}},
+ {min:15,max:16, name:'怪物狩獵',   enc:-20, reward:300, fail:'-1gp', desc:'擊殺任意 5 隻怪物（E34 以上）。', goal:{type:'kill',n:5,minE:34}},
+ {min:17,max:18, name:'野獸之頭',   enc:-20, reward:300, fail:'-1gp', desc:'從任意怪物身上搜刮 1 個頭顱。', goal:{type:'head',n:1}},
+ {min:19,max:20, name:'希望護符',   enc:-20, reward:300, fail:'-1gp', desc:'收集 2 個目標物品。', goal:{type:'objective',n:2}},
+ {min:21,max:22, name:'營救村民',   enc:-20, reward:350, fail:'-1gp', desc:'擊殺任意 3 隻怪物（E45 以上）。', goal:{type:'kill',n:3,minE:45}},
+ {min:23,max:24, name:'怪物捕殺',   enc:-20, reward:500, fail:'-1gp', desc:'擊殺任意 10 隻怪物（E34 以上）。', goal:{type:'kill',n:10,minE:34}},
+ {min:25,max:26, name:'光之杖',     enc:-15, reward:400, fail:'-1gp', desc:'收集 1 件目標物品。', goal:{type:'objective',n:1}},
+ {min:27,max:28, name:'地牢研究',   enc:-10, reward:200, fail:'-1gp', desc:'探索到 5 個綠色和 5 個紅色區域。', goal:{type:'explore',n:10}},
+ {min:29,max:30, name:'調查任務',   enc:-10, reward:200, fail:'-1gp', desc:'探索到任意 15 個區域。', goal:{type:'explore',n:15}},
+ {min:31,max:32, name:'醫學狩獵',   enc:-5,  reward:200, fail:'-1gp', desc:'從 E34 以上怪物搜刮 3 個素材。', goal:{type:'loot',what:'part',n:3,minE:34}},
+ {min:33,max:34, name:'偵察任務',   enc:-5,  reward:300, fail:'-1gp', desc:'探索到任意 20 個區域。', goal:{type:'explore',n:20}},
+ {min:35,max:36, name:'探索任務',   enc:-5,  reward:400, fail:'-1gp', desc:'探索到任意 25 個區域。', goal:{type:'explore',n:25}},
+ {min:37,max:38, name:'魔法研究',   enc:0,   reward:600, fail:'-5技能', desc:'收集任意 1 瓶精緻藥劑。', goal:{type:'finePotion',n:1}},
+ {min:39,max:40, name:'影之書',     enc:0,   reward:700, fail:'-5技能', desc:'從 TB 或 TC 收集 1 個目標物品。', goal:{type:'objective',n:1}},
+ {min:41,max:42, name:'生物暴走',   enc:0,   reward:800, fail:'-5技能', desc:'擊殺任意 5 隻怪物（E50 以上）。', goal:{type:'kill',n:5,minE:50}},
+ {min:43,max:44, name:'夜間恐懼',   enc:0,   reward:800, fail:'-5技能', desc:'擊殺任意 5 隻怪物。', goal:{type:'kill',n:5,minE:1}},
+ {min:45,max:46, name:'瘟疫',       enc:0,   reward:800, fail:'-5技能', desc:'搜刮任意不凡素材。', goal:{type:'rarePart',n:1}},
+ {min:47,max:48, name:'蜘蛛女王',   enc:0,   reward:800, fail:'-5技能', desc:'擊殺蜘蛛女王（E66）。', goal:{type:'killNamed',name:'蜘蛛女王'}},
+ {min:49,max:50, name:'男爵夫人',   enc:0,   reward:1000,fail:'-5技能', desc:'擊殺巨猿（E69-70）。', goal:{type:'killNamed',name:'巨猿'}},
+ {min:51,max:52, name:'遠古之錘',   enc:0,   reward:1000,fail:'-5技能', desc:'收集 3 個目標物品。', goal:{type:'objective',n:3}},
+ {min:53,max:54, name:'拯救親王',   enc:0,   reward:1200,fail:'-5技能', desc:'擊殺惡魔（E78）。', goal:{type:'killNamed',name:'惡魔'}},
+ {min:55,max:56, name:'失蹤村民',   enc:5,   reward:1000,fail:'-10技能',desc:'擊殺巨蛇（E73）。', goal:{type:'killNamed',name:'巨蛇'}},
+ {min:57,max:58, name:'惡魔獵人',   enc:5,   reward:1350,fail:'-10技能',desc:'擊殺任意 5 隻怪物。', goal:{type:'kill',n:5,minE:1}},
+ {min:59,max:60, name:'神祕材料',   enc:5,   reward:1400,fail:'-10技能',desc:'從 E58 以上怪物搜刮 3 個素材。', goal:{type:'loot',what:'part',n:3,minE:58}},
+ {min:61,max:62, name:'財寶探險',   enc:5,   reward:1500,fail:'-10技能',desc:'從 TA 搜刮任意 3 件寶藏。', goal:{type:'treasureA',n:3}},
+ {min:63,max:64, name:'錯誤儀式',   enc:5,   reward:1500,fail:'-10技能',desc:'擊殺惡魔領主（E83）。', goal:{type:'killNamed',name:'惡魔領主'}},
+ {min:65,max:66, name:'奧術研究',   enc:5,   reward:1600,fail:'-10技能',desc:'收集 2 個目標物品。', goal:{type:'objective',n:2}},
+ {min:67,max:68, name:'王冠回歸',   enc:10,  reward:1000,fail:'-1聲望',desc:'擊殺 2 隻怪物。', goal:{type:'kill',n:2,minE:1}},
+ {min:69,max:70, name:'神祕研究',   enc:10,  reward:2000,fail:'-1智力',desc:'收集 3 個目標物品。', goal:{type:'objective',n:3}},
+ {min:71,max:72, name:'巫師的材料', enc:10,  reward:2200,fail:'-1智力',desc:'從 E66 以上怪物搜刮 3 個素材。', goal:{type:'loot',what:'part',n:3,minE:66}},
+ {min:73,max:74, name:'怪物主宰',   enc:10,  reward:2500,fail:'-1敏捷',desc:'擊殺 1 隻 E85 以上的怪物。', goal:{type:'kill',n:1,minE:85}},
+ {min:75,max:76, name:'權力古物',   enc:10,  reward:2800,fail:'-1力量',desc:'收集 1 件傳奇物品。', goal:{type:'legendary',n:1}},
+ {min:77,max:78, name:'遺物遠征',   enc:10,  reward:2800,fail:'-1敏捷',desc:'從 TB 搜刮 1 件物品。', goal:{type:'treasureB',n:1}},
+ {min:79,max:80, name:'巫妖王',     enc:10,  reward:2800,fail:'-1力量',desc:'擊殺巫妖王（E89）。', goal:{type:'killNamed',name:'巫妖王'}},
+ {min:81,max:82, name:'寒冷音信',   enc:10,  reward:2900,fail:'-1力量',desc:'擊殺霜蛟龍（E93）。', goal:{type:'killNamed',name:'霜蛟龍'}},
+ {min:83,max:84, name:'力量之戒',   enc:10,  reward:3000,fail:'-1敏捷',desc:'收集 1 枚傳奇戒指。', goal:{type:'legendary',n:1}},
+ {min:85,max:86, name:'力量護符',   enc:10,  reward:3000,fail:'-1力量',desc:'收集 1 件傳奇項鍊。', goal:{type:'legendary',n:1}},
+ {min:87,max:88, name:'怪物吃了我媽媽！',enc:15,reward:2500,fail:'-2敏捷',desc:'擊殺一隻強力怪物。', goal:{type:'kill',n:1,minE:90}},
+ {min:89,max:90, name:'全新法術',   enc:15,  reward:3400,fail:'-2智力',desc:'從 E83 以上怪物搜刮 1 個素材。', goal:{type:'loot',what:'part',n:1,minE:83}},
+ {min:91,max:92, name:'擁王者',     enc:15,  reward:3400,fail:'-2力量',desc:'收集 1 件傳奇武器。', goal:{type:'legendary',n:1}},
+ {min:93,max:94, name:'古物遠征',   enc:15,  reward:3800,fail:'-3智力',desc:'從 TC83 以上收集 1 件物品。', goal:{type:'treasureC',n:1}},
+ {min:95,max:96, name:'屠龍',       enc:20,  reward:4500,fail:'-3力量',desc:'擊殺 E94 以上的怪物。', goal:{type:'kill',n:1,minE:94}},
+ {min:97,max:100,name:'靈魂彌合',   enc:20,  reward:5000,fail:'-3敏捷',desc:'收集 1 套傳奇護甲。', goal:{type:'legendaryArmour',n:1}},
+];
+
+/* 必需品 N */
+const T_NEEDED = [
+ {max:15, name:'撬鎖器', gp:5,  kind:'picks', n:1},
+ {max:30, name:'食物',   gp:10, kind:'food',  n:1},
+ {max:45, name:'燈油',   gp:15, kind:'oil',   n:1},
+ {max:50, name:'劣制傷害藥酒', gp:35, kind:'potion', eff:'nextDmg+1'},
+ {max:55, name:'劣制力量藥酒', gp:45, kind:'potion', eff:'nextRoll+3str'},
+ {max:60, name:'劣制敏捷藥酒', gp:45, kind:'potion', eff:'nextRoll+3dex'},
+ {max:65, name:'劣制智力藥酒', gp:45, kind:'potion', eff:'nextRoll+3int'},
+ {max:70, name:'劣制防禦藥酒', gp:50, kind:'potion', eff:'def+1'},
+ {max:75, name:'劣制解毒藥劑', gp:80, kind:'potion', eff:'curePoison2'},
+ {max:80, name:'劣制治療藥劑', gp:80, kind:'potion', eff:'heal4'},
+ {max:85, name:'劣制力量藥劑', gp:90, kind:'potion', eff:'str+3'},
+ {max:90, name:'劣制敏捷藥劑', gp:90, kind:'potion', eff:'dex+3'},
+ {max:95, name:'劣制智力藥劑', gp:90, kind:'potion', eff:'int+3'},
+ {max:97, name:'劣制治病藥劑', gp:130,kind:'potion', eff:'cureDisease2'},
+ {max:98, name:'開門術卷軸', gp:200,kind:'scrollOpen'},
+ {max:99, name:'劣制命運藥劑', gp:400,kind:'potion', eff:'nextRoll+20'},
+ {max:100,name:'復活術卷軸', gp:1500,kind:'scrollRevive'},
+];
+
+/* 物品 I（簡化常用項） */
+const T_ITEMS = [
+ {max:2,  name:'研缽和研杵', gp:2},
+ {max:4,  name:'香料',     gp:3},
+ {max:6,  name:'皮革包',   gp:4},
+ {max:8,  name:'小哨子',   gp:6},
+ {max:10, name:'木算盤',   gp:7},
+ {max:12, name:'磨損的鑰匙', gp:8, key:1},
+ {max:14, name:'食物',     gp:10, food:1},
+ {max:16, name:'火線盒',   gp:12},
+ {max:18, name:'燈油',     gp:15, oil:1},
+ {max:20, name:'撬鎖器',   gp:15, picks:3},
+ {max:22, name:'生鏽的鑰匙', gp:20, key:1},
+ {max:24, name:'小食物袋', gp:20, food:2},
+ {max:26, name:'繩子',     gp:21},
+ {max:28, name:'古代歷史書', gp:23},
+ {max:30, name:'銀質拐杖', gp:29},
+ {max:32, name:'鐵質鑰匙', gp:30, key:1},
+ {max:34, name:'小燈油瓶', gp:30, oil:2},
+ {max:36, name:'銀煙斗',   gp:34},
+ {max:38, name:'小錢袋',   gp:35},
+ {max:40, name:'劣制傷害藥酒', gp:35, potion:'nextDmg+1'},
+ {max:42, name:'銀盤',     gp:38},
+ {max:44, name:'小撬鎖器盒', gp:40, picks:8},
+ {max:46, name:'骨質鑰匙', gp:42, key:1},
+ {max:48, name:'燈油桶',   gp:45, oil:3},
+ {max:50, name:'劣制力量藥酒', gp:45, potion:'nextRoll+3str'},
+ {max:52, name:'劣制敏捷藥酒', gp:45, potion:'nextRoll+3dex'},
+ {max:54, name:'劣制智力藥酒', gp:45, potion:'nextRoll+3int'},
+ {max:56, name:'銀燭台',   gp:49},
+ {max:58, name:'銀鑰匙',   gp:50, key:1},
+ {max:60, name:'撬鎖器罐', gp:50, picks:10},
+ {max:62, name:'劣制防禦藥酒', gp:50, potion:'def+1'},
+ {max:64, name:'書寫工具套裝', gp:52},
+ {max:66, name:'食物籃',   gp:60, food:3},
+ {max:68, name:'錢袋',     gp:70},
+ {max:70, name:'銀鏡',     gp:78},
+ {max:72, name:'鑰匙環',   gp:80, key:3},
+ {max:74, name:'大食物袋', gp:80, food:4},
+ {max:76, name:'劣制解毒藥劑', gp:80, potion:'curePoison2'},
+ {max:78, name:'劣制治療藥劑', gp:80, potion:'heal4'},
+ {max:80, name:'銀十字架', gp:88},
+ {max:82, name:'劣制力量藥劑', gp:90, potion:'str+3'},
+ {max:84, name:'劣制敏捷藥劑', gp:90, potion:'dex+3'},
+ {max:86, name:'劣制智力藥劑', gp:90, potion:'int+3'},
+ {max:88, name:'技能之書', gp:0,  skillBook:true},
+ {max:90, name:'黃金鑰匙', gp:110,key:1},
+ {max:92, name:'劣制治病藥劑', gp:130, potion:'cureDisease2'},
+ {max:94, name:'大錢袋',   gp:140},
+ {max:96, name:'寶石袋',   gp:290},
+ {max:97, name:'萬能鑰匙', gp:300, masterKey:true},
+ {max:98, name:'劣制命運藥劑', gp:400, potion:'nextRoll+20'},
+ {max:100,name:'寶藏',     gp:0,  treasure:true},
+];
+
+/* 地形 G（精選 40 條，涵蓋最常見效果） */
+const T_GEO = [
+ {max:1,  name:'巨大的滾石陷阱', kind:'trap', pen:-5, dmg:6, belt:true},
+ {max:2,  name:'有毒氣體陷阱', kind:'trap', pen:0,  dmg:3, time:1},
+ {max:3,  name:'擺錘陷阱',     kind:'trap', pen:-10,dmg:4},
+ {max:4,  name:'蛇坑陷阱',     kind:'trap', pen:-15,dmg:2, snake:true},
+ {max:5,  name:'尖刺陷阱',     kind:'trap', pen:0,  dmg:2, belt:true},
+ {max:6,  name:'深坑陷阱',     kind:'trap', pen:-5, dmg:2, belt:true},
+ {max:7,  name:'坍塌陷阱',     kind:'trap', pen:-10,dmg:2, belt:true},
+ {max:8,  name:'長矛陷阱',     kind:'trap', pen:-15,dmg:2},
+ {max:9,  name:'火焰陷阱',     kind:'trap', pen:-5, dmg:1},
+ {max:10, name:'交叉火力陷阱', kind:'trap', pen:0,  dmg:1},
+ {max:15, name:'木桶',         kind:'barrel'},
+ {max:16, name:'蜘蛛網',       kind:'web'},
+ {max:17, name:'苔蘚',         kind:'moss'},
+ {max:22, name:'陷阱箱',       kind:'trapchest'},
+ {max:24, name:'機關',         kind:'lever'},
+ {max:25, name:'塔岩',         kind:'lava'},
+ {max:29, name:'鎖住的寶箱',   kind:'lockchest'},
+ {max:32, name:'無底洞 / 塌陷',kind:'chasm'},
+ {max:40, name:'木桶',         kind:'barrel'},
+ {max:45, name:'機關',         kind:'lever'},
+ {max:50, name:'河流',         kind:'river'},
+ {max:53, name:'陷阱箱',       kind:'trapchest'},
+ {max:58, name:'鎖住的寶箱',   kind:'lockchest'},
+ {max:64, name:'鍛造工坊',     kind:'forge'},
+ {max:69, name:'噴泉',         kind:'fountain'},
+ {max:75, name:'巨大的樹',     kind:'tree'},
+ {max:80, name:'機關',         kind:'lever'},
+ {max:85, name:'祭壇',         kind:'altar'},
+ {max:88, name:'階梯',         kind:'stairs'},
+ {max:92, name:'鎖住的寶箱',   kind:'lockchest'},
+ {max:96, name:'陷阱箱',       kind:'trapchest'},
+ {max:99, name:'寶囊之穴',     kind:'treasure1'},
+ {max:100,name:'寶囊之穴',     kind:'treasure2'},
+];
+
+/* 尋找 F */
+const T_FIND = [
+ {max:5,  time:2, txt:'你移開雜物時聽到一聲咔嗒——觸發了陷阱！', kind:'trap'},
+ {max:10, time:2, txt:'一個怪物從陰影中竄出偷襲你！', kind:'ambush'},
+ {max:15, time:2, txt:'地板上的垃圾中彈出一條小蛇，咬傷了你。', kind:'poison2'},
+ {max:20, time:1, txt:'垃圾堆其實是腐爛的屍體堆，你感到不適。', kind:'disease2'},
+ {max:25, time:1, txt:'你的裝備卡在牆縫中，取出來時已經受損。', kind:'damageItem'},
+ {max:30, time:1, txt:'你被倒塌的岩石絆倒。', kind:'beltcheck'},
+ {max:35, time:1, txt:'你搜索了好一陣子，但什麼也沒找到。', kind:'nothing'},
+ {max:40, time:1, txt:'你擦去泥土，發現了一件有用的東西。', kind:'item'},
+ {max:45, time:1, txt:'牆後藏著一個墓穴。', kind:'tomb'},
+ {max:50, time:1, txt:'牆壁夾層中藏著一卷法術卷軸。', kind:'scroll'},
+ {max:55, time:1, txt:'你發現了一件必需品。', kind:'needed'},
+ {max:60, time:1, txt:'搬開碎石，露出一把武器。', kind:'weapon'},
+ {max:65, time:1, txt:'雜物堆裡有一頁撕破的法術書頁，內容仍完整。', kind:'spellpage'},
+ {max:70, time:1, txt:'窗簾後藏著一個小機關，你拉動了它。', kind:'lever'},
+ {max:75, time:0, txt:'碎片堆中露出一件護甲。', kind:'armour'},
+ {max:80, time:0, txt:'你發現了一條密道！', kind:'secret'},
+ {max:85, time:0, txt:'這裡曾是圖書館，你找到一本法術書。', kind:'spellbook'},
+ {max:90, time:0, txt:'破碎的櫃子後有牆上的洞口，裡面藏著寶藏。', kind:'treasureA'},
+ {max:95, time:0, txt:'你掀開發霉地毯，發現嵌入式面板，底下是寶藏。', kind:'treasureBm15'},
+ {max:100,time:0, txt:'垃圾中發現一具骷髏，它懷裡抱著華麗的寶藏。', kind:'treasureCm15'},
+];
+
+/* ============================ 工具 ============================ */
+const rnd = n => Math.floor(Math.random()*n)+1;
+const d100 = () => rnd(100);
+const d10  = () => rnd(10);
+const d6   = () => rnd(6);
+
+function pick(table, roll){ for(const e of table){ if(roll<=e.max) return e; } return table[table.length-1]; }
+function pickRoll(table, mod=0){ return pick(table, Math.min(100, Math.max(1, d100()+mod))); }
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ============================ 音效 ============================ */
+const Sound = {
+  ctx:null, on:true,
+  init(){ if(!this.ctx){ try{ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } },
+  play(freq, dur=0.08, type='square', vol=0.06){
+    if(!this.on) return;
+    this.init(); if(!this.ctx) return;
+    try{
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, this.ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime+dur);
+      o.connect(g); g.connect(this.ctx.destination);
+      o.start(); o.stop(this.ctx.currentTime+dur);
+    }catch(e){}
+  },
+  click(){ this.play(520,0.05,'square',0.05); },
+  ok(){ this.play(660,0.07,'triangle',0.07); setTimeout(()=>this.play(880,0.09,'triangle',0.06),60); },
+  bad(){ this.play(180,0.14,'sawtooth',0.07); setTimeout(()=>this.play(120,0.18,'sawtooth',0.06),80); },
+  dice(){ this.play(340,0.04,'square',0.045); setTimeout(()=>this.play(420,0.04,'square',0.04),45); },
+  gold(){ this.play(880,0.06,'sine',0.06); setTimeout(()=>this.play(1180,0.09,'sine',0.05),60); },
+  hit(){ this.play(140,0.1,'sawtooth',0.08); },
+};
+
+/* ============================ 全域狀態 ============================ */
+let S = null;
+
+function freshHero(){
+  return {
+    name:'冒險者',
+    path:null, race:null,
+    str:0, dex:0, int:0,           // 基礎屬性
+    strB:0, dexB:0, intB:0, hpB:0, // 裝備加成
+    hpBase:20, hp:20,
+    rep:1, fate:3, life:3,
+    gold:0,
+    skills:{},       // 技能 -> 加值
+    xp:{},           // 追蹤器 -> 刻度
+    gear:{},         // slot -> item
+    backpack:[],
+    belt:[],
+    oil:20, food:10, picks:15,
+    diseases:0, poison:0,
+    keys:0, levers:0,
+    spells:[],
+    temp:{},         // 臨時效果
+    questsDone:[], questsFailed:[],
+    currentQuest:null,
+    questProgress:{},
+    turnCount:0,
+    timeTick:0,
+    inDarkness:false,
+    killed:{},
+  };
+}
+
+function newGameFlow(){
+  Sound.click();
+  S = {
+    screen:'create',
+    hero:freshHero(),
+    dungeon:null,
+    combat:null,
+    phase:'idle',
+    log:[],
+    history:[],
+    createStep:'attrs',
+    createData:{ str:50, dex:40, int:30, path:null, race:null, skills:[] },
+    townState:null,
+    seenHelp:false,
+  };
+  renderCreate();
+  goto('create');
+}
+
+/* ============================ 畫面切換 ============================ */
+function goto(name){
+  document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));
+  const el = document.getElementById('screen-'+name);
+  if(el) el.classList.add('active');
+  window.scrollTo(0,0);
+  document.getElementById('bottomnav').style.display = (name==='title') ? 'none' : 'flex';
+}
+
+/* ============================ 日誌 ============================ */
+function log(msg, cls=''){
+  if(!S) return;
+  S.log.unshift({m:msg, c:cls});
+  if(S.log.length>150) S.log.pop();
+  renderLog();
+}
+function renderLog(){
+  const el = document.getElementById('log');
+  if(!el) return;
+  el.innerHTML = (S.log||[]).map(l=>`<div class="logline ${l.c}">${l.m}</div>`).join('');
+}
+function hist(msg){
+  if(!S) return;
+  S.history.push({m:msg, t:S.hero? S.hero.turnCount:0});
+  if(S.history.length>400) S.history.shift();
+}
+
+/* ============================ Toast ============================ */
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 2200);
+}
+
+/* ============================ 彈窗 ============================ */
+function showModal(title, html, buttons){
+  const bd = document.getElementById('modal-backdrop');
+  const m  = document.getElementById('modal');
+  m.innerHTML = `<h2>${title}</h2><div id="modal-body">${html}</div>
+    <div class="mbtns">${buttons.map((b,i)=>`<button data-i="${i}" class="${b.cls||''}">${b.label}</button>`).join('')}</div>`;
+  bd.classList.remove('hidden');
+  m.querySelectorAll('.mbtns button').forEach(btn=>{
+    btn.onclick = ()=>{
+      Sound.click();
+      const i = +btn.dataset.i;
+      if(buttons[i].close !== false) closeModal();
+      if(buttons[i].action) buttons[i].action();
+    };
+  });
+}
+function closeModal(){ document.getElementById('modal-backdrop').classList.add('hidden'); }
+
+/* ============================ 角色創建 ============================ */
+const SKILL_LIST = ['蠻力','勇氣','逃離','鎖具','陷阱','幸運','魔法','閃避','靈巧','警覺'];
+
+function renderCreate(){
+  const b = document.getElementById('create-body');
+  const H = S.hero;
+  const d = S.createData;
+
+  if(S.createStep==='attrs'){
+    b.innerHTML = `
+      <p style="font-size:.86rem;">將 <b>50</b>、<b>40</b>、<b>30</b> 三組點數分配到三個屬性上（力量 Str / 敏捷 Dex / 智力 Int）。</p>
+      <div class="row" style="justify-content:space-around;margin:14px 0;">
+        ${['str','dex','int'].map((k,i)=>{
+          const nm = {str:'💪 力量',dex:'🏃 敏捷',int:'🧠 智力'}[k];
+          return `<div style="text-align:center;">
+            <div style="font-size:.9rem;font-weight:700;">${nm}</div>
+            <div style="font-size:1.6rem;color:#8b5a2b;font-weight:800;">${d[k]}</div>
+            <div class="row" style="justify-content:center;gap:4px;margin-top:4px;">
+              <button class="ghost" style="padding:4px 10px;" onclick="cycleAttr('${k}')">切換</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <p style="font-size:.78rem;color:#6b5236;">提示：戰士偏力量、盜賊偏敏捷、巫師偏智力。屬性達到 50 會解鎖特殊能力（強力一擊 / 完美瞄準 / 法術施放）。</p>
+      <div class="row" style="justify-content:flex-end;margin-top:10px;">
+        <button class="primary" onclick="createNext()">下一步 ➜</button>
+      </div>`;
+  }
+  else if(S.createStep==='path'){
+    const paths = [
+      {id:'warrior', name:'⚔️ 戰士', desc:'+10 力量，−5 敏捷，−5 智力<br>勇氣 +5，逃離 +10'},
+      {id:'rogue',   name:'🗡️ 盜賊', desc:'+10 敏捷，−5 力量，−5 智力<br>鎖具 +5，陷阱 +5，幸運 +5'},
+      {id:'wizard',  name:'🔮 巫師', desc:'+10 智力，−5 敏捷，−5 力量<br>魔法 +5，幸運 +10'},
+    ];
+    b.innerHTML = `
+      <p style="font-size:.86rem;">選擇你的英雄之路（可自行挑選，或依命運決定）。</p>
+      <div class="optgrid">
+        ${paths.map(p=>`<div class="opt ${d.path===p.id?'sel':''}" onclick="choosePath('${p.id}')">
+          <h4>${p.name}</h4><small>${p.desc}</small></div>`).join('')}
+      </div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px;">
+        <button class="ghost" onclick="S.createStep='attrs';renderCreate()">← 上一步</button>
+        <button onclick="randomPath()">🎲 隨機決定</button>
+        <button class="primary" onclick="pathNext()" ${!d.path?'disabled':''}>下一步 ➜</button>
+      </div>`;
+  }
+  else if(S.createStep==='race'){
+    const races = [
+      {id:'dwarf', name:'🧔 矮人', desc:'+5 力量，−5 智力<br>蠻力 +5'},
+      {id:'elf',   name:'🧝 精靈', desc:'+5 敏捷，−5 力量<br>閃避 +5'},
+      {id:'human', name:'🧑 人類', desc:'+5 智力，−5 敏捷<br>靈巧 +5'},
+    ];
+    b.innerHTML = `
+      <p style="font-size:.86rem;">選擇種族。</p>
+      <div class="optgrid">
+        ${races.map(p=>`<div class="opt ${d.race===p.id?'sel':''}" onclick="chooseRace('${p.id}')">
+          <h4>${p.name}</h4><small>${p.desc}</small></div>`).join('')}
+      </div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px;">
+        <button class="ghost" onclick="S.createStep='path';renderCreate()">← 上一步</button>
+        <button onclick="randomRace()">🎲 隨機決定</button>
+        <button class="primary" onclick="raceNext()" ${!d.race?'disabled':''}>下一步 ➜</button>
+      </div>`;
+  }
+  else if(S.createStep==='skills'){
+    b.innerHTML = `
+      <p style="font-size:.86rem;">選擇 <b>兩個</b> 目前沒有加成的技能，各獲得 <b>+5</b>。</p>
+      <div class="optgrid">
+        ${SKILL_LIST.map(sk=>`<div class="opt ${d.skills.includes(sk)?'sel':''}" onclick="toggleSkill('${sk}')">
+          <h4>${sk}</h4><small>${d.skills.includes(sk)?'已選':'點擊選擇'}</small></div>`).join('')}
+      </div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px;">
+        <button class="ghost" onclick="S.createStep='race';renderCreate()">← 上一步</button>
+        <button class="primary" onclick="skillsNext()" ${d.skills.length!==2?'disabled':''}>完成角色 ➜</button>
+      </div>`;
+  }
+  else if(S.createStep==='final'){
+    b.innerHTML = `<p>正在為你擲骰決定起始裝備…</p>`;
+  }
+}
+
+function cycleAttr(k){
+  Sound.click();
+  const order = [50,40,30];
+  const cur = S.createData[k];
+  const idx = order.indexOf(cur);
+  const next = order[(idx+1)%3];
+  // 避免重複
+  const others = ['str','dex','int'].filter(x=>x!==k);
+  if(S.createData[others[0]]===next || S.createData[others[1]]===next){
+    // 交換
+    const conflict = S.createData[others[0]]===next ? others[0] : others[1];
+    S.createData[conflict] = cur;
+  }
+  S.createData[k] = next;
+  renderCreate();
+}
+function choosePath(p){ Sound.click(); S.createData.path=p; renderCreate(); }
+function chooseRace(r){ Sound.click(); S.createData.race=r; renderCreate(); }
+function toggleSkill(sk){
+  Sound.click();
+  const arr = S.createData.skills;
+  const i = arr.indexOf(sk);
+  if(i>=0) arr.splice(i,1);
+  else if(arr.length<2) arr.push(sk);
+  renderCreate();
+}
+function randomPath(){ Sound.click(); const a=['warrior','rogue','wizard']; S.createData.path=a[rnd(3)-1]; renderCreate(); }
+function randomRace(){ Sound.click(); const a=['dwarf','elf','human']; S.createData.race=a[rnd(3)-1]; renderCreate(); }
+
+function createNext(){ Sound.click(); S.createStep='path'; renderCreate(); }
+function pathNext(){ Sound.click(); S.createStep='race'; renderCreate(); }
+function raceNext(){ Sound.click(); S.createStep='skills'; renderCreate(); }
+
+function skillsNext(){
+  Sound.ok();
+  const H = S.hero, d = S.createData;
+  H.str = d.str; H.dex = d.dex; H.int = d.int;
+  H.path = d.path; H.race = d.race;
+  H.skills = {};
+  SKILL_LIST.forEach(s=>H.skills[s]=0);
+
+  // 英雄之路
+  if(d.path==='warrior'){ H.str+=10; H.dex-=5; H.int-=5; H.skills['勇氣']+=5; H.skills['逃離']+=10; }
+  if(d.path==='rogue'){   H.dex+=10; H.str-=5; H.int-=5; H.skills['鎖具']+=5; H.skills['陷阱']+=5; H.skills['幸運']+=5; }
+  if(d.path==='wizard'){  H.int+=10; H.dex-=5; H.str-=5; H.skills['魔法']+=5; H.skills['幸運']+=10; }
+
+  // 種族
+  if(d.race==='dwarf'){ H.str+=5; H.int-=5; H.skills['蠻力']+=5; }
+  if(d.race==='elf'){   H.dex+=5; H.str-=5; H.skills['閃避']+=5; }
+  if(d.race==='human'){ H.int+=5; H.dex-=5; H.skills['靈巧']+=5; }
+
+  // 技能
+  d.skills.forEach(s=>H.skills[s]+=5);
+
+  // 起始裝備
+  const w = pickRoll(T_WEAPON);
+  H.gear.mainhand = mkWeapon(w, '');
+  const used = new Set(['mainhand']);
+  let armourCount = 0;
+  while(armourCount<3){
+    const a = pickRoll(T_ARMOUR);
+    if(a.slot==='offhand' && used.has('offhand')){ continue; }
+    if(used.has(a.slot) && a.slot!=='offhand'){ continue; }
+    H.gear[a.slot] = mkArmour(a,'');
+    used.add(a.slot);
+    armourCount++;
+  }
+  H.belt = [
+    mkPotion('劣制治療藥劑','heal4',80),
+    mkPotion('劣制治療藥劑','heal4',80),
+    mkPotion('劣制治療藥劑','heal4',80),
+  ];
+  H.hpBase = 20; H.hp = 20;
+  H.rep = 1; H.fate = 3; H.life = 3;
+
+  // 名字
+  const names = ['艾德蒙','莉亞','格里姆','瑟拉','羅南','薇拉','凱爾','芙蕾雅','多蘭','伊莎'];
+  H.name = names[rnd(names.length)-1];
+
+  S.createStep='final';
+  renderCreate();
+  setTimeout(()=>{
+    beginAdventure();
+  }, 300);
+}
+
+/* ============================ 物品工廠 ============================ */
+function mkWeapon(t, prefix){
+  return {
+    kind:'weapon', name:prefix? prefix+t.name : t.name,
+    dmg:t.dmg, gp:t.gp, fix:t.fix,
+    ranged:t.r, melee:t.h,
+    dur:0, maxDur:7, slot:'mainhand',
+  };
+}
+function mkArmour(t, prefix){
+  const isShield = (t.s!==undefined);
+  return {
+    kind: isShield?'shield':'armour',
+    name: prefix? prefix+t.name : t.name,
+    a: isShield?0:(t.a||0), s: isShield?(t.s||0):0,
+    gp:t.gp, fix:t.fix, slot:t.slot,
+    dur:0, maxDur:7,
+  };
+}
+function mkPotion(name, eff, gp){
+  return { kind:'potion', name, eff, gp, dur:0, maxDur:7, slot:'belt' };
+}
+function mkLegend(base, leg){
+  const o = {...base};
+  o.name = leg.name + o.name;
+  o.gp = leg.gp; o.fix = leg.fix;
+  o.legend = leg;
+  if(leg.def) o.a = (o.a||0) + leg.def;
+  if(leg.str) o.strBonus = leg.str;
+  if(leg.dex) o.dexBonus = leg.dex;
+  if(leg.int) o.intBonus = leg.int;
+  if(leg.hp)  o.hpBonus = leg.hp;
+  if(leg.dmg) o.dmg = (o.dmg||0) + leg.dmg;
+  o.isLegend = true;
+  return o;
+}
+
+/* ============================ 數值計算 ============================ */
+function totalStr(){ return S.hero.str + S.hero.strB + (S.hero.temp.str||0); }
+function totalDex(){ return S.hero.dex + S.hero.dexB + (S.hero.temp.dex||0); }
+function totalInt(){ return S.hero.int + S.hero.intB + (S.hero.temp.int||0); }
+function maxHP(){ return S.hero.hpBase + S.hero.hpB; }
+
+function totalDef(){
+  let d = 0;
+  Object.values(S.hero.gear).forEach(it=>{
+    if(!it) return;
+    if(it.kind==='shield') d += (it.a||0) + (it.legend&&it.legend.def?it.legend.def:0);
+    else if(it.legend && it.legend.def) d += it.legend.def;
+  });
+  d += (S.hero.temp.def||0);
+  return d;
+}
+function equipDmg(){
+  let d = 0;
+  Object.values(S.hero.gear).forEach(it=>{
+    if(it && it.kind==='weapon') d += (it.dmg||0);
+  });
+  return d;
+}
+
+/* ============================ 能力 ============================ */
+function hasMightyBlow(){ return totalStr()>=50; }
+function hasPerfectAim(){ return totalDex()>=50; }
+function hasSpellcaster(){ return totalInt()>=50; }
+
+/* ============================ 經驗 ============================ */
+function gainXP(key, amount){
+  const H = S.hero;
+  if(!H.xp[key]) H.xp[key]=0;
+  H.xp[key] += amount;
+  while(H.xp[key]>=10){
+    H.xp[key]-=10;
+    if(key==='str'){ H.str = Math.min(80, H.str+5); log(`💪 力量提升！+5（現在 ${H.str}）`,'good'); }
+    else if(key==='dex'){ H.dex = Math.min(80, H.dex+5); log(`🏃 敏捷提升！+5（現在 ${H.dex}）`,'good'); }
+    else if(key==='int'){ H.int = Math.min(80, H.int+5); log(`🧠 智力提升！+5（現在 ${H.int}）`,'good'); }
+    else { H.skills[key] = Math.min(20, (H.skills[key]||0)+5); log(`✦ 技能「${key}」提升！+5（現在 +${H.skills[key]}）`,'good'); }
+  }
+}
+
+/* ============================ 骰子檢定 ============================ */
+/**
+ * 屬性檢定
+ * @param {number} attrValue 目標值
+ * @param {number} mod 修正
+ * @param {string[]} skills 輔助技能
+ * @param {string} attrKey 主要屬性
+ * @param {string} label 描述
+ * @returns {{roll, total, success, nat}}
+ */
+function doCheck(attrValue, mod, skills, attrKey, label){
+  let bonus = 0;
+  (skills||[]).forEach(s=>{ bonus += (S.hero.skills[s]||0); });
+  const target = attrValue + mod + bonus;
+  const roll = d100();
+  const nat = roll;
+  const success = (nat===1) ? true : (nat===100 ? false : roll <= target);
+  Sound.dice();
+
+  // 經驗
+  if(nat<=10){
+    const pool = [attrKey, ...(skills||[])].filter(Boolean);
+    if(pool.length){
+      const chosen = pool[rnd(pool.length)-1];
+      gainXP(chosen, 2);
+    }
+  }
+  hist(`${label}：擲 ${roll} vs 目標 ${target} → ${success?'成功':'失敗'}`);
+  return {roll, total:target, success, nat};
+}
+
+/* ============================ 地牢生成 ============================ */
+function makeZone(x,y,color,isEntrance){
+  const z = {
+    x, y,
+    id: S.dungeon.nextId++,
+    color,
+    searched:false,
+    exits:{},          // dir -> 'open' | doorCode
+    feature:null,
+    monster:null,
+    visited:false,
+    isEntrance: !!isEntrance,
+  };
+  return z;
+}
+
+function zoneKey(x,y){ return x+','+y; }
+
+/* ============================ 開始冒險 ============================ */
+function beginAdventure(){
+  S.screen='game';
+  S.dungeon = { zones:{}, nextId:1 };
+  S.hero.turnCount = 0;
+  S.hero.timeTick = 0;
+
+  const entrance = makeZone(0,0,'yellow',true);
+  entrance.visited = true;
+  entrance.exits = {N:'O', E:'O', S:'O', W:'O'};
+  S.dungeon.zones[zoneKey(0,0)] = entrance;
+  S.dungeon.current = entrance;
+
+  S.hero.currentQuest = null;
+  S.hero.questProgress = {};
+
+  goto('game');
+  log('⚔️ 冒險開始！你站在地牢的入口。','big');
+  hist('進入地牢');
+  chooseQuest(true);
+}
+
+/* ============================ 選擇任務 ============================ */
+function chooseQuest(first){
+  const list = [];
+  if(first){
+    list.push(T_QUEST[0]);
+  } else {
+    // 依聲望擲骰
+    let tries = 0;
+    const maxTries = clamp(S.hero.rep, 1, 10);
+    for(let i=0;i<maxTries;i++){
+      const roll = d100();
+      const q = T_QUEST.find(q=> roll>=q.min && roll<=q.max) || T_QUEST[0];
+      if(!list.find(x=>x.name===q.name)) list.push(q);
+    }
+  }
+  const html = `<p style="font-size:.86rem;">${first?'這是你的第一個任務——地牢訓練。':'依你的聲望（'+S.hero.rep+'），命運給了你以下選擇：'}</p>
+    <div class="col" style="margin-top:8px;">
+    ${list.map((q,i)=>`<button style="text-align:left;" onclick="startQuest(${T_QUEST.indexOf(q)})">
+      <b>${q.name}</b> <span class="tag">遭遇修正 ${q.enc>0?'+':''}${q.enc}</span><br>
+      <small style="color:#5a4a30;">${q.desc}　獎勵：${q.reward}gp</small>
+    </button>`).join('')}
+    </div>`;
+  showModal('📜 選擇任務', html, [{label:'稍後（隨機）', action:()=>startQuest(T_QUEST.indexOf(list[0]))}]);
+}
+
+function startQuest(index){
+  const q = T_QUEST[index];
+  S.hero.currentQuest = JSON.parse(JSON.stringify(q));
+  S.hero.currentQuest.index = index;
+  S.hero.questProgress = { parts:0, weapons:0, armour:0, treasureA:0, treasureB:0, treasureC:0,
+    objective:0, potion:0, finePotion:0, kills:0, killNames:[], regions:0,
+    heads:0, rarePart:0, legendary:0, legendaryArmour:0, spells:0, money:0 };
+  S.hero.timeTick = 0;
+  S.hero.turnCount = 0;
+
+  log(`📜 接下任務：<b>${q.name}</b> — ${q.desc}`,'big');
+  hist(`任務開始：${q.name}`);
+  closeModal();
+  renderGame();
+  startTurn();
+}
+
+/* ============================ 回合流程 ============================ */
+function startTurn(){
+  if(S.combat){ return; }
+  S.hero.turnCount++;
+  S.phase = 'time';
+  renderGame();
+
+  // 步驟 1：時間
+  advanceTime(()=>{
+    // 步驟 2：出口
+    S.phase = 'exit';
+    renderGame();
+  });
+}
+
+function advanceTime(cb){
+  const H = S.hero;
+  H.timeTick++;
+  let msg = `⏳ 時間推進（第 ${H.timeTick} / 12 小時）`;
+
+  // 燈油
+  if(H.timeTick % 3 === 0){
+    if(H.oil > 0){ H.oil--; msg += `，消耗 1 瓶燈油（剩 ${H.oil}）`; }
+    else {
+      H.inDarkness = true;
+      msg += `，<b>沒有燈油！陷入黑暗</b>（力量/敏捷/智力 −20）`;
+    }
+  }
+  // 食物
+  if(H.timeTick % 4 === 0){
+    if(H.food > 0){ H.food--; msg += `，消耗 1 份食物（剩 ${H.food}）`; }
+    else { H.hp -= 5; msg += `，<b>沒有食物！失去 5 點生命</b>`; }
+  }
+  log(msg);
+
+  // 12 小時重置
+  if(H.timeTick >= 12){
+    H.timeTick = 0;
+    log('🕛 時間追蹤器刷新（另外十二個小時）。','info');
+    // 疾病 / 毒素檢定
+    if(H.diseases>0){
+      const r = d10();
+      if(r <= H.diseases){ H.hp -= H.diseases; log(`🤢 疾病發作！擲 ${r}，失去 ${H.diseases} 點生命。`,'bad'); }
+      else log(`🤢 疾病檢定：擲 ${r}（>${H.diseases}），安然無恙。`);
+    }
+    if(H.poison>0){
+      const r = d10();
+      if(r <= H.poison){ H.hp -= H.poison; log(`☠️ 毒素發作！擲 ${r}，失去 ${H.poison} 點生命。`,'bad'); H.poison = Math.max(0,H.poison-1); }
+      else log(`☠️ 毒素檢定：擲 ${r}（>${H.poison}），安然無恙。`);
+    }
+  }
+
+  // 遊蕩怪物
+  if(H.timeTick % 3 === 2){
+    const r = d10();
+    if(r <= 3){
+      log('👣 你聽到了腳步聲…遊蕩怪物出現！','warn');
+      const enc = pickRoll(T_ENCOUNTER, H.currentQuest.enc);
+      renderGame();
+      setTimeout(()=>startCombat(enc, ()=>{ renderGame(); cb(); }), 350);
+      return;
+    } else {
+      log(`👣 遊蕩怪物檢定：擲 ${r}（>3），沒有遭遇。`);
+    }
+  }
+
+  checkDeath();
+  renderGame();
+  cb();
+}
+
+/* ============================ 死亡檢查 ============================ */
+function checkDeath(){
+  const H = S.hero;
+  if(H.hp <= 0){
+    if(H.life > 0){
+      H.life--;
+      H.hp = maxHP();
+      H.diseases = 0; H.poison = 0;
+      log(`💀 你倒下了…但消耗 1 點性命點，重新站了起來！（剩餘性命：${H.life}）`,'big');
+      Sound.ok();
+      return false;
+    } else {
+      gameOver();
+      return true;
+    }
+  }
+  return false;
+}
+
+function gameOver(){
+  S.phase = 'dead';
+  Sound.bad();
+  log('☠️ 你死了。冒險到此結束。','bad');
+  hist('冒險者死亡');
+  showModal('☠️ 冒險結束', `
+    <p>${S.hero.name} 在地牢深處倒下，再也沒有站起來。</p>
+    <p style="font-size:.86rem;">完成了 ${S.hero.questsDone.length} 個任務，累積 ${S.hero.gold} 枚金幣。</p>
+    <p style="font-size:.86rem;color:#7a1d1d;">「地牢從不輕易放過愚者。」</p>
+  `, [{label:'重新開始', cls:'primary', action:()=>{ newGameFlow(); }}]);
+}
+
+/* ============================ 地牢渲染 ============================ */
+function renderGame(){
+  renderTopbar();
+  renderQuestPanel();
+  renderMap();
+  renderActions();
+  renderLog();
+  renderCards();
+}
+
+function renderTopbar(){
+  const H = S.hero;
+  const el = document.getElementById('topbar');
+  const hp = Math.max(0,H.hp), mhp = maxHP();
+  el.innerHTML = `
+    <div class="stat hp">❤️ <b>${hp}</b>/${mhp}</div>
+    <div class="stat gold">🪙 <b>${H.gold}</b></div>
+    <div class="stat">⭐ 聲望 <b>${H.rep}</b></div>
+    <div class="stat">🎲 命運 <b>${H.fate}</b></div>
+    <div class="stat">🕯️ 性命 <b>${H.life}</b></div>
+    <div class="stat">🛢️ 油 <b>${H.oil}</b></div>
+    <div class="stat">🍖 食 <b>${H.food}</b></div>
+    <div class="stat">🔧 鎬 <b>${H.picks}</b></div>
+    <div class="stat">⏳ <b>${H.timeTick}</b>/12</div>
+  `;
+}
+
+function renderQuestPanel(){
+  const H = S.hero;
+  const q = H.currentQuest;
+  if(!q){ return; }
+  document.getElementById('quest-title').textContent = '📜 ' + q.name;
+  document.getElementById('quest-desc').innerHTML = q.desc + `　<span class="tag">遭遇修正 ${q.enc>0?'+':''}${q.enc}</span>`;
+  document.getElementById('quest-progress').innerHTML = questProgressHTML();
+  document.getElementById('turn-label').textContent = `回合 ${H.turnCount}`;
+}
+
+function questProgressHTML(){
+  const q = S.hero.currentQuest, p = S.hero.questProgress;
+  if(!q) return '';
+  const g = q.goal;
+  let cur = 0, need = g.n||1, label='';
+  switch(g.type){
+    case 'loot': cur = g.what==='part'?p.parts:(g.what==='weapon'?p.weapons:p.armour); label = g.what==='part'?'素材':(g.what==='weapon'?'武器':'護甲'); break;
+    case 'lootmix': cur = Math.min(p.parts,p.weapons,p.armour); need=1; label='素材/武器/護甲各 1'; break;
+    case 'treasureA': cur = p.treasureA; label='寶藏 A'; break;
+    case 'treasureB': cur = p.treasureB; label='寶藏 B'; break;
+    case 'treasureC': cur = p.treasureC; label='寶藏 C'; break;
+    case 'objective': cur = p.objective; label='目標物品'; break;
+    case 'potion': cur = p.potion; label='藥劑'; break;
+    case 'finePotion': cur = p.finePotion; label='精緻藥劑'; break;
+    case 'kill': cur = p.kills; label='擊殺怪物'; break;
+    case 'killNamed': cur = p.killNames.filter(n=>n===g.name).length; label='擊殺 '+g.name; break;
+    case 'explore': cur = S.dungeon ? Object.keys(S.dungeon.zones).length : 0; label='已探索區域'; break;
+    case 'head': cur = p.heads; label='頭顱'; break;
+    case 'rarePart': cur = p.rarePart; label='不凡素材'; break;
+    case 'legendary': cur = p.legendary; label='傳奇物品'; break;
+    case 'legendaryArmour': cur = p.legendaryArmour; label='傳奇護甲'; break;
+  }
+  const pct = clamp(cur/need*100,0,100);
+  return `<div class="statline"><span style="width:88px;font-size:.75rem;">${label}</span>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <span style="font-size:.75rem;">${cur} / ${need}</span></div>`;
+}
+
+function renderMap(){
+  const g = document.getElementById('mapgrid');
+  if(!S.dungeon){ g.innerHTML=''; return; }
+  const zones = Object.values(S.dungeon.zones);
+  if(!zones.length){ g.innerHTML=''; return; }
+  let minX=0,maxX=0,minY=0,maxY=0;
+  zones.forEach(z=>{ minX=Math.min(minX,z.x); maxX=Math.max(maxX,z.x); minY=Math.min(minY,z.y); maxY=Math.max(maxY,z.y); });
+  const CW = 70, CH = 70;
+  const offX = -minX*CW + 8, offY = -minY*CH + 8;
+  g.style.width  = ((maxX-minX+1)*CW + 20) + 'px';
+  g.style.height = ((maxY-minY+1)*CH + 20) + 'px';
+
+  g.innerHTML = zones.map(z=>{
+    const cur = (S.dungeon.current && S.dungeon.current.x===z.x && S.dungeon.current.y===z.y);
+    const cn = {yellow:'黃',red:'紅',green:'綠',blue:'藍'}[z.color];
+    const marks = [];
+    if(z.searched) marks.push('S');
+    if(z.monster) marks.push('E');
+    if(z.isEntrance) marks.push('★');
+    // 出口指示
+    let arrows = '';
+    Object.keys(z.exits).forEach(d=>{
+      const sx = offX + (z.x-minX)*CW + 31;
+      const sy = offY + (z.y-minY)*CH + 31;
+      const px = {N:31,E:62,S:31,W:0}[d];
+      const py = {N:0,E:31,S:62,W:31}[d];
+      arrows += `<line x1="${sx}" y1="${sy}" x2="${offX+(z.x-minX)*CW+px}" y2="${offY+(z.y-minY)*CH+py}"
+        stroke="rgba(40,25,8,.55)" stroke-width="3" stroke-linecap="round"/>`;
+    });
+    return `<svg style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;">${arrows}</svg>
+      <div class="zone ${z.color} ${cur?'cur':''}"
+        style="left:${offX+(z.x-minX)*CW}px;top:${offY+(z.y-minY)*CH}px;"
+        onclick="inspectZone(${z.x},${z.y})"
+        title="${cn}色區域">
+        <span style="opacity:.75;">${cn}</span>
+        <span class="mk">${marks.join('')}</span>
+      </div>`;
+  }).join('');
+
+  const cz = S.dungeon.current;
+  const zn = {yellow:'黃色（空）',red:'紅色（遭遇）',green:'綠色（地形）',blue:'藍色（目標）'}[cz.color];
+  document.getElementById('zone-label').textContent = `目前：${zn}`;
+}
+
+function inspectZone(x,y){
+  const z = S.dungeon.zones[zoneKey(x,y)];
+  if(!z) return;
+  Sound.click();
+  const cn = {yellow:'🟡 黃色（空）',red:'🔴 紅色（遭遇）',green:'🟢 綠色（地形）',blue:'🔵 藍色（目標）'}[z.color];
+  let html = `<p>${cn}</p><p style="font-size:.84rem;">座標：(${z.x}, ${z.y})</p>`;
+  if(z.isEntrance) html += `<p>★ 地牢入口</p>`;
+  if(z.searched) html += `<p>🔍 已搜索過</p>`;
+  if(z.monster) html += `<p>👹 已逃離的遭遇：${z.monster.name}</p>`;
+  showModal('區域資訊', html, [{label:'關閉'}]);
+}
+
+/* ============================ 動作列 ============================ */
+function renderActions(){
+  const el = document.getElementById('actions');
+  const H = S.hero;
+  const list = [];
+
+  if(S.phase==='dead'){ el.innerHTML=''; return; }
+
+  if(S.combat){
+    renderCombatActions(el);
+    return;
+  }
+
+  if(S.phase==='exit'){
+    const z = S.dungeon.current;
+    const dirs = Object.keys(z.exits);
+    dirs.forEach(d=>{
+      const code = z.exits[d];
+      let label = '🚪 ' + DIRNAME[d];
+      if(code && code !== 'O') label = '🚪 ' + DIRNAME[d] + '（門：' + code + '）';
+      list.push({label, action:()=>tryExit(d)});
+    });
+    list.push({label:'🔍 搜索此區域', action:()=>doSearch(), cls:'ghost'});
+    list.push({label:'🏳️ 放棄任務', action:()=>failQuest(), cls:'ghost'});
+  }
+  else if(S.phase==='search'){
+    list.push({label:'➡️ 繼續前進', action:()=>{ S.phase='exit'; renderGame(); }, cls:'primary'});
+    list.push({label:'🏳️ 放棄任務', action:()=>failQuest(), cls:'ghost'});
+  }
+  else if(S.phase==='zone'){
+    list.push({label:'➡️ 繼續', action:()=>{ S.phase='exit'; renderGame(); }, cls:'primary'});
+  }
+  else {
+    list.push({label:'➡️ 前進', action:()=>{ S.phase='exit'; renderGame(); }, cls:'primary'});
+  }
+
+  el.innerHTML='';
+  list.forEach(b=>{
+    const btn = document.createElement('button');
+    btn.textContent = b.label;
+    if(b.cls) btn.className = b.cls;
+    btn.onclick = ()=>{ Sound.click(); b.action(); };
+    el.appendChild(btn);
+  });
+}
+
+/* ============================ 出口 / 門 ============================ */
+function tryExit(dir){
+  const z = S.dungeon.current;
+  const code = z.exits[dir];
+  if(!code) return;
+
+  if(code === 'O'){
+    moveTo(dir);
+    return;
+  }
+  // 有門
+  handleDoor(z, dir, code);
+}
+
+function handleDoor(zone, dir, code){
+  const info = DOOR_INFO[code] || {kind:'stuck',pen:0,dmg:1};
+  if(code.startsWith('L')||code.startsWith('TL')){
+    // 上鎖：先試鑰匙
+    if(S.hero.keys>0){
+      const r = d10();
+      if(r <= S.hero.keys){
+        S.hero.keys--;
+        zone.exits[dir]='O';
+        log(`🔑 你找到了一把合適的鑰匙！門打開了（剩餘鑰匙 ${S.hero.keys}）。`,'good');
+        Sound.ok();
+        renderGame();
+        return;
+      }
+      log(`🔑 試了鑰匙（擲 ${r} > ${S.hero.keys}），沒有適合的。`);
+    }
+    if(S.hero.picks <= 0){
+      toast('你沒有撬鎖器，無法撬鎖！');
+      log('❌ 你沒有撬鎖器，無法撬開這扇門。','bad');
+      renderGame();
+      return;
+    }
+    showSkillCheck(
+      '🔒 鎖住的門', '敏捷', totalDex(), info.pen, ['鎖具','陷阱'],
+      'success', ()=>{
+        zone.exits[dir]='O';
+        log('🔓 你成功撬開了鎖！','good');
+        Sound.ok();
+        renderGame();
+      },
+      ()=>{
+        S.hero.picks--;
+        if(code.startsWith('TL')){
+          const dmg = info.dmg||1;
+          S.hero.hp -= dmg;
+          log(`💥 撬鎖失敗，陷阱觸發！失去 ${dmg} 點生命，損失 1 個撬鎖器。`,'bad');
+        } else {
+          log('❌ 撬鎖失敗，損失 1 個撬鎖器。','bad');
+        }
+        checkDeath();
+        renderGame();
+      },
+      true
+    );
+    return;
+  }
+
+  if(info.kind==='stuck' || info.kind==='lever'){
+    if(info.kind==='lever' && S.hero.levers>0){
+      const r = d10();
+      if(r <= S.hero.levers){
+        S.hero.levers--;
+        zone.exits[dir]='O';
+        log('⚙️ 機關啟動！門打開了。','good');
+        Sound.ok();
+        renderGame();
+        return;
+      }
+    }
+    showSkillCheck(
+      '🚪 ' + (info.kind==='lever'?'機關門':'卡住的門'), '力量', totalStr(), info.pen, ['蠻力'],
+      'success', ()=>{
+        zone.exits[dir]='O';
+        log('💪 你用力把門推開了！','good');
+        Sound.ok();
+        renderGame();
+      },
+      ()=>{
+        S.hero.hp -= (info.dmg||1);
+        log(`❌ 門紋絲不動，你受了 ${info.dmg||1} 點擦傷。`,'bad');
+        checkDeath();
+        renderGame();
+      },
+      true
+    );
+    return;
+  }
+
+  if(info.kind==='trap'){
+    showSkillCheck(
+      '🪤 陷阱門', '敏捷', totalDex(), info.pen, ['陷阱'],
+      'success', ()=>{
+        zone.exits[dir]='O';
+        log('✨ 你拆除了陷阱，門開了。','good');
+        Sound.ok();
+        renderGame();
+      },
+      ()=>{
+        S.hero.hp -= (info.dmg||1);
+        log(`💥 陷阱啟動！失去 ${info.dmg||1} 點生命。`,'bad');
+        checkDeath();
+        renderGame();
+      },
+      true
+    );
+    return;
+  }
+
+  if(info.kind==='magic'){
+    // 需要開門術
+    const hasScroll = S.hero.belt.findIndex(i=>i && i.kind==='scrollOpen');
+    const spell = S.hero.spells.find(s=>s.name==='開門術');
+    if(hasSpellcaster() && spell){
+      log('🔮 你施展開門術，魔法門緩緩敞開。','good');
+      zone.exits[dir]='O';
+      Sound.ok();
+      renderGame();
+      return;
+    }
+    if(hasScroll>=0){
+      S.hero.belt.splice(hasScroll,1);
+      const c = doCheck(totalInt(), 0, ['魔法'], 'int', '施展開門術卷軸');
+      if(c.success){
+        zone.exits[dir]='O';
+        log('🔮 卷軸化為塵土，魔法門打開了。','good');
+        Sound.ok();
+      } else {
+        S.hero.hp -= 2;
+        log('💥 卷軸的力量反噬，失去 2 點生命。','bad');
+      }
+      renderGame();
+      return;
+    }
+    toast('這扇門被魔法封印，需要「開門術」法術或卷軸。');
+    log('🔮 這扇門被魔法封印，你無能為力。','bad');
+    renderGame();
+    return;
+  }
+}
+
+function showSkillCheck(title, attrName, attrVal, mod, skills, kind, onSuccess, onFail, canRetry){
+  const skillsTxt = skills.map(s=>`${s} +${S.hero.skills[s]||0}`).join('、') || '無';
+  const total = attrVal + mod + skills.reduce((a,s)=>a+(S.hero.skills[s]||0),0);
+  showModal(title, `
+    <p style="font-size:.88rem;">檢定：<b>${attrName}${mod>=0?'+':''}${mod}</b>（輔助技能：${skillsTxt}）</p>
+    <p style="font-size:.88rem;">你的目標值：<b style="color:#8b5a2b;font-size:1.1rem;">${total}</b></p>
+    <p style="font-size:.78rem;color:#6b5236;">擲 1d100，結果 ≤ 目標值即成功。擲出 01 必定成功、100 必定失敗。</p>
+  `, [
+    {label:'🎲 擲骰', cls:'primary', action:()=>{
+      const r = doCheck(attrVal, mod, skills, attrName==='力量'?'str':(attrName==='敏捷'?'dex':'int'), title);
+      if(r.success){
+        Sound.ok();
+        toast(`🎲 擲出 ${r.roll}（目標 ${r.total}）→ 成功！`);
+        onSuccess();
+      } else {
+        Sound.bad();
+        toast(`🎲 擲出 ${r.roll}（目標 ${r.total}）→ 失敗`);
+        onFail();
+      }
+    }},
+    ...(canRetry?[{label:'放棄', action:()=>{ renderGame(); }}]:[])
+  ]);
+}
+
+/* ============================ 移動與區域 ============================ */
+function moveTo(dir){
+  const cur = S.dungeon.current;
+  const [dx,dy] = DIRS[dir];
+  const nx = cur.x+dx, ny = cur.y+dy;
+  const key = zoneKey(nx,ny);
+  let zone = S.dungeon.zones[key];
+
+  if(!zone){
+    zone = generateZone(nx,ny,OPP[dir]);
+    S.dungeon.zones[key] = zone;
+    hist(`探索新區域 (${nx},${ny})`);
+  }
+  S.dungeon.current = zone;
+  S.phase = 'zone';
+  renderGame();
+  enterZone(zone);
+}
+
+function generateZone(x,y,entryDir){
+  const roll = d100();
+  let color;
+  if(roll<=38) color='yellow';
+  else if(roll<=63) color='red';
+  else if(roll<=88) color='green';
+  else color='blue';
+
+  const z = makeZone(x,y,color);
+  z.exits = {};
+  z.exits[entryDir] = 'O';
+
+  // 額外出口
+  const others = ['N','E','S','W'].filter(d=>d!==entryDir);
+  const extraRoll = d6();
+  let extraCount = 0;
+  if(extraRoll<=2) extraCount=0;
+  else if(extraRoll<=4) extraCount=1;
+  else extraCount=2;
+
+  // 隨機挑選
+  const shuffled = others.sort(()=>Math.random()-0.5);
+  for(let i=0;i<extraCount && i<shuffled.length;i++){
+    z.exits[shuffled[i]] = 'O';
+  }
+  // 至少 2 個出口
+  if(Object.keys(z.exits).length<2 && shuffled.length){
+    z.exits[shuffled[0]]='O';
+  }
+  // 隨機把某些出口變成門
+  Object.keys(z.exits).forEach(d=>{
+    if(d===entryDir) return;
+    if(d6()<=2){
+      z.exits[d] = pickRoll(T_DOOR).type;
+    }
+  });
+  return z;
+}
+
+function enterZone(zone){
+  const H = S.hero;
+  if(zone.visited){
+    log(`↩️ 回到 (${zone.x},${zone.y}) 的${colorName(zone.color)}區域。`);
+    if(zone.monster){
+      log(`👹 ${zone.monster.name} 還守在這裡，牠恢復了全部生命值！`,'warn');
+      const m = JSON.parse(JSON.stringify(zone.monster));
+      startCombat(m, ()=>{}, zone);
+      return;
+    }
+    S.phase='exit';
+    renderGame();
+    return;
+  }
+  zone.visited = true;
+  hist(`進入${colorName(zone.color)}區域`);
+
+  if(zone.color==='yellow'){
+    log(`🟡 你進入了一個空蕩的黃色區域。`);
+    S.phase='exit';
+    renderGame();
+  }
+  else if(zone.color==='red'){
+    log(`🔴 紅色區域——有東西潛伏在陰影中！`,'warn');
+    const enc = pickRoll(T_ENCOUNTER, H.currentQuest.enc);
+    renderGame();
+    setTimeout(()=>{
+      startCombat(enc, ()=>{ S.phase='exit'; renderGame(); }, zone);
+    }, 300);
+  }
+  else if(zone.color==='green'){
+    log(`🟢 綠色區域——地形特徵。`);
+    const geo = pickRoll(T_GEO);
+    zone.feature = geo.name;
+    renderGame();
+    setTimeout(()=>resolveGeo(zone, geo), 300);
+  }
+  else if(zone.color==='blue'){
+    log(`🔵 藍色區域——這與你的任務有關。`,'info');
+    S.hero.questProgress.regions++;
+    if(H.currentQuest.goal.type==='explore'){
+      checkQuestComplete();
+    }
+    S.phase='exit';
+    renderGame();
+  }
+}
+
+function colorName(c){ return {yellow:'黃色',red:'紅色',green:'綠色',blue:'藍色'}[c]; }
+
+/* ============================ 地形 ============================ */
+function resolveGeo(zone, geo){
+  const H = S.hero;
+  switch(geo.kind){
+    case 'trap':
+      showSkillCheck('🪤 '+geo.name, '敏捷', totalDex(), geo.pen, ['陷阱','警覺','幸運'],
+        'success',
+        ()=>{ log(`✨ 你敏捷地避開了${geo.name}！`,'good'); S.phase='exit'; renderGame(); },
+        ()=>{
+          if(geo.belt) beltCheck();
+          H.hp -= geo.dmg||1;
+          log(`💥 ${geo.name} 造成 ${geo.dmg||1} 點傷害！`,'bad');
+          checkDeath();
+          S.phase='exit'; renderGame();
+        });
+      break;
+    case 'barrel':
+      showModal('🛢️ 木桶', `<p>這裡有幾個木桶，要花時間打開看看嗎？（+1 時間）</p>`, [
+        {label:'打開', cls:'primary', action:()=>{
+          addTime(1);
+          const r = d10();
+          if(r<=3){
+            log('🕷️ 最後一個木桶裡跳出一隻巨蜘蛛！','bad');
+            const enc = T_ENCOUNTER.find(e=>e.name==='巨蜘蛛');
+            startCombat(enc, ()=>{ S.phase='exit'; renderGame(); }, zone);
+          } else if(r<=5){ log('🛢️ 所有木桶都是空的。'); S.phase='exit'; renderGame(); }
+          else if(r<=7){ log('🛢️ 有幾個木桶裡有些有趣的東西。'); addNeeded(); addNeeded(); S.phase='exit'; renderGame(); }
+          else if(r<=9){ log('🛢️ 一個木桶裡藏著武器。'); addWeapon(); S.phase='exit'; renderGame(); }
+          else { log('🛢️ 大木桶底部有一件護甲。'); addArmour(); S.phase='exit'; renderGame(); }
+        }},
+        {label:'略過', action:()=>{ S.phase='exit'; renderGame(); }}
+      ]);
+      break;
+    case 'web':
+      log('🕸️ 這裡被巨大蜘蛛網覆蓋，移動困難（+1 時間）。');
+      addTime(1);
+      S.phase='exit'; renderGame();
+      break;
+    case 'moss':
+      showSkillCheck('🌿 苔蘚地面', '敏捷', totalDex(), -10, ['靈巧','幸運'],
+        'success',
+        ()=>{ log('🌿 你小心地走過濕滑的苔蘚。'); addTime(1); S.phase='exit'; renderGame(); },
+        ()=>{ log('🌿 你滑倒了！','bad'); addTime(2); H.hp-=2; checkDeath(); S.phase='exit'; renderGame(); });
+      break;
+    case 'trapchest':
+      showSkillCheck('🧰 陷阱箱', '敏捷', totalDex(), -20, ['陷阱','幸運'],
+        'success',
+        ()=>{ log('🧰 你打開了陷阱箱，裡面是寶藏！','good'); addTreasure(3, 10); checkQuestComplete(); S.phase='exit'; renderGame(); },
+        ()=>{ log('💥 陷阱觸發，失去 5 點生命！','bad'); H.hp-=5; checkDeath(); addTime(1); S.phase='exit'; renderGame(); });
+      break;
+    case 'lockchest':
+      showSkillCheck('🔐 鎖住的寶箱', '敏捷', totalDex(), -20, ['鎖具','幸運'],
+        'success',
+        ()=>{ log('🔐 寶箱打開了！','good'); addTreasure(3); checkQuestComplete(); S.phase='exit'; renderGame(); },
+        ()=>{ H.picks = Math.max(0,H.picks-1); log('❌ 鎖打不開，損失 1 個撬鎖器。','bad'); addTime(1); S.phase='exit'; renderGame(); });
+      break;
+    case 'lever':
+      showModal('⚙️ 機關', `<p>牆上突出一個機關，要拉動它嗎？</p>`, [
+        {label:'拉動', cls:'primary', action:()=>{
+          const r = d10();
+          if(r<=2){ log('⚙️ 不妙！','bad'); applyCurse(); }
+          else if(r<=4){ log('⚙️ 似乎什麼也沒發生。'); }
+          else { H.levers++; log(`⚙️ 遠處傳來隆隆聲——機關追蹤器 +1（共 ${H.levers}）。`,'good'); }
+          S.phase='exit'; renderGame();
+        }},
+        {label:'略過', action:()=>{ S.phase='exit'; renderGame(); }}
+      ]);
+      break;
+    case 'river':
+      showSkillCheck('🌊 河流', '力量', totalStr(), -10, ['蠻力'],
+        'success',
+        ()=>{ log('🌊 你游過了湍急的河流。','good'); S.phase='exit'; renderGame(); },
+        ()=>{ log('🌊 你被河水沖走，嗆了好幾口水！','bad'); H.hp-=2; addTime(1); checkDeath(); S.phase='exit'; renderGame(); });
+      break;
+    case 'forge':
+      log('⚒️ 這裡曾是一座鍛造工坊，你找到了一些還能用的裝備。');
+      addArmour(); addWeapon();
+      S.phase='exit'; renderGame();
+      break;
+    case 'fountain':
+      showModal('⛲ 噴泉', `<p>發著奇異光芒的液體從牆上的孔洞流出。要喝一口嗎？</p>`, [
+        {label:'喝一口', cls:'primary', action:()=>{
+          const r = d10();
+          if(r<=2){ log('⛲ 液體味道糟透了，你感到不適。','bad'); applyCurse(); }
+          else if(r<=6){ log('⛲ 液體令人耳目一新。'); }
+          else { log('⛲ 液體甜美，你貪婪地喝了下去！','good'); applyBoost(); }
+          S.phase='exit'; renderGame();
+        }},
+        {label:'不喝', action:()=>{ S.phase='exit'; renderGame(); }}
+      ]);
+      break;
+    case 'tree':
+      showModal('🌳 巨大的樹', `<p>地牢中央長著一棵巨樹，開滿散發柔光的白花。要摘一朵嗎？</p>`, [
+        {label:'摘一朵', cls:'primary', action:()=>{
+          const r = d10();
+          if(r===1){ log('🌳 花朵被摘下後整棵樹枯萎死亡。你感到一陣失落。','bad'); S.hero.fate=Math.max(0,S.hero.fate-1); }
+          else if(r===2){ log('🌳 劇痛傳遍全身！','bad'); S.hero.hp-=3; checkDeath(); }
+          else if(r<=6){ log('🌸 花朵發出明亮的光芒，摘下了「發光的白花」。','good'); addToBackpack({kind:'item',name:'發光的白花',gp:5}); }
+          else { log('💎 花瓣飄落，花蕾化作水晶——「水晶花」！','good'); addToBackpack({kind:'item',name:'水晶花',gp:300}); }
+          S.phase='exit'; renderGame();
+        }},
+        {label:'離開', action:()=>{ S.phase='exit'; renderGame(); }}
+      ]);
+      break;
+    case 'altar':
+      showModal('🕯️ 祭壇', `<p>這裡有一座祭壇。要花時間祈禱嗎？</p>`, [
+        {label:'祈禱（+1 時間）', cls:'primary', action:()=>{
+          addTime(1);
+          const r = d10();
+          if(r===1){ log('🕯️ 氣氛不太對勁…','bad'); applyCurse(); }
+          else if(r<=4){ log('🕯️ 似乎什麼也沒發生。'); }
+          else { log('🕯️ 神像發出明亮的光芒！','good'); applyBoost(); }
+          S.phase='exit'; renderGame();
+        }},
+        {label:'離開', action:()=>{ S.phase='exit'; renderGame(); }}
+      ]);
+      break;
+    case 'stairs':
+      log('🪜 你找到了一座通往地牢更深處的階梯。','info');
+      S.hero.questProgress.stairs = true;
+      S.phase='exit'; renderGame();
+      break;
+    case 'chasm':
+      log('🕳️ 巨大的深淵擋住了去路，對面的出口無法使用。','warn');
+      S.phase='exit'; renderGame();
+      break;
+    case 'lava':
+      showSkillCheck('🌋 塔岩', '敏捷', totalDex(), -10, ['敏捷','幸運'],
+        'success',
+        ()=>{ log('🌋 你找到安全的路徑，但還是被濺到一點岩漿。','bad'); S.hero.hp-=1; checkDeath(); S.phase='exit'; renderGame(); },
+        ()=>{ log('🌋 滾燙的岩漿噴濺到你身上！','bad'); S.hero.hp-=3; checkDeath(); S.phase='exit'; renderGame(); });
+      break;
+    case 'treasure1':
+      log('💰 你意外闖入了一個充滿財寶的區域！','good');
+      { const g = d6()*5; S.hero.gold += g; log(`💰 獲得 ${g} 枚金幣！`,'good'); addTreasure(1); }
+      Sound.gold(); checkQuestComplete();
+      S.phase='exit'; renderGame();
+      break;
+    case 'treasure2':
+      log('💰 你意外闖入了一個充滿財寶的區域！','good');
+      { const g = d100()*10; S.hero.gold += g; log(`💰 獲得 ${g} 枚金幣！`,'good'); addTreasure(3); }
+      Sound.gold(); checkQuestComplete();
+      S.phase='exit'; renderGame();
+      break;
+    default:
+      S.phase='exit'; renderGame();
+  }
+}
+
+function beltCheck(){
+  const r = d10();
+  const idx = r-1;
+  if(S.hero.belt[idx]){
+    const it = S.hero.belt[idx];
+    log(`🎒 腰帶檢定：擲 ${r} → 腰帶槽 ${r} 的「${it.name}」被摧毀！`,'bad');
+    S.hero.belt[idx] = null;
+  } else {
+    log(`🎒 腰帶檢定：擲 ${r} → 該槽是空的。`);
+  }
+}
+
+function addTime(n){
+  S.hero.timeTick += n;
+  if(S.hero.timeTick>=12){
+    S.hero.timeTick -= 12;
+    log('🕛 時間追蹤器刷新。','info');
+  }
+}
+
+/* ============================ 搜索 ============================ */
+function doSearch(){
+  const z = S.dungeon.current;
+  if(z.searched){
+    toast('這個區域已經搜索過了。');
+    return;
+  }
+  z.searched = true;
+  const mod = {yellow:0,red:10,green:5,blue:20}[z.color];
+  const roll = clamp(d100()+mod, 1, 100);
+  const res = pick(T_FIND, roll);
+  log(`🔍 搜索（擲 ${roll}${mod?'，修正 +'+mod:''}）：${res.txt}`);
+  hist('搜索區域');
+
+  switch(res.kind){
+    case 'trap':
+      addTime(res.time);
+      { const geo = pickRoll(T_GEO); setTimeout(()=>{ resolveGeo(z, geo); }, 200); }
+      return;
+    case 'ambush': {
+      addTime(res.time);
+      const enc = pickRoll(T_ENCOUNTER, S.hero.currentQuest.enc);
+      setTimeout(()=>startCombat(enc, ()=>{ S.phase='search'; renderGame(); }, z), 250);
+      return;
+    }
+    case 'poison2': S.hero.poison += 2; log('☠️ 毒素 +2','bad'); break;
+    case 'disease2': S.hero.diseases += 2; log('🤢 疾病 +2','bad'); break;
+    case 'damageItem': {
+      const slots = Object.keys(S.hero.gear).filter(k=>S.hero.gear[k]);
+      if(slots.length){
+        const k = slots[rnd(slots.length)-1];
+        S.hero.gear[k].dur = Math.min(S.hero.gear[k].maxDur, (S.hero.gear[k].dur||0)+1);
+        log(`🛠️ 「${S.hero.gear[k].name}」受到 1 點損壞。`,'bad');
+      }
+      break;
+    }
+    case 'beltcheck': beltCheck(); break;
+    case 'nothing': break;
+    case 'item': addItem(); break;
+    case 'tomb': {
+      const r = d10();
+      if(r===1){ log('⚰️ 一具骷髏從墓穴中站起，發起攻擊！','bad');
+        const enc = T_ENCOUNTER.find(e=>e.name==='骷髏');
+        setTimeout(()=>startCombat(enc, ()=>{ S.phase='search'; renderGame(); }, z), 200);
+        return;
+      } else if(r<=4){ log('⚰️ 墓穴是空的。'); }
+      else { log('⚰️ 骨頭下藏著寶藏！','good'); addTreasure(1); }
+      break;
+    }
+    case 'scroll': addSpell(true); break;
+    case 'needed': addNeeded(); break;
+    case 'weapon': addWeapon(); break;
+    case 'spellpage': addSpell(false); break;
+    case 'lever': S.hero.levers++; log(`⚙️ 機關追蹤器 +1（共 ${S.hero.levers}）。`,'good'); break;
+    case 'armour': addArmour(); break;
+    case 'secret': log('🕳️ 你發現了一條密道！','good'); break;
+    case 'spellbook': addSpell(false); addSpell(false); break;
+    case 'treasureA': addTreasure(1); break;
+    case 'treasureBm15': addTreasure(2,-15); break;
+    case 'treasureCm15': addTreasure(3,-15); break;
+  }
+  addTime(res.time||0);
+  checkQuestComplete();
+  S.phase='search';
+  renderGame();
+}
+
+/* ============================ 物品獲得 ============================ */
+function addToBackpack(item){
+  S.hero.backpack.push(item);
+  log(`🎒 獲得「${item.name}」${item.gp?'（價值 '+item.gp+'gp）':''}`,'good');
+}
+
+function addItem(){
+  const t = pickRoll(T_ITEMS);
+  if(t.treasure){ addTreasure(1); return; }
+  if(t.potion){
+    const p = mkPotion(t.name, t.potion, t.gp);
+    addToBackpack(p);
+    return;
+  }
+  if(t.key){ S.hero.keys += t.key; log(`🔑 獲得 ${t.key} 把鑰匙（共 ${S.hero.keys}）。`,'good'); return; }
+  if(t.oil){ S.hero.oil += t.oil; log(`🛢️ 獲得 ${t.oil} 份燈油（共 ${S.hero.oil}）。`,'good'); return; }
+  if(t.food){ S.hero.food += t.food; log(`🍖 獲得 ${t.food} 份食物（共 ${S.hero.food}）。`,'good'); return; }
+  if(t.picks){ S.hero.picks += t.picks; log(`🔧 獲得 ${t.picks} 個撬鎖器（共 ${S.hero.picks}）。`,'good'); return; }
+  if(t.skillBook){
+    const sk = SKILL_LIST[rnd(SKILL_LIST.length)-1];
+    S.hero.skills[sk] = Math.min(20, (S.hero.skills[sk]||0)+5);
+    log(`📖 閱讀技能之書，技能「${sk}」+5！`,'good');
+    return;
+  }
+  if(t.masterKey){ addToBackpack({kind:'item', name:'萬能鑰匙', gp:300, masterKey:true}); return; }
+  addToBackpack({kind:'item', name:t.name, gp:t.gp});
+}
+
+function addWeapon(){
+  const t = pickRoll(T_WEAPON);
+  const it = mkWeapon(t,'');
+  S.hero.questProgress.weapons++;
+  addToBackpack(it);
+}
+
+function addArmour(){
+  const t = pickRoll(T_ARMOUR);
+  const it = mkArmour(t,'');
+  S.hero.questProgress.armour++;
+  addToBackpack(it);
+}
+
+function addNeeded(){
+  const t = pickRoll(T_NEEDED);
+  if(t.kind==='picks'){ S.hero.picks += t.n||1; log(`🔧 獲得 ${t.n||1} 個撬鎖器。`,'good'); return; }
+  if(t.kind==='food'){ S.hero.food += t.n||1; log(`🍖 獲得 ${t.n||1} 份食物。`,'good'); return; }
+  if(t.kind==='oil'){ S.hero.oil += t.n||1; log(`🛢️ 獲得 ${t.n||1} 份燈油。`,'good'); return; }
+  if(t.kind==='potion'){
+    addToBackpack(mkPotion(t.name, t.eff, t.gp));
+    S.hero.questProgress.potion++;
+    return;
+  }
+  if(t.kind==='scrollOpen'){ addToBackpack({kind:'scrollOpen', name:'開門術卷軸', gp:200}); return; }
+  if(t.kind==='scrollRevive'){ addToBackpack({kind:'scrollRevive', name:'復活術卷軸', gp:1500}); return; }
+  addToBackpack({kind:'item', name:t.name, gp:t.gp});
+}
+
+function addSpell(asScroll){
+  const t = pickRoll(T_SPELL);
+  const sp = {name:t.name, cost:t.cost, lvl:t.lvl, desc:t.desc};
+  if(asScroll){
+    addToBackpack({kind:'scroll', name:t.name+' 卷軸', gp:200, spell:sp});
+  } else {
+    if(S.hero.spells.length>=8){ log('📖 法術書已滿。'); return; }
+    S.hero.spells.push(sp);
+    log(`📖 法術書新增：「${t.name}」（${t.desc}）`,'good');
+  }
+}
+
+function addTreasure(tier, mod=0){
+  const roll = clamp(d100()+(mod||0),1,100);
+  let t;
+  if(tier===1){ t = pick(T_TREASURE_A, roll); S.hero.questProgress.treasureA++; }
+  else if(tier===2){ t = pick(T_TREASURE_B, roll); S.hero.questProgress.treasureB++; }
+  else { t = pick(T_TREASURE_C, roll); S.hero.questProgress.treasureC++; }
+  resolveTreasure(t);
+}
+
+function resolveTreasure(t){
+  Sound.gold();
+  switch(t.kind){
+    case 'money':
+      S.hero.gold += t.gp;
+      log(`💰 獲得 ${t.gp} 枚金幣！`,'good');
+      break;
+    case 'objective':
+      S.hero.questProgress.objective++;
+      log(`🎯 發現目標物品！（${S.hero.questProgress.objective}）`,'good');
+      addToBackpack({kind:'objective', name:'目標物品', gp:t.gp});
+      break;
+    case 'potion':
+      addToBackpack(mkPotion(t.name, t.eff, t.gp));
+      S.hero.questProgress.potion++;
+      if(t.name.includes('精緻')) S.hero.questProgress.finePotion++;
+      log(`🧪 獲得「${t.name}」`,'good');
+      break;
+    case 'armour': {
+      const a = mkArmour(pickRoll(T_ARMOUR), t.name.includes('精緻')?'精緻':(t.name.includes('優秀')?'優秀':'卓越'));
+      addToBackpack(a);
+      break;
+    }
+    case 'weapon': {
+      const w = mkWeapon(pickRoll(T_WEAPON), t.name.includes('精緻')?'精緻':(t.name.includes('優秀')?'優秀':'卓越'));
+      addToBackpack(w);
+      break;
+    }
+    case 'scroll':
+      addSpell(true);
+      break;
+    case 'spellbook':
+      addSpell(false);
+      break;
+    case 'upB': addTreasure(2); break;
+    case 'upC': addTreasure(3); break;
+    case 'legendRing':
+    case 'legendNeck': {
+      const leg = pickRoll(T_LEGEND);
+      const base = {kind:'armour', name: t.kind==='legendRing'?'戒指 ':'項鍊 ', gp:0, a:0, dur:0, maxDur:7,
+        slot: t.kind==='legendRing'?'ring':'neck'};
+      const item = mkLegend(base, leg);
+      addToBackpack(item);
+      S.hero.questProgress.legendary++;
+      log(`✨ 傳奇物品！「${item.name}」`,'good');
+      break;
+    }
+    case 'legendWeapon': {
+      const leg = pickRoll(T_LEGEND);
+      const base = mkWeapon(pickRoll(T_WEAPON),'');
+      const item = mkLegend(base, leg);
+      addToBackpack(item);
+      S.hero.questProgress.legendary++;
+      log(`✨ 傳奇武器！「${item.name}」`,'good');
+      break;
+    }
+    case 'legendArmour': {
+      const leg = pickRoll(T_LEGEND);
+      const base = mkArmour(pickRoll(T_ARMOUR),'');
+      const item = mkLegend(base, leg);
+      addToBackpack(item);
+      S.hero.questProgress.legendary++;
+      S.hero.questProgress.legendaryArmour++;
+      log(`✨ 傳奇護甲！「${item.name}」`,'good');
+      break;
+    }
+    default:
+      log(`✨ 獲得「${t.name}」`,'good');
+  }
+}
+
+/* ============================ 增益 / 詛咒 ============================ */
+function applyBoost(){
+  const t = pickRoll([{max:100,name:'',kind:'x'}]);
+  const r = d100();
+  if(r<=5){ S.hero.temp.str=(S.hero.temp.str||0)+5; log('💪 力量湧遍全身！力量 +5（本任務）','good'); }
+  else if(r<=10){ S.hero.temp.dex=(S.hero.temp.dex||0)+5; log('🏃 敏捷 +5（本任務）','good'); }
+  else if(r<=15){ S.hero.temp.int=(S.hero.temp.int||0)+5; log('🧠 智力 +5（本任務）','good'); }
+  else if(r<=20){ S.hero.temp.def=(S.hero.temp.def||0)+1; log('🛡️ 防禦 +1（本任務）','good'); }
+  else if(r<=25){ S.hero.temp.dmg=(S.hero.temp.dmg||0)+1; log('⚔️ 傷害 +1（本任務）','good'); }
+  else if(r<=30){ addItem(); }
+  else if(r<=35){ log('⚙️ 地牢某處的門打開了。'); openRandomDoor(); }
+  else if(r<=37){ healHP(3); }
+  else if(r<=39){ S.hero.diseases = Math.max(0,S.hero.diseases-3); log('💚 疾病 −3','good'); }
+  else if(r<=41){ S.hero.poison = Math.max(0,S.hero.poison-3); log('💚 毒素 −3','good'); }
+  else if(r<=43){ S.hero.fate++; log('🍀 獲得 1 點命運點！','good'); }
+  else if(r<=45){ log('🔧 一件物品被修復。'); repairRandomItem(1); }
+  else if(r<=47){ addArmour(); }
+  else if(r<=49){ gainXP('str',2); log('💪 力量經驗 +2','good'); }
+  else if(r<=51){ gainXP('dex',2); log('🏃 敏捷經驗 +2','good'); }
+  else if(r<=53){ gainXP('int',2); log('🧠 智力經驗 +2','good'); }
+  else if(r<=55){ const sk=SKILL_LIST[rnd(SKILL_LIST.length)-1]; gainXP(sk,2); log(`✦ ${sk} 經驗 +2`,'good'); }
+  else if(r<=59){ healHP(5); }
+  else if(r<=60){ S.hero.levers++; log('⚙️ 機關追蹤器 +1','good'); }
+  else if(r<=62){ S.hero.poison = Math.max(0,S.hero.poison-5); log('💚 毒素 −5','good'); }
+  else if(r<=64){ S.hero.diseases = Math.max(0,S.hero.diseases-5); log('💚 疾病 −5','good'); }
+  else if(r<=65){ S.hero.fate+=2; log('🍀 獲得 2 點命運點！','good'); }
+  else if(r<=66){ repairRandomItem(3); }
+  else if(r<=68){ gainXP('str',2); }
+  else if(r<=70){ gainXP('dex',2); }
+  else if(r<=72){ gainXP('int',2); }
+  else if(r<=74){ const sk=SKILL_LIST[rnd(SKILL_LIST.length)-1]; gainXP(sk,3); log(`✦ ${sk} 經驗 +3`,'good'); }
+  else if(r<=75){ S.hero.life++; log('🕯️ 獲得 1 點性命點！','good'); }
+  else if(r<=78){ healHP(99); log('💖 傷口全部癒合！','good'); }
+  else if(r<=80){ S.hero.poison=0; log('💚 毒素全部清除！','good'); }
+  else if(r<=82){ S.hero.diseases=0; log('💚 疾病全部清除！','good'); }
+  else if(r<=84){ repairRandomItem(99); }
+  else if(r<=86){ S.hero.fate+=3; log('🍀 獲得 3 點命運點！','good'); }
+  else if(r<=88){ addTreasure(1); }
+  else if(r<=90){ S.hero.str = Math.min(80,S.hero.str+2); log('💪 基礎力量 +2！','good'); }
+  else if(r<=92){ S.hero.dex = Math.min(80,S.hero.dex+2); log('🏃 基礎敏捷 +2！','good'); }
+  else if(r<=94){ S.hero.int = Math.min(80,S.hero.int+2); log('🧠 基礎智力 +2！','good'); }
+  else if(r<=96){ S.hero.hpBase+=1; log('❤️ 基礎生命值 +1！','good'); }
+  else if(r<=98){ S.hero.fate+=4; log('🍀 獲得 4 點命運點！','good'); }
+  else { S.hero.life+=3; log('🕯️ 獲得 3 點性命點！','good'); }
+  renderGame();
+}
+
+function applyCurse(){
+  const r = d100();
+  if(r<=3){
+    S.hero.str=Math.max(2,S.hero.str-2); S.hero.dex=Math.max(2,S.hero.dex-2);
+    S.hero.int=Math.max(2,S.hero.int-2); S.hero.hpBase=Math.max(2,S.hero.hpBase-2);
+    S.hero.fate=Math.min(S.hero.fate,2); S.hero.life=Math.min(S.hero.life,2);
+    log('⚡ 神聖之怒！屬性大幅下降。','bad');
+  }
+  else if(r<=6){ Object.values(S.hero.gear).forEach(it=>{ if(it) it.dur=Math.min(it.maxDur,(it.dur||0)+4); }); log('💥 奧術毀滅！所有裝備受損。','bad'); }
+  else if(r<=10){ S.hero.hpBase=Math.max(1,S.hero.hpBase-4); log('🤢 持久疾病：基礎生命值 −4','bad'); }
+  else if(r<=15){ const sk=SKILL_LIST[rnd(SKILL_LIST.length)-1]; S.hero.skills[sk]=(S.hero.skills[sk]||0)-10; log(`📉 技能「${sk}」−10`,'bad'); }
+  else if(r<=20){ S.hero.int=Math.max(1,S.hero.int-4); log('🧠 基礎智力 −4','bad'); }
+  else if(r<=25){ S.hero.dex=Math.max(1,S.hero.dex-4); log('🏃 基礎敏捷 −4','bad'); }
+  else if(r<=30){ S.hero.str=Math.max(1,S.hero.str-4); log('💪 基礎力量 −4','bad'); }
+  else if(r<=40){ addTime(3); log('⏳ 時間靜止！+3 時間','bad'); }
+  else if(r<=45){ S.hero.hp-=2; log('💔 失去 2 點生命','bad'); checkDeath(); }
+  else if(r<=55){ S.hero.life=Math.max(0,S.hero.life-1); log('💀 失去 1 點性命點！','bad'); }
+  else if(r<=65){ S.hero.fate=Math.max(0,S.hero.fate-1); log('🍀 失去 1 點命運點','bad'); }
+  else if(r<=70){ S.hero.poison+=3; log('☠️ 毒素 +3','bad'); }
+  else if(r<=75){ S.hero.diseases+=3; log('🤢 疾病 +3','bad'); }
+  else if(r<=85){ S.hero.hp-=1; log('💔 失去 1 點生命','bad'); checkDeath(); }
+  else if(r<=90){ S.hero.temp.int=(S.hero.temp.int||0)-5; log('🧠 智力 −5（本任務）','bad'); }
+  else if(r<=95){ S.hero.temp.dex=(S.hero.temp.dex||0)-5; log('🏃 敏捷 −5（本任務）','bad'); }
+  else { S.hero.temp.str=(S.hero.temp.str||0)-5; log('💪 力量 −5（本任務）','bad'); }
+  Sound.bad();
+  renderGame();
+}
+
+function healHP(n){
+  const before = S.hero.hp;
+  S.hero.hp = Math.min(maxHP(), S.hero.hp + n);
+  const healed = S.hero.hp - before;
+  if(healed>0) log(`💖 恢復 ${healed} 點生命（${S.hero.hp}/${maxHP()}）`,'good');
+}
+function repairRandomItem(n){
+  const items = Object.values(S.hero.gear).filter(i=>i && i.dur>0);
+  if(!items.length){ log('🔧 沒有需要修復的裝備。'); return; }
+  const it = items[rnd(items.length)-1];
+  it.dur = Math.max(0, it.dur - n);
+  log(`🔧 「${it.name}」被修復了。`,'good');
+}
+function openRandomDoor(){
+  const doors = [];
+  Object.values(S.dungeon.zones).forEach(z=>{
+    Object.keys(z.exits).forEach(d=>{ if(z.exits[d]!=='O') doors.push([z,d]); });
+  });
+  if(doors.length){
+    const [z,d] = doors[rnd(doors.length)-1];
+    z.exits[d]='O';
+    log('⚙️ 遠處傳來開門的聲音…','good');
+  }
+}
+
+/* ============================ 戰鬥 ============================ */
+function startCombat(enc, onEnd, zone){
+  const H = S.hero;
+  const hpArr = Array.isArray(enc.hp)? enc.hp.slice() : [enc.hp];
+  S.combat = {
+    enc,
+    name: enc.name,
+    av: enc.av,
+    def: enc.def,
+    dmg: enc.dmg,
+    hp: hpArr.slice(),
+    maxHp: hpArr.reduce((a,b)=>a+b,0),
+    abilities: (enc.ab||[]).slice(),
+    round: 1,
+    onEnd: onEnd,
+    zone: zone||null,
+    avBuff: 0,
+    playerFirstStrike: false,
+    spellEffects: [],
+    log: [],
+  };
+  S.phase = 'combat';
+  log(`⚔️ 遭遇 <b>${enc.name}</b>！AV ${enc.av} / DEF ${enc.def} / DMG ${enc.dmg>0?'+':''}${enc.dmg} / HP ${hpArr.join('/')}`, 'big');
+  hist(`遭遇 ${enc.name}`);
+
+  // 突襲
+  if(S.combat.abilities.includes('突襲')){
+    const c = doCheck(totalInt(), -10, ['警覺'], 'int', '突襲檢定');
+    if(!c.success){
+      log('⚡ 你被突襲了！怪物立刻發動一次攻擊。','bad');
+      setTimeout(()=>monsterAttack(true), 400);
+      return;
+    } else {
+      log('👀 你察覺到了偷襲，站穩腳步。');
+    }
+  }
+  renderGame();
+}
+
+function aliveIndices(){
+  return S.combat.hp.map((h,i)=>h>0?i:-1).filter(i=>i>=0);
+}
+function totalMonsterHp(){
+  return S.combat.hp.reduce((a,b)=>a+Math.max(0,b),0);
+}
+function totalMonsterMaxHp(){ return S.combat.maxHp; }
+
+function renderCombatActions(el){
+  el.innerHTML='';
+  const C = S.combat;
+  const btns = [
+    {label:'⚔️ 攻擊', action:()=>playerAttack()},
+    {label:'🏃 逃離', action:()=>tryFlee()},
+    {label:'🛡️ 戰鬥行動', action:()=>combatActionMenu()},
+  ];
+  btns.forEach(b=>{
+    const btn=document.createElement('button');
+    btn.textContent=b.label;
+    btn.onclick=()=>{ Sound.click(); b.action(); };
+    el.appendChild(btn);
+  });
+}
+
+function renderCards(){
+  const panel = document.getElementById('card-panel');
+  const wrap = document.getElementById('cards');
+  const title = document.getElementById('card-title');
+  if(S.combat){
+    panel.style.display='block';
+    title.textContent = '⚔️ 戰鬥：' + S.combat.name;
+    const C = S.combat;
+    const ab = C.abilities.map(a=>`<span class="tag red">${a}</span>`).join('');
+    wrap.innerHTML = `
+      <div class="card" style="width:150px;">
+        <div class="art">${monsterSVG(C.name)}</div>
+        <div class="nm">${C.name}</div>
+        <div style="font-size:.68rem;margin-top:2px;">AV ${C.av+(C.avBuff||0)} · DEF ${C.def}</div>
+        <div style="font-size:.68rem;">DMG ${C.dmg>0?'+':''}${C.dmg}</div>
+        <div style="font-size:.68rem;">HP ${C.hp.filter(h=>h>0).join(' / ')}</div>
+        <div class="ef">${ab||'無特殊能力'}</div>
+      </div>
+      ${C.spellEffects.map(s=>`<div class="card" style="width:100px;">
+        <div class="art">🔮</div><div class="nm">${s.name}</div>
+        <div class="ef">${s.desc}</div></div>`).join('')}
+    `;
+  } else {
+    panel.style.display='none';
+    wrap.innerHTML='';
+  }
+}
+
+function monsterSVG(name){
+  const isDragon = /龍/.test(name);
+  const isUndead = /骷髏|殭屍|幽靈|鬼魂|幻影|巫妖|吸血鬼|食屍鬼/.test(name);
+  const isBeast = /鼠|蝙蝠|蟻|蜘蛛|蛇|狼|猿|熊/.test(name);
+  const isHumanoid = /哥布林|地精|獸人|山羊人|牛頭人|巨人|食人魔|術士|死靈|法師|捉弄者|惡魔/.test(name);
+  if(isDragon) return `<svg viewBox="0 0 60 60" width="58" height="58">
+    <path d="M30 8 L42 22 L36 26 L48 38 L38 40 L42 52 L30 46 L18 52 L22 40 L12 38 L24 26 L18 22 Z" fill="#7a3a2a" stroke="#3a1a10" stroke-width="1.6"/>
+    <circle cx="25" cy="20" r="2.4" fill="#ffd97a"/><circle cx="35" cy="20" r="2.4" fill="#ffd97a"/>
+  </svg>`;
+  if(isUndead) return `<svg viewBox="0 0 60 60" width="58" height="58">
+    <circle cx="30" cy="24" r="14" fill="#cfd6cf" stroke="#5a6b5a" stroke-width="1.6"/>
+    <circle cx="24" cy="22" r="3.4" fill="#2a1c0d"/><circle cx="36" cy="22" r="3.4" fill="#2a1c0d"/>
+    <path d="M24 34 L30 30 L36 34" stroke="#5a6b5a" stroke-width="1.8" fill="none"/>
+    <path d="M22 38 L22 52 M30 40 L30 54 M38 38 L38 52" stroke="#cfd6cf" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+  if(isBeast) return `<svg viewBox="0 0 60 60" width="58" height="58">
+    <ellipse cx="30" cy="36" rx="18" ry="13" fill="#6b5236" stroke="#3a2a16" stroke-width="1.6"/>
+    <circle cx="22" cy="28" r="4" fill="#8b6f47"/><circle cx="38" cy="28" r="4" fill="#8b6f47"/>
+    <circle cx="22" cy="28" r="1.4" fill="#1a0e04"/><circle cx="38" cy="28" r="1.4" fill="#1a0e04"/>
+    <path d="M26 42 Q30 46 34 42" stroke="#3a2a16" stroke-width="1.6" fill="none"/>
+  </svg>`;
+  if(isHumanoid) return `<svg viewBox="0 0 60 60" width="58" height="58">
+    <circle cx="30" cy="18" r="9" fill="#8b6f47" stroke="#3a2a16" stroke-width="1.5"/>
+    <rect x="22" y="27" width="16" height="20" rx="4" fill="#4a3620" stroke="#2a1c0d" stroke-width="1.4"/>
+    <path d="M18 32 L12 46 M42 32 L48 46" stroke="#4a3620" stroke-width="4" stroke-linecap="round"/>
+    <path d="M24 47 L22 58 M36 47 L38 58" stroke="#3a2a16" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="27" cy="17" r="1.5" fill="#ffd97a"/><circle cx="33" cy="17" r="1.5" fill="#ffd97a"/>
+  </svg>`;
+  return `<svg viewBox="0 0 60 60" width="58" height="58">
+    <circle cx="30" cy="30" r="17" fill="#7a5a30" stroke="#3a2a16" stroke-width="1.6"/>
+    <circle cx="24" cy="26" r="3" fill="#ffd97a"/><circle cx="36" cy="26" r="3" fill="#ffd97a"/>
+    <path d="M22 38 Q30 44 38 38" stroke="#3a2a16" stroke-width="1.8" fill="none"/>
+  </svg>`;
+}
+
+/* --- 玩家攻擊 --- */
+function playerAttack(){
+  const C = S.combat;
+  if(!C) return;
+  const H = S.hero;
+  const w = H.gear.mainhand;
+  let attrName, attrVal;
+  if(w && w.ranged){
+    attrName='敏捷'; attrVal = totalDex();
+  } else {
+    attrName='力量'; attrVal = totalStr();
+  }
+  // 飛行怪物
+  if(C.abilities.includes('飛行') && !(w && w.ranged)){
+    attrVal -= 10;
+    log('🦅 怪物在飛行，力量 −10。','warn');
+  }
+  if(C.abilities.includes('相位')){
+    attrVal -= 10;
+    log('👻 怪物相位不定，力量/敏捷 −10。','warn');
+  }
+
+  const roll = d100();
+  Sound.dice();
+  const hit = (roll===1) || (roll!==100 && roll <= attrVal);
+  log(`🎯 攻擊擲骰：${roll} vs ${attrName} ${attrVal} → ${hit?'命中！':'未命中'}`);
+
+  if(!hit){
+    setTimeout(()=>monsterTurn(), 400);
+    return;
+  }
+
+  // 命中部位
+  let locRoll = d10();
+  let loc = pick(T_HITLOC, locRoll);
+  if(hasPerfectAim()){
+    const r2 = d10();
+    const loc2 = pick(T_HITLOC, r2);
+    loc = (r2 < locRoll) ? loc2 : loc;
+    log(`🎯 完美瞄準：第一次 ${locRoll}，第二次 ${r2} → 取較佳者。`);
+  }
+
+  // 傷害
+  let dmgRoll = d6();
+  let chain = '';
+  if(hasMightyBlow()){
+    let extra = dmgRoll;
+    let guard = 0;
+    while(extra===6 && guard<10){
+      const nx = d6();
+      dmgRoll += nx;
+      extra = nx;
+      chain += '→'+nx;
+      guard++;
+    }
+    if(chain) log(`💥 強力一擊！額外傷害 ${chain}`);
+  }
+
+  let dmg = dmgRoll + loc.mod + equipDmg() + (S.hero.temp.dmg||0);
+  dmg -= C.def;
+  if(C.abilities.includes('群體')){ /* 群體傷害溢出由下方處理 */ }
+  if(dmg < 0) dmg = 0;
+
+  log(`🗡️ 擊中${loc.part}！傷害 ${dmgRoll}${loc.mod>=0?'+':''}${loc.mod} + 裝備 ${equipDmg()} − 防禦 ${C.def} = <b>${dmg}</b> 點。`);
+  Sound.hit();
+
+  // 分配傷害
+  let remain = dmg;
+  const alive = aliveIndices();
+  for(const idx of alive){
+    if(remain<=0) break;
+    const take = Math.min(remain, C.hp[idx]);
+    C.hp[idx] -= take;
+    remain -= take;
+    if(C.hp[idx]<=0) log(`💀 ${C.name}（#${idx+1}）被擊敗了！`,'good');
+  }
+
+  // 怪物能力反應：再生
+  if(C.abilities.includes('再生')){
+    // 玩家擲出自然 1 的傷害骰時怪物回復（此處簡化為每回合小機率）
+  }
+
+  if(loc.belt){
+    log('🎒 命中腰部！你必須進行腰帶檢定。','warn');
+    beltCheck();
+  }
+
+  renderGame();
+
+  if(totalMonsterHp()<=0){
+    defeatMonster();
+  } else {
+    setTimeout(()=>monsterTurn(), 450);
+  }
+}
+
+function monsterTurn(){
+  const C = S.combat;
+  if(!C) return;
+  if(totalMonsterHp()<=0){ defeatMonster(); return; }
+
+  // 黑暗魔法
+  if(C.abilities.includes('黑暗魔法')){
+    const r = d10();
+    let msg='';
+    if(r<=2){ C.avBuff = (C.avBuff||0)+20; msg='黑暗一擊：AV +20'; }
+    else if(r<=4){ C.defBuff = 4; msg='幽暗斗篷：DEF +4'; }
+    else if(r<=6){ C.dmgBuff = (C.dmgBuff||0)+2; msg='邪惡之觸：DMG +2'; }
+    else if(r<=8){ C.lifeDrain = true; msg='吸取生命：冒險者每失 1 點生命，怪物回復 1 點'; }
+    else { S.hero.hp -= 2; msg='死亡之箭：冒險者失去 2 點生命'; }
+    log(`🔮 怪物施展黑暗魔法 — ${msg}`,'warn');
+    C.def += (C.defBuff||0); C.defBuff = 0;
+    C.dmg += (C.dmgBuff||0); C.dmgBuff = 0;
+    checkDeath();
+  }
+
+  // 反應表
+  const rr = d10();
+  const react = pick(MONSTER_REACTIONS, rr);
+  const halfHp = totalMonsterHp() < totalMonsterMaxHp()/2;
+  let action = react.kind;
+
+  if(react.kind==='fleeIfHalf'){ action = halfHp ? 'flee' : 'attack'; }
+  else if(react.kind==='fleeIfHurt'){ action = (C.lastHurt) ? 'flee' : 'attack'; }
+  else if(react.kind==='flee'){ action = 'flee'; }
+
+  if(react.avBonusIfHalf && halfHp){
+    C.avBuff = (C.avBuff||0) + react.avBonusIfHalf;
+    log(`😤 怪物血量過半受損，攻擊值 +${react.avBonusIfHalf}！`,'warn');
+  }
+
+  log(`🎲 怪物反應（擲 ${rr}）：${action==='flee'?'試圖逃離':'發起攻擊'}`);
+
+  if(action==='flee'){
+    showModal('🏃 怪物想逃！', `<p>${C.name} 正試圖逃離戰鬥。</p>`, [
+      {label:'讓牠走', action:()=>{
+        log('怪物逃走了。'); endCombat(false); }},
+      {label:'阻止逃離（力量檢定）', cls:'primary', action:()=>{
+        const chk = doCheck(totalStr(), -10, ['逃離'], 'str', '阻止逃離');
+        if(chk.success){
+          log('💪 你擋住了怪物的去路！','good');
+          setTimeout(()=>monsterAttack(), 200);
+        } else {
+          log('怪物逃走了。','warn');
+          endCombat(false);
+        }
+      }},
+      {label:'順勢攻擊', action:()=>{
+        playerAttack();
+      }}
+    ]);
+    return;
+  }
+
+  monsterAttack();
+}
+
+function monsterAttack(extra=false){
+  const C = S.combat;
+  if(!C) return;
+  const H = S.hero;
+
+  const combo = C.abilities.includes('連擊2') ? 2 : 1;
+  let hits = 0;
+  for(let i=0;i<combo;i++){
+    if(totalMonsterHp()<=0) break;
+    const av = C.av + (C.avBuff||0) + (C.abilities.includes('群體') ? groupBonus() : 0);
+    const roll = d100();
+    Sound.dice();
+    const hit = (roll===1)||(roll!==100 && roll<=av);
+    log(`👹 ${C.name} 攻擊擲骰：${roll} vs AV ${av} → ${hit?'命中':'未命中'}`);
+    if(hit){ hits++; resolveMonsterDamage(); }
+  }
+  C.avBuff = 0;
+
+  if(totalMonsterHp()<=0){ defeatMonster(); return; }
+  renderGame();
+  if(checkDeath()) return;
+  renderCombatActions(document.getElementById('actions'));
+  // 回到玩家行動
+  renderActions();
+}
+
+function groupBonus(){
+  const alive = aliveIndices().length;
+  return Math.max(0,(alive-1)*5);
+}
+
+function resolveMonsterDamage(){
+  const C = S.combat;
+  const H = S.hero;
+  let dmgRoll = d6();
+  let loc = pick(T_HITLOC, d10());
+
+  let raw = dmgRoll + loc.mod + C.dmg;
+  if(C.abilities.includes('巨大') && (dmgRoll===1||dmgRoll===2)) raw += 2;
+
+  // 防禦
+  let def = totalDef();
+  let afterDef = raw;
+  if(dmgRoll <= def && dmgRoll !== 6){
+    afterDef = raw - def;
+    log(`🛡️ 防禦生效（傷害骰 ${dmgRoll} ≤ DEF ${def}），傷害 −${def}。`);
+  }
+  if(afterDef < 0) afterDef = 0;
+
+  // 護甲
+  let armourVal = 0;
+  const g = H.gear[loc.slot];
+  if(g && (g.kind==='armour'||g.kind==='shield')){
+    armourVal = g.a||0;
+    if(C.abilities.includes('死亡之觸')) armourVal = 0;
+  }
+  let dmg = Math.max(0, afterDef - armourVal);
+
+  log(`💢 擊中你的${loc.part}！傷害 ${dmgRoll}${loc.mod>=0?'+':''}${loc.mod} + 怪物 ${C.dmg>0?'+':''}${C.dmg} = ${raw}，護甲 −${armourVal} → <b>${dmg}</b> 點傷害。`,'bad');
+  Sound.hit();
+
+  // 傷害偏轉（自動詢問）
+  H.hp -= dmg;
+  checkDeath();
+
+  // 怪物特殊能力
+  if(dmgRoll===1){
+    if(C.abilities.includes('疾病')){ H.diseases++; log('🤢 你感染了疾病（疾病 +1）','bad'); }
+    if(C.abilities.includes('毒素')){ H.poison++; log('☠️ 你中毒了（毒素 +1）','bad'); }
+    if(C.abilities.includes('火焰')){
+      const c = doCheck(totalDex(), -5, ['閃避'], 'dex', '避開火焰');
+      if(!c.success){ H.hp-=2; log('🔥 你被火焰灼傷，失去 2 點生命。','bad'); checkDeath(); }
+    }
+    if(C.abilities.includes('凍結')){
+      const c = doCheck(totalDex(), 0, ['閃避'], 'dex', '避開凍結');
+      if(!c.success){ H.hp-=1; H.temp.def=(H.temp.def||0)-2; log('❄️ 你被凍結，失去 1 點生命、DEF −2。','bad'); checkDeath(); }
+    }
+    if(C.abilities.includes('再生')){
+      const idx = aliveIndices()[0];
+      if(idx!==undefined){ C.hp[idx]=Math.min(C.hp[idx]+2, 999); log(`💚 ${C.name} 再生了 2 點生命。`,'warn'); }
+    }
+  }
+
+  if(C.abilities.includes('昏迷') && dmg>0){
+    const c = doCheck(totalStr(), -15, ['閃避'], 'str', '昏迷檢定');
+    if(!c.success){ log('😵 你被擊暈，下一回合無法行動！','bad'); S.combat.stunned = true; }
+  }
+
+  renderGame();
+}
+
+function playerStunned(){
+  if(S.combat && S.combat.stunned){
+    S.combat.stunned = false;
+    log('😵 你還在暈眩中，這回合無法行動。','warn');
+    setTimeout(()=>monsterAttack(), 500);
+    return true;
+  }
+  return false;
+}
+
+/* --- 戰鬥行動 --- */
+function combatActionMenu(){
+  const opts = [];
+  // 使用腰帶物品
+  if(S.hero.belt.some(b=>b)){
+    opts.push({label:'🧪 使用腰帶物品', action:()=>useBeltInCombat()});
+  }
+  // 施展法術
+  if(hasSpellcaster() && S.hero.spells.length){
+    opts.push({label:'🔮 施展法術', action:()=>castSpellMenu()});
+  }
+  // 更換裝備
+  opts.push({label:'🔄 更換裝備', action:()=>swapGearInCombat()});
+  opts.push({label:'↩️ 返回', action:()=>{ renderActions(); }});
+
+  const html = `<p style="font-size:.86rem;">戰鬥行動會讓你放棄這回合的攻擊。</p>`;
+  showModal('🛡️ 戰鬥行動', html, opts.map(o=>({label:o.label, action:o.action})));
+}
+
+function useBeltInCombat(){
+  const items = S.hero.belt.map((b,i)=>({b,i})).filter(x=>x.b);
+  if(!items.length){ toast('腰帶是空的。'); return; }
+  const html = `<p style="font-size:.86rem;">選擇要使用的物品（消耗這回合的攻擊）：</p>
+    <div class="col" style="margin-top:8px;">
+    ${items.map(x=>`<button onclick="useBeltItem(${x.i})">
+      <b>${x.b.name}</b><br><small>${effText(x.b.eff)}</small></button>`).join('')}
+    </div>`;
+  showModal('🧪 腰帶物品', html, [{label:'取消', action:()=>{renderActions();}}]);
+}
+
+function effText(eff){
+  const map = {
+    'heal4':'恢復 4 點生命','heal8':'恢復 8 點生命','heal12':'恢復 12 點生命','heal16':'恢復 16 點生命',
+    'nextDmg+1':'下次傷害 +1','nextDmg+2':'下次傷害 +2','nextDmg+3':'下次傷害 +3','nextDmg+4':'下次傷害 +4',
+    'def+1':'防禦 +1','def+2':'防禦 +2','def+3':'防禦 +3','def+4':'防禦 +4',
+    'nextRoll+3str':'下次力量檢定 +3','nextRoll+5str':'下次力量檢定 +5','nextRoll+10str':'下次力量檢定 +10','nextRoll+15str':'下次力量檢定 +15',
+    'nextRoll+3dex':'下次敏捷檢定 +3','nextRoll+5dex':'下次敏捷檢定 +5','nextRoll+10dex':'下次敏捷檢定 +10','nextRoll+15dex':'下次敏捷檢定 +15',
+    'nextRoll+3int':'下次智力檢定 +3','nextRoll+5int':'下次智力檢定 +5','nextRoll+10int':'下次智力檢定 +10','nextRoll+15int':'下次智力檢定 +15',
+    'nextRoll+20':'下次擲骰 +20','nextRoll+40':'下次擲骰 +40','nextRoll+60':'下次擲骰 +60','nextRoll+80':'下次擲骰 +80',
+    'str+3':'力量 +3（本任務）','str+5':'力量 +5（本任務）','str+10':'力量 +10（本任務）','str+15':'力量 +15（本任務）',
+    'dex+3':'敏捷 +3（本任務）','dex+5':'敏捷 +5（本任務）','dex+10':'敏捷 +10（本任務）','dex+15':'敏捷 +15（本任務）',
+    'int+3':'智力 +3（本任務）','int+5':'智力 +5（本任務）','int+10':'智力 +10（本任務）','int+15':'智力 +15（本任務）',
+    'curePoison2':'清除 2 點毒素','curePoison4':'清除 4 點毒素','curePoison6':'清除 6 點毒素','curePoison8':'清除 8 點毒素',
+    'cureDisease2':'清除 2 點疾病','cureDisease4':'清除 4 點疾病','cureDisease6':'清除 6 點疾病',
+    'fate1':'獲得 1 命運點','fate2':'獲得 2 命運點','fate3':'獲得 3 命運點',
+    'strBase+1':'基礎力量 +1','strBase+3':'基礎力量 +3','strBase+5':'基礎力量 +5',
+    'dexBase+1':'基礎敏捷 +1','dexBase+3':'基礎敏捷 +3','dexBase+5':'基礎敏捷 +5',
+    'intBase+1':'基礎智力 +1','intBase+3':'基礎智力 +3','intBase+5':'基礎智力 +5',
+    'hpBase+1':'基礎生命 +1','hpBase+2':'基礎生命 +2','hpBase+3':'基礎生命 +3',
+    'life+1':'性命點 +1','life+3':'性命點 +3','life+5':'性命點 +5',
+  };
+  return map[eff] || eff;
+}
+
+function applyPotionEffect(eff){
+  const H = S.hero;
+  if(eff.startsWith('heal')){ healHP(parseInt(eff.replace('heal',''))); }
+  else if(eff.startsWith('nextDmg+')){ H.temp.dmg = (H.temp.dmg||0) + parseInt(eff.split('+')[1]); log('⚔️ 下次傷害提升！','good'); }
+  else if(eff.startsWith('def+')){ H.temp.def = (H.temp.def||0) + parseInt(eff.split('+')[1]); log('🛡️ 防禦提升！','good'); }
+  else if(eff.startsWith('nextRoll+')){ H.temp.nextRoll = (H.temp.nextRoll||0) + parseInt(eff.split('+')[1]); log(`🎲 下次擲骰 +${H.temp.nextRoll}`,'good'); }
+  else if(eff==='str+3'){ H.temp.str=(H.temp.str||0)+3; }
+  else if(eff==='str+5'){ H.temp.str=(H.temp.str||0)+5; }
+  else if(eff==='str+10'){ H.temp.str=(H.temp.str||0)+10; }
+  else if(eff==='str+15'){ H.temp.str=(H.temp.str||0)+15; }
+  else if(eff==='dex+3'){ H.temp.dex=(H.temp.dex||0)+3; }
+  else if(eff==='dex+5'){ H.temp.dex=(H.temp.dex||0)+5; }
+  else if(eff==='dex+10'){ H.temp.dex=(H.temp.dex||0)+10; }
+  else if(eff==='dex+15'){ H.temp.dex=(H.temp.dex||0)+15; }
+  else if(eff==='int+3'){ H.temp.int=(H.temp.int||0)+3; }
+  else if(eff==='int+5'){ H.temp.int=(H.temp.int||0)+5; }
+  else if(eff==='int+10'){ H.temp.int=(H.temp.int||0)+10; }
+  else if(eff==='int+15'){ H.temp.int=(H.temp.int||0)+15; }
+  else if(eff.startsWith('curePoison')){ H.poison = Math.max(0, H.poison - parseInt(eff.replace('curePoison',''))); log('💚 毒素減輕','good'); }
+  else if(eff.startsWith('cureDisease')){ H.diseases = Math.max(0, H.diseases - parseInt(eff.replace('cureDisease',''))); log('💚 疾病減輕','good'); }
+  else if(eff.startsWith('fate')){ H.fate += parseInt(eff.replace('fate','')); log('🍀 命運點增加','good'); }
+  else if(eff.startsWith('strBase+')){ H.str = Math.min(80,H.str+parseInt(eff.replace('strBase+',''))); log('💪 基礎力量提升！','good'); }
+  else if(eff.startsWith('dexBase+')){ H.dex = Math.min(80,H.dex+parseInt(eff.replace('dexBase+',''))); log('🏃 基礎敏捷提升！','good'); }
+  else if(eff.startsWith('intBase+')){ H.int = Math.min(80,H.int+parseInt(eff.replace('intBase+',''))); log('🧠 基礎智力提升！','good'); }
+  else if(eff.startsWith('hpBase+')){ H.hpBase += parseInt(eff.replace('hpBase+','')); H.hp = Math.min(maxHP(), H.hp+parseInt(eff.replace('hpBase+',''))); log('❤️ 基礎生命提升！','good'); }
+  else if(eff.startsWith('life+')){ H.life += parseInt(eff.replace('life+','')); log('🕯️ 性命點增加！','good'); }
+}
+
+function useBeltItem(idx){
+  closeModal();
+  const it = S.hero.belt[idx];
+  if(!it) return;
+  S.hero.belt[idx] = null;
+  log(`🧪 使用「${it.name}」`);
+  applyPotionEffect(it.eff);
+  renderGame();
+  // 消耗一回合
+  setTimeout(()=>{
+    if(S.combat) monsterAttack();
+    else { S.phase='exit'; renderGame(); }
+  }, 400);
+}
+
+function castSpellMenu(){
+  const list = S.hero.spells.filter(s=>s.lvl <= totalInt());
+  if(!list.length){ toast('沒有可施展的法術（智力等級不足）。'); return; }
+  const html = `<p style="font-size:.86rem;">選擇法術（智力 ${totalInt()}）：</p>
+    <div class="col" style="margin-top:8px;">
+    ${list.map(s=>`<button onclick="castSpell('${s.name}')">
+      <b>${s.name}</b> <span class="tag">${s.cost}</span><br><small>${s.desc}</small></button>`).join('')}
+    </div>`;
+  showModal('🔮 施展法術', html, [{label:'取消', action:()=>{renderActions();}}]);
+}
+
+function castSpell(name){
+  closeModal();
+  const sp = S.hero.spells.find(s=>s.name===name);
+  if(!sp) return;
+  // 支付費用
+  if(sp.cost.endsWith('HP')){
+    const n = parseInt(sp.cost);
+    S.hero.hp -= n;
+    log(`🔮 施展「${name}」，支付 ${n} 點生命。`);
+  } else {
+    const n = parseInt(sp.cost);
+    S.hero.temp.str = (S.hero.temp.str||0) - n;
+    log(`🔮 施展「${name}」，支付 ${n} 點力量。`);
+  }
+  const c = doCheck(totalInt(), 0, ['魔法','幸運'], 'int', '施展法術');
+  if(!c.success){
+    log('❌ 法術失敗！','bad');
+    applyCurse();
+    return;
+  }
+  log('✨ 法術成功！','good');
+  if(name==='治療術') healHP(10);
+  else if(name==='聖療術') healHP(999);
+  else if(name==='火箭術') S.combat && S.combat.spellEffects.push({name:'火箭術',desc:'下回合開始造成 2 點傷害'});
+  else if(name==='火球術') S.combat && S.combat.spellEffects.push({name:'火球術',desc:'下回合開始造成 4 點傷害'});
+  else if(name==='冰暴術') S.combat && S.combat.spellEffects.push({name:'冰暴術',desc:'下回合造成 1d10 傷害並凍結'});
+  else if(name==='隱形術'){ log('👻 你消失了，成功脫離戰鬥。'); endCombat(false); return; }
+  else { log(`✨ ${sp.desc}`,'good'); }
+  renderGame();
+  if(S.combat) setTimeout(()=>monsterAttack(), 400);
+}
+
+function swapGearInCombat(){
+  const slots = ['mainhand','offhand','head','torso','back','arms','hands','legs','feet','waist'];
+  const html = `<p style="font-size:.86rem;">選擇要裝備到主手/副手的背包物品（放棄攻擊）：</p>
+    <div class="col" style="max-height:40vh;overflow:auto;">
+    ${S.hero.backpack.filter(i=>i.kind==='weapon'||i.kind==='armour'||i.kind==='shield').map((it,i)=>
+      `<button onclick="equipFromBackpackCombat(${S.hero.backpack.indexOf(it)})">${it.name}${it.dmg!==undefined?' (傷害 '+(it.dmg>0?'+':'')+it.dmg+')':''}${it.a?' (護甲 '+it.a+')':''}${it.s?' (盾 '+it.s+')':''}</button>`
+    ).join('') || '<p>背包中沒有可裝備的物品。</p>'}
+    </div>`;
+  showModal('🔄 更換裝備', html, [{label:'取消', action:()=>{renderActions();}}]);
+}
+
+function equipFromBackpackCombat(bpIndex){
+  closeModal();
+  const it = S.hero.backpack[bpIndex];
+  if(!it) return;
+  S.hero.backpack.splice(bpIndex,1);
+  const slot = (it.kind==='weapon') ? 'mainhand' : (it.kind==='shield' ? 'offhand' : it.slot);
+  const old = S.hero.gear[slot];
+  if(old) S.hero.backpack.push(old);
+  S.hero.gear[slot] = it;
+  recalcBonuses();
+  log(`🔄 你裝備了「${it.name}」。`);
+  renderGame();
+  setTimeout(()=>monsterAttack(), 400);
+}
+
+function recalcBonuses(){
+  const H = S.hero;
+  H.strB = 0; H.dexB = 0; H.intB = 0; H.hpB = 0;
+  Object.values(H.gear).forEach(it=>{
+    if(!it) return;
+    if(it.legend){
+      if(it.legend.str) H.strB += it.legend.str;
+      if(it.legend.dex) H.dexB += it.legend.dex;
+      if(it.legend.int) H.intB += it.legend.int;
+      if(it.legend.hp)  H.hpB  += it.legend.hp;
+    }
+  });
+  if(H.hp > maxHP()) H.hp = maxHP();
+}
+
+/* --- 逃離 --- */
+function tryFlee(){
+  const chk = doCheck(totalDex(), -10, ['逃離'], 'dex', '逃離戰鬥');
+  if(chk.success){
+    log('🏃 你成功逃離了戰鬥！怪物留在原地。','good');
+    if(S.combat.zone){ S.combat.zone.monster = {name:S.combat.name, enc:S.combat.enc}; }
+    endCombat(true);
+  } else {
+    log('❌ 逃離失敗！你失去 2 點生命。','bad');
+    S.hero.hp -= 2;
+    checkDeath();
+    renderGame();
+    setTimeout(()=>monsterAttack(), 400);
+  }
+}
+
+function defeatMonster(){
+  const C = S.combat;
+  if(!C) return;
+  log(`🏆 你擊敗了 ${C.name}！`,'good');
+  Sound.ok();
+  hist(`擊敗 ${C.name}`);
+
+  // 任務進度
+  const p = S.hero.questProgress;
+  p.kills++;
+  p.killNames.push(C.name);
+
+  // 擊殺獎勵
+  giveKillLoot(C.enc);
+
+  // 搜刮素材
+  p.parts++;
+
+  endCombat(true);
+  checkQuestComplete();
+}
+
+function giveKillLoot(enc){
+  const k = enc.k || '';
+  if(!k){ log('搜刮：什麼也沒有。'); return; }
+  if(k==='GOLD'){
+    const g = d100();
+    S.hero.gold += g;
+    log(`💰 搜刮到 ${g} 枚金幣！`,'good');
+    Sound.gold();
+    return;
+  }
+  if(k.includes('P')){
+    addPart(enc.name);
+    return;
+  }
+  if(k.includes('A')){ addArmour(); return; }
+  if(k.includes('W')){ addWeapon(); return; }
+  if(k.includes('I')){ addItem(); return; }
+  if(k.includes('TA')){ addTreasure(1); return; }
+  if(k.includes('TB')){ addTreasure(2); return; }
+  if(k.includes('TC')){ addTreasure(3); return; }
+  addPart(enc.name);
+}
+
+function addPart(name){
+  const parts = ['耳朵','骨頭','手臂','翅膀','牙齒','爪子','肋骨','皮/外殼','腿','腳','手/爪子','血','頭顱','肺','腎','唾液','眼睛','心臟','大腦'];
+  const p = parts[rnd(parts.length)-1];
+  const val = 10 + rnd(9);
+  addToBackpack({kind:'part', name:`${name}的${p}`, gp:val});
+  S.hero.questProgress.parts++;
+  if(p==='頭顱') S.hero.questProgress.heads++;
+}
+
+function endCombat(victory){
+  const C = S.combat;
+  S.combat = null;
+  S.phase = 'exit';
+  renderGame();
+  if(C && C.onEnd){
+    const f = C.onEnd;
+    setTimeout(()=>{ f(); }, 100);
+  }
+}
+
+/* ============================ 任務完成/失敗 ============================ */
+function checkQuestComplete(){
+  const q = S.hero.currentQuest;
+  if(!q) return;
+  const g = q.goal, p = S.hero.questProgress;
+  let done = false;
+  switch(g.type){
+    case 'loot': {
+      const v = g.what==='part'?p.parts:(g.what==='weapon'?p.weapons:p.armour);
+      done = v >= g.n; break;
+    }
+    case 'lootmix': done = p.parts>=1 && p.weapons>=1 && p.armour>=1; break;
+    case 'treasureA': done = p.treasureA>=g.n; break;
+    case 'treasureB': done = p.treasureB>=g.n; break;
+    case 'treasureC': done = p.treasureC>=g.n; break;
+    case 'objective': done = p.objective>=g.n; break;
+    case 'potion': done = p.potion>=g.n; break;
+    case 'finePotion': done = p.finePotion>=g.n; break;
+    case 'kill': done = p.kills>=g.n; break;
+    case 'killNamed': done = p.killNames.filter(n=>n===g.name).length>=1; break;
+    case 'explore': done = Object.keys(S.dungeon.zones).length >= g.n; break;
+    case 'head': done = p.heads>=g.n; break;
+    case 'rarePart': done = p.rarePart>=g.n; break;
+    case 'legendary': done = p.legendary>=g.n; break;
+    case 'legendaryArmour': done = p.legendaryArmour>=g.n; break;
+  }
+  if(done){
+    completeQuest();
+  }
+}
+
+function completeQuest(){
+  const q = S.hero.currentQuest;
+  if(!q) return;
+  S.hero.gold += q.reward;
+  S.hero.rep = Math.min(10, S.hero.rep + 1);
+  S.hero.questsDone.push(q.name);
+  log(`🎉 任務完成！<b>${q.name}</b> — 獲得 ${q.reward} 金幣、聲望 +1。`,'good');
+  Sound.gold();
+  hist(`完成任務：${q.name}`);
+  S.hero.currentQuest = null;
+  showModal('🎉 任務完成！', `
+    <p>你完成了 <b>${q.name}</b>！</p>
+    <p>💰 獎勵：${q.reward} 金幣<br>⭐ 聲望 +1（現在 ${S.hero.rep}）</p>
+    <p style="font-size:.84rem;">冒險者自動離開地牢，回到城鎮。</p>
+  `, [{label:'回到城鎮', cls:'primary', action:()=>goTown()}]);
+}
+
+function failQuest(){
+  const q = S.hero.currentQuest;
+  if(!q){ goTown(); return; }
+  // 檢查能否承受
+  const canPay = (q.fail==='-1聲望') ? (S.hero.rep>=2) : true;
+  showModal('🏳️ 放棄任務？', `
+    <p>放棄任務的代價：<b>${q.fail}</b></p>
+    ${canPay?'':'<p style="color:#7a1d1d;">你的聲望太低，無法放棄這個任務！</p>'}
+  `, [
+    {label:'確認放棄', cls:'danger', action:()=>{
+      if(!canPay){ toast('聲望不足，無法放棄任務。'); return; }
+      applyQuestFail(q);
+    }},
+    {label:'繼續冒險'}
+  ]);
+}
+
+function applyQuestFail(q){
+  Sound.bad();
+  log(`🏳️ 放棄任務：<b>${q.name}</b>。`,'bad');
+  hist(`放棄任務：${q.name}`);
+  if(q.fail.includes('gp')) S.hero.gold = Math.floor(S.hero.gold/2);
+  else if(q.fail.includes('聲望')) S.hero.rep = Math.max(1, S.hero.rep-1);
+  else if(q.fail.includes('技能')){
+    const sk = SKILL_LIST[rnd(SKILL_LIST.length)-1];
+    S.hero.skills[sk] = (S.hero.skills[sk]||0) - 10;
+    log(`📉 技能「${sk}」−10`,'bad');
+  }
+  else if(q.fail.includes('力量')) S.hero.str = Math.max(1, S.hero.str-1);
+  else if(q.fail.includes('敏捷')) S.hero.dex = Math.max(1, S.hero.dex-1);
+  else if(q.fail.includes('智力')) S.hero.int = Math.max(1, S.hero.int-1);
+
+  S.hero.questsFailed.push(q.name);
+  S.hero.currentQuest = null;
+  closeModal();
+  goTown();
+}
+
+/* ============================ 城鎮 ============================ */
+function goTown(){
+  S.screen='town';
+  S.hero.temp = {};
+  S.combat = null;
+  S.phase='town';
+  goto('town');
+  renderTown();
+}
+
+function renderTown(){
+  const H = S.hero;
+  document.getElementById('topbar2').innerHTML = document.getElementById('topbar').innerHTML;
+  document.getElementById('town-status').innerHTML = `
+    <div class="row" style="gap:14px;flex-wrap:wrap;font-size:.86rem;">
+      <span>❤️ 生命 ${H.hp}/${maxHP()}</span>
+      <span>💰 金幣 ${H.gold}</span>
+      <span>⭐ 聲望 ${H.rep}</span>
+      <span>🍀 命運 ${H.fate}</span>
+      <span>🕯️ 性命 ${H.life}</span>
+      <span>🤢 疾病 ${H.diseases}</span>
+      <span>☠️ 毒素 ${H.poison}</span>
+    </div>`;
+
+  const body = document.getElementById('town-body');
+  body.innerHTML = `
+    <div class="panel">
+      <h3>🛠️ 整備</h3>
+      <div class="col">
+        <button onclick="townHeal()">🏥 治療（毒素 40gp/點、疾病 65gp/點、生命 20gp/點）</button>
+        <button onclick="townRepair()">🔧 維修裝備</button>
+        <button onclick="townSell()">💱 出售物品</button>
+        <button onclick="townBuy()">🛒 購買必需品</button>
+        <button onclick="townMarket()">🏪 搜索市場</button>
+        <button onclick="townTrain()">📚 訓練</button>
+        <button onclick="townInvest()">📈 投資</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>🎒 背包</h3>
+      <div id="town-backpack" style="font-size:.82rem;max-height:200px;overflow-y:auto;"></div>
+    </div>
+  `;
+  renderBackpackList();
+
+  const acts = document.getElementById('town-actions');
+  acts.innerHTML='';
+  const b = document.createElement('button');
+  b.className='primary';
+  b.textContent='📜 接受下一個任務';
+  b.style.margin='10px';
+  b.onclick=()=>{ Sound.click(); chooseQuest(false); };
+  acts.appendChild(b);
+}
+
+function renderBackpackList(){
+  const el = document.getElementById('town-backpack');
+  if(!el) return;
+  const H = S.hero;
+  let html = '';
+  // 裝備
+  const gear = Object.entries(H.gear).filter(([k,v])=>v);
+  if(gear.length){
+    html += `<b>裝備：</b><br>`;
+    gear.forEach(([k,v])=>{
+      html += `・${v.name}${v.dmg!==undefined?`（傷害 ${v.dmg>0?'+':''}${v.dmg}）`:''}${v.a?`（護甲 ${v.a}）`:''}${v.s?`（盾 ${v.s}）`:''}${v.dur?` <span style="color:#8b1a1a;">[損壞 ${v.dur}]</span>`:''}<br>`;
+    });
+  }
+  if(H.backpack.length){
+    html += `<br><b>背包：</b><br>`;
+    H.backpack.forEach((it,i)=>{
+      html += `・${it.name}${it.gp?`（${it.gp}gp）`:''} <button class="ghost" style="padding:1px 6px;font-size:.7rem;" onclick="equipFromBackpack(${i})">裝備</button><br>`;
+    });
+  }
+  if(H.belt.filter(b=>b).length){
+    html += `<br><b>腰帶：</b><br>`;
+    H.belt.forEach(b=>{ if(b) html+=`・${b.name}<br>`; });
+  }
+  if(H.spells.length){
+    html += `<br><b>法術書：</b><br>`;
+    H.spells.forEach(s=>html+=`・${s.name}（${s.cost}）— ${s.desc}<br>`);
+  }
+  el.innerHTML = html || '<i>空空如也。</i>';
+}
+
+function equipFromBackpack(i){
+  Sound.click();
+  const it = S.hero.backpack[i];
+  if(!it) return;
+  const slot = (it.kind==='weapon') ? 'mainhand' : (it.kind==='shield' ? 'offhand' : it.slot);
+  if(!slot){ toast('這個物品無法裝備。'); return; }
+  S.hero.backpack.splice(i,1);
+  const old = S.hero.gear[slot];
+  if(old) S.hero.backpack.push(old);
+  S.hero.gear[slot] = it;
+  recalcBonuses();
+  toast(`已裝備「${it.name}」`);
+  renderTown();
+  renderBackpackList();
+}
+
+function townHeal(){
+  const H = S.hero;
+  const cost = H.poison*40 + H.diseases*65 + (maxHP()-H.hp)*20;
+  if(cost<=0){ toast('你沒有需要治療的地方。'); return; }
+  if(H.gold < cost){ toast(`金幣不足，需要 ${cost} gp。`); return; }
+  showModal('🏥 治療', `<p>清除毒素 ${H.poison} 點、疾病 ${H.diseases} 點、恢復 ${maxHP()-H.hp} 點生命。</p>
+    <p>費用：<b>${cost} gp</b>（現有 ${H.gold} gp）</p>`, [
+    {label:'接受治療', cls:'primary', action:()=>{
+      H.gold -= cost; H.poison=0; H.diseases=0; H.hp = maxHP();
+      log('🏥 你接受了完整的治療。','good');
+      renderTown();
+    }},
+    {label:'取消'}
+  ]);
+}
+
+function townRepair(){
+  const H = S.hero;
+  const items = Object.entries(H.gear).filter(([k,v])=>v && v.dur>0);
+  if(!items.length){ toast('沒有需要維修的裝備。'); return; }
+  const html = `<div class="col">${items.map(([k,v])=>{
+    const cost = v.dur * (v.fix||1);
+    return `<button onclick="doRepair('${k}')">${v.name} — 損壞 ${v.dur} 格，費用 ${cost} gp</button>`;
+  }).join('')}</div>`;
+  showModal('🔧 維修裝備', html, [{label:'關閉'}]);
+}
+function doRepair(slot){
+  const it = S.hero.gear[slot];
+  if(!it) return;
+  const cost = it.dur * (it.fix||1);
+  if(S.hero.gold < cost){ toast('金幣不足。'); return; }
+  S.hero.gold -= cost;
+  it.dur = 0;
+  log(`🔧 修復了「${it.name}」，花費 ${cost} gp。`,'good');
+  closeModal();
+  renderTown();
+}
+
+function townSell(){
+  const H = S.hero;
+  const all = [...H.backpack];
+  if(!all.length){ toast('背包裡沒有可出售的物品。'); return; }
+  const html = `<div class="col" style="max-height:50vh;overflow:auto;">${all.map((it,i)=>{
+    const val = Math.max(0, (it.gp||0) - (it.dur||0)*(it.fix||0));
+    return `<button onclick="doSell(${i})">${it.name} — 售價 ${val} gp</button>`;
+  }).join('')}</div>`;
+  showModal('💱 出售物品', html, [{label:'關閉'}]);
+}
+function doSell(i){
+  const it = S.hero.backpack[i];
+  if(!it) return;
+  const val = Math.max(0, (it.gp||0) - (it.dur||0)*(it.fix||0));
+  S.hero.gold += val;
+  S.hero.backpack.splice(i,1);
+  log(`💱 出售「${it.name}」獲得 ${val} gp。`,'good');
+  Sound.gold();
+  closeModal();
+  renderTown();
+}
+
+function townBuy(){
+  const H = S.hero;
+  const html = `<p style="font-size:.84rem;">可購買的必需品（最多 20 件）：</p>
+    <div class="col" style="max-height:50vh;overflow:auto;">
+    ${T_NEEDED.map((t,i)=>`<button onclick="doBuy(${i})">${t.name} — ${t.gp} gp</button>`).join('')}
+    </div>`;
+  showModal('🛒 購買必需品', html, [{label:'關閉'}]);
+}
+function doBuy(i){
+  const t = T_NEEDED[i];
+  if(S.hero.gold < t.gp){ toast('金幣不足。'); return; }
+  S.hero.gold -= t.gp;
+  if(t.kind==='picks'){ S.hero.picks += t.n; log(`🔧 購買 ${t.n} 個撬鎖器。`); }
+  else if(t.kind==='food'){ S.hero.food += t.n; log(`🍖 購買 ${t.n} 份食物。`); }
+  else if(t.kind==='oil'){ S.hero.oil += t.n; log(`🛢️ 購買 ${t.n} 份燈油。`); }
+  else if(t.kind==='potion'){ S.hero.backpack.push(mkPotion(t.name, t.eff, t.gp)); log(`🧪 購買「${t.name}」。`); }
+  else if(t.kind==='scrollOpen'){ S.hero.backpack.push({kind:'scrollOpen', name:'開門術卷軸', gp:200}); }
+  else if(t.kind==='scrollRevive'){ S.hero.backpack.push({kind:'scrollRevive', name:'復活術卷軸', gp:1500}); }
+  Sound.gold();
+  closeModal();
+  renderTown();
+}
+
+function townMarket(){
+  const H = S.hero;
+  const tries = clamp(H.rep,1,10);
+  const found = [];
+  for(let i=0;i<tries;i++){
+    const which = d6();
+    if(which<=2) found.push({type:'weapon', item:mkWeapon(pickRoll(T_WEAPON),'')});
+    else if(which<=4) found.push({type:'armour', item:mkArmour(pickRoll(T_ARMOUR),'')});
+    else found.push({type:'treasure', item:pickRoll(T_TREASURE_A)});
+  }
+  const html = `<p style="font-size:.84rem;">你在市場上找到了（聲望 ${H.rep}，${tries} 次搜索）：</p>
+    <div class="col" style="max-height:50vh;overflow:auto;">
+    ${found.map((f,i)=>`<button onclick="doMarketBuy(${i})">${f.item.name} — ${f.item.gp||'特殊'} gp</button>`).join('')}
+    </div>`;
+  window._market = found;
+  showModal('🏪 搜索市場', html, [{label:'關閉'}]);
+}
+function doMarketBuy(i){
+  const f = window._market[i];
+  if(!f) return;
+  const price = f.item.gp||0;
+  if(S.hero.gold < price){ toast('金幣不足。'); return; }
+  S.hero.gold -= price;
+  if(f.item.kind){ S.hero.backpack.push(f.item); }
+  else {
+    // 寶藏表結果直接結算
+    resolveTreasure(f.item);
+  }
+  Sound.gold();
+  closeModal();
+  renderTown();
+}
+
+function townTrain(){
+  const H = S.hero;
+  const maxTicks = clamp(H.rep,1,10);
+  const html = `<p style="font-size:.84rem;">聲望 ${H.rep} → 可訓練 ${maxTicks} 個刻度。</p>
+    <p style="font-size:.82rem;">技能 200gp/刻度　屬性 2000gp/刻度　基礎生命 20000gp/點</p>
+    <div class="col" style="max-height:45vh;overflow:auto;">
+      ${SKILL_LIST.map(s=>`<button onclick="doTrain('skill','${s}')">技能「${s}」+1 刻度（200gp）</button>`).join('')}
+      <button onclick="doTrain('str')">力量 +1 刻度（2000gp）</button>
+      <button onclick="doTrain('dex')">敏捷 +1 刻度（2000gp）</button>
+      <button onclick="doTrain('int')">智力 +1 刻度（2000gp）</button>
+      <button onclick="doTrain('hp')">基礎生命 +1（20000gp）</button>
+    </div>`;
+  showModal('📚 訓練', html, [{label:'關閉'}]);
+}
+function doTrain(kind, name){
+  const H = S.hero;
+  if(kind==='skill'){
+    if(H.gold<200){ toast('金幣不足。'); return; }
+    H.gold-=200;
+    H.xp[name] = (H.xp[name]||0)+1;
+    log(`📚 訓練「${name}」，經驗刻度 +1。`);
+    if(H.xp[name]>=10){
+      H.xp[name]=0;
+      H.skills[name] = Math.min(20,(H.skills[name]||0)+5);
+      log(`✦ 技能「${name}」提升至 +${H.skills[name]}！`,'good');
+    }
+  } else if(kind==='hp'){
+    if(H.gold<20000){ toast('金幣不足。'); return; }
+    H.gold-=20000; H.hpBase++; H.hp++;
+    log('❤️ 基礎生命值 +1！','good');
+  } else {
+    if(H.gold<2000){ toast('金幣不足。'); return; }
+    H.gold-=2000;
+    H.xp[kind] = (H.xp[kind]||0)+1;
+    log(`📚 訓練屬性，經驗刻度 +1。`);
+    if(H.xp[kind]>=10){
+      H.xp[kind]=0;
+      H[kind] = Math.min(80, H[kind]+5);
+      log(`✦ ${({str:'力量',dex:'敏捷',int:'智力'})[kind]}提升至 ${H[kind]}！`,'good');
+    }
+  }
+  Sound.gold();
+  closeModal();
+  renderTown();
+}
+
+function townInvest(){
+  const H = S.hero;
+  const html = `<p style="font-size:.84rem;">投資需要聲望（最高 ${H.rep} 股）。每次任務結束後會自動結算。</p>
+    <p style="font-size:.8rem;">目前金幣：${H.gold} gp</p>
+    <div class="col">
+      <button onclick="buyStock('trade')">貿易股票 — 100 gp/股</button>
+      <button onclick="buyStock('finance')">金融股票 — 300 gp/股</button>
+      <button onclick="buyStock('holding')">控股股票 — 500 gp/股</button>
+      <button onclick="buyStock('war')">戰爭股票 — 1000 gp/股</button>
+    </div>
+    <p style="font-size:.76rem;color:#6b5236;margin-top:8px;">※ 本網頁版簡化處理：股票僅記錄數量，暫無收益計算。</p>`;
+  showModal('📈 投資', html, [{label:'關閉'}]);
+}
+function buyStock(k){
+  const prices = {trade:100,finance:300,holding:500,war:1000};
+  const p = prices[k];
+  if(S.hero.gold<p){ toast('金幣不足。'); return; }
+  S.hero.gold -= p;
+  S.hero.stocks = S.hero.stocks||{};
+  S.hero.stocks[k] = (S.hero.stocks[k]||0)+1;
+  log(`📈 購買 1 股${k}股票。`);
+  Sound.gold();
+  closeModal();
+  renderTown();
+}
+
+/* ============================ 角色面板 ============================ */
+function showHeroPanel(){
+  if(!S || !S.hero){ return; }
+  const H = S.hero;
+  const gear = Object.entries(H.gear).filter(([k,v])=>v).map(([k,v])=>
+    `<div style="font-size:.82rem;">・${slotName(k)}：${v.name}${v.dmg!==undefined?`（傷害 ${v.dmg>0?'+':''}${v.dmg}）`:''}${v.a?`（護甲 ${v.a}）`:''}${v.s?`（盾 ${v.s}）`:''}</div>`
+  ).join('') || '<i>無</i>';
+
+  const skills = SKILL_LIST.map(s=>{
+    const v = H.skills[s]||0;
+    const xp = H.xp[s]||0;
+    return `<span class="tag">${s} ${v>0?'+':''}${v} <small>(${xp}/10)</small></span>`;
+  }).join('');
+
+  const html = `
+    <div class="row" style="gap:16px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:1.05rem;font-weight:700;">${H.name}</div>
+        <div style="font-size:.8rem;color:#6b5236;">${pathName(H.path)} · ${raceName(H.race)}</div>
+      </div>
+      <div class="spacer"></div>
+      <div style="text-align:right;font-size:.86rem;">
+        <div>❤️ ${H.hp} / ${maxHP()}</div>
+        <div>💰 ${H.gold} gp</div>
+      </div>
+    </div>
+    <hr style="border:none;border-top:1px dotted #b09060;margin:8px 0;">
+    <div class="row" style="gap:12px;flex-wrap:wrap;font-size:.86rem;">
+      <span>💪 力量 <b>${H.str}</b>（總 ${totalStr()}）${H.xp.str?`<small>(${H.xp.str}/10)</small>`:''}</span>
+      <span>🏃 敏捷 <b>${H.dex}</b>（總 ${totalDex()}）${H.xp.dex?`<small>(${H.xp.dex}/10)</small>`:''}</span>
+      <span>🧠 智力 <b>${H.int}</b>（總 ${totalInt()}）${H.xp.int?`<small>(${H.xp.int}/10)</small>`:''}</span>
+    </div>
+    <div class="row" style="gap:12px;flex-wrap:wrap;font-size:.86rem;margin-top:6px;">
+      <span>🛡️ 防禦 <b>${totalDef()}</b></span>
+      <span>⚔️ 傷害加值 <b>${equipDmg()>=0?'+':''}${equipDmg()}</b></span>
+      <span>⭐ 聲望 <b>${H.rep}</b></span>
+      <span>🍀 命運 <b>${H.fate}</b></span>
+      <span>🕯️ 性命 <b>${H.life}</b></span>
+    </div>
+    <div style="margin-top:8px;font-size:.8rem;">
+      <b>能力：</b>
+      ${hasMightyBlow()?'<span class="tag green">強力一擊</span>':''}
+      ${hasPerfectAim()?'<span class="tag green">完美瞄準</span>':''}
+      ${hasSpellcaster()?'<span class="tag green">法術施放</span>':''}
+      ${(!hasMightyBlow()&&!hasPerfectAim()&&!hasSpellcaster())?'<i>無</i>':''}
+    </div>
+    <hr style="border:none;border-top:1px dotted #b09060;margin:8px 0;">
+    <div style="font-size:.84rem;"><b>裝備：</b>${gear}</div>
+    <div style="margin-top:8px;"><b>技能：</b><br>${skills}</div>
+    <div style="margin-top:8px;font-size:.84rem;"><b>資源：</b>🛢️油 ${H.oil}　🍖食物 ${H.food}　🔧撬鎖器 ${H.picks}　🔑鑰匙 ${H.keys}　⚙️機關 ${H.levers}</div>
+    <div style="margin-top:8px;font-size:.84rem;"><b>狀態：</b>🤢疾病 ${H.diseases}　☠️毒素 ${H.poison} ${H.inDarkness?'　🌑 黑暗中（全屬性 −20）':''}</div>
+    <div style="margin-top:8px;font-size:.84rem;"><b>已完成任務：</b>${H.questsDone.length} 個${H.questsDone.length?'（'+H.questsDone.slice(-3).join('、')+'）':''}</div>
+  `;
+  showModal('🧙 角色面板', html, [{label:'關閉'}]);
+}
+function slotName(k){
+  return {head:'頭部',back:'背部',torso:'軀幹',arms:'雙臂',hands:'雙手',
+    mainhand:'主手',offhand:'副手',waist:'腰部',legs:'雙腿',feet:'雙腳',
+    neck:'頸部',ring:'戒指'}[k] || k;
+}
+function pathName(p){ return {warrior:'戰士',rogue:'盜賊',wizard:'巫師'}[p]||'—'; }
+function raceName(r){ return {dwarf:'矮人',elf:'精靈',human:'人類'}[r]||'—'; }
+
+/* ============================ 歷史紀錄 ============================ */
+function showHistory(){
+  if(!S || !S.history){ toast('還沒有冒險紀錄。'); return; }
+  const html = `<div style="max-height:55vh;overflow-y:auto;font-size:.84rem;">
+    ${S.history.slice().reverse().map(h=>`<div style="padding:3px 0;border-bottom:1px dotted rgba(120,90,50,.25);">${h.m}</div>`).join('') || '<i>尚無紀錄。</i>'}
+  </div>`;
+  showModal('🕐 冒險歷史', html, [{label:'關閉'}]);
+}
+
+/* ============================ 存檔 ============================ */
+function saveGame(){
+  if(!S || !S.hero){ toast('還沒有可以儲存的遊戲。'); return; }
+  try{
+    const data = {
+      hero: S.hero,
+      dungeon: S.dungeon,
+      combat: S.combat,
+      phase: S.phase,
+      log: S.log,
+      history: S.history,
+      screen: S.screen,
+      version: 1,
+      savedAt: Date.now(),
+    };
+    localStorage.setItem('d100dungeon_save', JSON.stringify(data));
+    toast('💾 遊戲已儲存！');
+    log('💾 遊戲已儲存。');
+  }catch(e){
+    toast('存檔失敗：' + e.message);
+  }
+}
+
+function loadGame(){
+  try{
+    const raw = localStorage.getItem('d100dungeon_save');
+    if(!raw){ toast('沒有找到存檔。'); return; }
+    const data = JSON.parse(raw);
+    S = {
+      screen: data.screen || 'game',
+      hero: data.hero,
+      dungeon: data.dungeon,
+      combat: data.combat,
+      phase: data.phase || 'exit',
+      log: data.log || [],
+      history: data.history || [],
+      createStep:'attrs',
+      createData:{ str:50,dex:40,int:30,path:null,race:null,skills:[] },
+      townState:null,
+      seenHelp:false,
+    };
+    recalcBonuses();
+    if(S.screen==='town'){ goto('town'); renderTown(); }
+    else { goto('game'); renderGame(); }
+    toast('📂 存檔已載入。');
+  }catch(e){
+    toast('讀檔失敗：' + e.message);
+  }
+}
+
+/* ============================ 音效開關 ============================ */
+function toggleSound(){
+  Sound.on = !Sound.on;
+  document.getElementById('sound-ic').textContent = Sound.on ? '🔊' : '🔇';
+  if(Sound.on){ Sound.init(); Sound.click(); }
+  toast(Sound.on ? '音效已開啟' : '音效已關閉');
+}
+
+/* ============================ 說明文件 ============================ */
+function showHelp(){
+  const html = `
+  <div style="font-size:.88rem;line-height:1.7;max-height:65vh;overflow-y:auto;padding-right:6px;">
+    <h3 style="color:#7a1d1d;">🎯 遊戲目標</h3>
+    <p>扮演一名冒險者，深入地牢完成一個又一個<b>任務</b>。每個任務都有獎勵與失敗代價。累積金幣、聲望與裝備，讓你的冒險者越來越強。當你死亡且沒有性命點可消耗時，冒險就結束了。</p>
+
+    <h3 style="color:#7a1d1d;">👀 看懂畫面</h3>
+    <p>請看畫面<b>最上方</b>那一排橫向捲動的狀態列：</p>
+    <ul style="padding-left:20px;">
+      <li>❤️ <b>生命</b>：目前生命值 / 最大值。歸零時會消耗一點性命點。</li>
+      <li>🪙 <b>金幣</b>：任務獎勵、搜刮怪物、賣東西都會增加。</li>
+      <li>⭐ <b>聲望</b>：1–10 之間，影響你能接的任務與市場選擇數量。</li>
+      <li>🎲 <b>命運</b>：可以用來重擲骰子（本版為記錄用途）。</li>
+      <li>🕯️ <b>性命</b>：死亡時自動消耗一點復活。</li>
+      <li>🛢️ <b>油</b> / 🍖 <b>食</b> / 🔧 <b>鎬</b>：時間推進時會消耗的資源。</li>
+      <li>⏳ <b>時間</b>：地牢中的時間刻度（0–12）。</li>
+    </ul>
+    <p>中間的 <b>🗺️ 地牢地圖</b> 會顯示你走過的路線。顏色代表區域類型：<br>
+      🟡 黃色＝空　🔴 紅色＝遭遇　🟢 綠色＝地形　🔵 藍色＝目標</p>
+    <p>下方的 <b>📜 冒險紀錄</b> 會顯示最近發生的事情，越新的越上面。</p>
+
+    <h3 style="color:#7a1d1d;">🎮 操作步驟</h3>
+    <ol style="padding-left:20px;">
+      <li><b>建立角色</b>：分配屬性、選英雄之路、選種族、挑兩個技能。</li>
+      <li><b>選擇任務</b>：新手會從「地牢訓練 1」開始。</li>
+      <li><b>每回合</b>按下方動作列的按鈕：
+        <ul style="padding-left:18px;">
+          <li><b>時間推進</b>：會自動消耗油／食物，並可能觸發遊蕩怪物。</li>
+          <li><b>選擇出口</b>：選方向移動。有門的話要先開門（擲骰檢定）。</li>
+          <li><b>進入區域</b>：新區域可能是空的、遭遇、地形或目標。</li>
+          <li><b>🔍 搜索</b>：每個區域只能搜一次，可能找到寶藏或觸發陷阱。</li>
+        </ul>
+      </li>
+      <li><b>戰鬥</b>：按 ⚔️ 攻擊 或 🏃 逃離。擲 1d100 對抗你的力量（近戰）或敏捷（遠程）。</li>
+      <li><b>任務完成</b>：回到城鎮整備，再接取下一個任務。</li>
+    </ol>
+
+    <h3 style="color:#7a1d1d;">⚔️ 戰鬥流程</h3>
+    <ol style="padding-left:20px;">
+      <li>擲 <b>1d10</b> 查怪物反應表，決定怪物要攻擊還是逃跑。</li>
+      <li>你擲 <b>1d100</b> ≤ 力量／敏捷 → 命中。</li>
+      <li>命中後擲 <b>1d6 傷害</b> + <b>1d10 命中部位</b>修正 + 裝備傷害 − 怪物防禦。</li>
+      <li>怪物攻擊時：擲 1d100 ≤ 怪物 AV → 命中，然後算傷害、扣防禦、扣護甲。</li>
+    </ol>
+
+    <h3 style="color:#7a1d1d;">✨ 特殊機制</h3>
+    <ul style="padding-left:20px;">
+      <li><b>自然 01 必定成功，自然 100 必定失敗</b>（所有 d100 檢定）。</li>
+      <li><b>經驗</b>：檢定擲出 ≤10 時可獲得經驗刻度，累積 10 格提升技能或屬性。</li>
+      <li><b>能力</b>：力量 ≥50 得「強力一擊」、敏捷 ≥50 得「完美瞄準」、智力 ≥50 得「法術施放」。</li>
+      <li><b>腰帶檢定</b>：擲 1d10，對應編號的腰帶物品被摧毀。</li>
+      <li><b>群體怪物</b>：每多一隻存活怪物，攻擊值 +5；傷害會溢出到下一個。</li>
+      <li><b>時間</b>：每 3 小時消耗油、每 4 小時消耗食物；每 3 回合檢查遊蕩怪物。</li>
+    </ul>
+
+    <p style="margin-top:12px;font-size:.8rem;color:#6b5236;">💡 小提示：知道什麼時候該撤退，是活下來的重要關鍵。</p>
+  </div>`;
+
+  showModal('📖 遊戲說明', html, [{label:'我準備好了，開始遊戲', cls:'primary', action:()=>{ Sound.ok(); }}]);
+}
+
+/* ============================ 啟動 ============================ */
+document.addEventListener('DOMContentLoaded', ()=>{
+  // 音效初始化需使用者互動
+  document.body.addEventListener('click', function once(){
+    Sound.init();
+    document.body.removeEventListener('click', once);
+  }, {once:true});
+
+  // 顯示標題
+  document.getElementById('bottomnav').style.display = 'none';
+
+  // 若有存檔提示
+  try{
+    if(localStorage.getItem('d100dungeon_save')){
+      // 不自動載入，讓玩家選擇
+    }
+  }catch(e){}
+});
+</script>
+</body>
+</html>
