@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>生物的演化 - 桌遊還原版</title>
+    <style>
+        :root {
+            --bg-color: #2b2b2b;
+            --parchment: #f4ecd8;
+            --text-dark: #3e2723;
+            --accent: #8b5a2b;
+            --hp-color: #d32f2f;
+            --food-color: #fbc02d;
+            --gene-color: #388e3c;
+            --card-bg: #e8dcc4;
+            --ai-color: #d84315;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            font-family: 'Georgia', 'Noto Serif TC', serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle, #3a3a3a 0%, #1a1a1a 100%);
+            color: var(--text-dark);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 頂部狀態 */
+        #top-bar {
+            background: var(--parchment);
+            border-bottom: 3px solid var(--accent);
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 0.95em;
+            z-index: 10;
+        }
+        .player-info { display: flex; gap: 10px; align-items: center; }
+        .stat-box { display: flex; gap: 3px; }
+
+        /* 主戰場 */
+        #game-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 10px;
+            overflow-y: auto;
+        }
+
+        .board-section {
+            background: var(--parchment-dark);
+            border: 2px dashed var(--accent);
+            border-radius: 10px;
+            padding: 10px;
+            min-height: 120px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            align-items: center;
+        }
+        
+        .ai-section { border-color: var(--ai-color); background: #ffccbc; }
+        .player-section { border-color: var(--gene-color); background: #c8e6c9; }
+
+        /* 中央區域 (食物池與環境) */
+        #center-zone {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            background: rgba(0,0,0,0.4);
+            padding: 10px;
+            border-radius: 10px;
+            color: white;
+        }
+        #food-pool {
+            font-size: 1.5em;
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            background: #5d4037;
+            padding: 5px 15px;
+            border-radius: 20px;
+            border: 2px solid var(--food-color);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        #food-pool:active { transform: scale(0.95); }
+        #food-pool.disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* 卡牌樣式 */
+        .card {
+            width: 100px;
+            height: 140px;
+            background: var(--card-bg);
+            border: 2px solid var(--accent);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 2px 4px 6px rgba(0,0,0,0.4);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .card.playable { cursor: pointer; }
+        .card.playable:hover { transform: translateY(-5px); box-shadow: 4px 8px 12px rgba(0,0,0,0.6); }
+        .card.disabled { opacity: 0.5; filter: grayscale(1); }
+        .card-icon { font-size: 2.5em; text-align: center; margin-top: 10px; flex: 1; display: flex; align-items: center; justify-content: center; }
+        .card-label {
+            background: rgba(0,0,0,0.75); color: #fff; padding: 3px; text-align: center;
+            font-size: 0.65em; line-height: 1.1; position: absolute; bottom: 0; width: 100%;
+        }
+        .card-label strong { display: block; font-size: 1.1em; color: #ffd54f; }
+        .card-cost {
+            position: absolute; top: 2px; right: 2px; background: var(--gene-color); color: white;
+            width: 20px; height: 20px; border-radius: 50%; display: flex; justify-content: center;
+            align-items: center; font-weight: bold; font-size: 0.8em; border: 1px solid white;
+        }
+        .card-stats {
+            position: absolute; top: 2px; left: 2px; background: var(--hp-color); color: white;
+            padding: 1px 4px; border-radius: 3px; font-size: 0.7em; font-weight: bold;
+        }
+
+        /* 手牌區 */
+        #hand-area {
+            background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px;
+            display: flex; gap: 10px; overflow-x: auto; flex-wrap: nowrap; min-height: 160px;
+            align-items: center; border-top: 3px solid var(--accent);
+        }
+
+        /* 控制列 */
+        #action-area {
+            display: flex; justify-content: center; gap: 10px; padding: 10px;
+            background: rgba(0,0,0,0.6); flex-wrap: wrap;
+        }
+        .action-btn {
+            padding: 10px 20px; font-size: 1em; font-weight: bold; color: #fff;
+            background: var(--accent); border: 2px solid #5d4037; border-radius: 5px;
+            cursor: pointer; box-shadow: 0 4px #3e2723; transition: all 0.1s;
+            font-family: inherit; flex: 1; max-width: 200px;
+        }
+        .action-btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 #3e2723; }
+        .action-btn:disabled { background: #9e9e9e; box-shadow: 0 4px #616161; cursor: not-allowed; }
+
+        /* 彈窗與遮罩 */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .overlay.active { opacity: 1; pointer-events: auto; }
+        .modal {
+            background: var(--parchment); padding: 20px; border-radius: 10px;
+            width: 90%; max-width: 500px; max-height: 85vh; overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8); border: 4px solid var(--accent);
+        }
+        .modal h2 { text-align: center; margin-bottom: 15px; border-bottom: 2px solid var(--accent); padding-bottom: 5px; }
+        .modal p { margin-bottom: 8px; line-height: 1.5; font-size: 0.95em; }
+
+        /* 手機優化 */
+        @media (max-width: 600px) {
+            .card { width: 80px; height: 120px; }
+            .card-icon { font-size: 2em; margin-top: 5px; }
+            .card-label { font-size: 0.55em; }
+            #top-bar { font-size: 0.8em; }
+            .action-btn { padding: 8px 10px; font-size: 0.9em; }
+        }
+        
+        .toast-container {
+            position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
+            z-index: 200; pointer-events: none; display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            background: rgba(0,0,0,0.85); color: white; padding: 10px 20px; border-radius: 5px;
+            font-size: 1em; text-align: center; border: 1px solid var(--accent);
+            animation: fadeInOut 3s forwards;
+        }
+        @keyframes fadeInOut { 0% { opacity: 0; transform: translateY(-10px); } 10% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; } 100% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部狀態 -->
+    <div id="top-bar">
+        <div class="player-info">
+            <span>👤 你</span>
+            <div class="stat-box" title="生命值">❤️ <span id="ui-p-hp">10</span></div>
+            <div class="stat-box" title="食物">🍖 <span id="ui-p-food">0</span></div>
+            <div class="stat-box" title="基因">🧬 <span id="ui-p-gene">3</span></div>
+        </div>
+        <div style="font-weight: bold; color: var(--accent);">回合 <span id="ui-turn">1</span></div>
+        <div class="player-info">
+            <div class="stat-box" title="基因">🧬 <span id="ui-a-gene">3</span></div>
+            <div class="stat-box" title="食物">🍖 <span id="ui-a-food">0</span></div>
+            <div class="stat-box" title="生命值">❤️ <span id="ui-a-hp">10</span></div>
+            <span>🤖 AI</span>
+        </div>
+    </div>
+
+    <!-- 遊戲區 -->
+    <div id="game-area">
+        <!-- AI 區域 -->
+        <div class="board-section ai-section" id="ai-board">
+            <div style="width: 100%; text-align: center; color: #5d4037; font-style: italic;">AI 尚未演化生物</div>
+        </div>
+
+        <!-- 中央區域 -->
+        <div id="center-zone">
+            <div>☀️ <span id="ui-env">今日環境：風平浪靜</span></div>
+            <div id="food-pool" onclick="game.claimFood()">
+                🍖 食物池: <span id="ui-food-pool">0</span> (點擊領取)
+            </div>
+        </div>
+
+        <!-- 玩家區域 -->
+        <div class="board-section player-section" id="player-board">
+            <div style="width: 100%; text-align: center; color: #5d4037; font-style: italic;">你的生物演化區</div>
+        </div>
+
+        <!-- 手牌區 -->
+        <div id="hand-area"></div>
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div id="action-area">
+        <button class="action-btn" id="btn-phase-evolve" onclick="game.changePhase('EVOLVE')">1. 演化階段</button>
+        <button class="action-btn" id="btn-phase-feed" onclick="game.changePhase('FEED')">2. 餵食階段</button>
+        <button class="action-btn" id="btn-phase-attack" onclick="game.changePhase('ATTACK')">3. 攻擊階段</button>
+        <button class="action-btn" id="btn-end-turn" onclick="game.endTurn()">結束回合</button>
+    </div>
+
+    <!-- 說明彈窗 -->
+    <div class="overlay active" id="modal-info">
+        <div class="modal">
+            <h2>生物的演化 - 新手教學</h2>
+            <p><strong>🎯 遊戲目標：</strong>存活 10 個回合。每回合透過「食物池」餵養生物，若食物不足會餓死並扣血，血量歸零即失敗。</p>
+            <p><strong>👀 畫面引導：</strong>最上方是你的狀態（❤️血量、🍖食物、🧬基因）。中央有 <strong>「🍖食物池」</strong>，點擊它可以把食物拿回自己面前。</p>
+            <p><strong>🕹️ 回合流程：</strong></p>
+            <p>1. <strong>演化階段：</strong>消耗🧬基因點數，點擊下方手牌打出生物或特性（特性需拖到生物上，本版點擊自動附著在最新生物）。</p>
+            <p>2. <strong>餵食階段：</strong>點擊中央食物池拿取食物。每隻生物都需要消耗食物。</p>
+            <p>3. <strong>攻擊階段：</strong>點擊有「掠食」特性的生物，再點擊對手的生物進行攻擊。</p>
+            <p>4. <strong>結束回合：</strong>結算飢餓與環境傷害。</p>
+            <p><strong>💡 特殊機制：</strong>注意特質克制！「巨大化」免疫小型生物攻擊；「水生」免疫陸生攻擊；「毒液」反傷；「斷尾」消耗手牌保命。</p>
+            <button class="action-btn" style="margin-top: 20px; width: 100%;" onclick="document.getElementById('modal-info').classList.remove('active')">我準備好了，開始遊戲</button>
+        </div>
+    </div>
+
+    <!-- 遊戲結束彈窗 -->
+    <div class="overlay" id="modal-gameover">
+        <div class="modal" style="text-align: center;">
+            <h2 id="go-title">遊戲結束</h2>
+            <p id="go-text" style="font-size: 1.2em; margin-bottom: 20px;"></p>
+            <button class="action-btn" onclick="location.reload()">重新開始</button>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // --- 音效管理 ---
+        const audioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtxInstance = null;
+        function sfx(type) {
+            if (!audioCtxInstance) audioCtxInstance = new audioCtx();
+            const osc = audioCtxInstance.createOscillator();
+            const gain = audioCtxInstance.createGain();
+            osc.connect(gain); gain.connect(audioCtxInstance.destination);
+            if (type === 'click') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, audioCtxInstance.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(300, audioCtxInstance.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtxInstance.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtxInstance.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtxInstance.currentTime + 0.1);
+            } else if (type === 'error') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, audioCtxInstance.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtxInstance.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtxInstance.currentTime + 0.2);
+                osc.start(); osc.stop(audioCtxInstance.currentTime + 0.2);
+            } else if (type === 'eat') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(300, audioCtxInstance.currentTime);
+                osc.frequency.linearRampToValueAtTime(500, audioCtxInstance.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtxInstance.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtxInstance.currentTime + 0.15);
+                osc.start(); osc.stop(audioCtxInstance.currentTime + 0.15);
+            }
+        }
+
+        // --- 卡牌資料庫 (依據原版 PDF 規則) ---
+        const CARD_DB = [
+            // 生物
+            { id: 'c_small', name: '小型生物', type: 'creature', icon: '🐇', cost: 1, size: 'small', food: 1, desc: '基礎。' },
+            { id: 'c_med', name: '中型生物', type: 'creature', icon: '🐗', cost: 2, size: 'med', food: 2, desc: '基礎。' },
+            { id: 'c_large', name: '大型生物', type: 'creature', icon: '🦖', cost: 3, size: 'large', food: 3, desc: '巨大。' },
+            // 特性
+            { id: 't_huge', name: '巨大化', type: 'trait', icon: '⏫', cost: 2, desc: '免疫小型生物攻擊。' },
+            { id: 't_predator', name: '掠食', type: 'trait', icon: '🦷', cost: 2, desc: '可攻擊對手生物。' },
+            { id: 't_aquatic', name: '水生', type: 'trait', icon: '💧', cost: 1, desc: '免疫陸生攻擊。' },
+            { id: 't_venom', name: '毒液', type: 'trait', icon: '☠️', cost: 2, desc: '被攻擊時反殺對手。' },
+            { id: 't_shell', name: '硬殼', type: 'trait', icon: '🛡️', cost: 1, desc: '抵擋1次攻擊。' },
+            { id: 't_tail', name: '斷尾', type: 'trait', icon: '🦎', cost: 1, desc: '受致命傷時，棄1手牌免死。' },
+            { id: 't_mimicry', name: '擬態', type: 'trait', icon: '🍃', cost: 1, desc: '不會成為攻擊目標。' }
+        ];
+
+        const ENVIRONMENTS = [
+            { name: '風平浪靜', type: 'none', desc: '無事發生。' },
+            { name: '旱季', type: 'drought', desc: '水生生物若無其他保護，受到1傷。' },
+            { name: '食物短缺', type: 'famine', desc: '食物池初始食物減半。' },
+            { name: '天敵出現', type: 'predator', desc: '沒有防禦特性的生物受到1傷。' }
+        ];
+
+        // --- 遊戲狀態 ---
+        const game = {
+            turn: 1,
+            maxTurn: 10,
+            phase: 'EVOLVE', // EVOLVE, FEED, ATTACK, RESOLVE
+            player: { hp: 10, food: 0, gene: 3, hand: [], board: [], hasDrawnFood: 0 },
+            ai: { hp: 10, food: 0, gene: 3, board: [], traits: [] },
+            foodPool: 0,
+            env: ENVIRONMENTS[0],
+            
+            init() {
+                this.drawCards(this.player.hand, 5);
+                this.startTurn();
+                ui.update();
+            },
+
+            startTurn() {
+                this.player.gene = 3;
+                this.player.food = 0;
+                this.ai.gene = 3;
+                this.ai.food = 0;
+                this.phase = 'EVOLVE';
+                
+                this.env = ENVIRONMENTS[Math.floor(Math.random() * ENVIRONMENTS.length)];
+                this.foodPool = Math.max(1, this.player.board.length + this.ai.board.length + 2); // 基礎食物量
+                if (this.env.type === 'famine') this.foodPool = Math.ceil(this.foodPool / 2);
+
+                ui.addLog(`--- 第 ${this.turn} 回合開始 --- 環境：${this.env.name}`);
+                this.aiAction();
+                ui.update();
+            },
+
+            changePhase(newPhase) {
+                if (this.turn > this.maxTurn) return;
+                // 簡單防呆：只能往前推進
+                const phases = ['EVOLVE', 'FEED', 'ATTACK', 'RESOLVE'];
+                if (phases.indexOf(newPhase) < phases.indexOf(this.phase)) {
+                    ui.toast("不能回到上個階段！");
+                    return;
+                }
+                this.phase = newPhase;
+                if (newPhase === 'FEED') {
+                    ui.addLog(`進入餵食階段，點擊食物池拿取食物。`);
+                }
+                ui.update();
+            },
+
+            claimFood() {
+                if (this.phase !== 'FEED') {
+                    ui.toast("現在不是餵食階段！");
+                    sfx('error');
+                    return;
+                }
+                if (this.foodPool <= 0) {
+                    ui.toast("食物池空了！");
+                    return;
+                }
+                this.foodPool--;
+                this.player.food++;
+                sfx('eat');
+                ui.update();
+            },
+
+            playCard(index) {
+                if (this.phase !== 'EVOLVE') {
+                    ui.toast("現在不是演化階段！");
+                    sfx('error');
+                    return;
+                }
+                const card = this.player.hand[index];
+                if (this.player.gene < card.cost) {
+                    ui.toast("基因點數不足！");
+                    sfx('error');
+                    return;
+                }
+
+                this.player.gene -= card.cost;
+                this.player.hand.splice(index, 1);
+
+                if (card.type === 'creature') {
+                    card.attachedTraits = [];
+                    card.hasAttacked = false;
+                    this.player.board.push(card);
+                } else {
+                    // 附著在最後一隻生物上
+                    if (this.player.board.length > 0) {
+                        const target = this.player.board[this.player.board.length - 1];
+                        target.attachedTraits.push(card);
+                        ui.addLog(`賦予了 ${target.name} 特性：${card.name}`);
+                    } else {
+                        ui.toast("沒有生物可附著，特性丟棄！");
+                    }
+                }
+                sfx('click');
+                ui.update();
+            },
+
+            attack(attackerIndex, targetIndex) {
+                if (this.phase !== 'ATTACK') return;
+                const attacker = this.player.board[attackerIndex];
+                const target = this.ai.board[targetIndex];
+
+                // 檢查攻擊資格
+                if (!attacker.attachedTraits.find(t => t.id === 't_predator')) {
+                    ui.toast("此生物沒有『掠食』特性，無法攻擊！");
+                    sfx('error');
+                    return;
+                }
+                if (attacker.hasAttacked) {
+                    ui.toast("此生物本回合已攻擊過！");
+                    return;
+                }
+
+                // 結算防禦
+                let isTargetDead = true;
+                let isAttackerDead = false;
+                
+                // 1. 擬態
+                if (target.attachedTraits.find(t => t.id === 't_mimicry')) {
+                    ui.toast("目標發動擬態，攻擊無效！");
+                    attacker.hasAttacked = true;
+                    ui.update();
+                    return;
+                }
+                
+                // 2. 巨大化 vs 小型
+                if (target.attachedTraits.find(t => t.id === 't_huge') && attacker.size === 'small') {
+                    ui.toast("目標巨大化，免疫小型生物攻擊！");
+                    attacker.hasAttacked = true;
+                    ui.update();
+                    return;
+                }
+
+                // 3. 毒液
+                if (target.attachedTraits.find(t => t.id === 't_venom')) {
+                    ui.toast("目標有毒液！攻擊者死亡！");
+                    isAttackerDead = true;
+                }
+
+                // 4. 硬殼/斷尾
+                if (target.attachedTraits.find(t => t.id === 't_shell')) {
+                    ui.toast("目標有硬殼，抵擋了攻擊！");
+                    isTargetDead = false;
+                    // 消耗硬殼
+                    target.attachedTraits = target.attachedTraits.filter(t => t.id !== 't_shell');
+                } else if (target.attachedTraits.find(t => t.id === 't_tail')) {
+                    if (this.player.hand.length > 0) {
+                        ui.toast("目標斷尾求生，丟棄一張手牌！");
+                        this.player.hand.pop();
+                        isTargetDead = false;
+                    }
+                }
+
+                // 結算死亡
+                attacker.hasAttacked = true;
+                if (isTargetDead) {
+                    this.ai.board.splice(targetIndex, 1);
+                    ui.addLog(`你的 ${attacker.name} 擊殺了對手的 ${target.name}！`);
+                }
+                if (isAttackerDead) {
+                    this.player.board.splice(attackerIndex, 1);
+                    ui.addLog(`你的 ${attacker.name} 被毒液反殺了！`);
+                }
+                sfx('error'); // 攻擊音效
+                ui.update();
+            },
+
+            aiAction() {
+                // 簡單 AI 邏輯：有錢就買最貴的，買完附著特性
+                let attempts = 0;
+                while (this.ai.gene > 0 && attempts < 5) {
+                    attempts++;
+                    const available = CARD_DB.filter(c => c.cost <= this.ai.gene);
+                    if (available.length === 0) break;
+                    // 優先買生物，其次特性
+                    const creatures = available.filter(c => c.type === 'creature');
+                    let pick;
+                    if (creatures.length > 0 && this.ai.board.length < 3) {
+                        pick = creatures[Math.floor(Math.random() * creatures.length)];
+                        this.ai.gene -= pick.cost;
+                        pick.attachedTraits = [];
+                        pick.hasAttacked = false;
+                        this.ai.board.push({...pick});
+                    } else {
+                        pick = available[Math.floor(Math.random() * available.length)];
+                        this.ai.gene -= pick.cost;
+                        if (this.ai.board.length > 0) {
+                            this.ai.board[this.ai.board.length - 1].attachedTraits.push(pick);
+                        }
+                    }
+                }
+                // AI 自動拿食物
+                this.ai.food += this.foodPool;
+                this.foodPool = 0;
+            },
+
+            endTurn() {
+                if (this.turn >= this.maxTurn) {
+                    this.gameOver(true);
+                    return;
+                }
+
+                this.phase = 'RESOLVE';
+                ui.update();
+
+                // 結算玩家飢餓
+                let pNeeds = this.player.board.reduce((sum, c) => sum + c.food, 0);
+                if (this.player.food < pNeeds) {
+                    let dmg = pNeeds - this.player.food;
+                    this.player.hp -= dmg;
+                    ui.addLog(`你食物不足，受到 ${dmg} 點飢餓傷害！`);
+                }
+                
+                // 結算 AI 飢餓
+                let aNeeds = this.ai.board.reduce((sum, c) => sum + c.food, 0);
+                if (this.ai.food < aNeeds) {
+                    let dmg = aNeeds - this.ai.food;
+                    this.ai.hp -= dmg;
+                    ui.addLog(`AI 食物不足，受到 ${dmg} 點傷害。`);
+                }
+
+                // 結算環境
+                if (this.env.type === 'drought') {
+                    let pDmg = this.player.board.some(c => c.attachedTraits.find(t => t.id === 't_aquatic')) ? 0 : 1;
+                    this.player.hp -= pDmg;
+                    this.ai.hp -= 1; // AI 簡化
+                    ui.addLog(`旱季來臨，受到環境傷害！`);
+                }
+
+                if (this.player.hp <= 0 || this.ai.hp <= 0) {
+                    this.gameOver(false);
+                    return;
+                }
+
+                this.turn++;
+                this.drawCards(this.player.hand, 2);
+                this.startTurn();
+            },
+
+            drawCards(arr, num) {
+                for (let i = 0; i < num; i++) {
+                    arr.push({ ...CARD_DB[Math.floor(Math.random() * CARD_DB.length)] });
+                }
+            },
+
+            gameOver(isWin) {
+                document.getElementById('modal-gameover').classList.add('active');
+                const title = document.getElementById('go-title');
+                const text = document.getElementById('go-text');
+                if (isWin || this.ai.hp <= 0) {
+                    title.innerText = "🏆 演化勝利！";
+                    title.style.color = "var(--gene-color)";
+                    text.innerText = "你成功在生存競爭中存活了下來！";
+                } else {
+                    title.innerText = "💀 生態滅絕";
+                    title.style.color = "var(--hp-color)";
+                    text.innerText = "你的生物在殘酷的環境中滅絕了...";
+                }
+            }
+        };
+
+        // --- UI 渲染 ---
+        const ui = {
+            update() {
+                // 更新數值
+                document.getElementById('ui-p-hp').innerText = game.player.hp;
+                document.getElementById('ui-p-food').innerText = game.player.food;
+                document.getElementById('ui-p-gene').innerText = game.player.gene;
+                document.getElementById('ui-a-hp').innerText = game.ai.hp;
+                document.getElementById('ui-a-food').innerText = game.ai.food;
+                document.getElementById('ui-a-gene').innerText = game.ai.gene;
+                document.getElementById('ui-turn').innerText = game.turn;
+                document.getElementById('ui-food-pool').innerText = game.foodPool;
+                document.getElementById('ui-env').innerText = game.env.name;
+
+                // 渲染手牌
+                const handArea = document.getElementById('hand-area');
+                handArea.innerHTML = '';
+                game.player.hand.forEach((card, i) => {
+                    const el = this.createCardEl(card);
+                    el.classList.add('playable');
+                    if (game.player.gene < card.cost || game.phase !== 'EVOLVE') el.classList.add('disabled');
+                    el.onclick = () => game.playCard(i);
+                    handArea.appendChild(el);
+                });
+
+                // 渲染玩家生物
+                const pBoard = document.getElementById('player-board');
+                pBoard.innerHTML = '';
+                if (game.player.board.length === 0) pBoard.innerHTML = '<div style="width:100%;text-align:center;color:#666;">無生物</div>';
+                game.player.board.forEach((c, i) => {
+                    const el = this.createCardEl(c, true);
+                    if (game.phase === 'ATTACK' && c.attachedTraits.find(t => t.id === 't_predator') && !c.hasAttacked) {
+                        el.style.border = "3px solid red";
+                        el.onclick = () => {
+                            const targetIndex = prompt("請輸入要攻擊的 AI 生物編號 (0 開始):");
+                            if (targetIndex !== null) game.attack(i, parseInt(targetIndex));
+                        };
+                    }
+                    pBoard.appendChild(el);
+                });
+
+                // 渲染 AI 生物
+                const aBoard = document.getElementById('ai-board');
+                aBoard.innerHTML = '';
+                if (game.ai.board.length === 0) aBoard.innerHTML = '<div style="width:100%;text-align:center;color:#666;">無生物</div>';
+                game.ai.board.forEach((c, i) => {
+                    const el = this.createCardEl(c, true);
+                    el.innerHTML += `<div style="position:absolute;top:0;left:0;background:black;color:white;padding:2px;">${i}</div>`;
+                    aBoard.appendChild(el);
+                });
+
+                // 按鈕狀態
+                document.getElementById('btn-phase-evolve').disabled = (game.phase !== 'EVOLVE');
+                document.getElementById('btn-phase-feed').disabled = (game.phase !== 'FEED');
+                document.getElementById('btn-phase-attack').disabled = (game.phase !== 'ATTACK');
+                document.getElementById('btn-end-turn').disabled = (game.phase === 'RESOLVE');
+                
+                const foodPoolEl = document.getElementById('food-pool');
+                if (game.phase !== 'FEED' || game.foodPool === 0) foodPoolEl.classList.add('disabled');
+                else foodPoolEl.classList.remove('disabled');
+            },
+
+            createCardEl(card, showStats = false) {
+                const el = document.createElement('div');
+                el.className = 'card';
+                let statsHtml = '';
+                if (showStats) {
+                    statsHtml = `<div class="card-stats">🍖${card.food}</div>`;
+                    // 顯示附加特性
+                    if (card.attachedTraits && card.attachedTraits.length > 0) {
+                        statsHtml += `<div style="position:absolute; bottom:35px; right:2px; font-size:1.2em; text-shadow: 1px 1px 2px black;">${card.attachedTraits.map(t=>t.icon).join('')}</div>`;
+                    }
+                } else {
+                    statsHtml = `<div class="card-cost">${card.cost}</div>`;
+                }
+
+                el.innerHTML = `
+                    ${statsHtml}
+                    <div class="card-icon">${card.icon}</div>
+                    <div class="card-label"><strong>${card.name}</strong>${card.desc}</div>
+                `;
+                return el;
+            },
+
+            toast(msg) {
+                const container = document.getElementById('toast-container');
+                const el = document.createElement('div');
+                el.className = 'toast';
+                el.innerText = msg;
+                container.appendChild(el);
+                setTimeout(() => el.remove(), 3000);
+            },
+
+            addLog(msg) {
+                console.log(msg);
+            }
+        };
+
+        window.onload = () => {
+            game.init();
+        };
+    </script>
+</body>
+</html>
