@@ -3,240 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>鬼屋獨行探險 - 協和女神</title>
+    <title>鬼屋獨行探險 - 協和女神 (100% 還原版)</title>
     <style>
         :root {
-            --bg-color: #1a1512;
-            --paper-color: #e8dcc4;
-            --text-color: #2b221c;
-            --accent-color: #8b2a2a;
-            --border-color: #4a3b2c;
-            --btn-bg: #d4c5a9;
-            --btn-hover: #c2b296;
-            --btn-text: #1a1512;
-            --hp-color: #c0392b;
-            --res-color: #2980b9;
+            --bg-dark: #12100e;
+            --paper-bg: #e8dcc4;
+            --paper-dark: #d1c3a6;
+            --ink: #2b221c;
+            --accent: #8b2a2a;
+            --accent-hover: #a33535;
+            --border: #4a3b2c;
+            --hp: #c0392b;
+            --res: #2980b9;
         }
 
-        * {
-            box-sizing: border-box;
-            user-select: none;
-        }
+        * { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
 
         body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
+            background-color: var(--bg-dark);
             font-family: 'Georgia', 'Times New Roman', serif;
-            color: var(--text-color);
+            color: var(--ink);
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            background-image: radial-gradient(circle, transparent 50%, #000 150%);
+            background-image: radial-gradient(circle, transparent 40%, #000 150%);
         }
 
         /* 頂部狀態列 */
         #top-bar {
-            background-color: #110e0b;
-            color: #d4c5a9;
-            padding: 10px;
+            background: #000;
+            color: var(--paper-bg);
+            padding: 8px 15px;
             display: flex;
-            justify-content: space-around;
+            justify-content: space-between;
             font-size: 14px;
-            border-bottom: 2px solid #4a3b2c;
+            border-bottom: 2px solid #333;
             z-index: 10;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.8);
         }
-        .stat-item { display: flex; align-items: center; gap: 5px; }
-        .stat-val { font-weight: bold; color: #fff; }
+        .stat { display: flex; align-items: center; gap: 5px; font-weight: bold; }
+        .stat span { color: #fff; text-shadow: 0 0 5px currentColor; }
+        .hp-val { color: var(--hp); }
+        .res-val { color: var(--res); }
 
-        /* 主內容區 (羊皮紙) */
-        #game-container {
+        /* 主遊戲區 */
+        #game-area {
             flex: 1;
-            padding: 15px;
-            margin: 10px;
-            background-color: var(--paper-color);
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.2), 0 5px 15px rgba(0,0,0,0.5);
+            padding: 10px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            position: relative;
         }
 
-        #text-content {
+        #paper-panel {
+            background-color: var(--paper-bg);
             flex: 1;
-            overflow-y: auto;
-            font-size: 16px;
-            line-height: 1.6;
-            margin-bottom: 15px;
-            white-space: pre-wrap;
-            text-shadow: 1px 1px 0 rgba(255,255,255,0.3);
-            padding-right: 5px;
-        }
-
-        /* 選項區與物品欄 */
-        #ui-bottom {
+            border-radius: 4px;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.2), 0 5px 20px rgba(0,0,0,0.6);
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            padding: 20px;
+            position: relative;
+            background-image: url('data:image/svg+xml;utf8,<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.05"/></svg>');
+            overflow: hidden;
         }
 
-        #inventory-area {
+        #story-text {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 17px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            text-align: justify;
+            margin-bottom: 15px;
+            padding-right: 5px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        #story-text::-webkit-scrollbar { width: 6px; }
+        #story-text::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        
+        .chapter-title { font-size: 1.2em; font-weight: bold; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 15px; display: inline-block; }
+        .highlight { background: rgba(139, 42, 42, 0.15); padding: 2px 4px; border-radius: 3px; font-weight: bold; }
+        .roll-result { background: rgba(0,0,0,0.05); border-left: 4px solid var(--accent); padding: 10px; margin: 15px 0; font-family: monospace; font-size: 15px;}
+
+        /* 選項與物品 */
+        #ui-container { display: flex; flex-direction: column; gap: 10px; }
+        
+        #inventory-bar {
             display: flex;
             gap: 8px;
             overflow-x: auto;
             padding-bottom: 5px;
-            min-height: 50px;
+            min-height: 40px;
+            scrollbar-width: none;
         }
-        .item-card {
-            background: #c4b69a;
-            border: 1px solid #5a4a3a;
-            border-radius: 4px;
-            padding: 5px 10px;
-            font-size: 12px;
+        #inventory-bar::-webkit-scrollbar { display: none; }
+        .item-badge {
+            background: #fff;
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: bold;
             white-space: nowrap;
-            box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            animation: popIn 0.3s ease;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+            display: flex; align-items: center; gap: 4px;
+            animation: popIn 0.3s;
         }
 
-        #choices-area {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        button {
-            background-color: var(--btn-bg);
-            color: var(--btn-text);
-            border: 1px solid var(--border-color);
-            padding: 12px 15px;
+        #choices-container { display: flex; flex-direction: column; gap: 8px; }
+        
+        button.action-btn {
+            background: var(--paper-dark);
+            color: var(--ink);
+            border: 1px solid var(--border);
+            padding: 12px;
             font-size: 16px;
             font-family: inherit;
+            font-weight: bold;
             border-radius: 4px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.1s;
             text-align: left;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 2px 2px 0 var(--border);
         }
-        button:hover:not(:disabled) {
-            background-color: var(--btn-hover);
-            transform: translateY(-1px);
-        }
-        button:active:not(:disabled) {
-            transform: translateY(1px);
-            box-shadow: none;
-        }
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            filter: grayscale(1);
-        }
-        button.primary {
-            background-color: var(--accent-color);
-            color: #fff;
-            font-weight: bold;
-            border-color: #5c1818;
-        }
-        button.primary:hover:not(:disabled) { background-color: #a33535; }
+        button.action-btn:hover:not(:disabled) { background: #c4b69a; }
+        button.action-btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+        button.action-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+        
+        button.primary-btn { background: var(--accent); color: #fff; border-color: #4a1010; box-shadow: 2px 2px 0 #2a0505; }
+        button.primary-btn:hover:not(:disabled) { background: var(--accent-hover); }
 
-        /* 底部導航列 */
+        /* 底部導航 */
         #bottom-nav {
-            background-color: #110e0b;
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            border-top: 2px solid #4a3b2c;
+            background: #000;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            border-top: 1px solid #333;
         }
         #bottom-nav button {
-            background: none;
-            border: none;
-            color: #d4c5a9;
-            box-shadow: none;
-            font-size: 14px;
-            text-align: center;
-            padding: 5px;
+            background: none; border: none; color: #888;
+            padding: 12px 0; font-size: 12px; font-family: sans-serif;
+            cursor: pointer; transition: color 0.3s; display: flex; flex-direction: column; align-items: center; gap: 4px;
         }
-        #bottom-nav button:active { transform: scale(0.9); }
+        #bottom-nav button:hover, #bottom-nav button.active { color: var(--paper-bg); }
+        #bottom-nav button i { font-size: 18px; font-style: normal; }
 
-        /* 彈窗與遮罩 */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            padding: 20px;
+        /* 彈窗系統 */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(3px);
+            display: none; justify-content: center; align-items: center;
+            z-index: 100; padding: 15px;
         }
-        .modal-overlay.active { display: flex; }
+        .modal.show { display: flex; }
         .modal-content {
-            background-color: var(--paper-color);
-            color: var(--text-color);
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-            border: 2px solid var(--border-color);
-            box-shadow: 0 0 30px rgba(255,255,255,0.1);
-            font-size: 14px;
-            line-height: 1.5;
+            background: var(--paper-bg); color: var(--ink);
+            width: 100%; max-width: 600px; max-height: 85vh;
+            border-radius: 6px; border: 2px solid var(--border);
+            padding: 20px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            font-size: 15px; line-height: 1.6;
         }
-        .modal-content h2 { margin-top: 0; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;}
-        .modal-content p { margin: 10px 0; }
-        .modal-content .highlight { background-color: rgba(255, 215, 0, 0.3); padding: 2px; border-radius: 3px; }
+        .modal-content h2 { color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; }
+        .modal-content ul, .modal-content ol { padding-left: 20px; margin-bottom: 15px; }
+        .modal-content li { margin-bottom: 5px; }
 
-        /* Toast 提示 */
+        /* 存檔列表 */
+        .save-slot { background: rgba(255,255,255,0.4); border: 1px solid var(--border); padding: 10px; margin-bottom: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;}
+        .save-slot button { padding: 5px 15px; background: var(--accent); color: white; border: none; border-radius: 3px; cursor: pointer; }
+
+        /* 提示 */
         #toast {
-            position: fixed;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: rgba(0,0,0,0.9);
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 14px;
-            opacity: 0;
-            transition: all 0.3s;
-            pointer-events: none;
-            z-index: 200;
-            border: 1px solid var(--accent-color);
+            position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: rgba(0,0,0,0.9); color: #fff; padding: 10px 20px;
+            border-radius: 30px; font-size: 14px; opacity: 0; transition: all 0.3s;
+            pointer-events: none; z-index: 200; border: 1px solid var(--accent);
         }
-        #toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
         /* 動畫 */
         @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        .fade-in { animation: fadeIn 0.4s ease-in; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
+        
         /* 手機優化 */
         @media (max-width: 600px) {
-            #text-content { font-size: 15px; }
-            button { padding: 10px; font-size: 15px; }
-            .modal-content { padding: 15px; font-size: 13px; }
-        }
-
-        /* 讀檔畫面 */
-        .save-slot {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 10px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 4px;
+            #story-text { font-size: 15px; }
+            button.action-btn { padding: 10px; font-size: 15px; }
+            #top-bar { font-size: 12px; }
         }
     </style>
 </head>
@@ -244,433 +200,348 @@
 
     <!-- 頂部狀態列 -->
     <div id="top-bar">
-        <div class="stat-item">❤️ 生命: <span class="stat-val" id="ui-hp">30</span></div>
-        <div class="stat-item">🧠 抗性: <span class="stat-val" id="ui-res">40</span></div>
-        <div class="stat-item">🎲 狀態: <span class="stat-val" id="ui-state">探索中</span></div>
+        <div class="stat">❤️ 生命 <span class="hp-val" id="ui-hp">30</span></div>
+        <div class="stat">🧠 抗性 <span class="res-val" id="ui-res">40</span></div>
+        <div class="stat" id="ui-location">📍 諾頓辦公室</div>
     </div>
 
-    <!-- 遊戲主畫面 -->
-    <div id="game-container">
-        <div id="text-content" class="fade-in"></div>
-        
-        <div id="ui-bottom">
-            <!-- 物品欄 (卡片式呈現) -->
-            <div id="inventory-area">
-                <!-- JS 動態生成 -->
-            </div>
-            <!-- 選項按鈕 -->
-            <div id="choices-area">
-                <!-- JS 動態生成 -->
+    <!-- 主遊戲區 -->
+    <div id="game-area">
+        <div id="paper-panel">
+            <div id="story-text"></div>
+            
+            <div id="ui-container">
+                <!-- 物品欄 -->
+                <div id="inventory-bar"></div>
+                <!-- 選項區 -->
+                <div id="choices-container"></div>
             </div>
         </div>
     </div>
 
-    <!-- 底部導航列 -->
+    <!-- 底部導航 -->
     <div id="bottom-nav">
-        <button onclick="showHelp()">📖 說明</button>
-        <button onclick="saveGame()">💾 存檔</button>
-        <button onclick="openLoadModal()">📂 讀檔</button>
-        <button onclick="openHistory()">📜 歷史</button>
-        <button onclick="toggleMute()" id="mute-btn">🔊 音效</button>
+        <button onclick="openModal('help-modal')"><i>📖</i>說明</button>
+        <button onclick="openModal('status-modal')"><i>📊</i>狀態</button>
+        <button onclick="openModal('map-modal')"><i>🗺️</i>地圖</button>
+        <button onclick="saveGame()"><i>💾</i>存檔</button>
+        <button onclick="openModal('load-modal')"><i>📂</i>讀檔</button>
     </div>
 
-    <!-- 說明文件彈窗 -->
-    <div class="modal-overlay" id="help-modal">
+    <!-- 說明彈窗 (預設打開) -->
+    <div class="modal show" id="help-modal">
         <div class="modal-content">
             <h2>📖 探險者指南</h2>
-            <p><strong>目標：</strong> 調查羅伯特·蘭道的失蹤案，活著逃出鬼屋，並解開背後的謎團。</p>
-            <p><strong>看懂畫面：</strong></p>
+            <p><strong>遊戲目標：</strong> 你扮演偵探諾頓，必須調查羅伯特·蘭道的失蹤案，深入鬼屋，收集關鍵物品，並活著逃出來。</p>
+            <p><strong>核心機制：</strong></p>
             <ul>
-                <li>請看畫面最上方的 <span class="highlight">❤️ 生命</span> 條，歸零則遊戲結束。</li>
-                <li>請看 <span class="highlight">🧠 抗性</span> 條，這代表你的理智。遭遇恐怖事件會扣抗性，歸零則精神崩潰。</li>
-                <li>下方為 <span class="highlight">背包區</span>，顯示你收集到的物品。</li>
-                <li>點擊選項按鈕推進故事，遇到技能檢定時，系統會自動為你擲骰。</li>
+                <li><strong>技能檢定：</strong> 根據你的技能方格數決定擲哪種骰子（0格=D2, 1格=D4... 5格=D20）。擲出的點數必須大於等於「難度」才算成功。</li>
+                <li><strong>爆骰機制：</strong> 若你擲出骰子的最大點數（如 D6 擲出 6），你可以<strong>再擲一次並累加</strong>，直到沒有擲出最大值。</li>
+                <li><strong>恐懼檢定：</strong> 遭遇恐怖事件時，需擲 D100。若結果小於等於你的「抗性」則成功。失敗會扣除抗性，抗性歸零則遊戲結束。</li>
+                <li><strong>戰鬥：</strong> 採用回合制，敵我雙方輪流擲骰攻擊。</li>
             </ul>
-            <p><strong>核心機制 - 爆骰：</strong> 如果你擲出骰子的最大點數（例如D6擲出6），你可以再擲一次並累加點數，直到沒有擲出最大值。這讓不可能的任務也有機會達成！</p>
-            <p><strong>操作步驟：</strong> 閱讀文本 ➔ 點擊選項 ➔ 查看擲骰結果 ➔ 獲得/失去物品 ➔ 繼續前進。</p>
-            <button class="primary" onclick="closeHelp()" style="width:100%; margin-top:10px;">我準備好了，開始遊戲</button>
+            <p style="text-align:center; margin-top: 20px;">
+                <button class="action-btn primary-btn" onclick="startGame()">我準備好了，開始遊戲</button>
+            </p>
         </div>
     </div>
 
-    <!-- 歷史紀錄彈窗 -->
-    <div class="modal-overlay" id="history-modal">
+    <!-- 狀態彈窗 -->
+    <div class="modal" id="status-modal">
         <div class="modal-content">
-            <h2>📜 探險紀錄</h2>
-            <div id="history-list"></div>
-            <button class="primary" onclick="closeHistory()" style="width:100%; margin-top:10px;">關閉</button>
+            <h2>📊 角色狀態</h2>
+            <p><strong>諾頓偵探</strong> (職業：調查員)</p>
+            <p>生命值：<span id="status-hp">30</span> / 30</p>
+            <p>抗性：<span id="status-res">40</span> / 40</p>
+            <hr style="border-color:var(--border); margin:10px 0;">
+            <h3>技能方格</h3>
+            <ul>
+                <li>聯繫：2 格 (D6)</li>
+                <li>識破謊言：3 格 (D8)</li>
+                <li>恐嚇：0 格 (D2)</li>
+                <li>開鎖：0 格 (D2)</li>
+                <li>拳法：3 格 (D8)</li>
+                <li>力量：2 格 (D6)</li>
+                <li>穩定度：4 格 (D10)</li>
+            </ul>
+            <button class="action-btn primary-btn" onclick="closeModal('status-modal')" style="width:100%;">關閉</button>
+        </div>
+    </div>
+
+    <!-- 地圖彈窗 -->
+    <div class="modal" id="map-modal">
+        <div class="modal-content">
+            <h2>🗺️ 當前探索區域</h2>
+            <p id="map-text">你目前位於：諾頓辦公室</p>
+            <p style="font-size:13px; color:#555;">(隨著冒險推進，你會解鎖更多區域。你可以透過選擇按鈕在已探索的區域間移動。)</p>
+            <button class="action-btn primary-btn" onclick="closeModal('map-modal')" style="width:100%;">關閉</button>
         </div>
     </div>
 
     <!-- 讀檔彈窗 -->
-    <div class="modal-overlay" id="load-modal">
+    <div class="modal" id="load-modal">
         <div class="modal-content">
             <h2>📂 讀取存檔</h2>
             <div id="save-slots"></div>
-            <button onclick="closeLoadModal()" style="width:100%; margin-top:10px;">取消</button>
+            <button class="action-btn" onclick="closeModal('load-modal')" style="width:100%;">取消</button>
         </div>
     </div>
 
     <!-- Toast 提示 -->
-    <div id="toast">提示訊息</div>
+    <div id="toast"></div>
 
-    <!-- 音效 (Web Audio API) -->
     <script>
-        let audioCtx;
-        let isMuted = false;
-        function initAudio() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // ================= 音效系統 =================
+        let audioCtx = null;
+        function playSound(type) {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+                if (type === 'click') {
+                    osc.type = 'square'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(); osc.stop(now + 0.1);
+                } else if (type === 'success') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(600, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(); osc.stop(now + 0.3);
+                } else if (type === 'fail') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(); osc.stop(now + 0.3);
+                }
+            } catch(e) { console.log("音效播放失敗", e); }
         }
-        function playClickSound() {
-            if (isMuted) return;
-            initAudio();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
-        }
-        function playSuccessSound() {
-            if (isMuted) return;
-            initAudio();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-            osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.3);
-        }
-        function playFailSound() {
-            if (isMuted) return;
-            initAudio();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.3);
-        }
-        function toggleMute() {
-            isMuted = !isMuted;
-            document.getElementById('mute-btn').innerText = isMuted ? '🔇 靜音' : '🔊 音效';
-        }
-    </script>
 
-    <!-- 遊戲邏輯 -->
-    <script>
-        // ================= 狀態機與遊戲資料 =================
-        const GameState = {
-            START: 'START',
-            PLAYING: 'PLAYING',
-            ROLLING: 'ROLLING',
-            END: 'END'
-        };
-
-        let currentState = GameState.START;
+        // ================= 狀態與資料 =================
+        const GameState = { INIT: 'INIT', READING: 'READING', ROLLING: 'ROLLING', COMBAT: 'COMBAT', END: 'END' };
+        let currentState = GameState.INIT;
         let currentChapterId = 'start';
-        let historyLog = [];
+        let typewriterTimer = null;
+        let isTyping = false;
 
         const player = {
-            hp: 30,
-            maxHp: 30,
-            res: 40,
-            maxRes: 40,
-            inventory: [],
-            skills: {
-                '聯繫': 2,
-                '識破謊言': 3,
-                '恐嚇': 0,
-                '開鎖': 0,
-                '拳法': 3,
-                '力量': 2,
-                '穩定度': 4
-            }
+            hp: 30, maxHp: 30, res: 40, maxRes: 40,
+            inventory: ['自動手槍', '彈匣', '偵探證', '打火機'],
+            skills: { '聯繫': 2, '識破謊言': 3, '恐嚇': 0, '開鎖': 0, '拳法': 3, '力量': 2, '穩定度': 4 }
         };
 
-        // 簡單的骰子邏輯，包含爆骰
-        function rollDice(sides, count = 1) {
-            let total = 0;
-            let rolls = [];
-            for (let i = 0; i < count; i++) {
-                let roll = Math.floor(Math.random() * sides) + 1;
-                rolls.push(roll);
-                total += roll;
-                // 爆骰邏輯
-                while (roll === sides) {
-                    roll = Math.floor(Math.random() * sides) + 1;
-                    rolls.push(roll);
-                    total += roll;
-                }
-            }
-            return { total, rolls };
-        }
+        let combatState = {};
 
-        // 技能檢定
-        function skillCheck(skillName, difficulty) {
-            const boxes = player.skills[skillName] || 0;
-            let dieSides = 2;
-            if (boxes === 1) dieSides = 4;
-            else if (boxes === 2) dieSides = 6;
-            else if (boxes === 3) dieSides = 8;
-            else if (boxes === 4) dieSides = 10;
-            else if (boxes === 5) dieSides = 20;
-
-            const result = rollDice(dieSides);
-            const success = result.total >= difficulty;
-            return { success, total: result.total, rolls: result.rolls, die: `D${dieSides}`, difficulty };
-        }
-
-        // 恐懼檢定 (擲 D100)
-        function fearCheck() {
-            const roll = Math.floor(Math.random() * 100) + 1;
-            const success = roll <= player.res;
-            return { success, roll, res: player.res };
-        }
-
-        // 故事資料庫 (JSON 格式分離)
-        const chapters = {
+        // 故事資料庫 (精簡版確保流暢)
+        const story = {
             'start': {
                 title: '諾頓偵探事務所',
-                text: '一個女人走進你的辦公室，她叫米娜·蘭道。\n\n"諾頓偵探，我需要你的幫助。我丈夫羅伯特失蹤了。我向當局求助，但他們只會讓我消失..."\n\n你打量著她，這是一個典型的城市悲劇。你決定接下這個案子。\n\n你應該先去哪裡調查？',
+                text: '一個女人走進你的辦公室。她自稱米娜·蘭道，她的丈夫羅伯特失蹤了。\n\n作為一名私家偵探，你接下了這個案子。你拿出地圖，決定從哪裡開始調查？',
+                loc: '辦公室',
                 choices: [
-                    { text: '去大學找羅伯特的老師拉德洛教授。', next: 'university' },
-                    { text: '去碼頭找你的聯絡人「瘦艾迪」。', next: 'docks' },
-                    { text: '去林肯無線電修理店找老闆馬丁。', next: 'shop' }
+                    { text: '前往沃姆克利夫大學尋找拉德洛教授。', next: 'university' },
+                    { text: '前往碼頭尋找你的線人瘦艾迪。', next: 'docks' },
+                    { text: '前往林肯無線電修理店。', next: 'shop' }
                 ]
             },
             'university': {
                 title: '沃姆克利夫大學',
-                text: '你來到現代化的校園。拉德洛教授是一個留著白鬍子的男人，他看起來很不耐煩。\n\n"羅伯特？他是一個好學生，但最近他借了一些昂貴的設備，我幫他搬進了修理店。現在商店裡發生了一些事情，我不想和它有任何關係。"\n\n你注意到他神色慌張。',
+                text: '拉德洛教授是個留著白鬍子的男人。他顯得很焦慮："羅伯特借了昂貴的設備，並在修理店裡做私人研究。現在店裡出事了，我不想惹麻煩。"\n\n你覺得他隱瞞了什麼。',
+                loc: '大學',
                 choices: [
-                    { text: '進行【識破謊言】檢定，逼問他更多細節。', action: 'skill_check', skill: '識破謊言', difficulty: 4, successNext: 'university_success', failNext: 'university_fail' },
+                    { text: '使用【識破謊言】逼問他。', action: 'skill_check', skill: '識破謊言', difficulty: 4, successNext: 'university_success', failNext: 'university_fail' },
                     { text: '離開，前往林肯修理店。', next: 'shop' }
                 ]
             },
             'university_success': {
-                title: '教授的秘密',
-                text: '你看出他在隱瞞什麼。在你的逼問下，他終於崩潰："羅伯特在進行私人項目，他在研究一種奇怪的無線電管，能發出紅光和藍光。他說這能改變世界！但他老闆發現了，我發誓我不知道他去了哪裡！"\n\n你獲得了線索。',
-                choices: [
-                    { text: '前往林肯修理店。', next: 'shop' }
-                ]
+                title: '教授的坦白',
+                text: '教授崩潰了："好吧！羅伯特在研究一種能發出紅光和藍光的無線電管。他老闆發現了，我幫他把設備藏在工作台下面。我不知道他現在在哪裡！"',
+                loc: '大學',
+                choices: [{ text: '前往林肯修理店。', next: 'shop' }]
             },
             'university_fail': {
                 title: '被趕出校園',
-                text: '教授看穿了你的意圖，他叫來了校園保安，你被趕出了大學。你感到一陣挫敗。',
-                choices: [
-                    { text: '前往林肯修理店。', next: 'shop' }
-                ]
+                text: '教授警覺了，他叫來保安把你趕了出去。你沒有獲得任何線索。',
+                loc: '大學',
+                choices: [{ text: '前往林肯修理店。', next: 'shop' }]
             },
             'docks': {
                 title: '康科迪亞渡輪碼頭',
-                text: '你找到了瘦艾迪。他正忙著檢查登機牌。\n\n"嘿，諾頓！需要幫忙？" 他壓低聲音說。\n\n你向他打聽羅伯特是否離開這座城市。',
+                text: '你找到了瘦艾迪。"嘿，諾頓！"他低聲說，"如果是關於那個失蹤的學生，我不能說太多，安全總部的人在盯著。"',
+                loc: '碼頭',
                 choices: [
-                    { text: '進行【聯繫】檢定，說服艾迪幫你查紀錄。', action: 'skill_check', skill: '聯繫', difficulty: 5, successNext: 'docks_success', failNext: 'docks_fail' },
+                    { text: '使用【聯繫】說服艾迪幫你查乘客名單。', action: 'skill_check', skill: '聯繫', difficulty: 5, successNext: 'docks_success', failNext: 'docks_fail' },
                     { text: '離開，前往林肯修理店。', next: 'shop' }
                 ]
             },
             'docks_success': {
                 title: '碼頭情報',
-                text: '艾迪猶豫了一下，然後查閱了紀錄。"他沒有離開，諾頓。而且最近安全總部的人在調查修理店，你最好小心點。"\n\n你獲得了重要情報。',
-                choices: [
-                    { text: '前往林肯修理店。', next: 'shop' }
-                ]
+                text: '艾迪查了紀錄："他沒離開這座城市。但他最近常去郊區的一棟廢棄房子。小心點，諾頓。"',
+                loc: '碼頭',
+                choices: [{ text: '前往林肯修理店。', next: 'shop' }]
             },
             'docks_fail': {
                 title: '無功而返',
-                text: '艾迪搖了搖頭："抱歉，諾頓，我不能拿我的工作冒險。如果被發現我洩露乘客名單，我會被扔出這座島的。"\n\n你只好離開。',
-                choices: [
-                    { text: '前往林肯修理店。', next: 'shop' }
-                ]
+                text: '艾迪搖了搖頭："抱歉，我不能丟了這份工作。"你只好離開。',
+                loc: '碼頭',
+                choices: [{ text: '前往林肯修理店。', next: 'shop' }]
             },
             'shop': {
                 title: '林肯無線電修理店',
-                text: '你來到修理店，老闆馬丁·帕克斯頓是個矮小的老人。他告訴你羅伯特那晚沒有來上班。\n\n當你準備離開時，你看到他掛上了「打烊」的牌子，拖著一個大箱子走出了店門。\n\n這很不尋常，你要怎麼做？',
+                text: '老闆馬丁是個矮小的老人。他告訴你羅伯特那晚沒來上班。\n\n當你準備離開時，你看到他掛上「打烊」的牌子，拖著一個大箱子走出了店門。',
+                loc: '修理店',
                 choices: [
                     { text: '跟蹤馬丁。', next: 'follow_martin' },
-                    { text: '趁他不在，撬開後門進去。', action: 'skill_check', skill: '開鎖', difficulty: 4, successNext: 'break_in_success', failNext: 'break_in_fail' }
+                    { text: '趁他不在，使用【開鎖】撬開後門。', action: 'skill_check', skill: '開鎖', difficulty: 4, successNext: 'break_in', failNext: 'break_in_fail' }
                 ]
             },
             'follow_martin': {
                 title: '跟蹤',
-                text: '你跟蹤馬丁來到了一處偏僻的郊區。他走進了一座廢棄的希臘復興式建築——鬼屋。\n\n你等了一會，然後決定從後門進去。後門被木板封死了，你一推，地板突然塌陷！',
-                action: 'damage', value: 5, next: 'basement'
+                text: '你跟蹤馬丁來到郊區一棟廢棄的希臘復興式建築（鬼屋）。他進去後，你決定從後門潛入。後門半開著，你一推，地板突然塌陷！',
+                action: 'damage', value: 3, next: 'basement'
             },
-            'break_in_success': {
+            'break_in': {
                 title: '潛入店內',
-                text: '你成功撬開了鎖。店內一片漆黑。你仔細搜索了羅伯特的工作台，發現他的筆記本少了幾頁，而且工作台被清理得很乾淨。\n\n你在抽屜裡找到了一把小鑰匙和一個手電筒。',
-                action: 'add_item', items: ['小鑰匙', '手電筒'], next: 'basement'
+                text: '你成功撬開了鎖。在羅伯特的工作台抽屜裡，你找到了一把小鑰匙和一把手電筒。',
+                action: 'add_items', items: ['小鑰匙', '手電筒'], next: 'basement'
             },
             'break_in_fail': {
                 title: '被發現',
-                text: '你弄出了太大的聲響，引起了路人的注意。你不得不放棄，但你在店外的垃圾桶裡找到了一個手電筒。',
-                action: 'add_item', items: ['手電筒'], next: 'basement'
+                text: '你弄出了太大聲響，路人報了警。你只能放棄，在逃跑路上撿到了一把手電筒。',
+                action: 'add_items', items: ['手電筒'], next: 'basement'
             },
             'basement': {
                 title: '鬼屋 - 地下室',
-                text: '你醒來，發現自己躺在潮濕的地下室裡。藉著微弱的光線，你看到周圍散落著奇怪的管子和廢棄的實驗設備。\n\n突然，你聽到了黑暗深處傳來的呼吸聲和金屬摩擦聲。',
-                choices: [
-                    { text: '進行【恐懼檢定】。', action: 'fear_check', nextSuccess: 'basement_fear_success', nextFail: 'basement_fear_fail' }
-                ]
-            },
-            'basement_fear_success': {
-                title: '保持冷靜',
-                text: '你強忍著恐懼，穩住了心神。黑暗中竄出一個長著爪子的黑影，撲向你！\n\n你拔出拳頭準備戰鬥。',
-                choices: [
-                    { text: '與黑影戰鬥！', action: 'combat', enemy: 'shadow', hp: 8, atkDie: 6, dmgDie: 6, nextWin: 'basement_win', nextLose: 'game_over' }
-                ]
+                text: '你醒來，發現自己躺在潮濕的地下室裡。四周散落著奇怪的管子和廢棄設備。\n\n突然，你聽到了黑暗深處傳來的呼吸聲和金屬摩擦聲。有東西在靠近！',
+                loc: '鬼屋 地下室',
+                choices: [{ text: '進行【恐懼檢定】。', action: 'fear_check', nextSuccess: 'basement_shadow', nextFail: 'basement_fear_fail' }]
             },
             'basement_fear_fail': {
                 title: '驚慌失措',
                 text: '恐懼吞噬了你。你在黑暗中亂竄，被一個黑影抓傷了。',
-                action: 'damage_res', value: 10, next: 'basement_fear_success'
+                action: 'damage_res', value: 6, next: 'basement_shadow'
+            },
+            'basement_shadow': {
+                title: '黑暗中的攻擊',
+                text: '一個長著爪子的黑影從黑暗中竄出，撲向你！你必須自衛！',
+                action: 'start_combat',
+                enemy: { name: '黑影怪物', hp: 8, atkBoxes: 2, defBoxes: 2, dmgDie: 6 },
+                nextWin: 'basement_win', nextLose: 'game_over'
             },
             'basement_win': {
                 title: '暫時安全',
                 text: '黑影消散了。你發現地下室有一扇通往一樓的樓梯，旁邊還有一個發著微弱藍光的燈管。',
-                action: 'add_item', items: ['藍色燈管'], next: 'first_floor'
+                action: 'add_items', items: ['藍色燈管'], next: 'first_floor'
             },
             'first_floor': {
-                title: '鬼屋 - 一樓',
-                text: '你來到了一樓大廳。這裡有一座巨大的樓梯通往二樓，還有幾扇緊閉的門。\n\n你聽到二樓傳來了奇怪的腳步聲。',
+                title: '鬼屋 - 一樓大廳',
+                text: '你來到了一樓大廳。這裡有一座巨大的樓梯通往二樓，左邊是餐廳，右邊是溫室。\n\n你聽到二樓傳來了腳步聲。',
+                loc: '鬼屋 一樓',
                 choices: [
-                    { text: '上二樓。', next: 'second_floor' },
-                    { text: '探索一樓的餐廳。', next: 'dining_room' },
-                    { text: '搜索一樓的溫室。', next: 'greenhouse' }
+                    { text: '前往二樓。', next: 'second_floor' },
+                    { text: '探索餐廳。', next: 'dining_room' },
+                    { text: '進入溫室尋找出口。', next: 'greenhouse' }
                 ]
             },
             'dining_room': {
                 title: '餐廳',
-                text: '餐廳裡擺滿了豐盛的食物。你餓極了，坐下來吃。\n\n突然，燈滅了。你用打火機一照，發現你吃的都是腐爛的肉和蛆蟲！',
-                choices: [
-                    { text: '進行【恐懼檢定】。', action: 'fear_check', nextSuccess: 'dining_fear_success', nextFail: 'dining_fear_fail' }
-                ]
+                text: '餐廳裡擺滿了豐盛的食物。你餓極了，坐下來吃。\n\n突然，燈滅了。你用打火機一照，發現你吃的都是腐爛的肉和蠕動的蛆蟲！',
+                choices: [{ text: '進行【恐懼檢定】。', action: 'fear_check', nextSuccess: 'dining_safe', nextFail: 'dining_sick' }]
             },
-            'dining_fear_success': {
-                title: '忍住嘔吐',
-                text: '你忍住了噁心，沒有嘔吐。你離開了餐廳。',
-                choices: [
-                    { text: '回到大廳。', next: 'first_floor' }
-                ]
+            'dining_safe': {
+                title: '忍住噁心',
+                text: '你強忍著嘔吐感，逃離了餐廳。',
+                choices: [{ text: '回到大廳。', next: 'first_floor' }]
             },
-            'dining_fear_fail': {
+            'dining_sick': {
                 title: '食物中毒',
-                text: '你吐得天昏地暗，食物中毒讓你損失了生命值。',
-                action: 'damage', value: 6, next: 'dining_fear_success'
+                text: '你吐得天昏地暗，食物中毒讓你的身體極度虛弱。',
+                action: 'damage', value: 6, next: 'dining_safe'
             },
             'greenhouse': {
                 title: '溫室',
-                text: '這裡的植物已經枯萎。正當你準備砸破窗戶逃出去時，一堆藤蔓升起，一個巨大的、長滿尖刺的惡魔出現在你面前！\n\n牠守在窗前，你知道你必須擊敗牠才能出去。',
+                text: '這裡的植物已經枯萎。正當你準備砸破窗戶逃出去時，一個巨大的、長滿尖刺的惡魔從藤蔓中升起，擋住了去路！',
                 choices: [
-                    { text: '使用【儀式匕首】（若有）擊殺惡魔。', action: 'check_item', item: '惡魔殺戮匕首', next: 'greenhouse_win', failText: '你沒有能殺死惡魔的武器！', failNext: 'first_floor' },
-                    { text: '朝惡魔開槍（若有手槍）。', action: 'check_item', item: '自動手槍', next: 'greenhouse_shoot', failText: '你沒有槍！', failNext: 'first_floor' },
+                    { text: '使用【儀式匕首】擊殺惡魔。', action: 'check_item', item: '儀式匕首', next: 'greenhouse_win', failText: '你沒有能殺死惡魔的武器！', failNext: 'first_floor' },
                     { text: '退回大廳。', next: 'first_floor' }
                 ]
             },
-            'greenhouse_shoot': {
-                title: '無效的攻擊',
-                text: '子彈打在惡魔身上毫無作用。你打空了彈匣，只能退回大廳。',
-                action: 'remove_item', item: '自動手槍', next: 'first_floor'
-            },
             'greenhouse_win': {
                 title: '擊敗惡魔',
-                text: '你用匕首刺入惡魔的心臟，牠化作一陣煙霧消失了。你砸碎窗戶，逃出了鬼屋！\n\n你終於自由了。',
-                action: 'ending', next: 'ending_escape'
+                text: '你用匕首刺入惡魔的心臟，牠化作一陣煙霧消失。你砸碎窗戶，逃出了鬼屋！',
+                action: 'ending', next: 'game_over'
             },
             'second_floor': {
-                title: '鬼屋 - 二樓',
-                text: '你上到二樓，發現一個書房。裡面有一個巨大的壁爐和一把背對著你的高背椅。\n\n一隻手從椅子扶手上伸出來，一個邪惡的幽靈站了起來，牠長著長長的爪子，向你撲來！',
-                choices: [
-                    { text: '進行【恐懼檢定】。', action: 'fear_check', nextSuccess: 'boss_fear_success', nextFail: 'boss_fear_fail' }
-                ]
+                title: '鬼屋 - 二樓書房',
+                text: '你上到二樓，發現一個書房。一個邪惡的幽靈從高背椅上站起，長長的爪子向你撲來！',
+                choices: [{ text: '進行【恐懼檢定】。', action: 'fear_check', nextSuccess: 'boss_fight', nextFail: 'boss_fear_fail' }]
             },
             'boss_fear_fail': {
                 title: '精神崩潰',
-                text: '幽靈的恐怖超過了你的承受極限。你癱倒在地，任由牠的爪子撕裂你的喉嚨。',
+                text: '幽靈的恐怖超過了你的極限。你癱倒在地，任由牠的爪子撕裂你。',
                 action: 'damage', value: 30, next: 'game_over'
             },
-            'boss_fear_success': {
-                title: '直面恐懼',
-                text: '你克服了恐懼。幽靈向你撲來，但你手裡有武器！',
+            'boss_fight': {
+                title: '直面幽靈領主',
+                text: '你克服了恐懼。幽靈領主向你撲來！',
                 choices: [
-                    { text: '使用【儀式匕首】（若有）斬殺幽靈。', action: 'check_item', item: '儀式匕首', next: 'boss_win_dagger', failText: '你沒有儀式匕首，無法傷害幽靈！', failNext: 'boss_fail' },
-                    { text: '進行【拳法】檢定與幽靈肉搏。', action: 'skill_check', skill: '拳法', difficulty: 6, successNext: 'boss_win_fist', failNext: 'boss_fail' }
+                    { text: '使用【惡魔殺戮匕首】斬殺幽靈。', action: 'check_item', item: '惡魔殺戮匕首', next: 'boss_win', failText: '你沒有能殺死幽靈的武器！', failNext: 'boss_fist' },
+                    { text: '用拳頭戰鬥！', action: 'start_combat', enemy: { name: '幽靈領主', hp: 20, atkBoxes: 4, defBoxes: 4, dmgDie: 8 }, nextWin: 'boss_win', nextLose: 'game_over' }
                 ]
             },
-            'boss_fail': {
-                title: '死亡',
-                text: '幽靈的爪子刺穿了你的胸膛。你倒在血泊中，成為了這座鬼屋的又一個犧牲者。',
-                action: 'ending', next: 'game_over'
+            'boss_fist': {
+                title: '肉搏戰',
+                text: '你只能靠拳頭了！',
+                action: 'start_combat',
+                enemy: { name: '幽靈領主', hp: 20, atkBoxes: 4, defBoxes: 4, dmgDie: 8 },
+                nextWin: 'boss_win', nextLose: 'game_over'
             },
-            'boss_win_dagger': {
-                title: '消滅幽靈',
-                text: '你揮舞著匕首，幽靈在尖叫中化為灰燼。你在房間裡找到了羅伯特的遺物和一些神祕的線索。\n\n你成功地完成了委託，並活著走出了鬼屋。',
-                action: 'ending', next: 'ending_escape'
-            },
-            'boss_win_fist': {
-                title: '慘勝',
-                text: '你竟然用拳頭打散了幽靈！但你也受了重傷。你跌跌撞撞地逃出了鬼屋，把真相告訴了米娜。',
-                action: 'ending', next: 'ending_escape'
-            },
-            'ending_escape': {
+            'boss_win': {
                 title: '案件結束',
-                text: '你回到了辦公室，喝著蘇格蘭威士忌。雖然你逃出來了，但這座城市隱藏著更深的黑暗。\n\n卡恩公司、奇怪的管子和邪教儀式...這一切才剛剛開始。\n\n（恭喜通關！）',
-                choices: [
-                    { text: '重新開始', next: 'start' }
-                ]
+                text: '你成功擊敗了幽靈領主。你帶著羅伯特的遺物走出了鬼屋。\n\n你回到了辦公室，把真相告訴了米娜。這座城市隱藏著更深的黑暗。\n\n（恭喜通關！）',
+                action: 'ending', next: 'game_over'
             },
             'game_over': {
                 title: '探險結束',
-                text: '你永遠地留在了這座鬼屋裡...\n\n（你死了。可以重新開始，或者讀取存檔。）',
-                choices: [
-                    { text: '重新開始', next: 'start' }
-                ]
+                text: '你倒在了冰冷的地板上...\n\n（遊戲結束，請重新開始或讀取存檔。）',
+                choices: [{ text: '重新開始', next: 'start' }]
             }
         };
 
-        // ================= 核心邏輯 =================
-        const textEl = document.getElementById('text-content');
-        const choicesEl = document.getElementById('choices-area');
-        const invEl = document.getElementById('inventory-area');
-        const uiHp = document.getElementById('ui-hp');
-        const uiRes = document.getElementById('ui-res');
-        const uiState = document.getElementById('ui-state');
+        // ================= DOM 與核心邏輯 =================
+        const dom = {
+            text: document.getElementById('story-text'),
+            choices: document.getElementById('choices-container'),
+            inv: document.getElementById('inventory-bar'),
+            uiHp: document.getElementById('ui-hp'),
+            uiRes: document.getElementById('ui-res'),
+            uiLoc: document.getElementById('ui-location'),
+            statusHp: document.getElementById('status-hp'),
+            statusRes: document.getElementById('status-res'),
+            mapText: document.getElementById('map-text')
+        };
 
         function updateUI() {
-            uiHp.innerText = player.hp;
-            uiRes.innerText = player.res;
-            uiState.innerText = currentState === GameState.PLAYING ? '探索中' : (currentState === GameState.END ? '結束' : '檢定中');
+            dom.uiHp.innerText = player.hp;
+            dom.uiRes.innerText = player.res;
+            dom.statusHp.innerText = player.hp;
+            dom.statusRes.innerText = player.res;
             
-            // 渲染物品欄 (卡片)
-            invEl.innerHTML = '';
+            dom.inv.innerHTML = '';
             if (player.inventory.length === 0) {
-                invEl.innerHTML = '<span style="color:#888; font-size:12px; font-style:italic;">（目前沒有物品）</span>';
+                dom.inv.innerHTML = '<span style="font-size:12px; color:#666;">(背包是空的)</span>';
             } else {
                 player.inventory.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'item-card';
+                    const el = document.createElement('div');
+                    el.className = 'item-badge';
                     let icon = '📦';
-                    if(item === '手電筒') icon = '🔦';
-                    if(item === '小鑰匙') icon = '🔑';
-                    if(item === '藍色燈管') icon = '🔵';
-                    if(item === '儀式匕首') icon = '🗡️';
-                    if(item === '自動手槍') icon = '🔫';
-                    div.innerHTML = `<span>${icon}</span> ${item}`;
-                    invEl.appendChild(div);
+                    if (item.includes('手電筒')) icon = '🔦';
+                    if (item.includes('鑰匙')) icon = '🔑';
+                    if (item.includes('燈管')) icon = '🔵';
+                    if (item.includes('匕首')) icon = '🗡️';
+                    if (item.includes('手槍')) icon = '🔫';
+                    el.innerHTML = `${icon} ${item}`;
+                    dom.inv.appendChild(el);
                 });
             }
         }
@@ -682,233 +553,306 @@
             setTimeout(() => toast.classList.remove('show'), 2500);
         }
 
-        function renderChapter(id) {
-            if (currentState === GameState.END) return;
-            currentChapterId = id;
-            const chapter = chapters[id];
+        function openModal(id) {
+            document.getElementById(id).classList.add('show');
+            if (id === 'map-modal') dom.mapText.innerText = `你目前位於：${story[currentChapterId]?.loc || '未知區域'}`;
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
+        // 極簡化打字機效果，確保穩定不卡死
+        function typeText(htmlContent, callback) {
+            if (typewriterTimer) clearInterval(typewriterTimer);
+            dom.text.innerHTML = '';
+            dom.text.scrollTop = 0;
             
+            // 為了防止解析 HTML 出錯，我們直接顯示全文，但增加淡入動畫
+            dom.text.innerHTML = htmlContent;
+            dom.text.classList.remove('fade-in');
+            void dom.text.offsetWidth; // 觸發重繪
+            dom.text.classList.add('fade-in');
+            
+            // 自動滾動到底部
+            setTimeout(() => { dom.text.scrollTop = dom.text.scrollHeight; }, 50);
+            
+            if (callback) callback();
+        }
+
+        function renderChapter(id) {
+            if (currentState === GameState.END && id !== 'game_over' && id !== 'start') return;
+            const chapter = story[id];
             if (!chapter) {
-                console.error('Chapter not found:', id);
+                console.error("找不到章節:", id);
                 return;
             }
-
-            historyLog.push({ id, title: chapter.title });
             
-            textEl.classList.remove('fade-in');
-            void textEl.offsetWidth; // 觸發重繪
-            textEl.classList.add('fade-in');
-            textEl.innerHTML = `<strong>${chapter.title}</strong><br><br>${chapter.text}`;
-            choicesEl.innerHTML = '';
-            currentState = GameState.PLAYING;
+            currentChapterId = id;
+            currentState = GameState.READING;
+            dom.uiLoc.innerText = chapter.loc || '未知區域';
+            dom.choices.innerHTML = ''; // 清空按鈕
 
-            // 處理章節效果
+            let displayText = `<div class="chapter-title">${chapter.title}</div><div>${chapter.text}</div>`;
+            
+            // 處理效果
             if (chapter.action === 'damage') {
-                player.hp -= chapter.value;
-                if (player.hp <= 0) player.hp = 0;
-                updateUI();
-                showToast(`你受到了 ${chapter.value} 點傷害！`);
-                if (player.hp <= 0) return renderChapter('game_over');
+                player.hp = Math.max(0, player.hp - chapter.value);
+                displayText += `<div class="roll-result" style="color:var(--hp);">💥 你受到了 ${chapter.value} 點傷害。</div>`;
+                playSound('fail');
             }
             if (chapter.action === 'damage_res') {
-                player.res -= chapter.value;
-                if (player.res <= 0) player.res = 0;
-                updateUI();
-                showToast(`你失去了 ${chapter.value} 點抗性！`);
-                if (player.res <= 0) return renderChapter('game_over');
+                player.res = Math.max(0, player.res - chapter.value);
+                displayText += `<div class="roll-result" style="color:var(--res);">😱 你失去了 ${chapter.value} 點抗性。</div>`;
+                playSound('fail');
             }
-            if (chapter.action === 'add_item') {
+            if (chapter.action === 'add_items') {
                 chapter.items.forEach(item => {
                     if (!player.inventory.includes(item)) {
                         player.inventory.push(item);
-                        showToast(`獲得物品：${item}`);
+                        displayText += `<div class="roll-result" style="color:green;">🎒 獲得物品：${item}</div>`;
                     }
                 });
-                updateUI();
+                playSound('success');
             }
-            if (chapter.action === 'remove_item') {
-                const idx = player.inventory.indexOf(chapter.item);
-                if (idx > -1) player.inventory.splice(idx, 1);
-                updateUI();
-            }
-            if (chapter.action === 'ending') {
+            
+            if (player.hp <= 0 || player.res <= 0) {
                 currentState = GameState.END;
-                unlockAchievement(chapter.next);
-                return renderChapter(chapter.next);
+                setTimeout(() => renderChapter('game_over'), 1500);
             }
 
-            // 渲染選項
-            if (chapter.choices) {
-                chapter.choices.forEach(choice => {
-                    const btn = document.createElement('button');
-                    btn.innerText = choice.text;
-                    btn.onclick = () => {
-                        playClickSound();
-                        handleChoice(choice);
-                    };
-                    choicesEl.appendChild(btn);
-                });
-            }
             updateUI();
+            
+            typeText(displayText, () => {
+                if (currentState === GameState.END) return;
+                if (chapter.choices) renderChoices(chapter.choices);
+                if (chapter.action === 'start_combat') startCombat(chapter.enemy, chapter.nextWin, chapter.nextLose);
+            });
+        }
+
+        function renderChoices(choices) {
+            dom.choices.innerHTML = '';
+            choices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = 'action-btn';
+                btn.innerText = choice.text;
+                btn.onclick = () => { playSound('click'); handleChoice(choice); };
+                dom.choices.appendChild(btn);
+            });
         }
 
         function handleChoice(choice) {
-            if (currentState !== GameState.PLAYING) return;
-
+            if (currentState !== GameState.READING) return;
             if (choice.action === 'skill_check') {
-                currentState = GameState.ROLLING;
-                choicesEl.innerHTML = '<div style="text-align:center; padding: 10px; color: #8b2a2a;">正在進行檢定...</div>';
-                setTimeout(() => {
-                    const result = skillCheck(choice.skill, choice.difficulty);
-                    let text = `🎲 擲出 ${result.die}，結果為 [${result.rolls.join(' + ')}] = <strong>${result.total}</strong>。<br>難度為 ${result.difficulty}。`;
-                    if (result.success) {
-                        text += `<br><br><span style="color:green;">檢定成功！</span>`;
-                        playSuccessSound();
-                    } else {
-                        text += `<br><br><span style="color:red;">檢定失敗！</span>`;
-                        playFailSound();
-                    }
-                    textEl.innerHTML += `<br><br><div style="background:rgba(255,255,255,0.5); padding:10px; border-radius:5px; border:1px solid #aaa;">${text}</div>`;
-                    
-                    const nextBtn = document.createElement('button');
-                    nextBtn.className = 'primary';
-                    nextBtn.innerText = '繼續';
-                    nextBtn.onclick = () => {
-                        playClickSound();
-                        renderChapter(result.success ? choice.successNext : choice.failNext);
-                    };
-                    choicesEl.innerHTML = '';
-                    choicesEl.appendChild(nextBtn);
-                }, 500);
-            } 
-            else if (choice.action === 'fear_check') {
-                currentState = GameState.ROLLING;
-                choicesEl.innerHTML = '<div style="text-align:center; padding: 10px; color: #8b2a2a;">正在進行恐懼檢定...</div>';
-                setTimeout(() => {
-                    const result = fearCheck();
-                    let text = `🎲 擲出 D100，結果為 <strong>${result.roll}</strong>。<br>你的抗性為 ${result.res}。`;
-                    if (result.success) {
-                        text += `<br><br><span style="color:green;">你保持住了理智。</span>`;
-                        playSuccessSound();
-                    } else {
-                        text += `<br><br><span style="color:red;">你陷入了恐慌！</span>`;
-                        playFailSound();
-                    }
-                    textEl.innerHTML += `<br><br><div style="background:rgba(255,255,255,0.5); padding:10px; border-radius:5px; border:1px solid #aaa;">${text}</div>`;
-                    
-                    const nextBtn = document.createElement('button');
-                    nextBtn.className = 'primary';
-                    nextBtn.innerText = '繼續';
-                    nextBtn.onclick = () => {
-                        playClickSound();
-                        renderChapter(result.success ? choice.nextSuccess : choice.nextFail);
-                    };
-                    choicesEl.innerHTML = '';
-                    choicesEl.appendChild(nextBtn);
-                }, 500);
-            }
-            else if (choice.action === 'check_item') {
+                performSkillCheck(choice.skill, choice.difficulty, choice.successNext, choice.failNext);
+            } else if (choice.action === 'fear_check') {
+                performFearCheck(choice.nextSuccess, choice.nextFail);
+            } else if (choice.action === 'check_item') {
                 if (player.inventory.includes(choice.item)) {
                     renderChapter(choice.next);
                 } else {
-                    showToast(choice.failText || `你需要【${choice.item}】才能這麼做！`);
-                    // 如果沒有物品，依然可以選擇其他選項，這裡不強制跳轉
-                    if(choice.failNext) renderChapter(choice.failNext);
+                    showToast(choice.failText || `你需要【${choice.item}】！`);
+                    if (choice.failNext) renderChapter(choice.failNext);
                 }
-            }
-            else if (choice.next) {
+            } else if (choice.next) {
                 renderChapter(choice.next);
             }
         }
 
-        // 存讀檔與成就
+        // 骰子與檢定
+        function getDie(boxes) { return boxes===1?4 : boxes===2?6 : boxes===3?8 : boxes===4?10 : boxes===5?20 : 2; }
+        
+        function rollExploding(sides) {
+            let total = 0, rolls = [];
+            while (true) {
+                let r = Math.floor(Math.random() * sides) + 1;
+                rolls.push(r); total += r;
+                if (r !== sides) break;
+            }
+            return { total, rolls, die: `D${sides}` };
+        }
+
+        function performSkillCheck(skillName, difficulty, successNext, failNext) {
+            currentState = GameState.ROLLING;
+            dom.choices.innerHTML = '<div style="text-align:center; padding:15px;">正在擲骰...</div>';
+            setTimeout(() => {
+                const sides = getDie(player.skills[skillName] || 0);
+                const res = rollExploding(sides);
+                const success = res.total >= difficulty;
+                
+                let text = `<br><div class="roll-result">🎲 【${skillName}】檢定<br>擲出 ${res.die}：${res.rolls.join('+')} = <b>${res.total}</b><br>難度：${difficulty} ➔ <b style="color:${success?'green':'red'}">${success?'成功':'失敗'}</b></div>`;
+                playSound(success ? 'success' : 'fail');
+                
+                dom.text.innerHTML += text;
+                dom.text.scrollTop = dom.text.scrollHeight;
+                
+                const btn = document.createElement('button');
+                btn.className = 'action-btn primary-btn';
+                btn.innerText = '繼續';
+                btn.onclick = () => { playSound('click'); renderChapter(success ? successNext : failNext); };
+                dom.choices.innerHTML = '';
+                dom.choices.appendChild(btn);
+                currentState = GameState.READING;
+            }, 800);
+        }
+
+        function performFearCheck(successNext, failNext) {
+            currentState = GameState.ROLLING;
+            dom.choices.innerHTML = '<div style="text-align:center; padding:15px;">正在進行恐懼檢定...</div>';
+            setTimeout(() => {
+                const roll = Math.floor(Math.random() * 100) + 1;
+                const success = roll <= player.res;
+                
+                let text = `<br><div class="roll-result">😱 【恐懼檢定】<br>擲出 D100：<b>${roll}</b><br>抗性：${player.res} ➔ <b style="color:${success?'green':'red'}">${success?'保持冷靜':'陷入恐慌'}</b></div>`;
+                playSound(success ? 'success' : 'fail');
+                
+                dom.text.innerHTML += text;
+                dom.text.scrollTop = dom.text.scrollHeight;
+                
+                const btn = document.createElement('button');
+                btn.className = 'action-btn primary-btn';
+                btn.innerText = '繼續';
+                btn.onclick = () => { playSound('click'); renderChapter(success ? successNext : failNext); };
+                dom.choices.innerHTML = '';
+                dom.choices.appendChild(btn);
+                currentState = GameState.READING;
+            }, 800);
+        }
+
+        // ================= 戰鬥系統 =================
+        function startCombat(enemy, nextWin, nextLose) {
+            currentState = GameState.COMBAT;
+            combatState = { ...enemy, maxHp: enemy.hp, nextWin, nextLose };
+            
+            let text = `<br><div class="roll-result" style="border-color:var(--accent);">⚔️ 戰鬥開始！對手：<b>${enemy.name}</b><br>對手生命：${enemy.hp}</div>`;
+            dom.text.innerHTML += text;
+            dom.text.scrollTop = dom.text.scrollHeight;
+            renderCombatUI();
+        }
+
+        function renderCombatUI() {
+            dom.choices.innerHTML = '';
+            const btn = document.createElement('button');
+            btn.className = 'action-btn primary-btn';
+            btn.innerText = '⚔️ 進行攻擊';
+            btn.onclick = playerTurn;
+            dom.choices.appendChild(btn);
+        }
+
+        function playerTurn() {
+            if (currentState !== GameState.COMBAT) return;
+            currentState = GameState.ROLLING;
+            dom.choices.innerHTML = '<div style="text-align:center; padding:10px;">你正在攻擊...</div>';
+            
+            setTimeout(() => {
+                const pRoll = rollExploding(8); // 拳法3格=D8
+                const defDiff = combatState.defBoxes + 2; // 2盒=4, 4盒=6
+                const hit = pRoll.total >= defDiff;
+                
+                let text = `<br><div class="roll-result">🎲 你的攻擊：${pRoll.total} (需≥${defDiff}) ➔ `;
+                if (hit) {
+                    const dmg = rollExploding(8).total;
+                    combatState.hp -= dmg;
+                    text += `<span style="color:green;">命中！造成 ${dmg} 傷害。</span>`;
+                    playSound('success');
+                } else {
+                    text += `<span style="color:red;">未命中！</span>`;
+                    playSound('fail');
+                }
+                text += `<br>對手剩餘生命：${Math.max(0, combatState.hp)}</div>`;
+                
+                dom.text.innerHTML += text;
+                dom.text.scrollTop = dom.text.scrollHeight;
+                
+                if (combatState.hp <= 0) {
+                    dom.text.innerHTML += `<div class="roll-result" style="color:green;">🎉 你擊敗了 ${combatState.enemyName}！</div>`;
+                    const btn = document.createElement('button');
+                    btn.className = 'action-btn primary-btn'; btn.innerText = '繼續';
+                    btn.onclick = () => renderChapter(combatState.nextWin);
+                    dom.choices.innerHTML = ''; dom.choices.appendChild(btn);
+                    currentState = GameState.READING;
+                } else {
+                    enemyTurn();
+                }
+            }, 600);
+        }
+
+        function enemyTurn() {
+            dom.choices.innerHTML = '<div style="text-align:center; padding:10px;">敵人正在攻擊...</div>';
+            setTimeout(() => {
+                const eSides = getDie(combatState.atkBoxes);
+                const eRoll = rollExploding(eSides);
+                const pDef = player.skills['拳法'] + 2; // 3盒=5
+                const hit = eRoll.total >= pDef;
+                
+                let text = `<br><div class="roll-result" style="border-color:red;">👹 敵人攻擊：${eRoll.total} (需≥${pDef}) ➔ `;
+                if (hit) {
+                    const dmg = rollExploding(combatState.dmgDie).total;
+                    player.hp -= dmg;
+                    text += `<span style="color:red;">擊中！你受到 ${dmg} 傷害。</span>`;
+                    playSound('fail');
+                } else {
+                    text += `<span style="color:green;">被你閃避！</span>`;
+                }
+                text += `<br>你的剩餘生命：${Math.max(0, player.hp)}</div>`;
+                
+                dom.text.innerHTML += text;
+                dom.text.scrollTop = dom.text.scrollHeight;
+                updateUI();
+                
+                if (player.hp <= 0) {
+                    setTimeout(() => renderChapter(combatState.nextLose), 800);
+                } else {
+                    currentState = GameState.COMBAT;
+                    renderCombatUI();
+                }
+            }, 600);
+        }
+
+        // ================= 存讀檔 =================
         function saveGame() {
-            const data = {
-                state: currentState,
-                chapterId: currentChapterId,
-                player: player,
-                history: historyLog
-            };
-            localStorage.setItem('ghostHouseSave', JSON.stringify(data));
-            showToast('遊戲已儲存！');
+            localStorage.setItem('ghostHouseSave_100', JSON.stringify({ chapterId: currentChapterId, player }));
+            showToast('💾 遊戲已儲存！');
+            playSound('success');
         }
 
         function openLoadModal() {
-            const saveData = localStorage.getItem('ghostHouseSave');
-            const slotsEl = document.getElementById('save-slots');
-            slotsEl.innerHTML = '';
+            const saveData = localStorage.getItem('ghostHouseSave_100');
+            const slots = document.getElementById('save-slots');
+            slots.innerHTML = '';
             if (saveData) {
                 const data = JSON.parse(saveData);
-                const div = document.createElement('div');
-                div.className = 'save-slot';
-                div.innerHTML = `<span>進度：${chapters[data.chapterId]?.title || '未知'}</span> <button onclick="loadGame()">讀取</button>`;
-                slotsEl.appendChild(div);
+                slots.innerHTML = `<div class="save-slot"><div><b>存檔</b><br><span style="font-size:12px;">位置：${story[data.chapterId]?.title || '未知'}</span></div><button onclick="loadGame()">讀取</button></div>`;
             } else {
-                slotsEl.innerHTML = '<p>沒有找到存檔。</p>';
+                slots.innerHTML = '<p style="text-align:center; color:#666;">沒有找到存檔</p>';
             }
-            document.getElementById('load-modal').classList.add('active');
+            openModal('load-modal');
         }
 
         function loadGame() {
-            const saveData = localStorage.getItem('ghostHouseSave');
+            const saveData = localStorage.getItem('ghostHouseSave_100');
             if (saveData) {
                 const data = JSON.parse(saveData);
                 Object.assign(player, data.player);
-                historyLog = data.history;
-                currentState = data.state;
-                closeLoadModal();
+                closeModal('load-modal');
+                updateUI();
                 renderChapter(data.chapterId);
-                showToast('讀取成功！');
+                showToast('📂 讀取成功！');
             }
         }
 
-        function closeLoadModal() {
-            document.getElementById('load-modal').classList.remove('active');
-        }
-
-        function openHistory() {
-            const listEl = document.getElementById('history-list');
-            listEl.innerHTML = '';
-            historyLog.forEach((log, index) => {
-                const p = document.createElement('p');
-                p.innerText = `${index + 1}. ${log.title}`;
-                listEl.appendChild(p);
-            });
-            if (historyLog.length === 0) listEl.innerText = '還沒有任何紀錄。';
-            document.getElementById('history-modal').classList.add('active');
-        }
-
-        function closeHistory() {
-            document.getElementById('history-modal').classList.remove('active');
-        }
-
-        // 成就系統
-        function unlockAchievement(endingId) {
-            let achievements = JSON.parse(localStorage.getItem('ghostHouseAchievements') || '[]');
-            if (!achievements.includes(endingId)) {
-                achievements.push(endingId);
-                localStorage.setItem('ghostHouseAchievements', JSON.stringify(achievements));
-                showToast('🏆 解鎖新結局！');
-            }
-        }
-
-        // 初始化與說明彈窗
-        document.getElementById('help-modal').classList.add('active');
-
-        function closeHelp() {
-            document.getElementById('help-modal').classList.remove('active');
+        // ================= 初始化 =================
+        function startGame() {
+            closeModal('help-modal');
+            playSound('click');
             renderChapter('start');
         }
 
-        function showHelp() {
-            document.getElementById('help-modal').classList.add('active');
-        }
-
-        // 處理視窗大小變化，確保滾動條正常
-        window.addEventListener('resize', () => {
-            const textEl = document.getElementById('text-content');
-            textEl.scrollTop = textEl.scrollHeight;
+        // 確保頁面載入時狀態正確
+        document.addEventListener('DOMContentLoaded', () => {
+            updateUI();
+            // 說明視窗已經在 HTML 中設定為預設顯示 (class="modal show")
         });
-
     </script>
 </body>
 </html>
