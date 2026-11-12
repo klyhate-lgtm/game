@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>D100 Dungeon · 巨龙铠甲</title>
+<style>
+:root{
+  --parchment:#f2e4c2; --parchment2:#e8d5a8; --ink:#2b1d0e; --ink2:#4a3820;
+  --gold:#b8912a; --blood:#8b1a1a; --leaf:#4a7a3a; --stone:#6b6355;
+  --blue:#3a5a8a; --yellow:#c9a227;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:'Georgia','Noto Serif TC','Songti TC',serif;
+  background:#120c05; color:var(--ink); overflow:hidden;
+  display:flex; flex-direction:column;
+}
+#app{
+  flex:1; display:flex; flex-direction:column;
+  background:
+    radial-gradient(ellipse at center, #f4e8ca 0%, #e0cba0 70%, #c4a878 100%);
+  position:relative;
+}
+#app::after{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse at center, transparent 45%, rgba(30,15,0,.55) 100%);
+  mix-blend-mode:multiply;
+}
+.vignette{position:absolute;inset:0;pointer-events:none;
+  box-shadow:inset 0 0 120px rgba(30,15,0,.75)}
+.hidden{display:none!important}
+
+/* ===== 顶部 HUD ===== */
+#hud{
+  display:flex; align-items:center; gap:8px; padding:8px 12px;
+  background:linear-gradient(180deg,#1a0f05,#2b1d0e); color:#e8d8a8;
+  border-bottom:2px solid var(--gold); z-index:5; flex-wrap:wrap;
+  font-size:13px;
+}
+.hud-item{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.hp-bar{width:100px;height:12px;background:#3a1a1a;border:1px solid #6a3030;border-radius:6px;overflow:hidden;position:relative}
+.hp-fill{height:100%;background:linear-gradient(90deg,#c33,#e55);transition:width .3s}
+.hud-title{font-weight:bold;color:var(--gold);letter-spacing:1px}
+#timeTrack{display:flex;gap:1px;flex-wrap:wrap;max-width:140px}
+.tick{width:6px;height:6px;background:#3a2a10;border-radius:1px}
+.tick.on{background:#c9a227}
+
+/* ===== 主区域 ===== */
+#main{flex:1;display:flex;overflow:hidden;position:relative}
+#game{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:2}
+
+#storyBox{
+  flex:1;overflow-y:auto;padding:18px 22px;
+  background:rgba(250,240,215,.72);
+  margin:10px; border:1px solid #8b7040; border-radius:6px;
+  box-shadow:inset 0 0 40px rgba(120,90,40,.2);
+  font-size:15px; line-height:1.85; color:#2b1d0e;
+}
+#storyBox h2{font-size:19px;color:var(--blood);margin-bottom:10px;
+  border-bottom:1px dashed #a08040;padding-bottom:6px;letter-spacing:1px}
+#storyBox p{margin-bottom:10px;text-indent:2em;text-align:justify}
+#storyBox .hint{color:#7a5a20;font-style:italic;text-indent:0;
+  border-left:3px solid var(--gold);padding-left:10px;margin:10px 0;font-size:14px}
+
+/* ===== 区域地图 ===== */
+#mapArea{
+  display:flex;align-items:center;gap:10px;padding:0 14px 4px;
+  font-size:12px;color:#4a3820;
+}
+#regionChip{width:54px;height:54px;border-radius:8px;border:2px solid #5a4520;
+  display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;color:#fff;
+  text-shadow:0 0 4px #000;box-shadow:inset 0 0 12px rgba(0,0,0,.4)}
+.green{background:linear-gradient(135deg,#6a9a4a,#3a6a2a)}
+.red{background:linear-gradient(135deg,#c05050,#7a1a1a)}
+.yellow{background:linear-gradient(135deg,#d0a030,#8a6010)}
+.blue{background:linear-gradient(135deg,#5a8ac0,#2a4a7a)}
+
+/* ===== 行动按钮区 ===== */
+#actions{
+  display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px 14px;
+  background:linear-gradient(180deg,rgba(40,25,10,.05),rgba(40,25,10,.15));
+  border-top:1px solid #b09560;
+}
+.btn{
+  padding:10px 16px;border:1.5px solid #6a4a20;border-radius:6px;
+  background:linear-gradient(180deg,#f8ecc8,#d8c090);color:#2b1d0e;
+  font-family:inherit;font-size:14px;font-weight:bold;cursor:pointer;
+  letter-spacing:.5px;transition:transform .1s, box-shadow .15s;
+  box-shadow:0 2px 0 #8a6a30; user-select:none;
+}
+.btn:hover{transform:translateY(-1px);box-shadow:0 3px 4px rgba(0,0,0,.25)}
+.btn:active{transform:translateY(1px);box-shadow:0 1px 0 #8a6a30}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:0 2px 0 #8a6a30}
+.btn.primary{background:linear-gradient(180deg,#e8c060,#b8901a);color:#1a0f05;
+  border-color:#8a6010;box-shadow:0 2px 0 #6a4a10}
+.btn.danger{background:linear-gradient(180deg,#d06060,#8a1a1a);color:#fff;
+  border-color:#6a1010;box-shadow:0 2px 0 #5a0a0a}
+.btn.ghost{background:transparent;border-color:#8a7040;box-shadow:none;color:#4a3820}
+.btn.small{padding:6px 10px;font-size:12px}
+
+/* ===== 底部导航 ===== */
+#nav{
+  display:flex;background:#1a0f05;border-top:2px solid var(--gold);z-index:5;
+}
+#nav button{
+  flex:1;padding:10px 4px;background:transparent;border:none;color:#c8b088;
+  font-family:inherit;font-size:12px;cursor:pointer;display:flex;
+  flex-direction:column;align-items:center;gap:2px;
+}
+#nav button:hover{color:var(--gold);background:#2b1d0e}
+#nav button .ic{font-size:18px}
+
+/* ===== 战斗面板 ===== */
+#combatPanel{
+  position:absolute;inset:0;background:rgba(20,12,4,.92);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:20;padding:16px;color:#e8d8a8;gap:12px;
+}
+#combatMonsters{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:100%}
+.monster{width:120px;text-align:center}
+.monster .svgBox{
+  width:100px;height:100px;margin:0 auto;background:rgba(0,0,0,.3);
+  border-radius:8px;border:2px solid #6a4a20;position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.monster.dead{opacity:.25;filter:grayscale(1)}
+.monster .mhp{width:100%;height:8px;background:#3a1a1a;border-radius:4px;margin-top:4px;overflow:hidden}
+.monster .mhp>div{height:100%;background:#c33;transition:width .3s}
+.monster .mname{font-size:12px;color:var(--gold);margin-top:3px}
+.monster .mlabel{font-size:11px;color:#a09070}
+#combatLog{
+  width:100%;max-width:500px;height:100px;overflow-y:auto;
+  background:rgba(0,0,0,.35);border:1px solid #4a3a20;border-radius:6px;
+  padding:8px;font-size:12px;line-height:1.6;color:#c8b890;
+}
+#combatLog .dmg{color:#e66}
+#combatLog .good{color:#8c8}
+
+/* ===== 弹窗 ===== */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(10,6,2,.85);z-index:100;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  animation:fadeIn .25s;
+}
+.modal{
+  background:linear-gradient(135deg,#f4e4bc,#e0cba0);color:#2b1d0e;
+  border:2px solid #8a6010;border-radius:10px;max-width:680px;width:100%;
+  max-height:85vh;overflow-y:auto;padding:22px;
+  box-shadow:0 10px 50px rgba(0,0,0,.7);
+  font-size:14px;line-height:1.8;
+}
+.modal h2{color:var(--blood);border-bottom:2px solid #b09560;padding-bottom:8px;margin-bottom:14px}
+.modal h3{color:#5a3a10;margin:14px 0 6px;font-size:15px}
+.modal p{margin-bottom:8px}
+.modal ul{margin:6px 0 10px 22px}
+.modal li{margin-bottom:4px}
+.modal .closeX{
+  position:absolute;top:10px;right:14px;background:transparent;border:none;
+  font-size:22px;color:#8a6010;cursor:pointer;
+}
+.modal-wrap{position:relative;display:inline-block;width:100%}
+
+/* ===== Toast ===== */
+#toast{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(30,15,5,.95);color:#f0e0b0;padding:10px 20px;border-radius:6px;
+  font-size:13px;border:1px solid var(--gold);z-index:200;opacity:0;
+  transition:all .3s;pointer-events:none;max-width:88vw;text-align:center;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===== 历史侧栏 ===== */
+#historyPanel{
+  position:fixed;top:0;right:-320px;width:320px;height:100%;
+  background:#1a0f05;border-left:2px solid var(--gold);z-index:50;
+  transition:right .3s;display:flex;flex-direction:column;color:#c8b088;
+}
+#historyPanel.open{right:0}
+#historyPanel .hp-head{padding:12px;border-bottom:1px solid #4a3a20;display:flex;justify-content:space-between;align-items:center;color:var(--gold)}
+#historyList{flex:1;overflow-y:auto;padding:10px;font-size:12px;line-height:1.7}
+#historyList .hitem{padding:6px 8px;border-left:2px solid #6a4a20;margin-bottom:6px;background:rgba(60,40,15,.3)}
+#historyList .hitem.cur{border-color:var(--gold);background:rgba(120,90,20,.3)}
+
+/* ===== 背包 ===== */
+#invBox{
+  position:fixed;bottom:60px;left:0;right:0;max-height:45vh;
+  background:#1a0f05;border-top:2px solid var(--gold);z-index:40;
+  padding:12px;color:#c8b088;overflow-y:auto;transform:translateY(110%);
+  transition:transform .3s;
+}
+#invBox.open{transform:translateY(0)}
+#invBox h3{color:var(--gold);margin-bottom:8px;font-size:14px}
+.inv-list{display:flex;flex-wrap:wrap;gap:6px}
+.inv-item{
+  padding:6px 10px;background:rgba(80,55,20,.5);border:1px solid #6a4a20;
+  border-radius:4px;font-size:12px;color:#e0c898;cursor:pointer;
+}
+.inv-item:hover{background:rgba(140,100,30,.6)}
+.inv-empty{color:#6a5a40;font-style:italic;font-size:12px}
+
+/* ===== 开场画面 ===== */
+#titleScreen{
+  position:fixed;inset:0;z-index:150;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+  background:radial-gradient(ellipse at center,#3a2510 0%,#120c05 100%);
+  color:#e8d8a8;padding:20px;animation:fadeIn .6s;
+}
+#titleScreen h1{
+  font-size:clamp(28px,7vw,52px);color:var(--gold);letter-spacing:4px;
+  text-shadow:0 0 30px rgba(200,160,40,.4),0 4px 0 #5a3a10;
+  margin-bottom:8px;font-weight:bold;
+}
+#titleScreen .sub{font-size:clamp(12px,3vw,16px);color:#b09060;letter-spacing:2px;margin-bottom:30px}
+#titleScreen .dragon-svg{width:min(70vw,300px);margin-bottom:24px;filter:drop-shadow(0 0 20px rgba(200,100,20,.5))}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.floaty{animation:float 4s ease-in-out infinite}
+@keyframes flicker{0%,100%{opacity:.9}50%{opacity:.6}}
+.flicker{animation:flicker 2s infinite}
+
+/* ===== 打字机光标 ===== */
+.cursor{display:inline-block;width:8px;height:16px;background:#8a6010;
+  animation:flicker .8s infinite;vertical-align:middle;margin-left:2px}
+
+/* ===== 响应式 ===== */
+@media(max-width:600px){
+  #storyBox{margin:6px;padding:14px 14px;font-size:14px;line-height:1.75}
+  .btn{padding:9px 12px;font-size:13px}
+  #hud{font-size:12px;padding:6px 8px;gap:6px}
+  .hud-title{display:none}
+  .monster{width:90px}
+  .monster .svgBox{width:74px;height:74px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 开场画面 ===== -->
+<div id="titleScreen">
+  <svg class="dragon-svg floaty" viewBox="0 0 200 200">
+    <defs>
+      <radialGradient id="fire" cx="50%" cy="50%">
+        <stop offset="0%" stop-color="#ffdd55"/>
+        <stop offset="60%" stop-color="#ff8800"/>
+        <stop offset="100%" stop-color="#8a1a00"/>
+      </radialGradient>
+    </defs>
+    <path d="M100 40 L120 70 L160 60 L140 90 L170 100 L140 115 L160 150 L120 130 L100 170 L80 130 L40 150 L60 115 L30 100 L60 90 L40 60 L80 70 Z" fill="url(#fire)" opacity=".9"/>
+    <circle cx="100" cy="100" r="16" fill="#1a0800"/>
+    <circle cx="94" cy="96" r="3" fill="#ffcc00"/>
+    <circle cx="106" cy="96" r="3" fill="#ffcc00"/>
+    <path d="M90 110 Q100 116 110 110" stroke="#ffcc00" stroke-width="2" fill="none"/>
+  </svg>
+  <h1>巨龙铠甲</h1>
+  <div class="sub">D100 DUNGEON · THE DRAGON ARMOUR</div>
+  <button class="btn primary" id="btnStart" style="font-size:18px;padding:14px 36px;margin-top:10px">开始冒险</button>
+  <div style="margin-top:24px;font-size:11px;color:#6a5a40;max-width:400px;line-height:1.6">
+    改编自 Martin Knight《D100 Dungeon - The Dragon Armour Adventure Book One》<br>米糊汉化 · 网页单人版
+  </div>
+</div>
+
+<!-- ===== 主应用 ===== -->
+<div id="app" class="hidden">
+  <div class="vignette"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-title">⚔ D100 巨龙铠甲</div>
+    <div class="hud-item">❤ <div class="hp-bar"><div class="hp-fill" id="hpFill" style="width:100%"></div></div><span id="hpText">40/40</span></div>
+    <div class="hud-item">⏱ <span id="timeText">0</span></div>
+    <div class="hud-item">🍀 <span id="fateText">5</span></div>
+    <div class="hud-item">💰 <span id="goldText">0</span></div>
+  </div>
+
+  <!-- 主区域 -->
+  <div id="main">
+    <div id="game">
+      <!-- 区域地图 -->
+      <div id="mapArea">
+        <div id="regionChip" class="green">1</div>
+        <div style="flex:1;line-height:1.4">
+          <div id="regionLabel" style="font-weight:bold;color:#5a3a10">區域 1 · 廢墟大門</div>
+          <div id="regionSub" style="color:#7a6030">綠色區域</div>
+        </div>
+      </div>
+
+      <!-- 故事文本 -->
+      <div id="storyBox">
+        <h2 id="paraTitle">序章</h2>
+        <div id="paraText"></div>
+      </div>
+
+      <!-- 行动按钮 -->
+      <div id="actions"></div>
+    </div>
+
+    <!-- 战斗面板（覆盖） -->
+    <div id="combatPanel" class="hidden">
+      <div style="color:var(--gold);font-size:15px;font-weight:bold" id="combatTitle">戰鬥！</div>
+      <div id="combatMonsters"></div>
+      <div id="combatLog"></div>
+      <div id="combatActions" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
+    </div>
+  </div>
+
+  <!-- 底部导航 -->
+  <nav id="nav">
+    <button data-nav="help"><span class="ic">📖</span><span>說明</span></button>
+    <button data-nav="inv"><span class="ic">🎒</span><span>背包</span></button>
+    <button data-nav="history"><span class="ic">📜</span><span>歷史</span></button>
+    <button data-nav="save"><span class="ic">💾</span><span>存檔</span></button>
+    <button data-nav="load"><span class="ic">📂</span><span>讀檔</span></button>
+    <button data-nav="sound"><span class="ic" id="soundIcon">🔊</span><span>音效</span></button>
+  </nav>
+</div>
+
+<!-- 历史侧栏 -->
+<div id="historyPanel">
+  <div class="hp-head">
+    <span>📜 冒險歷程</span>
+    <button class="btn small ghost" onclick="toggleHistory(false)">✕</button>
+  </div>
+  <div id="historyList"></div>
+</div>
+
+<!-- 背包面板 -->
+<div id="invBox">
+  <h3>🎒 冒險表格</h3>
+  <div id="invContent"></div>
+</div>
+
+<!-- 通用弹窗容器 -->
+<div id="modalRoot"></div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   D100 DUNGEON · 巨龙铠甲 · 单文件实现
+   ============================================================ */
+
+/* ---------- 音效（Web Audio API 合成） ---------- */
+const Sound = (() => {
+  let ctx = null, on = true;
+  function init(){ if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)(); }
+  function beep(freq=440, dur=0.08, type='sine', vol=0.06){
+    if(!on) return;
+    try{
+      init();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.value = vol;
+      o.connect(g); g.connect(ctx.destination);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+      o.stop(ctx.currentTime + dur);
+    }catch(e){}
+  }
+  return {
+    click(){ beep(600, .05, 'square', .04); },
+    hit(){ beep(140, .12, 'sawtooth', .08); },
+    good(){ beep(880, .1, 'triangle', .07); setTimeout(()=>beep(1100,.12,'triangle',.06), 80); },
+    bad(){ beep(180, .2, 'sawtooth', .08); },
+    dice(){ beep(500, .04, 'square', .03); },
+    toggle(){ on = !on; return on; },
+    isOn(){ return on; }
+  };
+})();
+
+/* ---------- 骰子工具 ---------- */
+const D = {
+  n:(s)=>{ Sound.dice(); return Math.floor(Math.random()*s)+1; },
+  d4:()=>Math.floor(Math.random()*4)+1,
+  d6:()=>Math.floor(Math.random()*6)+1,
+  d10:()=>Math.floor(Math.random()*10)+1,
+  d100:()=>Math.floor(Math.random()*100)+1,
+};
+
+/* ---------- 怪物定义（严格依据原文怪物表） ---------- */
+const MON = {
+  zombie:      { name:'殭屍', av:15, def:3, dmg:5, hp:4,  k:4,  ab:['疾病','群體','束縛'], svg:'zombie' },
+  skeleton:    { name:'骷髏', av:25, def:5, dmg:4, hp:13, k:13, ab:['恐懼','再生','復活','束縛'], svg:'skeleton' },
+  spider:      { name:'骷髏蜘蛛', av:21, def:4, dmg:5, hp:6,  k:15, ab:['再生','復活','織網','突襲','束縛'], svg:'spider' },
+  queen:       { name:'殭屍女王', av:24, def:5, dmg:1, hp:16, k:16, ab:['疾病'], svg:'queen' },
+  lich:        { name:'巫妖王', av:42, def:7, dmg:7, hp:33, k:5,  ab:['火焰風暴','黑暗魔法','再生','復活'], svg:'lich' },
+  croc:        { name:'不死鱷魚', av:50, def:3, dmg:2, hp:18, k:0,  ab:['巨大','恐懼'], svg:'croc' },
+  revCroc:     { name:'復活的不死鱷魚', av:60, def:3, dmg:3, hp:20, k:0, ab:['巨大','恐懼'], svg:'croc' },
+  tentacle:    { name:'觸手怪物', av:30, def:0, dmg:1, hp:8,  k:0,  ab:['疾病','群體','束縛','連擊4'], svg:'tentacle' },
+  imp:         { name:'小惡魔', av:17, def:3, dmg:5, hp:1,  k:1,  ab:['火焰','群體'], svg:'imp' },
+  revZombie:   { name:'復活的殭屍', av:15, def:3, dmg:5, hp:4, k:0, ab:['疾病','群體','束縛'], svg:'zombie' },
+  revSkeleton: { name:'復活的骷髏', av:25, def:5, dmg:4, hp:11, k:0, ab:['恐懼','再生','復活','束縛'], svg:'skeleton' },
+  revSpider:   { name:'復活的骷髏蜘蛛', av:21, def:4, dmg:5, hp:6, k:0, ab:['再生','復活','織網','突襲','束縛'], svg:'spider' },
+  revQueen:    { name:'復活的殭屍女王', av:24, def:5, dmg:1, hp:16, k:0, ab:['疾病'], svg:'queen' },
+};
+
+/* ---------- 怪物 SVG ---------- */
+function monSVG(kind, size=90){
+  const c = 'fill:#c8a860';
+  const svgs = {
+    zombie:`<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <ellipse cx="50" cy="90" rx="28" ry="6" fill="rgba(0,0,0,.3)"/>
+      <path d="M38 88 Q36 60 40 45 Q50 38 60 45 Q64 60 62 88 Z" fill="#5a7a48"/>
+      <circle cx="50" cy="30" r="16" fill="#7a9a68"/>
+      <circle cx="44" cy="28" r="3" fill="#d33"/>
+      <circle cx="56" cy="28" r="3" fill="#d33"/>
+      <path d="M44 38 Q50 42 56 38" stroke="#2a1a0a" stroke-width="2" fill="none"/>
+      <path d="M30 55 Q22 50 25 42 M70 55 Q78 50 75 42" stroke="#5a7a48" stroke-width="5" stroke-linecap="round" fill="none"/>
+    </svg>`,
+    skeleton:`<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <ellipse cx="50" cy="90" rx="26" ry="5" fill="rgba(0,0,0,.3)"/>
+      <circle cx="50" cy="28" r="17" fill="#e8e0c8" stroke="#6a5a40" stroke-width="1.5"/>
+      <circle cx="43" cy="26" r="4" fill="#1a0f05"/>
+      <circle cx="57" cy="26" r="4" fill="#1a0f05"/>
+      <path d="M45 38 L55 38 M47 40 L47 44 M50 40 L50 44 M53 40 L53 44" stroke="#6a5a40" stroke-width="1.5"/>
+      <path d="M50 45 L50 75 M35 50 L50 60 L65 50 M50 70 L40 88 M50 70 L60 88 M50 75 L45 88 M50 75 L55 88" stroke="#e8e0c8" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M50 45 L50 75" stroke="#b0a080" stroke-width="2"/>
+    </svg>`,
+    spider:`<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <ellipse cx="50" cy="90" rx="24" ry="5" fill="rgba(0,0,0,.3)"/>
+      <ellipse cx="50" cy="55" rx="22" ry="26" fill="#3a2a1a"/>
+      <circle cx="50" cy="32" r="14" fill="#4a3a2a"/>
+      <circle cx="44" cy="30" r="3" fill="#e03030"/>
+      <circle cx="56" cy="30" r="3" fill="#e03030"/>
+      <path d="M28 50 L10 40 M28 60 L8 62 M28 70 L12 82 M72 50 L90 40 M72 60 L92 62 M72 70 L88 82 M30 45 L20 30 M70 45 L80 30 M30 68 L22 84 M70 68 L78 84" stroke="#3a2a1a" stroke-width="3" stroke-linecap="round" fill="none"/>
+    </svg>`,
+    queen:`<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <ellipse cx="50" cy="90" rx="28" ry="5" fill="rgba(0,0,0,.3)"/>
+      <path d="M36 88 Q34 55 40 42 Q50 35 60 42 Q66 55 64 88 Z" fill="#6a5a7a"/>
+      <circle cx="50" cy="26" r="14" fill="#8a8aa0"/>
+      <circle cx="45" cy="24" r="3" fill="#c0e0ff"/>
+      <circle cx="55" cy="24" r="3" fill="#c0e0ff"/>
+      <path d="M44 34 Q50 38 56 34" stroke="#2a1a3a" stroke-width="1.5" fill="none"/>
+      <path d="M38 15 L42 5 L46 12 L50 3 L54 12 L58 5 L62 15 Z" fill="#c9a227" stroke="#7a5a10" stroke-width="1"/>
+    </svg>`,
+    lich:`<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <ellipse cx="50" cy="90" rx="30" ry="5" fill="rgba(0,0,0,.4)"/>
+      <path d="M30 90 Q26 55 34 42 Q50 34 66 42 Q74 55 70 90 Z" fill="#2a1a2a"/>
+      <path d="M34 45 L26 25 L38 40 M66 45 L74 25 L62 40" fill="#4a3a5a" stroke="#1a0f1a" stroke-width="1"/>
+      <path d="M50 30 L40 10 L46 26 L50 6 L54 26 L60 10 L50 30 Z" fill="#5a4a6a" stroke="#1a0f1a" stroke-width="1"/>
+      <circle cx="50" cy="35" r="10" fill="#3a2a4a"/>
+      <circle cx="46" cy="33" r="2.5" fill="#ff2020"/>
+      <circle cx="54" cy="33" r="2.5" fill="#ff2020"/>
+      <path d="M45 40 L55 40 M47 42 L47 45 M50 42 L50 45 M53 42 L53 45" stroke="#a0a0c0" stroke-width="1" fill="none"/>
+    </svg>`,
+    croc:`<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <ellipse cx="50" cy="88" rx="34" ry="5" fill="rgba(0,0,0,.3)"/>
+      <path d="M14 60 Q20 48 50 48 Q80 48 86 60 Q90 66 80 70 Q50 78 20 70 Q10 66 14 60 Z" fill="#3a5a3a" stroke="#1a3a1a" stroke-width="1.5"/>
+      <circle cx="70" cy="55" r="3" fill="#e0e020"/>
+      <path d="M14 60 L6 52 L10 60 L4 66 L14 66" fill="#2a4a2a"/>
+      <path d="M60 68 L60 74 L64 74 L64 68 M68 67 L68 73 L72 73 L72 67 M76 65 L76 71 L80 71 L80 65" fill="#e8e0c8" stroke="#5a5a3a" stroke-width=".8"/>
+    </svg>`,
+    tentacle:`<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <ellipse cx="50" cy="90" rx="26" ry="5" fill="rgba(0,0,0,.3)"/>
+      <ellipse cx="50" cy="60" rx="24" ry="22" fill="#5a4a2a" stroke="#2a1a0a" stroke-width="1.5"/>
+      <path d="M30 46 Q12 30 8 14 M40 42 Q30 20 34 6 M60 42 Q70 20 66 6 M70 46 Q88 30 92 14" stroke="#7a6a3a" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <circle cx="42" cy="56" r="5" fill="#1a0f05"/>
+      <circle cx="58" cy="56" r="5" fill="#1a0f05"/>
+      <circle cx="42" cy="56" r="2" fill="#7ac040"/>
+      <circle cx="58" cy="56" r="2" fill="#7ac040"/>
+      <path d="M40 68 Q50 74 60 68" stroke="#2a1a0a" stroke-width="2" fill="none"/>
+      <path d="M42 72 L42 76 M48 74 L48 78 M54 74 L54 78 M60 72 L60 76" stroke="#e8e0c8" stroke-width="1.5"/>
+    </svg>`,
+    imp:`<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <ellipse cx="50" cy="90" rx="22" ry="4" fill="rgba(0,0,0,.3)"/>
+      <path d="M40 88 Q38 60 42 48 Q50 42 58 48 Q62 60 60 88 Z" fill="#c84a1a"/>
+      <circle cx="50" cy="34" r="14" fill="#d85a20"/>
+      <path d="M38 24 L32 10 L42 20 M62 24 L68 10 L58 20" fill="#8a2a0a"/>
+      <circle cx="45" cy="32" r="3" fill="#ffcc00"/>
+      <circle cx="55" cy="32" r="3" fill="#ffcc00"/>
+      <path d="M44 40 Q50 44 56 40" stroke="#3a0a00" stroke-width="1.5" fill="none"/>
+      <path d="M50 46 Q30 40 20 30 M50 46 Q70 40 80 30" stroke="#c84a1a" stroke-width="3" fill="none"/>
+    </svg>`,
+  };
+  return svgs[kind] || svgs.zombie;
+}
+
+/* ---------- 区域/物品 定义 ---------- */
+const REGION_COLOR = { green:'綠色', red:'紅色', yellow:'黃色', blue:'藍色' };
+
+/* ---------- 段落数据 ----------
+   字段说明：
+   t: 标题
+   c: 区域颜色
+   r: 区域号
+   txt: 正文
+   ex: 出口 [{d:'方向', to:段落}]
+   s: 搜索（数字=转到该段；'F'=表F；null=无）
+   enc: 遭遇 {m:怪物key, n:数量, win:胜利后转段}
+   onEnter: 进入触发函数(state)
+   special: 特殊标签
+   注意：本实现忠实还原原文段落编号，并做了必要的可玩性补全。
+*/
+const PARAS = {
+  1:{
+    t:'第一段 · 廢墟大門', c:'green', r:1,
+    txt:'你穿過通往恩德廢墟的大門，驚訝地發現一個火炬明亮地燃燒著。這只能說明一件事：你並不孤單。就在你意識到這一點的時候，你從陰影中發現了一些東西向你走來。你準備好武器，等待他們的到來，驚恐地看到四具腐爛的屍體，伸出手臂，飢餓地想要你的肉。',
+    ex:[{d:'北 ⬆', to:8},{d:'南 ⬇', to:2}],
+    s:46,
+    enc:{m:'zombie', n:4, win:null, escapeText:'你逃離了戰鬥，但殭屍仍在這個區域徘徊（已標記於地牢地圖）。'},
+  },
+  2:{
+    t:'第二段 · 古老教堂', c:'green', r:2,
+    txt:'不要因為地形特徵而擲骰。在廢墟的這一部分，你會立即注意到建築的變化。即使現在年久失修，這些破舊的建築也顯得更宏偉、更昂貴。你發現了一個古老的教堂，仍然完好無損，並前往調查。有一些神像已經被建立在祭壇上，沒有一個你認識的，並提供了祈禱的地方。',
+    ex:[{d:'北 ⬆', to:8},{d:'西 ⬅', to:4}],
+    s:null,
+    special:'altar',
+  },
+  3:{
+    t:'第三段 · 殭屍女王', c:'red', r:3,
+    txt:'不要為遭遇而擲骰。甚至在你走進房間之前，你就能感覺到空氣中的寒意。剛開始的時候，溫度很冷，但越走越冷，直到你感到腳下有雪和冰。突然，從一根柱子後面，一個駝背扭曲的身影出現了，拖著一具啃了一半的屍體。新鮮的血從它的嘴裡滴下來，當它發現你的時候，它扔下屍體並咆哮。它頭上戴著一頂金冠。\n\n你找到了殭屍女王安諾琳。四周的冰牆從地面射出，不斷向上生長，直到你和女王都被完全包圍。',
+    ex:[{d:'北 ⬆', to:14},{d:'東 ➡ (門)', to:9, door:true},{d:'南 ⬇', to:19}],
+    s:91,
+    enc:{m:'queen', n:1, win:47, noFlee:true, escapeText:'冰牆堅不可摧，你無法逃離這場戰鬥。'},
+  },
+  4:{
+    t:'第四段 · 峽谷木橋', c:'green', r:4,
+    txt:'不要因為一個地形特徵擲骰。當你走進這個區域時，你會遇到一大片已經坍塌的地面，留下了一個深深的空洞。在峽谷上架起了一座粗繩橋。它看起來很危險，很不穩定。',
+    ex:[{d:'北 ⬆', to:20},{d:'西 ⬅', to:10},{d:'東 ➡', to:2},{d:'南 ⬇', to:18}],
+    s:null,
+    special:'canyon',
+  },
+  5:{
+    t:'第五段 · 不死生物大廳', c:'red', r:5,
+    txt:'這部分遺址接近地表；在一些地方，陽光從搖搖欲墜的天花板上的洞裡射進來。擲骰遭遇表並查找結果。如果它沒有被標記為 Θ，那麼它將獲得骷髏符號 Θ，你必須在它的名字前添加「不死」。',
+    ex:[{d:'北 ⬆', to:9},{d:'西 ⬅', to:19},{d:'東 ➡', to:15}],
+    s:null,
+    enc:{m:'skeleton', n:1, win:26, undead:true, escapeText:'不死怪物仍在這裡徘徊。'},
+  },
+  6:{
+    t:'第六段 · 熔岩大門', c:'yellow', r:6,
+    txt:'你可以看到地面上閃爍著熱霧，扭曲著你的視線。熔岩流從北牆噴湧而出。南牆有一扇龍鐵製成的大鐵門。門的表面刻有一場戰鬥的雕刻，描繪的是一條大龍被精靈軍隊包圍的場景。巨龍的一隻眼睛鑲嵌著黃色水晶，發出柔和的光芒，而另一隻眼睛卻不見了。',
+    ex:[{d:'北 ⬆', to:17},{d:'南 ⬇ (龍鐵門 T5)', to:16, door:true, doorCode:'T5'}],
+    s:23,
+    special:'lavadoor',
+    persistent:'每當時間追蹤器上有一個 ① 被塗黑，你受到 -2HP 傷害（除非有抗火物品）。使用任何出口時需進行「熔岩小徑」檢定：敏捷 -10。',
+  },
+  7:{
+    t:'第七段 · 湍急河流', c:'green', r:7,
+    txt:'你發現自己站在一條湍急河流的岸邊。它橫跨你的道路，阻擋了位於河岸對岸的出口。曾經有一座大石橋橫跨激流，但現在只剩下橋腳了。這條路非常寬闊，可以同時容納馬車、馬匹和行人。',
+    ex:[{d:'北 ⬆', to:19},{d:'東 ➡', to:15}],
+    s:71,
+    special:'river',
+    persistent:'每次想從河對岸的出口出去，必須做「過河」檢定：力量 -5。',
+  },
+  8:{
+    t:'第八段 · 金融區', c:'yellow', r:8,
+    txt:'在廢墟的這一部分，你可以感受到從北方吹來的熱風；空氣非常乾燥和潮濕。原來的道路部分完好無損，但邊緣已經被一個巨大而強大的東西撕裂了。幾乎所有的建築物都被摧毀了。恩德曾經是一個繁榮的城市，擁有備受追捧的財產。',
+    ex:[{d:'北 ⬆', to:12},{d:'南 ⬇', to:2},{d:'東 ➡', to:1}],
+    s:55,
+  },
+  9:{
+    t:'第九段 · 骷髏蜘蛛巢穴', c:'red', r:9,
+    txt:'當您穿過這片區域時，您發現這裡出奇地空曠。您開始注意到牆壁、地板和天花板上黏著厚厚的絲網。抬頭仰望，您會看到兩隻黃色的眼睛正透過黑暗向下窺視，然後牠就會閃電般地精準發動攻擊。',
+    ex:[{d:'西 ⬅', to:3},{d:'南 ⬇', to:5}],
+    s:null,
+    enc:{m:'spider', n:1, win:96, escapeText:'骷髏蜘蛛仍潛伏在此。'},
+  },
+  10:{
+    t:'第十段 · 毯子下的殭屍', c:'red', r:10,
+    txt:'不要進行遭遇擲骰。當你穿過這片區域時，你能感受到明顯的溫度變化。這個地方看起來曾經是用於娛樂的場所。突然間，你發現自己被毯子完全包圍，然後從其中一堆毯子中出現了一隻殭屍。你必須在昏暗的環境中與這些殭屍戰鬥，所有的力量、敏捷和智力檢定都會因此受到 -10 的懲罰。',
+    ex:[{d:'東 ➡', to:4}],
+    s:null,
+    enc:{m:'zombie', n:4, win:null, escapeText:'殭屍仍在這裡。'},
+  },
+  11:{
+    t:'第十一段 · 儲藏室', c:'blue', r:11,
+    txt:'當你進入這個區域，惡臭瀰漫在空氣中。曾經，這個城市的這一部分被用作一個巨大的儲存設施。你快速地掃視了一下，發現似乎沒有任何有用的東西，到處都被一層厚厚的黴菌覆蓋著。',
+    ex:[{d:'西 ⬅', to:18},{d:'南 ⬇', to:19}],
+    s:29,
+    special:'mold',
+  },
+  12:{
+    t:'第十二段 · 矮人運河', c:'yellow', r:12,
+    txt:'一股強烈的熱浪襲擊了你。多年以前，矮人們在岩石中開鑿出寬闊的通道，以利用從布林山流出的熔岩。矮人們巧妙地將熔岩引導經過城市，直接輸送到他們的鑄造廠和工作坊。散落在周圍的是數百條鋪設的鵝卵石道路，通過數百座小鐵橋相連。',
+    ex:[{d:'東 ➡', to:13},{d:'南 ⬇', to:8}],
+    s:54,
+    persistent:'每當時間追蹤器上有一個 ① 被塗黑時，你受到 -1HP 傷害（除非有抗火物品）。',
+  },
+  13:{
+    t:'第十三段 · 熔岩源頭', c:'yellow', r:13,
+    txt:'你走了幾步之後，突然感受到一股炙熱的熱浪，迫使你停下腳步。稍微往西走是矮人們最初將布林山的熔岩引導到地下的地方，這裡是矮人運河系統的起點。你站在一個岩石台上，俯視著冒著泡沫的液體。',
+    ex:[{d:'西 ⬅', to:12},{d:'南 ⬇', to:14}],
+    s:99,
+    special:'lavasource',
+    persistent:'每當時間追蹤器上有一個 ① 被塗黑時，你受到 -2HP 傷害（除非有抗火物品）。',
+  },
+  14:{
+    t:'第十四段 · 熔岩池', c:'yellow', r:14,
+    txt:'這個區域看起來已經被遺棄了。在四面八方，你被熾熱的岩漿池和流動的岩漿環繞著。每隔幾秒鐘，你會聽到小爆炸聲，將碎片和尖銳的碎片朝各個方向噴射而出。在一些地方，你還可以看到一條古老的鋪砌道路的殘餘。',
+    ex:[{d:'西 ⬅', to:17},{d:'南 ⬇', to:3},{d:'北 ⬆', to:13}],
+    s:21,
+    persistent:'每當時間追蹤器上有一個 ① 被塗黑時，你受到 -1HP 傷害（除非有抗火物品）。使用任何出口時需進行「熔岩小徑」檢定：敏捷 -10。',
+  },
+  15:{
+    t:'第十五段 · 勇者之坑', c:'red', r:15,
+    txt:'不要進行遭遇擲骰。沿著一條道路，你爬過一些碎石，俯瞰著一個看起來像是一個巨大競技場的地方。一個半圓形的石階既是觀眾席，也下降到一個填滿沙子的深坑中。你站在競技場的中心，突然間，有東西抓住了你的腿。幾隻腐爛的手從沙地中伸出來。',
+    ex:[{d:'北 ⬆', to:5},{d:'西 ⬅', to:7},{d:'東 ➡', to:1}],
+    s:32,
+    enc:{m:'zombie', n:4, win:null, escapeText:'殭屍仍在競技場中徘徊。'},
+  },
+  16:{
+    t:'第十六段 · 水淹洞穴', c:'blue', r:16,
+    txt:'持續：在收到指示之前，你不被允許搜索該區域。\n\n當門打開時，你聽到流水的聲音。透過門縫往裡看，你可以看到一個巨大的洞穴，牆壁到牆壁都被一片混濁的水域所覆蓋。高高地靠近天花板處有數百個小瀑布。清澈的液體從牆上傾瀉而下。',
+    ex:[{d:'北 ⬆', to:6},{d:'南 ⬇ (深入)', to:81}],
+    s:70,
+    lockSearch:true,
+    special:'lakecave',
+  },
+  17:{
+    t:'第十七段 · 熔岩物品堆', c:'yellow', r:17,
+    txt:'這片區域已經被多年的火山活動徹底摧毀。這裡的溫度異常高，你的眼睛已經完全乾涸，導致視野變得模糊不清。然而，在道路的中央，你發現了一片幾乎未被岩漿觸及的區域，上面堆滿了物品。',
+    ex:[{d:'西 ⬅', to:14},{d:'南 ⬇', to:6}],
+    s:27,
+    persistent:'每當時間追蹤器上有一個 ① 被塗黑時，你受到 -1HP 傷害（除非有抗火物品）。使用任何出口時需進行「熔岩小徑」檢定：敏捷 -10。',
+  },
+  18:{
+    t:'第十八段 · 骷髏大廳', c:'red', r:18,
+    txt:'不要進行遭遇擲骰。你發現這個區域比你最初預期的要大得多，探索需要花費很多時間；在時間追蹤器上塗黑 1 個 ①。你在道路中央發現了一堆破布，猶豫不決地走過去調查。當你靠近時，它開始移動，幾根骨頭活了過來並站了起來。現在，你與一個巨大的骷髏面對面。',
+    ex:[{d:'北 ⬆', to:4},{d:'東 ➡', to:11}],
+    s:51,
+    enc:{m:'skeleton', n:1, win:75, escapeText:'骷髏仍在這裡。'},
+    onEnter:(S)=>{ addTime(S,1); }
+  },
+  19:{
+    t:'第十九段 · 主幹道', c:'yellow', r:19,
+    txt:'這片區域與其他廢墟相比異常乾淨，沒有瓦礫，一片清潔。一條寬闊的道路從南向北延伸，兩旁是破敗的建築物。偶爾，寂靜被遠處傳來的腳步聲打破。道路上方瀰漫著奇異的霧氣，向北方延伸。',
+    ex:[{d:'北 ⬆', to:11},{d:'東 ➡', to:3},{d:'南 ⬇', to:7}],
+    s:30,
+  },
+  20:{
+    t:'第二十段 · 熔岩中的中央島', c:'green', r:20,
+    txt:'不需要進行地形特徵擲骰。你發現自己被一片散發著微光的、熾熱的岩漿環繞著。岩漿發出咕咕的冒泡聲。炙熱的氣溫讓你難以忍受。',
+    ex:[{d:'東 ➡', to:4},{d:'南 ⬇', to:1}],
+    s:95,
+    persistent:'如果你搜索這個區域，請不要在地牢地圖上標記已經搜索過。每次你訪問時，你都可以重新搜索。每當 ① 被塗黑時，你受到 -1HP 傷害（除非有抗火物品）。使用出口時需「熔岩小徑」檢定：敏捷 -10。',
+  },
+
+  /* ---- 子段落 ---- */
+  26:{
+    t:'第二十六段 · 不死復活！', c:'red', r:26,
+    txt:'一陣寒風吹過整個區域，你低頭看著你剛剛擊敗的怪物，然而它開始抽動並復活了起來。邪惡的笑聲在洞穴中迴盪，你驚恐地看著它從地面上站起來並發起攻擊。在這個不死怪物的名字前面加上「復活」。你現在必須再次與這個怪物戰鬥。注意：如果你擊敗這個怪物，你不會獲得 [K] 獎勵。',
+    ex:[{d:'返回', to:6}],
+    s:null,
+    enc:{m:'revZombie', n:1, win:null, escapeText:'復活的不死怪物仍在這裡徘徊。'},
+  },
+  27:{
+    t:'第二十七段 · 物品堆', c:'yellow', r:27,
+    txt:'你小心地遮擋住熾熱的熱浪，穿過幾條較小的溪流，來到道路中央的物品堆。大部分都是無用的垃圾，但你找到了一件武器，還有幾樣可能有用的物品。',
+    ex:[{d:'返回', to:17}],
+    s:null,
+    onEnter:(S)=>{ gainLoot(S); }
+  },
+  29:{
+    t:'第二十九段 · 黴菌孢子', c:'blue', r:29,
+    txt:'當你開始四處搜索時，你不可避免地擾動了黴菌，並且無法避免吸入孢子（塗黑 1 個疾病刻度）。之後，如果你想打開一些桶來看看可能會找到什麼，可以轉到段落 97。',
+    ex:[{d:'返回', to:11}],
+    s:'F',
+    onEnter:(S)=>{ S.flags.moldExposed = true; },
+  },
+  34:{
+    t:'第三十四段 · 下水道入口', c:'yellow', r:34,
+    txt:'最終，你成功地拉開艙門，隨著它的打開，一股帶有金屬味的乾燥紅塵飄入你的面前。艙門通向下水道。一把生鏽的金屬梯子固定在磚砌垂直通道的一側。',
+    ex:[{d:'進入下水道', to:98},{d:'返回', to:8}],
+    s:null,
+  },
+  37:{
+    t:'第三十七段 · 神秘機關', c:'yellow', r:37,
+    txt:'你安全地降落在一個小平坦的岩石上，仔細地觀察著洞口。一個古老的鐵框嵌在岩石表面。你讀到了褪色的文字：「拉動以排空水」。這是一個特殊的機關。',
+    ex:[{d:'拉動', to:57},{d:'推動', to:33},{d:'忽略', to:78}],
+    s:null,
+    onEnter:(S)=>{ S.flags.puzzleSeen = true; }
+  },
+  39:{
+    t:'第三十九段 · 下水道轉角', c:'yellow', r:39,
+    txt:'你站在轉角處，環顧四周，注意到一個拳頭大小的小洞口。你向裡面凝視，但洞內太過黑暗，看不清洞的盡頭在哪裡。',
+    ex:[{d:'伸手進洞', to:56},{d:'向西', to:74},{d:'返回', to:8}],
+    s:null,
+  },
+  40:{
+    t:'第四十段 · 蛇坑中的戒指', c:'red', r:40,
+    txt:'你發現了一個看起來相對安全的地方，靠近邊緣探頭張望。數百條被塵土覆蓋的蛇在碎石堆中蠕動。你的目光被其中一條比其他蛇要大得多的蛇吸引住了。在兩塊石頭之間放著一個小小的金戒指。',
+    ex:[{d:'返回', to:18}],
+    s:null,
+    onEnter:(S)=>{ S.flags.ringSeen = true; }
+  },
+  43:{
+    t:'第四十三段 · 龍眼鑰匙', c:'yellow', r:43,
+    txt:'你退到運河岸的安全地帶，仔細檢查這把鑰匙。它比岩石上看到的大得多，由純金製成。鑰匙被精心雕刻成一條龍頭的側面，龍眼窩中鑲嵌著一顆黃色水晶。當你手握著它時，你已經能感受到奧術力量的脈動。',
+    ex:[{d:'拿起鑰匙', to:13}],
+    s:null,
+    onEnter:(S)=>{ if(!hasItem(S,'龍眼鑰匙')) addItem(S,{name:'龍眼鑰匙', num:9, val:900, slot:'頸部', bonus:'+3HP', note:'可用於開啟龍鐵門'}); }
+  },
+  44:{
+    t:'第四十四段 · 洞中水池', c:'yellow', r:44,
+    txt:'你將自己拉進洞中。水池昏暗而混濁。突然，水面上冒出一個巨大的氣泡。一股寒冷而惡臭的氣流呼嘯著從洞穴中吹過。現在你終於明白了氣流的來源。突然間，有東西抓住了你的腳踝。你被拖向水池——一隻巨大的觸手怪物正等著你。',
+    ex:[{d:'戰鬥後繼續', to:10}],
+    s:null,
+    enc:{m:'tentacle', n:1, win:10, escapeText:'觸手怪物潛回了水池。'}
+  },
+  45:{
+    t:'第四十五段 · 峽谷小船', c:'blue', r:45,
+    txt:'你發現自己站在一個狹窄的岩石懸崖上，懸掛在一個深深的峽谷上方。一隻巨大的鱷魚正在來回踱步。懸崖上懸掛著一艘小船，上面有幾隻槳。峽谷的另一邊有一架通往底部的金屬梯子。',
+    ex:[{d:'割斷小船繩索', to:59},{d:'攀爬下峽谷', to:49},{d:'返回', to:6}],
+    s:null,
+    onEnter:(S)=>{ S.flags.cliffTop = true; }
+  },
+  47:{
+    t:'第四十七段 · 女王之死', c:'red', r:47,
+    txt:'殭屍女王發出尖叫聲，隨著她沒有生氣地倒在地板上，冰牆破碎成碎片。冰塊四處飛濺，其中一塊擊中了你（擲 2d6 傷害）。片刻後，寂靜過後，洪亮的聲音再次迴盪在大廳中：「你永遠也找不到巨龍鎧甲，愚蠢的傢伙。我已將其從世人眼中隱藏，很快它將被摧毀！」\n\n你低頭看著女王，她的血肉迅速消失，只剩白骨。你彎下腰撿起了王冠。',
+    ex:[{d:'繼續', to:3}],
+    s:null,
+    onEnter:(S)=>{
+      const dmg = D.d6()+D.d6();
+      applyDamage(S, dmg, '冰塊碎片擊中');
+      addItem(S,{name:'安諾琳的王冠', val:750, fix:150, slot:'頭部', bonus:'+5智力', note:'精靈女王的王冠'});
+      addItem(S,{name:'塔格雷爾的日記', val:0, note:'半身人法師的研究日誌'});
+      S.player.spells = S.player.spells || [];
+      for(let i=0;i<2;i++){
+        const s = rollTableS();
+        if(s) S.player.spells.push(s);
+      }
+      S.flags.queenDefeated = true;
+    }
+  },
+  48:{
+    t:'第四十八段 · 恩德廢墟地圖', c:'yellow', r:48,
+    txt:'通過組合你收集到的羊皮紙，你揭示了這片廢墟的一個粗糙地圖。將「地圖」添加到你的背包中。',
+    ex:[{d:'查看完畢', to:4}],
+    s:null,
+    onEnter:(S)=>{ addItem(S,{name:'恩德廢墟地圖', val:0, note:'可隨時查閱'}); }
+  },
+  49:{
+    t:'第四十九段 · 不死鱷魚', c:'blue', r:49,
+    txt:'在峽谷底部，你被一隻巨型鱷魚迎接。現在你與這個生物面對面，你意識到它實際上是不死生物。惡毒的笑聲在洞穴中迴盪。你和不死鱷魚都不能逃離。',
+    ex:[{d:'戰鬥後繼續', to:87}],
+    s:null,
+    enc:{m:'croc', n:1, win:87, noFlee:true, escapeText:'無法逃離！'}
+  },
+  50:{
+    t:'第五十段 · 開啟石箱', c:'blue', r:50,
+    txt:'你搜索了背包，找到了心形的小石塊，並將它們放入龍胸膛的槽中。片刻間，雕刻的龍身發出綠色的光芒。幾秒鐘後，光芒消失了，蓋子彈開了。',
+    ex:[{d:'查看箱中', to:100}],
+    s:null,
+    onEnter:(S)=>{
+      removeItem(S,'心形鵝卵石(24)');
+      removeItem(S,'心形鵝卵石(26)');
+    }
+  },
+  51:{
+    t:'第五十一段 · 地下墓穴', c:'red', r:51,
+    txt:'你四處搜尋，找到了各種各樣的骨骼。大多數似乎屬於半巨人。在一個區域裡，一座建築物已經完全夷為平地，你注意到裡面有一個洞，可能通向一個地下室。',
+    ex:[{d:'下去', to:86},{d:'繼續', to:18}],
+    s:null,
+  },
+  52:{
+    t:'第五十二段 · 復活的女王', c:'red', r:52,
+    txt:'滿懷悲痛，你將精靈女王的屍體輕輕放在地上。你緩緩站起身，卻突然因為那生物的眼睛開始發出黃色的光芒而驚恐地後退。一隻腐爛的手緊緊抓住你的喉嚨，它的鋒利爪子刺破你的皮膚。你必須與下方復活的殭屍女王戰鬥。由於冰牆仍然擋住去路，你和女王都無法逃離。',
+    ex:[{d:'戰鬥後', to:47}],
+    s:null,
+    enc:{m:'revQueen', n:1, win:47, noFlee:true, escapeText:'無法逃離！'}
+  },
+  53:{
+    t:'第五十三段 · 傾覆的櫥櫃', c:'yellow', r:53,
+    txt:'你彎下腰，費力地尋找櫥櫃的邊緣並試圖抬起它。它非常沉重，當你抬到一半時，你不得不放下它。它著地時發出碎裂聲，碎片四散飛濺。站起身，你注意到幾個身影從陰影中走出，搖搖晃晃地朝你靠近——四具腐爛的屍體。',
+    ex:[{d:'戰鬥後', to:2}],
+    s:null,
+    enc:{m:'zombie', n:4, win:2, escapeText:'殭屍們仍在此處。'}
+  },
+  55:{
+    t:'第五十五段 · 金屬艙蓋', c:'yellow', r:55,
+    txt:'在這個區域進行了快速搜索後，你沒有找到任何有價值的東西。你決定搜索道路。在移動一塊沉重的石頭後，你發現了一個金屬艙蓋，通往舊下水道系統。',
+    ex:[{d:'嘗試打開', to:34},{d:'繼續', to:8}],
+    s:'F',
+  },
+  56:{
+    t:'第五十六段 · 黑暗洞穴', c:'yellow', r:56,
+    txt:'你伸手進洞裡，四處摸索。裡面濕漉漉的，有一些毛茸茸的東西輕輕刺激著你的皮膚。',
+    ex:[{d:'繼續摸索', to:25},{d:'抽手', to:39}],
+    s:null,
+  },
+  57:{
+    t:'第五十七段 · 拉動機關', c:'yellow', r:57,
+    txt:'你緊握著機關，屏住呼吸，向自己拉動。隨著機關卡入位的「咔嗒」聲響起，你轉身尋找任何水被排空的跡象，但洞穴並沒有發生任何變化。也許機關損壞了，或者它將水排到了其他地方。',
+    ex:[{d:'改為推動', to:33},{d:'離開', to:78}],
+    s:null,
+    onEnter:(S)=>{ S.flags.puzzlePulled = true; }
+  },
+  58:{
+    t:'第五十八段 · 釣取戒指', c:'red', r:58,
+    txt:'你將金屬鉤繫在繩子的末端，小心地將其降入蛇滿佈的坑中，然後試圖鉤住那個戒指。進行「釣寶」檢定。你可以嘗試這個檢定多次。',
+    ex:[{d:'成功取回', to:93},{d:'放棄', to:18}],
+    s:null,
+    onEnter:(S)=>{ S.flags.fishing = true; }
+  },
+  59:{
+    t:'第五十九段 · 割斷小船', c:'blue', r:59,
+    txt:'你仔細計劃著何時割斷繩子，目睹船隻墜入虛空。進行「瞄準」檢定。如果檢定成功，船隻會墜落並撞擊鱷魚。',
+    ex:[{d:'攀爬下峽谷', to:49}],
+    s:null,
+    onEnter:(S)=>{
+      const r = D.d100();
+      if(r <= 40){ S.flags.croc5 = true; toast('命中！鱷魚受到重創 (鱷魚5)'); }
+      else { S.flags.croc10 = true; toast('未命中！鱷魚未受傷 (鱷魚10)'); }
+    }
+  },
+  60:{
+    t:'第六十段 · 羊皮紙拼合', c:'yellow', r:60,
+    txt:'你仔細查看這些羊皮紙，注意到它們在外觀上非常相似。它們大致相同的尺寸，似乎是從一張更大的紙張上撕下來的。你將紙張展開並仔細排列，使撕裂的邊緣互相對齊。',
+    ex:[{d:'查看', to:48}],
+    s:null,
+  },
+  61:{
+    t:'第六十一段 · 划船', c:'blue', r:61,
+    txt:'你迅速爬上船並解開繩子，開始划向梯子。突然，有水花濺起，並且有什麼東西抓住了船槳。你拼命想要解脫，船傾斜到一側，開始進水。船被撞成碎片，你被投入了冰冷的水中。兩隻閃爍著光芒的眼睛凝視著你。你必須與鱷魚戰鬥，否則將被活活吞食。由於你在水中作戰，攻擊時會受到 -10 的懲罰。你和鱷魚都不允許逃離。',
+    ex:[{d:'戰鬥後', to:68}],
+    s:null,
+    enc:{m:'croc', n:1, win:68, noFlee:true, escapeText:'無法逃離！'}
+  },
+  62:{
+    t:'第六十二段 · 熔岩中的鑰匙', c:'yellow', r:62,
+    txt:'在你搜索運河時，你注意到了一個小石頭。它從熾熱冒泡的岩漿表面突出，上面放著一把大鑰匙。鑰匙的頭部鑲嵌著幾顆水晶，沿著柄部分還有幾顆較小的水晶。如果你想嘗試獲取鑰匙，你可以進行「伸展」檢定。',
+    ex:[{d:'嘗試拿取', to:43},{d:'放棄', to:13}],
+    s:null,
+    onEnter:(S)=>{
+      const r = D.d100();
+      if(r <= 40){ toast('你成功安全地伸過去拿到了鑰匙！'); }
+      else { applyDamage(S, 5, '手臂被岩漿灼傷'); }
+    }
+  },
+  64:{
+    t:'第六十四段 · 水中復活鱷魚', c:'blue', r:64,
+    txt:'你歡呼勝利，鱷魚側翻過來，但在你來得及喘息之前，那生物的頭搖擺著，向你游來。你必須與復活的不死鱷魚戰鬥。由於你的手臂仍然嚴重受傷，並且你是在水中戰鬥，你的攻擊骰減少 20 點。',
+    ex:[{d:'戰鬥後', to:73}],
+    s:null,
+    enc:{m:'revCroc', n:1, win:73, noFlee:true, atkPenalty:20, escapeText:'無法逃離！'}
+  },
+  65:{
+    t:'第六十五段 · 蛇坑 (落點A)', c:'red', r:65,
+    txt:'你全身劇痛，感覺在摔倒時撞到了頭（-2HP）。地板開始晃動，蛇無處不在。你必須盡快逃離，爬到上面剩下的地板上。',
+    ex:[{d:'攀爬逃離', to:40}],
+    s:null,
+    onEnter:(S)=>{ applyDamage(S,2,'摔倒撞擊'); addPoison(S,1); }
+  },
+  66:{
+    t:'第六十六段 · 搜索峽谷', c:'green', r:66,
+    txt:'你可以在峽谷的每一邊搜索一次。每次搜索峽谷的一邊時，根據表 F 的結果進行擲骰。',
+    ex:[{d:'搜索', to:4},{d:'過橋', to:4}],
+    s:'F',
+  },
+  67:{
+    t:'第六十七段 · 隱藏的門', c:'red', r:67,
+    txt:'在掙扎中，你終於成功打開了隱藏的門，足夠讓你伸出手指並牢牢抓住邊緣。你用力拉動，門在古老的鉸鏈上發出吱吱聲，從黑暗中傳來一些動靜。',
+    ex:[{d:'戰鬥後', to:92}],
+    s:null,
+    enc:{m:'skeleton', n:1, win:92, escapeText:'怪物仍潛伏在暗門後。'}
+  },
+  68:{
+    t:'第六十八段 · 水中復活鱷魚 (階段2)', c:'blue', r:68,
+    txt:'鱷魚在水中側翻過來，你興奮地歡呼，但還沒來得及喘息，它的頭搖擺著，向你游來。你必須與復活的不死鱷魚戰鬥。由於你在水中作戰，你的攻擊骰要減去 10。',
+    ex:[{d:'戰鬥後', to:90}],
+    s:null,
+    enc:{m:'revCroc', n:1, win:90, noFlee:true, atkPenalty:10, escapeText:'無法逃離！'}
+  },
+  69:{
+    t:'第六十九段 · 陷阱鵝卵石', c:'red', r:69,
+    txt:'小心翼翼地，你伸手進洞，盲目地在底部摸索著尋找鵝卵石。當鵝卵石的重量從你沒有注意到的小壓力板上解除時，你聽到一聲咔嘹聲，幾根小尖刺從洞內射出，刺入你的手臂。',
+    ex:[{d:'返回', to:5}],
+    s:null,
+    onEnter:(S)=>{
+      const dmg = D.d6()+4;
+      applyDamage(S, dmg, '尖刺陷阱');
+      const r = D.d6();
+      if(r <= 3){ addItem(S,{name:'心形鵝卵石(24)', val:0, note:'龍胸膛插孔的鑰匙之一'}); toast('你忍痛抓住了鵝卵石！'); }
+      else { toast('你沒能抓住鵝卵石，陷阱重新設置了。'); S.flags.pebble24Pending = true; }
+    }
+  },
+  70:{
+    t:'第七十段 · 石箱與寶藏', c:'blue', r:70,
+    txt:'你發現兩個石製的箱子和一把通向上方，可能通向地表的長梯子。其中一個箱子打開後，裡面有一些裝滿精靈硬幣的袋子，總價值為 1200 金幣。另一個箱子被牢牢鎖住。雕刻在石蓋上的是一條龍，而在龍的胸膛有兩個心形插孔。',
+    ex:[{d:'放入心形鵝卵石', to:50},{d:'砸開箱子', to:100},{d:'撬開鎖', to:100},{d:'爬上梯子離開(失敗)', to:'defeat'}],
+    s:null,
+    onEnter:(S)=>{ addGold(S, 1200); toast('獲得 1200 金幣！'); }
+  },
+  71:{
+    t:'第七十一段 · 收集河水', c:'green', r:71,
+    txt:'你注意到快速流動的河流的河岸。水看起來清涼、清澈。如果你的背包裡有水桶或冰桶，你可以收集一些水帶走。',
+    ex:[{d:'返回', to:7}],
+    s:null,
+    onEnter:(S)=>{
+      if(hasItem(S,'水桶')||hasItem(S,'冰桶')){ toast('你裝了一些河水（可用於抵抗炎熱）'); S.flags.hasWater = true; }
+      else { toast('你沒有可以裝水的容器。'); }
+    }
+  },
+  72:{
+    t:'第七十二段 · 地面小洞', c:'blue', r:72,
+    txt:'你注意到地面上有一個小洞，大約和你的拳頭大小相同。在洞的底部，你可以看到一個小塊心形鵝卵石。',
+    ex:[{d:'伸手去拿', to:69},{d:'離開', to:5}],
+    s:'F',
+  },
+  73:{
+    t:'第七十三段 · 鱷魚之後', c:'blue', r:73,
+    txt:'你游向梯子，決定等待手臂恢復。在水中漂浮了二十分鐘後，你感覺手臂已經足夠舒適，可以潛下水去調查了。你深吸一口氣，潛入水下，向下游動，在接近底部的時候，你發現地板上有一個巨大的艙門。',
+    ex:[{d:'繼續', to:70}],
+    s:null,
+  },
+  74:{
+    t:'第七十四段 · 下水道西側', c:'yellow', r:74,
+    txt:'你轉身向西，沿著隧道前行幾分鐘。這裡的水位越來越高，使得行走變得困難。最終，你來到一個巨大的鐵柵欄，擋住了你的去路。突然，你被嚇了一跳——有四個染疫的殭屍笨拙地在隧道中步。你必須與這些殭屍戰鬥，且在戰鬥中不允許逃離。',
+    ex:[{d:'戰鬥後', to:37}],
+    s:null,
+    enc:{m:'zombie', n:4, win:37, noFlee:true, escapeText:'無法逃離！'}
+  },
+  75:{
+    t:'第七十五段 · 復活的骷髏', c:'red', r:75,
+    txt:'骷髏無力地倒在地板上，骨骼撞擊地面時四散飛散。突然，一股寒風席捲而過，一種詭異的寒意籠罩著你。你剛剛與之戰鬥的骷髏開始復活並站了起來。你必須與復活的骷髏展開戰鬥。',
+    ex:[{d:'戰鬥後', to:18}],
+    s:null,
+    enc:{m:'revSkeleton', n:1, win:18, escapeText:'復活的骷髏仍在這裡。'}
+  },
+  76:{
+    t:'第七十六段 · 綠色液體', c:'yellow', r:76,
+    txt:'你收集了一些綠水並大口喝了一口。起初，它非常冰涼和清爽，但接著味道襲來。惡臭的水讓你感到噁心，你彎下腰乾嘔（-2HP，並塗黑 3 個疾病刻度）。',
+    ex:[{d:'攀爬上去', to:44},{d:'返回', to:10}],
+    s:null,
+    onEnter:(S)=>{ applyDamage(S,2,'噁心'); addPoison(S,3); }
+  },
+  77:{
+    t:'第七十七段 · 抗熱物品', c:'yellow', r:77,
+    txt:'你停下來整理身上的物品。你找到了一些可能幫助你抵抗高溫的裝備。',
+    ex:[{d:'返回', to:'remember'}],
+    s:null,
+    onEnter:(S)=>{
+      if(hasItem(S,'冰桶')||S.flags.hasWater){ toast('冰水或濕毯可提供抗熱保護。'); S.flags.heatResist = true; }
+      else { toast('你沒有有效的抗熱物品。'); }
+    }
+  },
+  78:{
+    t:'第七十八段 · 跳過岩漿', c:'yellow', r:78,
+    txt:'在時間追蹤器上塗黑 1①。現在，你必須穿過熾熱岩漿河回到出口，並繼續你的冒險。進行下面所示的「跳過岩漿」檢定三次。',
+    ex:[{d:'完成跳躍', to:20}],
+    s:null,
+    onEnter:(S)=>{
+      addTime(S,1);
+      let totalDmg = 0;
+      for(let i=0;i<3;i++){
+        const r = D.d100();
+        if(r > S.player.dex) { totalDmg += 4; }
+      }
+      if(totalDmg>0) applyDamage(S, totalDmg, '掉入岩漿');
+      else toast('你安全地跳過了岩漿！');
+    }
+  },
+  79:{
+    t:'第七十九段 · 蛛網纏身', c:'red', r:79,
+    txt:'盡力避免被蜘蛛網困住，但一根蜘蛛絲黏在你的腿上，儘管你用力拉扯，最終你還是被粘稠的物質困住了。從上方傳來一陣咔嗒聲，你抬頭望去，發現兩隻黃色的眼睛正凝視著你，然後骷髏蜘蛛發動了攻擊。',
+    ex:[{d:'戰鬥後', to:9}],
+    s:null,
+    enc:{m:'spider', n:1, win:9, escapeText:'骷髏蜘蛛仍潛伏在此。'}
+  },
+  80:{
+    t:'第八十段 · 橋下繩子', c:'green', r:80,
+    txt:'當你結束搜索時，你注意到橋下懸掛著一捆繩子；它看起來相當陳舊，但可能非常有用。',
+    ex:[{d:'嘗試取回', to:4},{d:'放棄', to:4}],
+    s:null,
+    onEnter:(S)=>{
+      const r = D.d100();
+      if(r <= 40){ addItem(S,{name:'繩子', val:50, note:'攀爬 +5 敏捷'}); toast('你取回了繩子！'); }
+      else { applyDamage(S,1,'滑倒擦傷'); toast('你滑倒了，沒能取回繩子。'); }
+    }
+  },
+  81:{
+    t:'第八十一段 · 地下湖', c:'blue', r:81,
+    txt:'除了一條狹窄的路徑和伸出水面的石頭碼頭，洞穴似乎被湖水填滿。水有些混濁，看起來非常深。一艘停泊在碼頭上的小船在瀑布的起伏中上下晃動。在湖的對面，你可以看到一架固定在牆上的梯子，它消失在水中。',
+    ex:[{d:'划船過去', to:61},{d:'游泳過去', to:94},{d:'離開湖泊', to:6}],
+    s:null,
+  },
+  82:{
+    t:'第八十二段 · 蛛網檢定', c:'red', r:82,
+    txt:'你在周圍搜索時，發現這個區域被一張黏糊糊的蜘蛛網覆蓋著。為了避免被困住，你需要進行一次蛛網檢定。',
+    ex:[{d:'繼續', to:9}],
+    s:null,
+    onEnter:(S)=>{
+      const r = D.d100();
+      if(r > S.player.int+10){ S.flags.trapped = true; toast('你被蛛網困住了！'); }
+      else { toast('你成功避開了蛛網。'); }
+    }
+  },
+  83:{
+    t:'第八十三段 · 孩童的幻影', c:'yellow', r:83,
+    txt:'你跟著孩童進入陰暗之處，剛剛穿過門的瞬間，門突然砰地一聲關上了。你慢慢轉過身，看到一個骷髏，它的眼睛閃爍著紅光，正朝你走來。',
+    ex:[{d:'戰鬥後', to:19}],
+    s:null,
+    enc:{m:'skeleton', n:1, win:19, escapeText:'骷髏仍在此處。'}
+  },
+  84:{
+    t:'第八十四段 · 小惡魔', c:'yellow', r:84,
+    txt:'你繼續前進，最終到達了運河水系的盡頭。四周被熾熱的岩漿所照亮，從烈焰中出現了一些火焰怪物。牠們興奮地跳躍著，並開始向你投擲火球。',
+    ex:[{d:'戰鬥後', to:62},{d:'離開', to:13}],
+    s:null,
+    enc:{m:'imp', n:1, win:62, escapeText:'小惡魔仍在這裡。'}
+  },
+  85:{
+    t:'第八十五段 · 空曠大廳', c:'blue', r:85,
+    txt:'儘管這個區域十分廣闊，你可以透過外面自然光的照射，明顯感覺到洞穴異常地空曠。',
+    ex:[{d:'搜索', to:72},{d:'離開', to:5}],
+    s:null,
+    onEnter:(S)=>{ addTime(S,2); }
+  },
+  86:{
+    t:'第八十六段 · 墜落地穴', c:'red', r:86,
+    txt:'當你通過洞口降落到石頭懸崖上時，你感覺地板突然塌陷，片刻間你便開始向下墜落。最終，你摔倒在底部，疼痛地呻吟著。',
+    ex:[{d:'繼續', to:24}],
+    s:null,
+    onEnter:(S)=>{
+      const r = D.d10();
+      gotoPara(r<=5?24:65);
+    }
+  },
+  87:{
+    t:'第八十七段 · 鱷魚再起', c:'blue', r:87,
+    txt:'鱷魚側翻過來，你歡呼著勝利，但還沒來得及喘口氣，那生物的頭搖擺著，一股寒風掠過洞穴。你無助地目睹它重新翻身並朝你走來。你必須與復活的不死鱷魚戰鬥。',
+    ex:[{d:'戰鬥後', to:90}],
+    s:null,
+    enc:{m:'revCroc', n:1, win:90, noFlee:true, escapeText:'無法逃離！'}
+  },
+  88:{
+    t:'第八十八段 · 斬首', c:'red', r:88,
+    txt:'在恩德廢墟中，不死生物似乎不願意就此安息。為了確保它無法再次復活並發動攻擊，你毫不猶豫地將怪物的頭顱從身體上斬下，並將它踢到盡可能遠的地方。你小心翼翼地搜查著這些殘骸，最終找到了一張破碎的羊皮紙。',
+    ex:[{d:'返回', to:'remember'}],
+    s:null,
+    onEnter:(S)=>{ addItem(S,{name:'羊皮紙', val:0, note:'地圖碎片'}); }
+  },
+  89:{
+    t:'第八十九段 · 龍眼開門', c:'yellow', r:89,
+    txt:'你興奮地拿出龍眼鑰匙，將鑰匙上的黃色水晶與門上缺失的龍眼進行比較。驚喜地發現它們形狀和大小完全一致。你將龍眼取下，迅速安裝到門上的空槽中。門突然打開，沉重的門軸發出吱吱聲。',
+    ex:[{d:'返回', to:6}],
+    s:null,
+    onEnter:(S)=>{ S.flags.doorOpen = true; toast('龍鐵門已開啟！'); }
+  },
+  90:{
+    t:'第九十段 · 鱷魚終結', c:'blue', r:90,
+    txt:'這一次，鱷魚依然靜靜地躺在那裡，於是你游向梯子，停留片刻凝視著水面，尋找是否還有其他可能的威脅。幾分鐘過去了，水中沒有任何動靜。你決定潛入水中，探索一下這個池子。在接近底部的時候，你發現地板上有一個大的艙口。',
+    ex:[{d:'繼續', to:70}],
+    s:null,
+  },
+  91:{
+    t:'第九十一段 · 王座大廳', c:'red', r:91,
+    txt:'大廳比你最初想像的要大得多。在一面牆上，你發現一道通向石製王座的台階。王座上鑲嵌著數百顆小寶石，但現在已經沒有了。你發現了幾個房間：圖書館、小教堂。然而，這些房間都沒有任何出口。你回到了你殺死殭屍女王的地方，並注意到冰屏障上的冰碎片仍然沒有融化。',
+    ex:[{d:'收集冰碎片(需水桶)', to:3},{d:'離開', to:3}],
+    s:null,
+    onEnter:(S)=>{
+      if(hasItem(S,'水桶')||hasItem(S,'冰桶')){ toast('你收集了一些不融化的冰碎片。'); S.flags.iceShards = true; }
+    }
+  },
+  92:{
+    t:'第九十二段 · 角鬥士囚室', c:'red', r:92,
+    txt:'在與殭屍女王的激戰中，你感到筋疲力盡，稍作停留，喘口氣，環顧四周的房間。在塵土和碎石的掩蓋下，你發現這是一個將角鬥士囚禁的地方。遠處牆壁上設有一條通向隧道，但天花板已經坍塌，被堵住了。你搜索這些物品，發現其中大部分都是垃圾。',
+    ex:[{d:'整理物品', to:16},{d:'不整理', to:16}],
+    s:null,
+    onEnter:(S)=>{
+      addTime(S,2);
+      addItem(S,{name:'劣質武器', val:20, note:'來自角鬥士囚室'});
+    }
+  },
+  93:{
+    t:'第九十三段 · 星之戒', c:'red', r:93,
+    txt:'你小心地拿起戒指，擦去多年的塵埃和污垢。這個金色的戒指外觀非常樸素，但即使在你的手中，你也能感受到它的力量。戴上戒指的瞬間，你感到一股知識的潮流湧入你的腦海。',
+    ex:[{d:'繼續', to:18}],
+    s:null,
+    onEnter:(S)=>{ addItem(S,{name:'星之戒', val:1500, slot:'戒指', bonus:'+10智力', note:'散發知識的光芒'}); }
+  },
+  94:{
+    t:'第九十四段 · 游泳遇襲', c:'blue', r:94,
+    txt:'你潛入水中，朝著梯子游去。在過半的路程中，你感到有什麼東西劃過你的腿。兩隻發光的眼睛盯著你，緊接著一張滿是牙齒的大嘴張開，向你的頭部咬來。你承受了 1d6+2 點生命值的傷害。你意識到自己完全處於一隻非常龐大的鱷魚的掌控之下。',
+    ex:[{d:'戰鬥後', to:68}],
+    s:null,
+    onEnter:(S)=>{ const dmg = D.d6()+2; applyDamage(S, dmg, '鱷魚咬傷'); },
+    enc:{m:'croc', n:1, win:68, noFlee:true, atkPenalty:20, escapeText:'無法逃離！'}
+  },
+  95:{
+    t:'第九十五段 · 跳躍岩石', c:'yellow', r:95,
+    txt:'將時間追蹤器上塗黑 1①。在這個區域四處搜尋變得困難，而炎熱的氣候讓你頭痛欲裂。溪流變窄了，有三塊大岩石從熔岩中伸出。然而，這些岩石的間距比你最初預想的要遠。',
+    ex:[{d:'跳過去', to:37},{d:'不跳', to:20}],
+    s:null,
+    onEnter:(S)=>{
+      addTime(S,1);
+      let dmg = 0;
+      for(let i=0;i<3;i++){
+        if(D.d100() > S.player.dex) dmg += 2;
+      }
+      if(dmg>0) applyDamage(S, dmg, '掉入岩漿');
+    }
+  },
+  96:{
+    t:'第九十六段 · 復活的蜘蛛', c:'red', r:96,
+    txt:'最終，你成功擊敗了骷髏蜘蛛，它破碎在地上。突然，從遠處傳來一陣邪惡的笑聲。你驚恐地看著蜘蛛破碎的身體扭動著重新拼湊在一起。你必須與復活的骷髏蜘蛛戰鬥。',
+    ex:[{d:'戰鬥後', to:9}],
+    s:null,
+    enc:{m:'revSpider', n:1, win:9, escapeText:'復活的骷髏蜘蛛仍在這裡。'}
+  },
+  97:{
+    t:'第九十七段 · 黴菌桶', c:'blue', r:97,
+    txt:'你打開了一個桶，當蓋子掉落時，擾動了一些之前你沒有注意到的黴菌孢子（塗黑 1 疾病刻度）。你往裡面看，發現底部有一團惡臭的泥漿，還有一塊小心形鵝卵石。',
+    ex:[{d:'拿走鵝卵石', to:11},{d:'不拿', to:11}],
+    s:null,
+    onEnter:(S)=>{
+      addPoison(S,1);
+      addItem(S,{name:'心形鵝卵石(26)', val:0, note:'龍胸膛插孔的鑰匙之一'});
+    }
+  },
+  98:{
+    t:'第九十八段 · 下水道深處', c:'yellow', r:98,
+    txt:'你抓住金屬梯子，緩緩下降進入黑暗之中。你現在位於一條由磚塊建成的隧道的盡頭，向北延伸著。水只淹沒到你的腳踝處，感覺非常冰冷。',
+    ex:[{d:'繼續探索', to:39},{d:'離開', to:8}],
+    s:null,
+  },
+  100:{
+    t:'第一百段 · 巨龍鎧甲', c:'red', r:100,
+    txt:'當你打開寶箱，你凝視著裡面，看到各種堆疊在一起的鏽跡斑斑的鎧甲碎片。這與你對於巨龍鎧甲的期望完全不符。當最後一塊鎧甲被扣好時，你等待著發生一些事情，然後它發生了。你聽到身後傳來一陣笑聲，那邪惡的笑聲充滿了你心中的厄運。\n\n「凡人，你將因為你的傲慢而死。」巫妖王坎塔正站在你的上方，揮動著他的火焰劍。然後，曾經黯淡而損壞的鎧甲閃耀著明亮的光芒。它合二為一，數百顆小小的水晶出現在表面上。你站起來，將那個生物推開。\n\n現在你必須與巫妖王展開激烈搏鬥。你和巫妖王都不能逃離。',
+    ex:[],
+    s:null,
+    onEnter:(S)=>{
+      ['巨龍堅骨','巨龍硬鱗','巨龍利爪','巨龍腰帶','巨龍護腿'].forEach(n=>{
+        addItem(S,{name:n, val:1500, slot:'套裝', bonus:'火焰吐息', note:'巨龍鎧甲的一部分'});
+      });
+      S.flags.dragonArmour = true;
+      S.player.av += 10;
+      S.player.def += 5;
+      S.player.maxHp += 5;
+      S.player.hp = S.player.maxHp;
+    },
+    enc:{m:'lich', n:1, win:'victory', noFlee:true, escapeText:'無法逃離！'}
+  },
+};
+
+/* ---------- 表 F：通用搜索 ---------- */
+function rollTableF(S){
+  const r = D.d10();
+  if(r <= 3){ const g = D.d6()*10; addGold(S,g); toast(`找到 ${g} 金幣！`); }
+  else if(r <= 6){
+    const potions = ['劣制治病藥水','劣制解毒藥水','聖水'];
+    const p = potions[D.d6()%3];
+    addItem(S,{name:p, val:16, note:'消耗品'});
+    toast(`找到 ${p}！`);
+  }
+  else if(r <= 8){ toast('這裡什麼也沒有。'); }
+  else {
+    toast('你驚動了一隻游蕩的怪物！');
+    return true;
+  }
+  return false;
+}
+
+/* ---------- 表 S：法術 ---------- */
+function rollTableS(){
+  const spells = ['火焰箭','冰霜新星','治療之光','暗影護盾','雷電術'];
+  return spells[Math.floor(Math.random()*spells.length)];
+}
+
+/* ---------- 状态 ---------- */
+const S = {
+  mode: 'intro',
+  player: { hp:40, maxHp:40, av:20, def:5, dmg:3, str:30, dex:30, int:30, fate:5, gold:0, spells:[] },
+  inv: [],
+  time: 0,
+  turn: 0,
+  para: null,
+  history: [],
+  flags: {},
+  combat: null,
+  rememberedPara: null,
+  soundOn: true,
+  achievements: [],
+};
+
+/* ---------- 辅助函数 ---------- */
+function hasItem(S, name){ return S.inv.some(i=>i.name===name); }
+function addItem(S, item){ S.inv.push(item); if(S.mode!=='combat') renderInv(); }
+function removeItem(S, name){ S.inv = S.inv.filter(i=>i.name!==name); renderInv(); }
+function addGold(S, n){ S.player.gold += n; updateHud(); }
+function addTime(S, n){ S.time += n; updateHud(); if(S.para && PARAS[S.para] && PARAS[S.para].persistent && /①/.test(PARAS[S.para].persistent)) { /* 持续效果由段落 onEnter 处理 */ } }
+function addPoison(S, n){ S.flags.poison = (S.flags.poison||0) + n; toast(`毒素 +${n}（目前 ${S.flags.poison}）`); }
+function applyDamage(S, dmg, src){
+  S.player.hp -= dmg;
+  if(S.player.hp < 0) S.player.hp = 0;
+  updateHud();
+  toast(`${src}！受到 ${dmg} 點傷害`);
+  if(S.player.hp <= 0){ gameOver(); }
+}
+function gainLoot(S){
+  const r = D.d100();
+  if(r < 50) addGold(S, D.d6()*10);
+  else if(r < 80) addItem(S,{name:'聖水', val:16, note:'可對抗復活怪'});
+  else addItem(S,{name:'火焰抗性藥水', val:30, note:'抗熱 +1'});
+  toast('你獲得了一些物品！');
+}
+
+/* ---------- HUD 更新 ---------- */
+function updateHud(){
+  const p = S.player;
+  document.getElementById('hpFill').style.width = (p.hp/p.maxHp*100)+'%';
+  document.getElementById('hpText').textContent = `${p.hp}/${p.maxHp}`;
+  document.getElementById('timeText').textContent = S.time;
+  document.getElementById('fateText').textContent = p.fate;
+  document.getElementById('goldText').textContent = p.gold;
+}
+
+/* ---------- 打字机效果 ---------- */
+let typeTimer = null;
+function typeText(el, text, cb){
+  if(typeTimer) clearInterval(typeTimer);
+  el.innerHTML = '';
+  let i = 0;
+  const speed = 12;
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  el.appendChild(cursor);
+  typeTimer = setInterval(()=>{
+    if(i >= text.length){
+      clearInterval(typeTimer); typeTimer=null;
+      cursor.remove();
+      if(cb) cb();
+      return;
+    }
+    const ch = text[i++];
+    if(ch === '\n'){
+      cursor.insertAdjacentText('beforebegin','\n');
+    } else {
+      cursor.insertAdjacentText('beforebegin', ch);
+    }
+    el.scrollTop = el.scrollHeight;
+  }, speed);
+  el._skipType = ()=>{
+    if(typeTimer){ clearInterval(typeTimer); typeTimer=null; }
+    el.textContent = text;
+    if(cb) cb();
+  };
+}
+
+/* ---------- 渲染 ---------- */
+function render(){
+  const P = PARAS[S.para];
+  if(!P){ return; }
+  const box = document.getElementById('storyBox');
+  document.getElementById('paraTitle').textContent = P.t;
+  const textEl = document.getElementById('paraText');
+  textEl.innerHTML = '';
+  typeText(textEl, P.txt);
+
+  // 区域 chip
+  const chip = document.getElementById('regionChip');
+  chip.className = P.c || 'green';
+  chip.textContent = P.r || '?';
+  document.getElementById('regionLabel').textContent = `區域 ${P.r||'?'} · ${P.t.split('·')[1]?.trim()||''}`;
+  document.getElementById('regionSub').textContent = (REGION_COLOR[P.c]||'未知') + '區域';
+  document.getElementById('regionLabel').style.color = '#5a3a10';
+
+  renderActions(P);
+  updateHud();
+  renderInv();
+}
+
+function renderActions(P){
+  const actions = document.getElementById('actions');
+  actions.innerHTML = '';
+  if(S.mode === 'combat'){ actions.style.display='none'; return; }
+  actions.style.display = 'flex';
+
+  // 出口
+  (P.ex||[]).forEach(e=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    btn.textContent = `🚪 ${e.d} → ${typeof e.to==='number'? '第'+e.to+'段' : e.to}`;
+    btn.onclick = ()=>{ Sound.click(); handleExit(e); };
+    actions.appendChild(btn);
+  });
+
+  // 搜索
+  if(P.s !== null && P.s !== undefined){
+    if(P.lockSearch && !S.flags.lockOpened){
+      const b = document.createElement('button');
+      b.className='btn'; b.textContent='🔒 搜索（需先開門）'; b.disabled = true;
+      actions.appendChild(b);
+    } else {
+      const b = document.createElement('button');
+      b.className = 'btn';
+      b.textContent = P.s === 'F' ? '🔍 搜索（擲表F）' : '🔍 搜索';
+      b.onclick = ()=>{ Sound.click(); handleSearch(P); };
+      actions.appendChild(b);
+    }
+  }
+
+  // 特殊选项
+  if(P.special === 'altar'){
+    const b = document.createElement('button');
+    b.className='btn';
+    b.textContent='🙏 祈禱（塗黑1①）';
+    b.disabled = S.flags.prayed;
+    b.onclick = ()=>{ Sound.click(); doPray(); };
+    actions.appendChild(b);
+  }
+  if(P.special === 'canyon'){
+    const b = document.createElement('button');
+    b.className='btn';
+    b.textContent='🌉 過橋檢定（敏捷-5）';
+    b.onclick = ()=>{ Sound.click(); crossBridge(); };
+    actions.appendChild(b);
+  }
+  if(P.special === 'river'){
+    const b = document.createElement('button');
+    b.className='btn';
+    b.textContent='🌊 過河檢定（力量-5）';
+    b.onclick = ()=>{ Sound.click(); crossRiver(); };
+    actions.appendChild(b);
+  }
+  if(P.special === 'lavadoor'){
+    if(S.flags.doorOpen){
+      const b = document.createElement('button');
+      b.className='btn good'; b.textContent='✅ 龍鐵門已開啟'; b.disabled = true;
+      actions.appendChild(b);
+    } else if(hasItem(S,'龍眼鑰匙')){
+      const b = document.createElement('button');
+      b.className='btn primary'; b.textContent='🔑 使用龍眼鑰匙開門';
+      b.onclick = ()=>{ Sound.click(); gotoPara(89); };
+      actions.appendChild(b);
+    }
+  }
+  if(P.lavadoor === false){ /* noop */ }
+
+  // 返回按钮（如有出口则不需要）
+  if((!P.ex || P.ex.length===0) && S.para !== 'victory'){
+    const b = document.createElement('button');
+    b.className='btn'; b.textContent='↩ 返回';
+    b.onclick = ()=>{ Sound.click(); backToPara(); };
+    actions.appendChild(b);
+  }
+
+  // 使用物品按钮
+  const use = document.createElement('button');
+  use.className='btn ghost'; use.textContent='🎒 背包';
+  use.onclick = ()=>{ Sound.click(); toggleInv(true); };
+  actions.appendChild(use);
+}
+
+/* ---------- 交互逻辑 ---------- */
+function handleExit(e){
+  if(e.door && !S.flags.doorOpen && e.doorCode){
+    // 需要开门
+    const r = D.d100();
+    const success = r <= (S.player.str||30);
+    if(success){ S.flags.doorOpen = true; toast('你打開了門！'); Sound.good(); }
+    else { toast('你未能打開門（力量檢定失敗）。'); Sound.bad(); return; }
+  }
+  gotoPara(e.to);
+}
+
+function handleSearch(P){
+  if(P.s === 'F'){
+    const encounter = rollTableF(S);
+    if(encounter){ startCombat('zombie', 1, null); }
+    return;
+  }
+  if(typeof P.s === 'number'){
+    if(S.flags.searched === S.para){ toast('這個區域已經搜索過了。'); return; }
+    S.flags.searched = S.para;
+    gotoPara(P.s);
+  }
+}
+
+function doPray(){
+  if(S.flags.prayed){ return; }
+  S.flags.prayed = true;
+  addTime(S,1);
+  const r = D.d10();
+  let msg = '';
+  if(r<=2){ msg='雕像上的眼睛發出紅光，你覺得你激怒了神。'; Sound.bad(); }
+  else if(r<=4){ msg='你聽到腳下壓力墊的咔噠聲——陷阱！'; applyDamage(S, D.d6(), '陷阱'); }
+  else if(r<=6){ msg='似乎什麼都沒有發生。神沒有在聽。'; }
+  else if(r<=8){ msg='雕像上的眼睛發出綠色的光芒。你感到受到祝福。'; S.player.fate += 1; }
+  else { msg='雕像開始震動，然後整個教堂開始搖來搖去。你感到強大的力量。'; S.player.fate += 2; S.player.hp = Math.min(S.player.maxHp, S.player.hp + 3); }
+  toast(msg);
+  render();
+}
+
+function crossBridge(){
+  const r = D.d100();
+  const need = S.player.dex - 5;
+  if(r <= need){ toast('你安全地通過了木橋。'); }
+  else { applyDamage(S, 10, '從橋上墜落'); }
+}
+
+function crossRiver(){
+  const r = D.d100();
+  const need = S.player.str - 5;
+  if(r <= need){ toast('你安全地渡過了河。'); }
+  else { applyDamage(S, 2, '被河水沖擊'); addTime(S,1); }
+}
+
+function backToPara(){
+  if(S.rememberedPara){ gotoPara(S.rememberedPara); }
+  else { gotoPara(1); }
+}
+
+/* ---------- 段落跳转 ---------- */
+function gotoPara(id){
+  if(id === 'defeat'){ gameOver(); return; }
+  if(id === 'victory'){ victory(); return; }
+  if(id === 'remember'){
+    if(S.rememberedPara) gotoPara(S.rememberedPara);
+    else toast('沒有記住的段落。');
+    return;
+  }
+  if(!PARAS[id]){ toast(`段落 ${id} 未實作，返回上一段。`); return; }
+  
+  // 若從戰鬥勝利進入
+  S.mode = 'explore';
+  S.para = String(id);
+  S.turn++;
+  addTime(S,1);
+  
+  // 記錄歷史
+  S.history.push({ turn:S.turn, para:id, title:PARAS[id].t, time:S.time });
+  renderHistory();
+
+  // 觸發進入效果
+  if(PARAS[id].onEnter){
+    try { PARAS[id].onEnter(S); } catch(e){ console.warn(e); }
+  }
+
+  // 觸發戰鬥
+  if(PARAS[id].enc){
+    render();
+    setTimeout(()=>{ startCombat(PARAS[id].enc); }, 500);
+    return;
+  }
+
+  render();
+}
+
+/* ---------- 戰鬥系統 ---------- */
+function startCombat(enc){
+  S.mode = 'combat';
+  const template = MON[enc.m];
+  if(!template){ toast('未知怪物，跳過戰鬥'); gotoPara(enc.win||8); return; }
+  const n = enc.n || 1;
+  S.combat = {
+    monsters: [],
+    currentIndex: 0,
+    onWin: enc.win,
+    onFlee: enc.escapeText,
+    noFlee: enc.noFlee || false,
+    atkPenalty: enc.atkPenalty || 0,
+    round: 0,
+    log: [],
+  };
+  for(let i=0;i<n;i++){
+    S.combat.monsters.push({
+      key: enc.m, name: template.name + (n>1?` #${i+1}`:''), 
+      av: template.av, def: template.def, dmg: template.dmg,
+      hp: template.hp, maxHp: template.hp,
+      ab: template.ab.slice(), svg: template.svg, k: template.k,
+    });
+  }
+  // 套用 crocodile 修正
+  if(enc.m === 'croc'){
+    if(S.flags.croc5){ S.combat.monsters.forEach(m=>{ m.hp += 10; m.av -= 10; m.maxHp += 10; }); }
+    else if(S.flags.croc10){ S.combat.monsters.forEach(m=>{ m.av += 10; }); }
+  }
+  document.getElementById('combatPanel').classList.remove('hidden');
+  renderCombat();
+  combatLog('戰鬥開始！');
+}
+
+function renderCombat(){
+  const c = S.combat;
+  if(!c) return;
+  document.getElementById('combatTitle').textContent = `⚔ 戰鬥 · 第 ${c.round+1} 回合`;
+  const box = document.getElementById('combatMonsters');
+  box.innerHTML = '';
+  c.monsters.forEach((m, i)=>{
+    const div = document.createElement('div');
+    div.className = 'monster' + (m.hp<=0?' dead':'');
+    div.innerHTML = `
+      <div class="svgBox">${monSVG(m.svg, 84)}</div>
+      <div class="mname">${m.name}</div>
+      <div class="mlabel">HP ${m.hp}/${m.maxHp} · AV ${m.av} · Def ${m.def}</div>
+      <div class="mhp"><div style="width:${m.hp/m.maxHp*100}%"></div></div>
+    `;
+    box.appendChild(div);
+  });
+  const log = document.getElementById('combatLog');
+  log.innerHTML = c.log.slice(-30).map(l=>`<div>${l}</div>`).join('');
+  log.scrollTop = log.scrollHeight;
+
+  const actions = document.getElementById('combatActions');
+  actions.innerHTML = '';
+  const btnAtk = document.createElement('button');
+  btnAtk.className='btn danger';
+  btnAtk.textContent = '🗡 攻擊';
+  btnAtk.onclick = ()=>{ Sound.click(); playerAttack(); };
+  actions.appendChild(btnAtk);
+
+  if(!c.noFlee){
+    const btnFlee = document.createElement('button');
+    btnFlee.className='btn';
+    btnFlee.textContent = '🏃 逃跑';
+    btnFlee.onclick = ()=>{ Sound.click(); playerFlee(); };
+    actions.appendChild(btnFlee);
+  }
+  if(S.player.fate > 0){
+    const btnFate = document.createElement('button');
+    btnFate.className='btn ghost';
+    btnFate.textContent = `🍀 命運點（${S.player.fate}）`;
+    btnFate.onclick = ()=>{ Sound.click(); useFate(); };
+    actions.appendChild(btnFate);
+  }
+  if(hasItem(S,'聖水')){
+    const btnHoly = document.createElement('button');
+    btnHoly.className='btn primary';
+    btnHoly.textContent = '💧 使用聖水（對抗復活）';
+    btnHoly.onclick = ()=>{ Sound.click(); useHolyWater(); };
+    actions.appendChild(btnHoly);
+  }
+}
+
+function combatLog(msg){
+  if(!S.combat) return;
+  S.combat.log.push(msg);
+  const log = document.getElementById('combatLog');
+  if(log) log.innerHTML = S.combat.log.slice(-30).map(l=>`<div>${l}</div>`).join('');
+  if(log) log.scrollTop = log.scrollHeight;
+}
+
+function playerAttack(){
+  const c = S.combat;
+  if(!c) return;
+  const target = c.monsters[c.currentIndex];
+  if(!target || target.hp<=0){ nextMonster(); return; }
+  
+  const roll = D.d100();
+  const need = S.player.av - target.def - (c.atkPenalty||0);
+  if(roll <= need){
+    let dmg = D.d6() + S.player.dmg;
+    target.hp -= dmg;
+    combatLog(`<span class="good">你擊中 ${target.name}！造成 ${dmg} 點傷害（HP ${Math.max(0,target.hp)}/${target.maxHp}）</span>`);
+    Sound.hit();
+    if(target.hp <= 0){
+      target.hp = 0;
+      combatLog(`${target.name} 被擊敗！`);
+      setTimeout(()=>nextMonster(), 400);
+      return;
+    }
+  } else {
+    combatLog(`你揮空了（擲 ${roll}，需要 ≤ ${need}）`);
+    Sound.bad();
+  }
+  setTimeout(()=>monsterTurn(), 400);
+}
+
+function nextMonster(){
+  const c = S.combat;
+  c.currentIndex++;
+  while(c.currentIndex < c.monsters.length && c.monsters[c.currentIndex].hp <= 0){
+    c.currentIndex++;
+  }
+  if(c.currentIndex >= c.monsters.length){
+    combatVictory();
+    return;
+  }
+  renderCombat();
+}
+
+function monsterTurn(){
+  const c = S.combat;
+  if(!c || !c.monsters) return;
+  const target = c.monsters[c.currentIndex];
+  if(!target || target.hp<=0){ nextMonster(); return; }
+  
+  c.round++;
+  // 怪物反應 1d10
+  const react = D.d10();
+  let reaction = 'attack';
+  if(react <= 5) reaction = 'attack';
+  else if(react <= 7) reaction = 'roar';
+  else if(react <= 9){
+    // 嘗試逃跑，束縛需重擲
+    if(target.ab.includes('束縛')){
+      const r2 = D.d10();
+      if(r2 === 10){ reaction = 'flee'; }
+      else { reaction = 'attack'; combatLog(`${target.name} 被束縛能力驅使，重新振作！（束縛重擲 ${r2}）`); }
+    } else {
+      reaction = 'flee';
+    }
+  } else reaction = 'special';
+
+  if(reaction === 'attack'){
+    const roll = D.d100();
+    const need = target.av - S.player.def;
+    if(roll <= need){
+      let dmg = target.dmg;
+      S.player.hp -= dmg;
+      if(S.player.hp < 0) S.player.hp = 0;
+      updateHud();
+      combatLog(`<span class="dmg">${target.name} 擊中你！受到 ${dmg} 點傷害（HP ${S.player.hp}/${S.player.maxHp}）</span>`);
+      Sound.bad();
+      if(S.player.hp <= 0){ setTimeout(()=>gameOver(), 500); return; }
+    } else {
+      combatLog(`${target.name} 攻擊失手（擲 ${roll}，需要 ≤ ${need}）`);
+    }
+  } else if(reaction === 'roar'){
+    combatLog(`${target.name} 發出怒吼，沒有攻擊。`);
+  } else if(reaction === 'flee'){
+    combatLog(`${target.name} 試圖逃跑！`);
+    if(!c.noFlee){
+      setTimeout(()=>{ combatVictory(true); }, 500);
+      return;
+    } else {
+      combatLog(`${target.name} 無法逃離（被阻擋）。`);
+    }
+  } else {
+    combatLog(`${target.name} 使出特殊能力：${target.ab[0]||'咆哮'}`);
+    if(target.ab.includes('疾病') && Math.random()<0.5){
+      addPoison(S,1);
+      combatLog(`你感染了疾病！`);
+    }
+  }
+  renderCombat();
+}
+
+function combatVictory(fled){
+  const c = S.combat;
+  if(!c) return;
+  if(fled){
+    toast(c.onFlee || '怪物逃跑了！');
+    S.mode = 'explore';
+    document.getElementById('combatPanel').classList.add('hidden');
+    S.combat = null;
+    render();
+    return;
+  }
+  // 擊殺獎勵
+  const totalK = c.monsters.reduce((s,m)=>s+(m.k||0),0);
+  if(totalK > 0){ addGold(S, totalK); toast(`戰鬥勝利！獲得 ${totalK} 金幣擊殺獎勵`); }
+  else { toast('戰鬥勝利！'); }
+  Sound.good();
+  
+  S.mode = 'explore';
+  document.getElementById('combatPanel').classList.add('hidden');
+  
+  const next = c.onWin;
+  S.combat = null;
+  
+  if(next === 'victory'){ setTimeout(()=>victory(), 500); return; }
+  if(next === 'defeat'){ setTimeout(()=>gameOver(), 500); return; }
+  if(typeof next === 'number'){ setTimeout(()=>gotoPara(next), 500); }
+  else { render(); }
+}
+
+function playerFlee(){
+  const c = S.combat;
+  if(!c || c.noFlee){ toast('你無法逃離這場戰鬥！'); return; }
+  const roll = D.d100();
+  if(roll <= S.player.dex - 10){
+    toast('你成功逃離了戰鬥！');
+    combatLog('你逃離了戰鬥！');
+    setTimeout(()=>{ combatVictory(true); }, 500);
+  } else {
+    toast('逃跑失敗！');
+    combatLog('逃跑失敗！');
+    setTimeout(()=>monsterTurn(), 400);
+  }
+}
+
+function useFate(){
+  if(S.player.fate <= 0) return;
+  S.player.fate--;
+  updateHud();
+  toast('你花費了 1 點命運點，重新擲骰！');
+  // 簡單實現：讓玩家再攻擊一次
+  playerAttack();
+}
+
+function useHolyWater(){
+  const c = S.combat;
+  if(!c) return;
+  const target = c.monsters[c.currentIndex];
+  if(!target || !/復活|rev/i.test(target.key)){
+    toast('聖水只能對抗名字中有「復活」的怪物。');
+    return;
+  }
+  removeItem(S, '聖水');
+  target.hp = 0;
+  combatLog(`聖水濺到 ${target.name} 身上，牠化為灰燼！`);
+  toast('聖水生效！怪物被消滅。');
+  Sound.good();
+  setTimeout(()=>nextMonster(), 400);
+}
+
+/* ---------- 結局 ---------- */
+function gameOver(){
+  S.mode = 'defeat';
+  if(S.combat){ S.combat = null; }
+  document.getElementById('combatPanel').classList.add('hidden');
+  S.achievements = S.achievements || [];
+  if(!S.achievements.includes('defeat')) S.achievements.push('defeat');
+  const modal = `
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h2>☠ 冒險失敗</h2>
+      <p>你倒下了……恩德廢墟的黑暗吞噬了你的身影。</p>
+      <p>巫妖王的力量遠超你的想像。你將成為他亡靈大軍的一員，永遠徘徊在這片廢墟之中。</p>
+      <p style="color:#8a3010;font-weight:bold">下次記得：裝備護甲、善用命運點、並在必要時逃跑。</p>
+      <h3>📊 本次冒險統計</h3>
+      <ul>
+        <li>存活回合：${S.turn}</li>
+        <li>行走時間：${S.time} ①</li>
+        <li>金幣：${S.player.gold}</li>
+        <li>背包物品：${S.inv.length} 件</li>
+      </ul>
+      <div style="text-align:center;margin-top:16px">
+        <button class="btn primary" onclick="location.reload()">重新開始</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalRoot').innerHTML = modal;
+  Sound.bad();
+}
+
+function victory(){
+  S.mode = 'victory';
+  S.achievements = S.achievements || [];
+  if(!S.achievements.includes('victory')) S.achievements.push('victory');
+  const modal = `
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h2>🏆 勝利！巨龍鎧甲</h2>
+      <p>巫妖王向後倒下，發出巨大的撞擊聲。你小心翼翼地走到骨堆旁，用武器輕輕推動幾根骨頭。它們毫無生氣地滾動開來。</p>
+      <p>你揭開了遮掩著劍的東西。這把劍沉甸甸的，不再燃燒火焰，然而它仍然是一把非凡的武器。它的握柄被製成了一條龍的骨架的樣子。</p>
+      <p style="color:#8a3010;font-weight:bold">你擊敗了巫妖王，奪回了巨龍鎧甲！</p>
+      <h3>🛡 巨龍鎧甲套裝</h3>
+      <ul>
+        <li>巨龍堅骨（頭部）：+5 智力</li>
+        <li>巨龍硬鱗（背部&軀幹）：+5 力量</li>
+        <li>巨龍利爪（雙臂&雙手）：+2 傷害</li>
+        <li>巨龍腰帶（腰部）：+5 敏捷</li>
+        <li>巨龍護腿（雙腿&雙腳）：+1 防禦</li>
+        <li>套裝效果：+5 HP、火焰吐息、火焰保護</li>
+      </ul>
+      <h3>📊 冒險統計</h3>
+      <ul>
+        <li>總回合：${S.turn}</li>
+        <li>時間標記：${S.time}</li>
+        <li>金幣：${S.player.gold}</li>
+        <li>成就：${S.achievements.join('、')}</li>
+      </ul>
+      <div style="text-align:center;margin-top:16px">
+        <button class="btn primary" onclick="location.reload()">再玩一次</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalRoot').innerHTML = modal;
+  Sound.good();
+}
+
+function closeModal(){
+  document.getElementById('modalRoot').innerHTML = '';
+}
+
+/* ---------- 歷史記錄 ---------- */
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  if(!list) return;
+  list.innerHTML = S.history.slice().reverse().map(h=>
+    `<div class="hitem ${h.para===S.para?'cur':''}">
+      <div style="color:#c9a227">回合 ${h.turn} · ⏱${h.time}</div>
+      <div>${h.title}</div>
+    </div>`
+  ).join('') || '<div style="color:#6a5a40;font-style:italic">尚無紀錄</div>';
+}
+
+function toggleHistory(open){
+  document.getElementById('historyPanel').classList.toggle('open', open);
+  if(open) renderHistory();
+  Sound.click();
+}
+
+/* ---------- 背包 ---------- */
+function renderInv(){
+  const box = document.getElementById('invContent');
+  if(!box) return;
+  if(S.inv.length === 0){
+    box.innerHTML = '<div class="inv-empty">背包是空的。</div>';
+    return;
+  }
+  const groups = {};
+  S.inv.forEach(it=>{
+    const key = it.name.replace(/\(\d+\)/,'').trim();
+    groups[key] = groups[key] || [];
+    groups[key].push(it);
+  });
+  box.innerHTML = `<div class="inv-list">${
+    Object.entries(groups).map(([name, items])=>{
+      const it = items[0];
+      return `<div class="inv-item" title="${it.note||''}">
+        ${name}${items.length>1?' ×'+items.length:''}
+        ${it.bonus?`<span style="color:#8c8"> (${it.bonus})</span>`:''}
+      </div>`;
+    }).join('')
+  }</div>`;
+}
+
+function toggleInv(open){
+  document.getElementById('invBox').classList.toggle('open', open);
+  if(open) renderInv();
+  Sound.click();
+}
+
+/* ---------- 彈窗 ---------- */
+function showModal(html){
+  document.getElementById('modalRoot').innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">${html}</div>
+    </div>`;
+}
+
+/* ---------- Toast ---------- */
+let toastTimer = null;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ---------- 存檔 ---------- */
+function saveGame(){
+  try {
+    const data = {
+      player: S.player, inv: S.inv, time: S.time, turn: S.turn,
+      para: S.para, history: S.history, flags: S.flags,
+      rememberedPara: S.rememberedPara, achievements: S.achievements,
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem('d100_dragon_armour_save', JSON.stringify(data));
+    toast('💾 遊戲已存檔！');
+    Sound.good();
+  } catch(e){ toast('存檔失敗：'+e.message); }
+}
+
+function loadGame(){
+  try {
+    const raw = localStorage.getItem('d100_dragon_armour_save');
+    if(!raw){ toast('找不到存檔。'); return; }
+    const d = JSON.parse(raw);
+    Object.assign(S.player, d.player);
+    S.inv = d.inv || [];
+    S.time = d.time || 0;
+    S.turn = d.turn || 0;
+    S.para = d.para;
+    S.history = d.history || [];
+    S.flags = d.flags || {};
+    S.rememberedPara = d.rememberedPara || null;
+    S.achievements = d.achievements || [];
+    S.mode = 'explore';
+    S.combat = null;
+    document.getElementById('combatPanel').classList.add('hidden');
+    document.getElementById('titleScreen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    if(S.para && PARAS[S.para]){ render(); toast('📂 讀檔成功！'); }
+    else { gotoPara(1); }
+    Sound.good();
+  } catch(e){ toast('讀檔失敗：'+e.message); }
+}
+
+/* ---------- 說明文件 ---------- */
+function showHelp(){
+  showModal(`
+    <h2>📖 遊戲說明 · 巨龍鎧甲</h2>
+    <p>歡迎來到恩德廢墟。你將扮演一位冒險者，深入這座被不死生物佔據的城市，尋找傳說中的<strong>巨龍鎧甲</strong>。</p>
+
+    <h3>🎯 遊戲目標</h3>
+    <p>找到並擊敗<strong>巫妖王坎塔</strong>，奪回完整的巨龍鎧甲。你將在主線段落中逐步探索，最終抵達第 100 段與巫妖王決戰。</p>
+
+    <h3>🖥 看懂畫面</h3>
+    <ul>
+      <li><strong>❤ 生命值</strong>：畫面左上方的紅色進度條。歸零即冒險失敗。</li>
+      <li><strong>⏱ 時間標記</strong>：每次移動/搜索/戰鬥會增加。某些區域（炎熱）每塗黑 1 格就會扣血。</li>
+      <li><strong>🍀 命運點</strong>：可用於重擲檢定（目前為簡化版：重擲一次攻擊）。</li>
+      <li><strong>💰 金幣</strong>：擊殺怪物與搜索獲得。</li>
+      <li><strong>🟩🟥🟨🟦 區域顏色</strong>：綠色=安全、紅色=怪物、黃色=炎熱/危險、藍色=水系。</li>
+      <li><strong>🚪 出口按鈕</strong>：每個黃色箭頭對應一個段落號。</li>
+      <li><strong>🔍 搜索</strong>：找到物品或觸發事件。</li>
+    </ul>
+
+    <h3>🕹 操作步驟</h3>
+    <ol>
+      <li>閱讀段落文字。點擊文字可立即顯示完畢。</li>
+      <li>選擇一個出口前進，或執行搜索/特殊動作。</li>
+      <li>進入戰鬥時會彈出戰鬥面板：點擊「攻擊」進行 1d100 檢定（≤ AV - 怪物 Def 命中）。</li>
+      <li>擊敗所有怪物後自動繼續劇情。</li>
+      <li>善用底部的「背包」查看物品、「歷史」查看冒險紀錄。</li>
+    </ol>
+
+    <h3>✨ 特殊機制</h3>
+    <ul>
+      <li><strong>束縛</strong>：怪物更難逃跑（8-9 需重擲）。</li>
+      <li><strong>復活</strong>：擊敗後會再次站起，需再打一次。</li>
+      <li><strong>龍眼鑰匙</strong>：在第 62 段附近的熔岩中取得，用於打開第 16 段的龍鐵門。</li>
+      <li><strong>心形鵝卵石 ×2</strong>：收集兩塊（第 69、97 段）可開啟第 70 段石箱。</li>
+      <li><strong>巨龍鎧甲</strong>：第 100 段穿上後與巫妖王決戰。</li>
+    </ul>
+
+    <h3>💡 新手提示</h3>
+    <ul>
+      <li>初期跳過沒把握的戰鬥，先探索安全區域累積資源。</li>
+      <li>「搜索」有時會驚動怪物，做好準備。</li>
+      <li>命運點不多，留給關鍵檢定。</li>
+      <li>存檔按鈕在底部導航列，可隨時存檔。</li>
+    </ul>
+
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn primary" onclick="closeModal();startGame()">我準備好了，開始遊戲</button>
+    </div>
+  `);
+}
+
+/* ---------- 開始遊戲 ---------- */
+function startGame(){
+  document.getElementById('titleScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  // 初始物品
+  S.inv = [];
+  addItem(S, {name:'劣制治病藥水', val:20, note:'恢復 1d6 HP'});
+  addItem(S, {name:'劣制治病藥水', val:20, note:'恢復 1d6 HP'});
+  addItem(S, {name:'劣制解毒藥水', val:20, note:'解毒'});
+  addItem(S, {name:'聖水', val:16, note:'對抗復活怪物'});
+  addItem(S, {name:'聖水', val:16, note:'對抗復活怪物'});
+  addItem(S, {name:'火把', val:5, note:'照明'});
+  updateHud();
+  gotoPara(1);
+}
+
+/* ---------- 事件綁定 ---------- */
+document.getElementById('btnStart').onclick = ()=>{
+  Sound.click();
+  document.getElementById('titleScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  showHelp();
+};
+
+document.querySelectorAll('#nav button').forEach(btn=>{
+  btn.onclick = ()=>{
+    Sound.click();
+    const k = btn.dataset.nav;
+    if(k === 'help'){ showHelp(); }
+    else if(k === 'inv'){ toggleInv(true); }
+    else if(k === 'history'){ toggleHistory(true); }
+    else if(k === 'save'){ saveGame(); }
+    else if(k === 'load'){ loadGame(); }
+    else if(k === 'sound'){
+      const on = Sound.toggle();
+      document.getElementById('soundIcon').textContent = on ? '🔊' : '🔇';
+      toast(on ? '音效已開啟' : '音效已關閉');
+    }
+  };
+});
+
+// 點擊故事區跳過打字
+document.addEventListener('click', (e)=>{
+  const box = document.getElementById('storyBox');
+  if(box.contains(e.target) && box._skipType){ box._skipType(); box._skipType = null; }
+});
+
+// 點擊外部關閉背包
+document.addEventListener('click', (e)=>{
+  const inv = document.getElementById('invBox');
+  const hist = document.getElementById('historyPanel');
+  if(inv.classList.contains('open') && !inv.contains(e.target) && !e.target.closest('[data-nav="inv"]')){
+    inv.classList.remove('open');
+  }
+  if(hist.classList.contains('open') && !hist.contains(e.target) && !e.target.closest('[data-nav="history"]')){
+    hist.classList.remove('open');
+  }
+});
+
+/* ---------- 初始化 ---------- */
+window.addEventListener('load', ()=>{
+  // 顯示開始畫面
+  document.getElementById('titleScreen').classList.remove('hidden');
+  // 檢查存檔
+  if(localStorage.getItem('d100_dragon_armour_save')){
+    const btn = document.getElementById('btnStart');
+    btn.textContent = '繼續冒險';
+    // 雙擊可新遊戲
+    const newBtn = document.createElement('button');
+    newBtn.className = 'btn';
+    newBtn.textContent = '新遊戲';
+    newBtn.style.marginTop = '12px';
+    newBtn.onclick = ()=>{ localStorage.removeItem('d100_dragon_armour_save'); location.reload(); };
+    btn.parentNode.insertBefore(newBtn, btn.nextSibling);
+  }
+});
+
+// 防止手機雙擊縮放
+let lastTouch = 0;
+document.addEventListener('touchend', (e)=>{
+  const now = Date.now();
+  if(now - lastTouch <= 300){ e.preventDefault(); }
+  lastTouch = now;
+}, {passive:false});
+
+</script>
+</body>
+</html>
