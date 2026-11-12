@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>鬼屋獨行探險 - 協和女神 (100% 還原版)</title>
+    <title>鬼屋獨行探險 - 協和女神 (最終修復版)</title>
     <style>
         :root {
             --bg-dark: #12100e;
@@ -133,7 +133,7 @@
         button.action-btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
         button.action-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
         
-        button.primary-btn { background: var(--accent); color: #fff; border-color: #4a1010; box-shadow: 2px 2px 0 #2a0505; }
+        button.primary-btn { background: var(--accent); color: #fff; border-color: #4a1010; box-shadow: 2px 2px 0 #2a0505; text-align: center;}
         button.primary-btn:hover:not(:disabled) { background: var(--accent-hover); }
 
         /* 底部導航 */
@@ -156,12 +156,12 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); backdrop-filter: blur(3px);
             display: none; justify-content: center; align-items: center;
-            z-index: 100; padding: 15px;
+            z-index: 100; padding: 15px; padding-bottom: 80px; /* 避免被底部導航遮擋 */
         }
         .modal.show { display: flex; }
         .modal-content {
             background: var(--paper-bg); color: var(--ink);
-            width: 100%; max-width: 600px; max-height: 85vh;
+            width: 100%; max-width: 600px; max-height: 100%;
             border-radius: 6px; border: 2px solid var(--border);
             padding: 20px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
             font-size: 15px; line-height: 1.6;
@@ -241,7 +241,7 @@
                 <li><strong>戰鬥：</strong> 採用回合制，敵我雙方輪流擲骰攻擊。</li>
             </ul>
             <p style="text-align:center; margin-top: 20px;">
-                <button class="action-btn primary-btn" onclick="startGame()">我準備好了，開始遊戲</button>
+                <button class="action-btn primary-btn" onclick="startGame()" style="width:100%;">我準備好了，開始遊戲</button>
             </p>
         </div>
     </div>
@@ -321,8 +321,6 @@
         const GameState = { INIT: 'INIT', READING: 'READING', ROLLING: 'ROLLING', COMBAT: 'COMBAT', END: 'END' };
         let currentState = GameState.INIT;
         let currentChapterId = 'start';
-        let typewriterTimer = null;
-        let isTyping = false;
 
         const player = {
             hp: 30, maxHp: 30, res: 40, maxRes: 40,
@@ -332,7 +330,7 @@
 
         let combatState = {};
 
-        // 故事資料庫 (精簡版確保流暢)
+        // 故事資料庫
         const story = {
             'start': {
                 title: '諾頓偵探事務所',
@@ -562,36 +560,27 @@
             document.getElementById(id).classList.remove('show');
         }
 
-        // 極簡化打字機效果，確保穩定不卡死
+        // 渲染文本
         function typeText(htmlContent, callback) {
-            if (typewriterTimer) clearInterval(typewriterTimer);
             dom.text.innerHTML = '';
             dom.text.scrollTop = 0;
-            
-            // 為了防止解析 HTML 出錯，我們直接顯示全文，但增加淡入動畫
             dom.text.innerHTML = htmlContent;
             dom.text.classList.remove('fade-in');
-            void dom.text.offsetWidth; // 觸發重繪
+            void dom.text.offsetWidth; 
             dom.text.classList.add('fade-in');
-            
-            // 自動滾動到底部
             setTimeout(() => { dom.text.scrollTop = dom.text.scrollHeight; }, 50);
-            
             if (callback) callback();
         }
 
         function renderChapter(id) {
             if (currentState === GameState.END && id !== 'game_over' && id !== 'start') return;
             const chapter = story[id];
-            if (!chapter) {
-                console.error("找不到章節:", id);
-                return;
-            }
+            if (!chapter) return console.error("找不到章節:", id);
             
             currentChapterId = id;
             currentState = GameState.READING;
             dom.uiLoc.innerText = chapter.loc || '未知區域';
-            dom.choices.innerHTML = ''; // 清空按鈕
+            dom.choices.innerHTML = ''; 
 
             let displayText = `<div class="chapter-title">${chapter.title}</div><div>${chapter.text}</div>`;
             
@@ -616,17 +605,33 @@
                 playSound('success');
             }
             
-            if (player.hp <= 0 || player.res <= 0) {
-                currentState = GameState.END;
-                setTimeout(() => renderChapter('game_over'), 1500);
-            }
-
             updateUI();
             
+            // 死亡判定
+            if (player.hp <= 0 || player.res <= 0) {
+                currentState = GameState.END;
+                if(id !== 'game_over') {
+                    return setTimeout(() => renderChapter('game_over'), 1000);
+                }
+            }
+
             typeText(displayText, () => {
                 if (currentState === GameState.END) return;
-                if (chapter.choices) renderChoices(chapter.choices);
-                if (chapter.action === 'start_combat') startCombat(chapter.enemy, chapter.nextWin, chapter.nextLose);
+
+                // ★★★ 關鍵修復：處理純跳轉邏輯 ★★★
+                if (chapter.choices) {
+                    renderChoices(chapter.choices);
+                } else if (chapter.action === 'start_combat') {
+                    startCombat(chapter.enemy, chapter.nextWin, chapter.nextLose);
+                } else if (chapter.next) {
+                    // 如果沒有選項，但有 next，自動生成「繼續」按鈕
+                    const btn = document.createElement('button');
+                    btn.className = 'action-btn primary-btn';
+                    btn.innerText = '繼續';
+                    btn.onclick = () => { playSound('click'); renderChapter(chapter.next); };
+                    dom.choices.innerHTML = '';
+                    dom.choices.appendChild(btn);
+                }
             });
         }
 
@@ -848,10 +853,8 @@
             renderChapter('start');
         }
 
-        // 確保頁面載入時狀態正確
         document.addEventListener('DOMContentLoaded', () => {
             updateUI();
-            // 說明視窗已經在 HTML 中設定為預設顯示 (class="modal show")
         });
     </script>
 </body>
