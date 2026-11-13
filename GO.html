@@ -372,6 +372,7 @@ function playStoneSound() {
     } catch(e) {}
 }
 
+// 🌟 修復按鈕消失的核心邏輯
 function switchView(view) {
     const lobby = document.getElementById("lobby-ui");
     const inviteArea = document.getElementById("invite-area");
@@ -396,7 +397,11 @@ function switchView(view) {
         bar.classList.remove("hidden");
         boardW.classList.remove("hidden");
         
-        // 強制重新計算尺寸
+        // 進入對局時，預設顯示控制按鈕，隱藏點目面板
+        controls.classList.remove("hidden");
+        scoring.classList.add("hidden");
+        
+        // 強制重新計算尺寸，解決重連時變形與裁切問題
         setTimeout(() => {
             if (board) {
                 const wrapper = document.getElementById("board-wrapper");
@@ -902,7 +907,6 @@ async function joinGame(id) {
         initBoard(boardSize); renderBoard(); switchView("game");
         currentTurn = data.currentTurn || (moveHistory.length % 2 === 0 ? "B" : "W");
         
-        // 🌟 修復重連時點目面板不顯示的問題
         if (isScoringMode) {
             setOverlay("none");
             document.getElementById("scoring-panel").classList.remove("hidden");
@@ -1006,7 +1010,6 @@ function listenToGame(id) {
         }
 
         if (data.status === "scoring") {
-            // 🌟 去掉 if (!isScoringMode) 限制，每次觸發都強制修正 UI 狀態
             isScoringMode = true;
             setOverlay("none");
             document.getElementById("scoring-panel").classList.remove("hidden");
@@ -1021,11 +1024,13 @@ function listenToGame(id) {
             if (isScoringMode) { 
                 isScoringMode = false;
                 document.getElementById("scoring-panel").classList.add("hidden");
-                document.getElementById("game-controls").classList.remove("hidden");
                 fbDb.ref(`games/${id}/deadStones`).remove();
                 renderBoard();
                 log("▶️ 恢復對局", "ok");
             }
+            // 🌟 確保對局中控制按鈕顯示
+            document.getElementById("game-controls").classList.remove("hidden");
+            document.getElementById("scoring-panel").classList.add("hidden");
             setOverlay("none");
             return;
         }
