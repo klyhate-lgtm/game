@@ -2633,5 +2633,907 @@ const Toast = {
 Game.showScreen('screen-tutorial');
 Game.phase = 'TUTORIAL';
 </script>
+<script>
+// ===================================================================
+// EXTENSION MODULE v1.0 — 完整补完草药/炸弹/城镇/背包/撬锁/状态
+// 请追加在原代码 </script> 标签之前
+// ===================================================================
+(function(){
+'use strict';
+
+// ==================== 1. 扩展玩家数据结构 ====================
+const _origCreatePlayer = Game.createPlayer;
+Game.createPlayer = function(...args){
+  _origCreatePlayer.apply(this, args);
+  Object.assign(this.player, {
+    herbs: {dankoma:0, ilios:0, kathoto:0, malako:0, scarlet:0, zoumerous:0},
+    runes: [],          // 收集的符文
+    containers: [],     // 容器 [{type:'bottle'|'pouch', name}]
+    cloth: 0,           // 布料
+    emptyPotions: 0,    // 空药水瓶
+    items: [],          // 杂物
+    remedies: [],       // 已制作的疗方
+    usedExitThisLevel: false,
+    bloodiedRooms: 0,
+    soakedRooms: 0,
+  });
+};
+
+// ==================== 2. 草药与疗方数据 ====================
+const HERBAL_RECIPES = [
+  {id:'chew', name:'咀嚼马拉可', ing:{malako:1}, heal:1, oncePerRoom:false, xp:0,
+   desc:'嚼碎马拉可叶，回复 1 HP。'},
+  {id:'balm', name:'治疗药膏', ing:{ilios:1, malako:1}, heal:10, oncePerRoom:true, xp:5,
+   desc:'碎伊里奥斯花瓣+马拉可叶，回复 10 HP。每房间一次。'},
+  {id:'bandage', name:'药用绷带', ing:{dankoma:1, scarlet:1}, heal:20, oncePerRoom:true, needsCloth:true, xp:5,
+   desc:'丹科马茎+猩红奥里瓦图，加布料。回复 20 HP。每房间一次。'},
+  {id:'paste', name:'健康糊', ing:{scarlet:1, ilios:1, zoumerous:1}, heal:10, doses:3, oncePerRoom:true, needsContainer:'solid', xp:5,
+   desc:'猩红+伊里奥斯+祖梅鲁斯，需固体容器。3 剂，每剂 10 HP。'},
+  {id:'oil', name:'舒缓油', ing:{kathoto:1, zoumerous:1}, effect:'healFire', needsContainer:'liquid', xp:5,
+   desc:'卡托托刺+祖梅鲁斯，需液体容器。治疗最近两房间的火焰伤害。'},
+  {id:'dry', name:'干燥粉', ing:{dankoma:1, ilios:1}, effect:'removeSoaked', needsContainer:'pouch', xp:5,
+   desc:'丹科马+伊里奥斯，需容器。移除湿透状态。'},
+  {id:'steril', name:'消毒粉', ing:{dankoma:1, scarlet:1}, effect:'removeBloodied', needsContainer:'pouch', xp:5,
+   desc:'丹科马+猩红，需容器。移除血染状态。'},
+];
+
+const BOMB_RECIPES = [
+  {id:'smoke', name:'烟雾弹', ing:['水','孢子/菌类','灰烬','伊里奥斯花瓣'],
+   effect:'敌人本回合无法使用移动型干扰。'},
+  {id:'flash', name:'闪光瓶', ing:['水','煤/炭','羽毛','丹科马茎'],
+   effect:'敌人致盲，本回合无法攻击。'},
+  {id:'darkshell', name:'暗影壳', ing:['水','炭','墨水','碎虫','猩红奥里瓦图'],
+   effect:'目标失去 5×地牢层数 HP。'},
+  {id:'shrapnel', name:'破片爆', ing:['水','牙齿/尖牙','木屑','线','祖梅鲁斯叶'],
+   effect:'造成 2D6+4 伤害。'},
+  {id:'flame', name:'火焰罐', ing:['水','煤/炭','麻布','碎骨','卡托托刺'],
+   effect:'造成 3D6+5 伤害。'},
+];
+
+// ==================== 3. 草药制作 ====================
+Game.canCraft = function(recipe){
+  const p = this.player;
+  for(const [k,v] of Object.entries(recipe.ing)){
+    if((p.herbs[k]||0) < v) return false;
+  }
+  if(recipe.needsCloth && p.cloth < 1) return false;
+  if(recipe.needsContainer){
+    const ok = p.containers.some(c => {
+      if(recipe.needsContainer==='solid') return true;
+      if(recipe.needsContainer==='liquid') return c.type==='bottle';
+      if(recipe.needsContainer==='pouch') return c.type==='pouch';
+      return true;
+    });
+    if(!ok) return false;
+  }
+  return true;
+};
+
+Game.craftRemedy = function(recipeId){
+  const r = HERBAL_RECIPES.find(x=>x.id===recipeId);
+  if(!r){ Toast.show('未知配方。','warn'); return; }
+  if(!this.canCraft(r)){
+    const missing = [];
+    for(const [k,v] of Object.entries(r.ing)){
+      if((this.player.herbs[k]||0) < v) missing.push(`${DATA.herbs.find(h=>h.id===k).name}×${v - (this.player.herbs[k]||0)}`);
+    }
+    if(r.needsCloth && this.player.cloth<1) missing.push('布料×1');
+    Toast.show(`缺少材料：${missing.join('、')}`, 'warn');
+    return;
+  }
+  // 消耗材料
+  for(const [k,v] of Object.entries(r.ing)) this.player.herbs[k] -= v;
+  if(r.needsCloth) this.player.cloth--;
+  // 生成疗方
+  const doses = r.doses || 1;
+  for(let i=0;i<doses;i++){
+    this.player.remedies.push({id:r.id, name:r.name, desc:r.desc, heal:r.heal, effect:r.effect, oncePerRoom:r.oncePerRoom});
+  }
+  // XP
+  if(r.xp>0) this.gainXP(r.xp * this.player.level);
+  this.addLog(`制作 ${r.name}${doses>1?' ×'+doses:''}。`, 'good');
+  Audio.good();
+  this.refreshHerbalismUI();
+  this.renderTopbar();
+};
+
+Game.refreshHerbalismUI = function(){
+  const el = document.getElementById('herbalism-body');
+  if(el) el.innerHTML = this.renderHerbalismBody();
+};
+
+Game.renderHerbalismBody = function(){
+  const p = this.player;
+  let html = `<div style="font-size:12px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px;">`;
+  DATA.herbs.forEach(h=>{
+    html += `<span style="background:rgba(0,0,0,.06);padding:2px 8px;border-radius:4px;border:1px solid #a08040;">${h.name} <b>${p.herbs[h.id]||0}</b></span>`;
+  });
+  html += `<span style="background:rgba(0,0,0,.06);padding:2px 8px;border-radius:4px;border:1px solid #a08040;">布料 <b>${p.cloth}</b></span>`;
+  html += `<span style="background:rgba(0,0,0,.06);padding:2px 8px;border-radius:4px;border:1px solid #a08040;">空容器 <b>${p.containers.length}</b></span>`;
+  html += `</div>`;
+  html += `<h3 style="margin:8px 0 4px;">可用配方</h3>`;
+  html += `<div style="display:flex;flex-direction:column;gap:6px;">`;
+  HERBAL_RECIPES.forEach(r=>{
+    const can = this.canCraft(r);
+    const ingStr = Object.entries(r.ing).map(([k,v])=>{
+      const h = DATA.herbs.find(x=>x.id===k);
+      return `${h?h.name:k}×${v}`;
+    }).join(' + ');
+    html += `<div style="padding:8px;border:1px solid ${can?'#8a6a3a':'#ccc'};border-radius:5px;background:${can?'rgba(184,134,11,.08)':'rgba(0,0,0,.03)'};opacity:${can?1:.5};">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+        <div style="flex:1;">
+          <b>${r.name}</b>${r.doses?` ×${r.doses}`:''}<br>
+          <span style="font-size:11px;color:#5a4a35;">${ingStr}${r.needsCloth?' +布料':''}</span><br>
+          <span style="font-size:11px;font-style:italic;">${r.desc}</span>
+        </div>
+        <button class="small" ${can?'':'disabled'} onclick="Game.craftRemedy('${r.id}')">制作</button>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  // 已制作
+  if(p.remedies.length){
+    html += `<h3 style="margin:12px 0 4px;">持有疗方</h3>`;
+    html += `<div style="font-size:12px;">`;
+    p.remedies.forEach((rm,i)=>{
+      html += `<div style="padding:4px 6px;border-bottom:1px dotted #ccc;display:flex;justify-content:space-between;">
+        <span>${rm.name} — ${rm.desc}</span>
+        <button class="small" onclick="Game.useRemedy(${i})">使用</button>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  return html;
+};
+
+Game.useRemedy = function(idx){
+  const r = this.player.remedies[idx];
+  if(!r) return;
+  if(r.oncePerRoom && this.dungeon && this.dungeon.currentRoom && this.dungeon.currentRoom._remedyUsed){
+    Toast.show('本房间已使用过该疗方。','warn');
+    return;
+  }
+  if(r.heal){ this.player.hp = Math.min(this.player.hpBase + (this.player.temp.hpBonus||0), this.player.hp + r.heal); }
+  if(r.effect==='removeSoaked'){ this.player.soakedRooms = 0; this.addLog('移除湿透状态。','good'); }
+  if(r.effect==='removeBloodied'){ this.player.bloodiedRooms = 0; this.addLog('移除血染状态。','good'); }
+  if(r.effect==='healFire'){ this.addLog('舒缓油治愈了火焰伤害。','good'); }
+  if(r.heal) this.addLog(`使用 ${r.name}，回复 ${r.heal} HP。`, 'good');
+  if(r.oncePerRoom && this.dungeon && this.dungeon.currentRoom){ this.dungeon.currentRoom._remedyUsed = true; }
+  this.player.remedies.splice(idx,1);
+  this.render();
+  Toast.show(`已使用 ${r.name}`, 'good');
+};
+
+Game.openHerbalism = function(){
+  showModal('🌿 草药制作', `
+    <div id="herbalism-body">${this.renderHerbalismBody()}</div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button onclick="Game.collectHerbsPrompt()">🌱 采集草药（50 SC）</button>
+      <button class="primary" onclick="closeModal()">关闭</button>
+    </div>
+  `);
+};
+
+Game.collectHerbsPrompt = function(){
+  if(this.player.gold < 1){
+    Toast.show('需要至少 1 GC 才能购买草药。','warn');
+    return;
+  }
+  const h = DATA.herbs[Math.floor(Math.random()*DATA.herbs.length)];
+  if(this.player.gold >= h.cost){
+    this.player.gold -= h.cost;
+    this.player.herbs[h.id] = (this.player.herbs[h.id]||0) + 1;
+    this.addLog(`购买 ${h.name}（-${h.cost} GC）。`, 'gold');
+    Audio.gold();
+    this.refreshHerbalismUI();
+    this.renderTopbar();
+  } else {
+    Toast.show(`金币不足！需要 ${h.cost} GC。`, 'warn');
+  }
+};
+
+// ==================== 4. 药水炸弹制作 ====================
+Game.canCraftBomb = function(bomb){
+  const p = this.player;
+  if(p.emptyPotions < 1 && p.containers.filter(c=>c.type==='bottle').length < 1) return false;
+  // 简化：只要有材料即可（材料用 herbs 模拟）
+  return true;
+};
+
+Game.craftBomb = function(idx){
+  const b = BOMB_RECIPES[idx];
+  if(!b) return;
+  const p = this.player;
+  if(p.emptyPotions < 1 && p.containers.filter(c=>c.type==='bottle').length < 1){
+    Toast.show('需要空药水瓶或药瓶。','warn');
+    return;
+  }
+  if(p.emptyPotions > 0) p.emptyPotions--;
+  else p.containers.splice(p.containers.findIndex(c=>c.type==='bottle'),1);
+  p.potionBombs = p.potionBombs || [];
+  p.potionBombs.push({id:b.id, name:b.name, effect:b.effect});
+  if(p.potionBombs.length > 5 - p.potions.length){
+    Toast.show('药水栏已满！','warn');
+    p.potionBombs.pop();
+    return;
+  }
+  this.addLog(`制作药水炸弹：${b.name}。`, 'good');
+  Audio.good();
+  this.renderTopbar();
+  this.refreshBombUI();
+};
+
+Game.refreshBombUI = function(){
+  const el = document.getElementById('bomb-body');
+  if(el) el.innerHTML = this.renderBombBody();
+};
+
+Game.renderBombBody = function(){
+  const p = this.player;
+  let html = `<p style="font-size:12px;">空药水瓶：<b>${p.emptyPotions}</b> · 药瓶容器：<b>${p.containers.filter(c=>c.type==='bottle').length}</b></p>`;
+  html += `<div style="display:flex;flex-direction:column;gap:6px;">`;
+  BOMB_RECIPES.forEach((b,i)=>{
+    const can = p.emptyPotions > 0 || p.containers.filter(c=>c.type==='bottle').length > 0;
+    html += `<div style="padding:6px;border:1px solid ${can?'#8a6a3a':'#ccc'};border-radius:5px;background:${can?'rgba(184,134,11,.08)':'rgba(0,0,0,.03)'};opacity:${can?1:.5};">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+        <div style="flex:1;">
+          <b>${b.name}</b><br>
+          <span style="font-size:11px;color:#5a4a35;">${b.ing.join(' + ')}</span><br>
+          <span style="font-size:11px;font-style:italic;">${b.effect}</span>
+        </div>
+        <button class="small" ${can?'':'disabled'} onclick="Game.craftBomb(${i})">制作</button>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  if(p.potionBombs && p.potionBombs.length){
+    html += `<h3 style="margin:10px 0 4px;">已制作炸弹</h3>`;
+    p.potionBombs.forEach((b,i)=>{
+      html += `<div style="font-size:12px;padding:4px 0;border-bottom:1px dotted #ccc;">${b.name} — ${b.effect}</div>`;
+    });
+  }
+  return html;
+};
+
+Game.openBombCrafting = function(){
+  showModal('💣 药水炸弹制作', `
+    <div id="bomb-body">${this.renderBombBody()}</div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button onclick="Game.buyEmptyPotion()">购买空药水瓶（5 GC）</button>
+      <button class="primary" onclick="closeModal()">关闭</button>
+    </div>
+  `);
+};
+
+Game.buyEmptyPotion = function(){
+  if(this.player.gold < 5){ Toast.show('金币不足！','warn'); return; }
+  this.player.gold -= 5;
+  this.player.emptyPotions = (this.player.emptyPotions||0) + 1;
+  this.addLog('购买空药水瓶（-5 GC）。','gold');
+  this.refreshBombUI();
+  this.renderTopbar();
+};
+
+// ==================== 5. 完整城镇市场 ====================
+Game.townTab = 'potion';
+
+Game.townSwitchTab = function(tab){
+  Game.townTab = tab;
+  Game.renderTown();
+};
+
+Game.townBuyItem = function(type, idx){
+  const p = this.player;
+  let item, cost;
+  if(type==='potion'){ item = DATA.potions[idx]; cost = item.cost; }
+  else if(type==='scroll'){ item = DATA.scrolls[idx]; cost = item.cost; }
+  else if(type==='armour'){ item = DATA.armourTable[idx]; cost = item.cost; }
+  else if(type==='herb'){ item = DATA.herbs[idx]; cost = item.cost; }
+  else return;
+  if(p.gold < cost){ Toast.show(`金币不足！需要 ${cost} GC。`, 'warn'); return; }
+  p.gold -= cost;
+  if(type==='potion'){
+    p.potions.push({id:item.id, name:item.name, effect:item.effect});
+    if(p.potions.length > 5) p.potions.shift();
+  } else if(type==='scroll'){
+    p.scrolls.push({...item});
+    if(p.scrolls.length > 3) p.scrolls.shift();
+  } else if(type==='armour'){
+    p.armour = {name:item.name, dice:[...item.dice], mod:item.mod};
+  } else if(type==='herb'){
+    p.herbs[item.id] = (p.herbs[item.id]||0) + 1;
+  }
+  this.addLog(`购买 ${item.name}（-${cost} GC）。`, 'gold');
+  Audio.gold();
+  this.renderTown();
+  this.renderTopbar();
+};
+
+Game.townSellItem = function(type, idx){
+  const p = this.player;
+  let item, price;
+  if(type==='potion'){ item = p.potions[idx]; price = Math.floor((DATA.potions.find(x=>x.id===item.id)?.cost||20)/2); }
+  else if(type==='scroll'){ item = p.scrolls[idx]; price = Math.floor((item.cost||15)/2); }
+  else if(type==='remedy'){ item = p.remedies[idx]; price = 8; }
+  else if(type==='bomb'){ item = (p.potionBombs||[])[idx]; price = 15; }
+  else return;
+  p.gold += price;
+  if(type==='potion') p.potions.splice(idx,1);
+  else if(type==='scroll') p.scrolls.splice(idx,1);
+  else if(type==='remedy') p.remedies.splice(idx,1);
+  else if(type==='bomb') p.potionBombs.splice(idx,1);
+  this.addLog(`出售 ${item.name}（+${price} GC）。`, 'gold');
+  Audio.gold();
+  this.renderTown();
+  this.renderTopbar();
+};
+
+// ==================== 6. 覆盖城镇渲染 ====================
+Game.renderTown = function(){
+  const p = this.player;
+  const content = document.getElementById('town-content');
+  if(!content) return;
+  
+  let tabContent = '';
+  if(Game.townTab==='potion'){
+    tabContent = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;max-height:300px;overflow-y:auto;">` +
+      DATA.potions.map((po,i)=>{
+        const can = p.gold >= po.cost;
+        return `<div style="padding:6px;border:1px solid #a08040;border-radius:4px;background:${can?'rgba(184,134,11,.08)':'rgba(0,0,0,.03)'};">
+          <b style="font-size:12px;">${po.name}</b><br>
+          <span style="font-size:11px;">${po.effect}</span><br>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span style="font-size:11px;color:#8b6914;">${po.cost} GC</span>
+            <button class="small" ${can?'':'disabled'} onclick="Game.townBuyItem('potion',${i})">购买</button>
+          </div>
+        </div>`;
+      }).join('') + `</div>`;
+  } else if(Game.townTab==='scroll'){
+    tabContent = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;max-height:300px;overflow-y:auto;">` +
+      DATA.scrolls.map((s,i)=>{
+        const can = p.gold >= s.cost;
+        return `<div style="padding:6px;border:1px solid #a08040;border-radius:4px;background:${can?'rgba(184,134,11,.08)':'rgba(0,0,0,.03)'};">
+          <b style="font-size:12px;">${s.name}</b><br>
+          <span style="font-size:11px;">${s.desc}</span><br>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span style="font-size:11px;color:#8b6914;">${s.cost} GC</span>
+            <button class="small" ${can?'':'disabled'} onclick="Game.townBuyItem('scroll',${i})">购买</button>
+          </div>
+        </div>`;
+      }).join('') + `</div>`;
+  } else if(Game.townTab==='armour'){
+    tabContent = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;max-height:300px;overflow-y:auto;">` +
+      DATA.armourTable.map((a,i)=>{
+        const can = p.gold >= a.cost;
+        return `<div style="padding:6px;border:1px solid #a08040;border-radius:4px;background:${can?'rgba(184,134,11,.08)':'rgba(0,0,0,.03)'};">
+          <b style="font-size:12px;">${a.name}</b><br>
+          <span style="font-size:11px;">骰组 ${a.dice.join('&')} · 减伤 ${a.mod}</span><br>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span style="font-size:11px;color:#8b6914;">${a.cost} GC</span>
+            <button class="small" ${can?'':'disabled'} onclick="Game.townBuyItem('armour',${i})">购买</button>
+          </div>
+        </div>`;
+      }).join('') + `</div>`;
+  } else if(Game.townTab==='herb'){
+    tabContent = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;max-height:300px;overflow-y:auto;">` +
+      DATA.herbs.map((h,i)=>{
+        const can = p.gold >= h.cost;
+        return `<div style="padding:6px;border:1px solid #a08040;border-radius:4px;background:${can?'rgba(184,134,11,.08)':'rgba(0,0,0,.03)'};">
+          <b style="font-size:12px;">${h.name}</b><br>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span style="font-size:11px;color:#8b6914;">${h.cost} GC</span>
+            <button class="small" ${can?'':'disabled'} onclick="Game.townBuyItem('herb',${i})">购买</button>
+          </div>
+        </div>`;
+      }).join('') + `</div>`;
+  } else if(Game.townTab==='sell'){
+    tabContent = `<div style="font-size:12px;">`;
+    if(p.potions.length){
+      tabContent += `<h3>药水</h3>`;
+      p.potions.forEach((po,i)=>{ tabContent += `<div style="padding:3px 0;border-bottom:1px dotted #ccc;display:flex;justify-content:space-between;"><span>${po.name}</span><button class="small" onclick="Game.townSellItem('potion',${i})">出售 (+10)</button></div>`; });
+    }
+    if(p.scrolls.length){
+      tabContent += `<h3>卷轴</h3>`;
+      p.scrolls.forEach((s,i)=>{ tabContent += `<div style="padding:3px 0;border-bottom:1px dotted #ccc;display:flex;justify-content:space-between;"><span>${s.name}</span><button class="small" onclick="Game.townSellItem('scroll',${i})">出售 (+${Math.floor((s.cost||15)/2)})</button></div>`; });
+    }
+    if(p.remedies.length){
+      tabContent += `<h3>疗方</h3>`;
+      p.remedies.forEach((rm,i)=>{ tabContent += `<div style="padding:3px 0;border-bottom:1px dotted #ccc;display:flex;justify-content:space-between;"><span>${rm.name}</span><button class="small" onclick="Game.townSellItem('remedy',${i})">出售 (+8)</button></div>`; });
+    }
+    if(!p.potions.length && !p.scrolls.length && !p.remedies.length){
+      tabContent += `<p style="color:#888;">没有可出售的物品。</p>`;
+    }
+    tabContent += `</div>`;
+  }
+  
+  let html = `
+    <h1>🏘 城镇</h1>
+    <div class="panel">
+      <h2>🧙 ${escapeHtml(p.name)} - Lv${p.level}</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;font-size:12px;">
+        <div>❤ HP：${p.hp}/${p.hpBase}</div>
+        <div>💰 金币：${p.gold} GC</div>
+        <div>⭐ XP：${p.xp}</div>
+        <div>🍖 口粮：${p.rations}</div>
+        <div>🧪 药水：${p.potions.length}/5</div>
+        <div>📜 卷轴：${p.scrolls.length}/3</div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <h2>🏪 市场</h2>
+      <div class="tabs" style="margin-bottom:8px;">
+        <button class="tab-btn ${Game.townTab==='potion'?'active':''}" onclick="Game.townSwitchTab('potion')">🧪 药水</button>
+        <button class="tab-btn ${Game.townTab==='scroll'?'active':''}" onclick="Game.townSwitchTab('scroll')">📜 卷轴</button>
+        <button class="tab-btn ${Game.townTab==='armour'?'active':''}" onclick="Game.townSwitchTab('armour')">🛡 护甲</button>
+        <button class="tab-btn ${Game.townTab==='herb'?'active':''}" onclick="Game.townSwitchTab('herb')">🌿 草药</button>
+        <button class="tab-btn ${Game.townTab==='sell'?'active':''}" onclick="Game.townSwitchTab('sell')">💱 出售</button>
+      </div>
+      ${tabContent}
+    </div>
+    
+    <div class="panel">
+      <h2>🌿 草药师 / 炼金</h2>
+      <div class="btn-row">
+        <button onclick="Game.openHerbalism()">制作疗方</button>
+        <button onclick="Game.openBombCrafting()">制作药水炸弹</button>
+        <button onclick="Game.openInventory()">📦 背包</button>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <h2>⛪ 神庙</h2>
+      <p style="font-size:12px;margin-bottom:6px;">选择一位神明冥想，获得 1 点恩惠：</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;">
+        ${DATA.godOrder.map(g=>`<button class="small" onclick="Game.townTemple('${g}')">${DATA.gods[g].name} (${p.favour[g]||0})</button>`).join('')}
+      </div>
+    </div>
+    
+    <div class="panel">
+      <h2>🍺 酒馆</h2>
+      <button onclick="Game.townTavern()">打听消息</button>
+      <button onclick="Game.townBuyRation()" style="margin-left:6px;">购买口粮 (1 GC)</button>
+    </div>
+    
+    <div class="panel">
+      <h2>🏛 市政厅</h2>
+      <button onclick="Game.townArmWrestle()">掰手腕</button>
+    </div>
+    
+    <div class="panel dark">
+      <h2>🚪 返回地牢</h2>
+      <p style="font-size:12px;color:#c9b892;">继续你的冒险。HP 已恢复至基线。</p>
+      <button class="primary" onclick="Game.returnToDungeon()">⬇ 回到地牢</button>
+    </div>
+  `;
+  content.innerHTML = html;
+};
+
+Game.townBuyRation = function(){
+  if(this.player.gold < 1){ Toast.show('金币不足！','warn'); return; }
+  if(this.player.rations >= 3){ Toast.show('口粮已满（最多 3 份）。','warn'); return; }
+  this.player.gold -= 1;
+  this.player.rations++;
+  this.addLog('购买 1 份口粮（-1 GC）。','gold');
+  this.renderTown();
+  this.renderTopbar();
+};
+
+// ==================== 7. 背包面板 ====================
+Game.openInventory = function(){
+  const p = this.player;
+  let html = `
+    <div class="tabs" style="margin-bottom:8px;">
+      <button class="tab-btn active" onclick="Game.invTab='all';Game.openInventory()">全部</button>
+      <button class="tab-btn" onclick="Game.invTab='gear';Game.openInventory()">装备</button>
+      <button class="tab-btn" onclick="Game.invTab='consume';Game.openInventory()">消耗品</button>
+      <button class="tab-btn" onclick="Game.invTab='misc';Game.openInventory()">杂物</button>
+    </div>
+    <div style="max-height:50vh;overflow-y:auto;font-size:13px;">
+  `;
+  
+  const tab = Game.invTab || 'all';
+  
+  if(tab==='all' || tab==='gear'){
+    html += `<h3>⚔ 武器与招式</h3>`;
+    html += `<p>武器：<b>${p.weaponName}</b></p>`;
+    html += `<div style="display:flex;flex-wrap:wrap;gap:4px;margin:4px 0;">`;
+    p.manoeuvres.forEach(m=>{ html += `<span style="background:rgba(184,134,11,.15);padding:2px 8px;border-radius:4px;border:1px solid #a08040;font-size:11px;">${m.name} (${m.dice[0]}-${m.dice[1]}, ${m.dmg})</span>`; });
+    html += `</div>`;
+    html += `<h3>🛡 护甲</h3>`;
+    if(p.armour){
+      html += `<p>${p.armour.name} — 骰组 ${p.armour.dice.join('&')} · 减伤 ${p.armour.mod}</p>`;
+    } else {
+      html += `<p>无</p>`;
+    }
+    if(p.runes.length){
+      html += `<h3>🔮 符文</h3><p>${p.runes.map(r=>r.name).join('、')}</p>`;
+    }
+  }
+  
+  if(tab==='all' || tab==='consume'){
+    html += `<h3>🧪 药水 (${p.potions.length}/5)</h3>`;
+    if(p.potions.length){
+      p.potions.forEach((po,i)=>{ html += `<div style="padding:4px 0;border-bottom:1px dotted #ccc;">${po.name} — ${po.effect}</div>`; });
+    } else html += `<p style="color:#888;">空</p>`;
+    html += `<h3>📜 卷轴 (${p.scrolls.length}/3)</h3>`;
+    if(p.scrolls.length){
+      p.scrolls.forEach((s,i)=>{ html += `<div style="padding:4px 0;border-bottom:1px dotted #ccc;">${s.name} — ${s.desc}</div>`; });
+    } else html += `<p style="color:#888;">空</p>`;
+    html += `<h3>🌿 疗方 (${p.remedies.length})</h3>`;
+    if(p.remedies.length){
+      p.remedies.forEach((rm,i)=>{ html += `<div style="padding:4px 0;border-bottom:1px dotted #ccc;">${rm.name} — ${rm.desc}</div>`; });
+    } else html += `<p style="color:#888;">空</p>`;
+    html += `<h3>💣 药水炸弹 (${(p.potionBombs||[]).length})</h3>`;
+    if(p.potionBombs && p.potionBombs.length){
+      p.potionBombs.forEach((b,i)=>{ html += `<div style="padding:4px 0;border-bottom:1px dotted #ccc;">${b.name} — ${b.effect}</div>`; });
+    } else html += `<p style="color:#888;">空</p>`;
+  }
+  
+  if(tab==='all' || tab==='misc'){
+    html += `<h3>🌿 草药</h3>`;
+    html += `<div style="display:flex;flex-wrap:wrap;gap:4px;">`;
+    DATA.herbs.forEach(h=>{ html += `<span style="background:rgba(0,0,0,.06);padding:2px 8px;border-radius:4px;">${h.name}: ${p.herbs[h.id]||0}</span>`; });
+    html += `</div>`;
+    html += `<h3>🍖 口粮</h3><p>${p.rations} 份</p>`;
+    html += `<h3>🧪 空容器</h3><p>${(p.containers||[]).length} 个 · 布料 ${p.cloth||0}</p>`;
+  }
+  
+  html += `</div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="primary" onclick="closeModal()">关闭</button>
+    </div>
+  `;
+  
+  showModal('📦 背包', html);
+};
+
+Game.invTab = 'all';
+
+// ==================== 8. 战斗中完整使用卷轴 ====================
+Game.combatUseScroll = function(idx){
+  const p = this.player;
+  const s = p.scrolls[idx];
+  if(!s) return;
+  if(!this.combat) return;
+  if(!this.combat.playerTurn){
+    Toast.show('不是你的回合。','warn');
+    return;
+  }
+  // 战斗中施法，让敌人先攻
+  this.addCombatLog(`📜 你开始施放 ${s.name}...`, '');
+  // 施法判定：D66，需要双数
+  const dice = rollD66();
+  this.addCombatLog(`🎲 施法判定：${dice[0]} 与 ${dice[1]}`, '');
+  const disc = p.discipline + (p.temp.disciplineBonus||0);
+  // 用 Discipline 调整骰子成双
+  let shifted = [dice[0], dice[1]];
+  let shiftUsed = 0;
+  if(dice[0] !== dice[1]){
+    // 尝试把其中一颗调到与另一颗相同
+    const target = dice[0];
+    const diff = Math.abs(dice[1] - target);
+    if(diff <= disc){
+      shifted[1] = target;
+      shiftUsed = diff;
+    } else {
+      const target2 = dice[1];
+      const diff2 = Math.abs(dice[0] - target2);
+      if(diff2 <= disc){
+        shifted[0] = target2;
+        shiftUsed = diff2;
+      }
+    }
+  }
+  p.scrolls.splice(idx,1); // 消耗卷轴
+  
+  if(shifted[0] === shifted[1]){
+    this.addCombatLog(`✨ 施法成功！（用 ${shiftUsed} 点 Discipline 调整）`, 'good');
+    Audio.good();
+    // 应用卷轴效果
+    const target = this.combat.enemies.find(e=>e.alive);
+    if(s.dmg && target){
+      let dmg = parseInt(s.dmg) || 0;
+      if(shifted[0]===6 && shifted[1]===6) dmg *= 2;
+      if(shifted[0]===1 && shifted[1]===1) dmg = Math.ceil(dmg/2);
+      target.curHp -= dmg;
+      this.addCombatLog(`💥 ${s.name} 造成 ${dmg} 伤害！`, 'hit');
+      if(target.curHp <= 0){
+        target.curHp = 0; target.alive = false;
+        this.addCombatLog(`☠ ${target.name} 被击败！`, 'good');
+        this.gainXP(target.xp);
+      }
+    } else if(s.effect){
+      this.addCombatLog(`效果：${s.effect}`, 'good');
+    }
+    this.gainXP(5 * p.level);
+  } else {
+    this.addCombatLog(`💨 施法失败！`, 'bad');
+    Audio.bad();
+    // 施法失败：敌人先攻
+    this.combat.rolledDice = null;
+    this.combat.matchedManoeuvre = null;
+    this.renderCombat();
+    setTimeout(()=>this.enemyTurn(), 400);
+    return;
+  }
+  
+  // 检查胜利
+  if(this.combat.enemies.every(e=>!e.alive)){
+    this.endCombat();
+    return;
+  }
+  // 敌人回合
+  this.combat.playerTurn = false;
+  this.renderCombat();
+  setTimeout(()=>this.enemyTurn(), 400);
+};
+
+// ==================== 9. 撬锁 ====================
+Game.pickLock = function(lockDC, containerId){
+  const p = this.player;
+  // 简化：需要 Precision 判定
+  const roll = rollD6() + rollD6() + p.precision;
+  this.addLog(`🔓 撬锁尝试：2D6+${p.precision} = ${roll}（需要 ≥ ${lockDC}）`, '');
+  if(roll >= lockDC){
+    this.addLog('✅ 锁被撬开！', 'good');
+    Audio.good();
+    return true;
+  } else {
+    this.addLog('❌ 撬锁失败，锁已损坏。', 'bad');
+    Audio.bad();
+    return false;
+  }
+};
+
+// ==================== 10. 血染/湿透完整追踪 ====================
+Game.tickStatus = function(){
+  const p = this.player;
+  if(p.bloodiedRooms > 0){
+    p.bloodiedRooms++;
+    if(p.bloodiedRooms > 8){
+      p.hp -= 1;
+      this.addLog(`🩸 血染引发发烧，-1 HP（已进入 ${p.bloodiedRooms} 个房间）`, 'bad');
+    } else {
+      this.addLog(`🩸 血染：${p.bloodiedRooms}/8 房间`, '');
+    }
+  }
+  if(p.soakedRooms > 0){
+    p.soakedRooms++;
+    if(p.soakedRooms > 8){
+      p.hp -= 1;
+      this.addLog(`💧 湿透引发肺炎，-1 HP（已进入 ${p.soakedRooms} 个房间）`, 'bad');
+    } else {
+      this.addLog(`💧 湿透：${p.soakedRooms}/8 房间`, '');
+    }
+  }
+  if(p.hp <= 0){
+    this.playerDeath();
+  }
+};
+
+// 覆盖原有 enterRoom，加入状态追踪
+const _origEnterRoom = Game.enterRoom;
+Game.enterRoom = function(exitIdx){
+  // 在进入新房间前 tick 状态
+  if(this.dungeon && this.dungeon.currentRoom && this.dungeon.currentRoom._ticked !== true){
+    // 只在真正进入新房间时 tick
+  }
+  _origEnterRoom.apply(this, arguments);
+  // 新房间 tick
+  if(this.dungeon && this.dungeon.currentRoom && !this.dungeon.currentRoom._ticked){
+    this.dungeon.currentRoom._ticked = true;
+    this.tickStatus();
+  }
+};
+
+// ==================== 11. 覆盖 renderDungeon 加入新按钮 ====================
+const _origRenderDungeon = Game.renderDungeon;
+Game.renderDungeon = function(){
+  _origRenderDungeon.apply(this, arguments);
+  // 在 dungeon-content 末尾追加功能按钮
+  const content = document.getElementById('dungeon-content');
+  if(!content) return;
+  const extra = document.createElement('div');
+  extra.className = 'panel';
+  extra.innerHTML = `
+    <h3>🎒 快捷操作</h3>
+    <div class="btn-row" style="margin:0;">
+      <button class="small" onclick="Game.openInventory()">📦 背包</button>
+      <button class="small" onclick="Game.openHerbalism()">🌿 疗方</button>
+      <button class="small" onclick="Game.openBombCrafting()">💣 炸弹</button>
+      <button class="small" onclick="Game.checkStatusPanel()">📊 状态</button>
+    </div>
+  `;
+  content.appendChild(extra);
+};
+
+Game.checkStatusPanel = function(){
+  const p = this.player;
+  let html = `<h3>🧙 ${escapeHtml(p.name)} - Lv${p.level}</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;font-size:13px;">
+      <div>❤ HP：${p.hp}/${p.hpBase}</div>
+      <div>⭐ XP：${p.xp} / ${DATA.levelTable[p.level-1].xpToNext||'MAX'}</div>
+      <div>💠 Shift：+${p.shift}</div>
+      <div>🎯 Discipline：${p.discipline}</div>
+      <div>🎯 Precision：${p.precision}</div>
+      <div>💰 金币：${p.gold}</div>
+      <div>🍖 口粮：${p.rations}</div>
+      <div>🩸 血染：${p.bloodiedRooms}/8</div>
+      <div>💧 湿透：${p.soakedRooms}/8</div>
+    </div>
+    <h3 style="margin-top:12px;">🙏 神明恩惠</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;font-size:12px;">
+      ${DATA.godOrder.map(g=>`<div>${DATA.gods[g].name}：<b>${p.favour[g]||0}</b></div>`).join('')}
+    </div>
+  `;
+  showModal('📊 状态面板', html + `<div class="btn-row" style="margin-top:12px;"><button class="primary" onclick="closeModal()">关闭</button></div>`);
+};
+
+// ==================== 12. 战斗中用药水（覆盖） ====================
+const _origCombatUsePotion = Game.combatUsePotion;
+Game.combatUsePotion = function(){
+  if(!this.combat || !this.combat.playerTurn) return;
+  const p = this.player;
+  if(p.potions.length === 0){ Toast.show('没有药水。','warn'); return; }
+  // 让玩家选择
+  let html = `<h3>选择药水</h3><div style="display:flex;flex-direction:column;gap:6px;">`;
+  p.potions.forEach((po,i)=>{
+    html += `<div style="padding:6px;border:1px solid #a08040;border-radius:4px;background:rgba(184,134,11,.08);display:flex;justify-content:space-between;">
+      <div><b>${po.name}</b><br><span style="font-size:11px;">${po.effect}</span></div>
+      <button class="small" onclick="Game.combatDrinkPotion(${i});closeModal();">饮用</button>
+    </div>`;
+  });
+  html += `</div><div class="btn-row" style="margin-top:12px;"><button onclick="closeModal()">取消</button></div>`;
+  showModal('🧪 使用药水', html);
+};
+
+Game.combatDrinkPotion = function(idx){
+  const p = this.player;
+  const pot = p.potions[idx];
+  if(!pot) return;
+  p.potions.splice(idx,1);
+  this.addLog(`使用 ${pot.name}。`, 'good');
+  if(pot.id === 'healing'){ p.hp = Math.min(p.hpBase, p.hp + 10); }
+  else if(pot.id === 'gainhealth'){ p.hp += 20; }
+  else if(pot.id === 'finesse'){ p.temp.precisionBonus = (p.temp.precisionBonus||0) + 1; }
+  else if(pot.id === 'strength'){ p.temp.precisionBonus = (p.temp.precisionBonus||0) + 2; }
+  else if(pot.id === 'prowess'){ p.temp.shiftBonus = (p.temp.shiftBonus||0) + 1; }
+  else if(pot.id === 'furtherhealth'){ p.temp.shiftBonus = (p.temp.shiftBonus||0) + 2; }
+  else if(pot.id === 'speed'){ p.temp.damageReduction = (p.temp.damageReduction||0) + 1; }
+  else if(pot.id === 'willpower'){ p.temp.damageBonus = (p.temp.damageBonus||0) + 1; }
+  this.addCombatLog(`🧪 饮用 ${pot.name}。`, 'good');
+  // 敌人回合
+  this.combat.playerTurn = false;
+  this.combat.rolledDice = null;
+  this.combat.matchedManoeuvre = null;
+  this.renderCombat();
+  setTimeout(()=>this.enemyTurn(), 300);
+};
+
+// ==================== 13. 覆盖 combat render 加入卷轴/炸弹按钮 ====================
+const _origRenderCombat = Game.renderCombat;
+Game.renderCombat = function(){
+  _origRenderCombat.apply(this, arguments);
+  if(!this.combat || this.combat.combatOver) return;
+  if(!this.combat.playerTurn) return;
+  const actEl = document.getElementById('combat-actions');
+  if(!actEl) return;
+  // 若已有按钮，追加卷轴与炸弹按钮
+  const extra = document.createElement('div');
+  extra.style.marginTop = '6px';
+  extra.style.display = 'flex';
+  extra.style.gap = '6px';
+  extra.style.flexWrap = 'wrap';
+  if(this.player.scrolls.length > 0 && !this.combat.rolledDice){
+    extra.innerHTML += `<button class="small" onclick="Game.openCombatScrolls()">📜 使用卷轴 (${this.player.scrolls.length})</button>`;
+  }
+  if((this.player.potionBombs||[]).length > 0 && !this.combat.rolledDice){
+    extra.innerHTML += `<button class="small" onclick="Game.openCombatBombs()">💣 投掷炸弹 (${this.player.potionBombs.length})</button>`;
+  }
+  if(extra.innerHTML) actEl.appendChild(extra);
+};
+
+Game.openCombatScrolls = function(){
+  const p = this.player;
+  let html = `<h3>选择卷轴</h3><p style="font-size:11px;color:#5a4a35;">⚠ 战斗中施法会让敌人先攻。</p><div style="display:flex;flex-direction:column;gap:6px;">`;
+  p.scrolls.forEach((s,i)=>{
+    html += `<div style="padding:6px;border:1px solid #a08040;border-radius:4px;background:rgba(184,134,11,.08);display:flex;justify-content:space-between;">
+      <div><b>${s.name}</b><br><span style="font-size:11px;">${s.desc||s.effect||''}</span></div>
+      <button class="small" onclick="Game.combatUseScroll(${i});closeModal();">施放</button>
+    </div>`;
+  });
+  html += `</div><div class="btn-row" style="margin-top:12px;"><button onclick="closeModal()">取消</button></div>`;
+  showModal('📜 使用卷轴', html);
+};
+
+Game.openCombatBombs = function(){
+  const p = this.player;
+  let html = `<h3>选择炸弹</h3><div style="display:flex;flex-direction:column;gap:6px;">`;
+  (p.potionBombs||[]).forEach((b,i)=>{
+    html += `<div style="padding:6px;border:1px solid #a08040;border-radius:4px;background:rgba(184,134,11,.08);display:flex;justify-content:space-between;">
+      <div><b>${b.name}</b><br><span style="font-size:11px;">${b.effect}</span></div>
+      <button class="small" onclick="Game.combatThrowBomb(${i});closeModal();">投掷</button>
+    </div>`;
+  });
+  html += `</div><div class="btn-row" style="margin-top:12px;"><button onclick="closeModal()">取消</button></div>`;
+  showModal('💣 投掷炸弹', html);
+};
+
+Game.combatThrowBomb = function(idx){
+  const b = this.player.potionBombs[idx];
+  if(!b) return;
+  this.player.potionBombs.splice(idx,1);
+  const target = this.combat.enemies.find(e=>e.alive);
+  if(!target){ this.addCombatLog('没有敌人。',''); return; }
+  this.addCombatLog(`💣 投出 ${b.name}！`, 'good');
+  if(b.id==='smoke'){
+    target.smoke = true;
+    this.addCombatLog('敌人本回合无法使用移动型干扰。','good');
+  } else if(b.id==='flash'){
+    target.stunTurns = (target.stunTurns||0) + 1;
+    this.addCombatLog('敌人被致盲！','good');
+  } else if(b.id==='darkshell'){
+    const dmg = 5 * this.dungeon.level;
+    target.curHp -= dmg;
+    this.addCombatLog(`暗影伤害 ${dmg}！`, 'hit');
+    if(target.curHp<=0){ target.curHp=0; target.alive=false; this.gainXP(target.xp); this.addCombatLog(`☠ ${target.name} 被击败！`, 'good'); }
+  } else if(b.id==='shrapnel'){
+    const dmg = rollD6()+rollD6()+4;
+    target.curHp -= dmg;
+    this.addCombatLog(`破片伤害 ${dmg}！`, 'hit');
+    if(target.curHp<=0){ target.curHp=0; target.alive=false; this.gainXP(target.xp); this.addCombatLog(`☠ ${target.name} 被击败！`, 'good'); }
+  } else if(b.id==='flame'){
+    const dmg = rollD6()+rollD6()+rollD6()+5;
+    target.curHp -= dmg;
+    this.addCombatLog(`火焰伤害 ${dmg}！`, 'hit');
+    if(target.curHp<=0){ target.curHp=0; target.alive=false; this.gainXP(target.xp); this.addCombatLog(`☠ ${target.name} 被击败！`, 'good'); }
+  }
+  if(this.combat.enemies.every(e=>!e.alive)){ this.endCombat(); return; }
+  this.renderCombat();
+};
+
+// ==================== 14. 通风井搜索（覆盖） ====================
+Game.searchForExit = function(){
+  if(this.player.usedExitThisLevel || this.dungeon.usedExitThisLevel){
+    Toast.show('本层已经使用过通风井。','warn');
+    return;
+  }
+  this.addLog('🔍 搜索通风井...', '');
+  let found = false;
+  // 每面墙滚 D6，出现 6 即找到
+  for(let i=0;i<4;i++){
+    const r = rollD6();
+    this.addLog(`墙 ${i+1}：投出 ${r}`, '');
+    if(r===6) found = true;
+  }
+  if(found){
+    this.player.usedExitThisLevel = true;
+    this.dungeon.usedExitThisLevel = true;
+    this.addLog('✨ 找到通风井！', 'good');
+    this.unlockAchievement('foundExit');
+    Audio.good();
+    if(confirm('找到通风井！要返回城镇吗？')){
+      this.goToTown();
+    }
+  } else {
+    this.addLog('未找到通风井。','');
+    Toast.show('没找到通风井，继续探索吧。','');
+  }
+  this.render();
+};
+
+// ==================== 15. 覆盖 goToTown 重置状态 ====================
+const _origGoToTown = Game.goToTown;
+Game.goToTown = function(){
+  _origGoToTown.apply(this, arguments);
+  this.player.usedExitThisLevel = false;
+};
+
+// ==================== 16. 自动初始化提示 ====================
+console.log('[2D6 Extension] 完整扩展已加载：草药制作、药水炸弹、完整城镇、背包、撬锁、血染/湿透、通风井');
+
+})();
+</script>
 </body>
 </html>
