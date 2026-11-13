@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>時間守望：核心版圖 (新手教學優化版)</title>
+<title>時間守望：核心版圖 (完整13劇本)</title>
 <style>
     :root {
         --bg-dark: #1e252b;
@@ -160,7 +160,7 @@
     <input type="file" id="json-upload" accept=".json" style="display: none;">
 
 <script>
-    // ================= 完整 13 個劇本 (省略部分以節省空間，同前一版) =================
+    // ================= 完整 13 個劇本資料庫 =================
     const scriptsData = {
         "01_asylum": {
             title: "01. 瘋人院 (1921)", initialTU: 25, initialHP: 5, startLocation: "day_room",
@@ -177,7 +177,129 @@
                 ]}
             }
         },
-        // ... (為節省字數，其他12個劇本與前一版完全相同) ...
+        "02_marcy": {
+            title: "02. 瑪西案件 (1992)", initialTU: 25, initialHP: 6, startLocation: "forest",
+            intro: "尋找失蹤的瑪西，這裡似乎爆發了喪屍危機。",
+            items: { "gun": { name: "手槍", icon: "🔫", keep: true } },
+            locations: {
+                "forest": { name: "森林", description: "四周傳來嘶吼聲。", actions: [
+                    { label: "搜索警車", cost: 1, text: "你找到了手槍。", giveItem: "gun" },
+                    { label: "擊退喪屍", cost: 1, text: "喪屍來襲！", check: { attr: "combat", diff: 3, successText: "你清出了一條路。", failText: "你被咬了。", failDamage: 2 } },
+                    { label: "前往避難所", cost: 3, text: "你們來到了避難所。", nextLoc: "shelter" }
+                ]},
+                "shelter": { name: "避難所", description: "門被堵住了。", actions: [
+                    { label: "開槍殺出血路", cost: 2, text: "你找到了瑪西！", requires: "gun", isWin: true }
+                ]}
+            }
+        },
+        "03_dragon": {
+            title: "03. 龍之預言", initialTU: 30, initialHP: 5, startLocation: "tavern",
+            intro: "中世紀奇幻世界，龍族即將甦醒。",
+            items: { "spell": { name: "火焰捲軸", icon: "📜", keep: false } },
+            locations: {
+                "tavern": { name: "巨龍酒館", description: "冒險者聚集。", actions: [
+                    { label: "閱讀魔法書", cost: 1, text: "你試圖理解文字。", check: { attr: "tech", diff: 2, successText: "你學會了火焰捲軸！", successEffect: "giveItem:spell", failText: "你看不懂，浪費了時間。" } },
+                    { label: "前往城堡", cost: 2, text: "你們來到了城堡。", nextLoc: "castle" }
+                ]},
+                "castle": { name: "城堡廣場", description: "黑龍盤旋。", actions: [
+                    { label: "使用火焰捲軸", cost: 3, text: "黑龍被擊退！任務成功！", requires: "spell", isWin: true }
+                ]}
+            }
+        },
+        "04_under_mask": {
+            title: "04. 面具之下 (-1146)", initialTU: 25, initialHP: 5, startLocation: "thebes",
+            intro: "古埃及底比斯，法老的陵墓面臨危機。",
+            items: { "torch": { name: "火把", icon: "🕯️", keep: false } },
+            locations: {
+                "thebes": { name: "底比斯街道", description: "黃沙漫天。", actions: [
+                    { label: "購買火把", cost: 1, text: "你接過火把。", giveItem: "torch" },
+                    { label: "躲避巡邏隊", cost: 0, text: "你們必須悄悄溜過去。", check: { attr: "agility", diff: 2, successText: "你們成功溜走。", failText: "被發現了，被抓去審問！", failTime: 4 } }
+                ]}
+            }
+        },
+        "05_prophecy": {
+            title: "05. 龍之預言：擴充", initialTU: 30, initialHP: 5, startLocation: "forest",
+            intro: "你們身處黑暗精靈的領地。",
+            items: { "orb": { name: "龍珠", icon: "🔮", keep: true } },
+            locations: {
+                "forest": { name: "幽暗森林", description: "精靈領地。", actions: [
+                    { label: "破解精靈謎題", cost: 0, text: "你需要智慧。", check: { attr: "tech", diff: 3, successText: "你解開了謎題，獲得龍珠！", successEffect: "giveItem:orb", failText: "謎題太難了。" } }
+                ]},
+                "cave": { name: "地下洞穴", description: "巨龍巢穴。", actions: [
+                    { label: "進行召喚儀式", cost: 3, text: "儀式完成！", requires: "orb", isWin: true }
+                ]}
+            }
+        },
+        "06_endurance": {
+            title: "06. 堅忍號 (1914)", initialTU: 25, initialHP: 4, startLocation: "deck",
+            intro: "南極探險隊受困。",
+            items: { "coat": { name: "防寒大衣", icon: "🧥", keep: true } },
+            locations: {
+                "deck": { name: "甲板", description: "寒風刺骨。", actions: [
+                    { label: "尋找物資", cost: 1, text: "你翻找著。", check: { attr: "agility", diff: 2, successText: "找到了大衣。", successEffect: "giveItem:coat", failText: "手指凍僵了。" } }
+                ]}
+            }
+        },
+        "07_brotherhood": {
+            title: "07. 海灣兄弟會 (1685)", initialTU: 25, initialHP: 5, startLocation: "ship",
+            intro: "海盜時代。你們需要找到寶藏。",
+            items: { "map": { name: "藏寶圖", icon: "🗺️", keep: false } },
+            locations: {
+                "ship": { name: "海盜船", description: "波濤洶湧。", actions: [
+                    { label: "說服船長", cost: 1, text: "你試圖交涉。", check: { attr: "charisma", diff: 3, successText: "船長給了你地圖。", successEffect: "giveItem:map", failText: "船長把你趕走了。" } }
+                ]}
+            }
+        },
+        "08_midsummer": {
+            title: "08. 仲夏之夜", initialTU: 20, initialHP: 5, startLocation: "stage",
+            intro: "莎士比亞筆下的仙境。",
+            items: { "flower": { name: "魔法之花", icon: "🌸", keep: true } },
+            locations: {
+                "stage": { name: "舞台", description: "精靈們在跳舞。", actions: [
+                    { label: "偷摘魔法花", cost: 0, text: "你必須小心翼翼。", check: { attr: "agility", diff: 2, successText: "你成功了！", successEffect: "giveItem:flower", failText: "被精靈發現了！", failTime: 3 } }
+                ]}
+            }
+        },
+        "09_hollywood": {
+            title: "09. 好萊塢 (1969)", initialTU: 25, initialHP: 5, startLocation: "mansion",
+            intro: "好萊塢豪宅的靈異現象。",
+            items: { "tape": { name: "錄音帶", icon: "📼", keep: false } },
+            locations: {
+                "mansion": { name: "豪宅大廳", description: "燈光昏暗。", actions: [
+                    { label: "破解保險箱", cost: 1, text: "轉動旋鈕。", check: { attr: "tech", diff: 3, successText: "保險箱開了，裡面是錄音帶。", successEffect: "giveItem:tape", failText: "警報響起！", failTime: 2 } }
+                ]}
+            }
+        },
+        "10_expedition": {
+            title: "10. 遠征隊：十字軍", initialTU: 20, initialHP: 5, startLocation: "camp",
+            intro: "十字軍東征時期。",
+            items: { "sword": { name: "聖劍", icon: "⚔️", keep: true } },
+            locations: {
+                "camp": { name: "軍營", description: "士兵們在做準備。", actions: [
+                    { label: "挑戰守護騎士", cost: 1, text: "你發起決鬥。", check: { attr: "combat", diff: 4, successText: "你贏了，獲得聖劍！", successEffect: "giveItem:sword", failText: "你被打敗了。", failDamage: 2 } }
+                ]}
+            }
+        },
+        "11_lumen": {
+            title: "11. 信仰之光 (1419)", initialTU: 25, initialHP: 5, startLocation: "church",
+            intro: "中世紀修道院。",
+            items: { "bible": { name: "古老聖經", icon: "📖", keep: true } },
+            locations: {
+                "church": { name: "修道院", description: "鐘聲迴盪。", actions: [
+                    { label: "解讀拉丁文", cost: 0, text: "你需要看懂這段文字。", check: { attr: "tech", diff: 3, successText: "你讀懂了，找到了聖經。", successEffect: "giveItem:bible", failText: "你看不懂。" } }
+                ]}
+            }
+        },
+        "12_revolution": {
+            title: "12. 革新：復興", initialTU: 30, initialHP: 5, startLocation: "island",
+            intro: "機構覆滅後的重建。",
+            items: { "blueprint": { name: "藍圖", icon: "📐", keep: true } },
+            locations: {
+                "island": { name: "隱蔽小島", description: "綠色的黏液包圍著你們。", actions: [
+                    { label: "修理終端機", cost: 2, text: "嘗試駭入系統。", check: { attr: "tech", diff: 3, successText: "系統重啟，找到藍圖！", successEffect: "giveItem:blueprint", failText: "系統損壞。" } }
+                ]}
+            }
+        },
         "13_deep_sea": {
             title: "13. 深海計畫 (2099)", initialTU: 20, initialHP: 5, startLocation: "control_room",
             intro: "致命的瘟疫正在地球肆虐。",
@@ -472,7 +594,6 @@
         },
 
         rules() {
-            // ✨ 重新設計的新手教學 ✨
             document.getElementById('modal-content').innerHTML = `
                 <div class="modal-title">📜 新手特工生存指南</div>
                 <div class="modal-text" style="text-align:left;">
@@ -521,7 +642,6 @@
 
         document.getElementById('nav-load').onclick = () => ui.loadMenu();
         document.getElementById('nav-generate').onclick = () => ui.generateScript();
-        // 點擊規則按鈕先顯示新手教學
         document.getElementById('nav-rules').onclick = () => ui.rules();
         
         document.getElementById('nav-save').onclick = () => {
