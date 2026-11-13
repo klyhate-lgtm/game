@@ -1,0 +1,2637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>2D6 Dungeon - 单人死亡地牢探索</title>
+<style>
+:root{
+  --parchment:#e8dcc0;
+  --parchment-dark:#c9b892;
+  --ink:#2a1f14;
+  --ink-light:#5a4a35;
+  --blood:#8b1a1a;
+  --gold:#b8860b;
+  --gold-bright:#daa520;
+  --shadow:rgba(0,0,0,.45);
+  --panel:#1a1410;
+  --panel-light:#2c2419;
+  --border:#4a3a25;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:'Noto Serif SC','Songti SC',Georgia,serif;
+  background:radial-gradient(ellipse at center,#2a2015 0%,#0d0906 100%);
+  color:var(--ink);
+  display:flex;flex-direction:column;
+  font-size:14px;
+  position:relative;
+}
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.55) 100%);
+}
+#app{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:1;}
+#topbar{
+  background:linear-gradient(180deg,#1f1810,#15100a);
+  border-bottom:2px solid var(--border);
+  padding:6px 10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  font-size:12px;color:var(--parchment);flex-shrink:0;
+  box-shadow:0 2px 8px rgba(0,0,0,.6);
+}
+.stat{display:flex;align-items:center;gap:3px;padding:3px 8px;background:rgba(0,0,0,.35);border-radius:4px;border:1px solid var(--border);white-space:nowrap;}
+.stat b{color:var(--gold-bright);font-size:13px;}
+.hpbar{width:70px;height:8px;background:#3a1010;border-radius:4px;overflow:hidden;border:1px solid #5a2020;}
+.hpbar>div{height:100%;background:linear-gradient(90deg,#c42a2a,#e85555);transition:width .3s;}
+#game-area{
+  flex:1;overflow-y:auto;overflow-x:hidden;padding:10px;
+  background:
+    repeating-linear-gradient(0deg,transparent 0 1px,rgba(0,0,0,.015) 1px 2px),
+    radial-gradient(ellipse at 30% 20%,#f0e4c8 0%,#dccaa6 50%,#c4ae88 100%);
+  position:relative;
+}
+#game-area::-webkit-scrollbar{width:6px;}
+#game-area::-webkit-scrollbar-thumb{background:var(--ink-light);border-radius:3px;}
+.screen{display:none;animation:fadeIn .4s;}
+.screen.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+h1,h2,h3{font-family:'Cinzel','Noto Serif SC',serif;letter-spacing:.5px;}
+h1{font-size:26px;color:#2a1f14;text-align:center;margin:12px 0;text-shadow:1px 1px 0 rgba(255,255,255,.3);}
+h2{font-size:18px;margin:10px 0 6px;color:#3a2a1a;border-bottom:2px solid var(--gold);padding-bottom:4px;}
+h3{font-size:15px;margin:8px 0 4px;}
+p{line-height:1.65;margin:4px 0;}
+button{
+  font-family:inherit;font-size:14px;cursor:pointer;border:none;
+  padding:10px 18px;border-radius:5px;color:var(--parchment);
+  background:linear-gradient(180deg,#5a3a20,#3a2412);
+  border:1px solid #6a4a2a;
+  transition:all .15s;font-weight:600;letter-spacing:.5px;
+  box-shadow:0 2px 4px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1);
+}
+button:hover:not(:disabled){background:linear-gradient(180deg,#7a4a2a,#4a2c14);transform:translateY(-1px);box-shadow:0 3px 6px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.15);}
+button:active:not(:disabled){transform:translateY(1px);box-shadow:0 1px 2px rgba(0,0,0,.4);}
+button:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(.5);}
+button.primary{background:linear-gradient(180deg,#8b6914,#5a4210);border-color:#b8860b;}
+button.primary:hover:not(:disabled){background:linear-gradient(180deg,#b8860b,#7a5a14);}
+button.danger{background:linear-gradient(180deg,#7a1a1a,#4a0a0a);border-color:#a03030;}
+button.small{padding:6px 12px;font-size:12px;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}
+.btn-row button{flex:1;min-width:120px;}
+#bottom-nav{
+  flex-shrink:0;display:flex;background:#15100a;border-top:2px solid var(--border);
+  padding:4px;gap:2px;box-shadow:0 -2px 10px rgba(0,0,0,.6);
+}
+#bottom-nav button{
+  flex:1;background:transparent;border:none;color:var(--parchment-dark);
+  font-size:11px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;
+  box-shadow:none;border-radius:3px;font-weight:400;
+}
+#bottom-nav button .ico{font-size:16px;}
+#bottom-nav button:hover:not(:disabled){background:rgba(255,255,255,.06);transform:none;box-shadow:none;}
+#bottom-nav button:active{background:rgba(255,255,255,.1);}
+
+/* === Cards === */
+.card{
+  background:linear-gradient(160deg,#f5ead0,#e0cfa8);
+  border:2px solid #8a6a3a;border-radius:6px;
+  padding:8px;box-shadow:0 3px 8px rgba(0,0,0,.35);
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.3),transparent 60%);
+}
+.card-label{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.85) 40%);
+  color:#f0e0c0;padding:10px 6px 4px;font-size:10px;text-align:center;
+  font-weight:600;line-height:1.3;
+}
+.card-row{
+  display:flex;gap:10px;overflow-x:auto;overflow-y:visible;
+  padding:10px 4px 20px;align-items:center;scroll-behavior:smooth;
+}
+.card-row::-webkit-scrollbar{height:6px;}
+.card-row::-webkit-scrollbar-thumb{background:var(--ink-light);border-radius:3px;}
+.creature-card{width:130px;min-width:130px;height:180px;display:flex;flex-direction:column;}
+.creature-card .sprite{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle,#3a2a1a,#1a1008);
+  border-radius:4px;margin-bottom:4px;
+}
+.creature-card svg{width:80px;height:80px;filter:drop-shadow(0 0 6px rgba(255,180,80,.3));}
+.creature-card .hpline{
+  display:flex;justify-content:space-between;font-size:10px;color:var(--ink);font-weight:700;
+}
+.room-card{width:150px;min-width:150px;height:150px;display:flex;flex-direction:column;}
+.room-card .sprite{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#4a3a2a,#2a1f14);
+  border-radius:4px;margin-bottom:4px;
+}
+.room-card svg{width:70px;height:70px;}
+.item-card{width:100px;min-width:100px;height:130px;display:flex;flex-direction:column;}
+.item-card .sprite{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#4a3a2a,#2a1f14);border-radius:4px;margin-bottom:4px;
+}
+.item-card svg{width:55px;height:55px;}
+
+/* === Dice === */
+.dice-area{display:flex;gap:14px;justify-content:center;align-items:center;margin:12px 0;}
+.die{
+  width:56px;height:56px;border-radius:10px;position:relative;
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:900;font-family:'Georgia',serif;
+  box-shadow:0 4px 10px rgba(0,0,0,.5),inset 0 -3px 6px rgba(0,0,0,.3),inset 0 2px 4px rgba(255,255,255,.3);
+  transition:transform .2s;
+}
+.die.rolling{animation:roll .5s ease-out;}
+@keyframes roll{
+  0%{transform:rotate(0) scale(1);}
+  25%{transform:rotate(120deg) scale(1.15);}
+  50%{transform:rotate(240deg) scale(.95);}
+  75%{transform:rotate(340deg) scale(1.08);}
+  100%{transform:rotate(360deg) scale(1);}
+}
+.die.primary{background:linear-gradient(145deg,#c42a2a,#7a1010);color:#fff;border:2px solid #5a0808;}
+.die.secondary{background:linear-gradient(145deg,#f0f0f0,#b0b0b0);color:#222;border:2px solid #888;}
+.die.fatigue{background:linear-gradient(145deg,#7a5a1a,#3a2a08);color:#f0d080;border:2px solid #a08020;font-size:22px;}
+.die .sub{position:absolute;bottom:1px;font-size:8px;opacity:.75;font-weight:400;letter-spacing:1px;}
+
+/* === Panels === */
+.panel{
+  background:linear-gradient(160deg,rgba(245,234,208,.95),rgba(220,202,166,.95));
+  border:2px solid #8a6a3a;border-radius:8px;padding:12px;margin:10px 0;
+  box-shadow:0 3px 10px rgba(0,0,0,.3);
+}
+.panel.dark{background:linear-gradient(160deg,#2a2015,#1a1208);color:var(--parchment);border-color:var(--border);}
+.panel.dark h2,.panel.dark h3{color:var(--gold-bright);border-color:var(--gold);}
+.log{
+  max-height:180px;overflow-y:auto;font-size:12px;line-height:1.6;
+  background:rgba(0,0,0,.15);border-radius:4px;padding:8px;
+  font-family:'Courier New',monospace;
+}
+.log::-webkit-scrollbar{width:5px;}
+.log::-webkit-scrollbar-thumb{background:var(--ink-light);border-radius:3px;}
+.log .entry{padding:2px 0;border-bottom:1px dotted rgba(0,0,0,.15);}
+.log .entry.hit{color:#8b1a1a;font-weight:600;}
+.log .entry.good{color:#1a6b1a;font-weight:600;}
+.log .entry.gold{color:#b8860b;font-weight:600;}
+.log .entry.bad{color:#5a0a0a;font-weight:700;}
+
+/* === Modal === */
+#modal-layer{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;
+  display:none;align-items:center;justify-content:center;padding:14px;
+  backdrop-filter:blur(3px);
+}
+#modal-layer.active{display:flex;}
+.modal{
+  background:linear-gradient(160deg,#f5ead0,#dccaa6);
+  border:3px solid var(--gold);border-radius:10px;
+  max-width:640px;width:100%;max-height:88vh;overflow-y:auto;
+  padding:18px;box-shadow:0 10px 40px rgba(0,0,0,.8);
+  animation:modalIn .3s;
+}
+@keyframes modalIn{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal.dark{background:linear-gradient(160deg,#1f1810,#0d0906);color:var(--parchment);}
+.modal.dark h2,.modal.dark h3{color:var(--gold-bright);}
+.modal::-webkit-scrollbar{width:6px;}
+.modal::-webkit-scrollbar-thumb{background:var(--ink-light);border-radius:3px;}
+
+/* === Toast === */
+#toast-layer{
+  position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
+  z-index:2000;display:flex;flex-direction:column;gap:6px;pointer-events:none;
+  width:90%;max-width:360px;
+}
+.toast{
+  background:rgba(20,14,8,.95);color:var(--parchment);
+  padding:10px 14px;border-radius:6px;font-size:13px;
+  border-left:4px solid var(--gold);
+  box-shadow:0 4px 12px rgba(0,0,0,.6);
+  animation:toastIn .3s;
+}
+.toast.warn{border-left-color:#c42a2a;}
+.toast.good{border-left-color:#2a8a2a;}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* === Character creation === */
+.weapon-choice{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0;}
+.weapon-choice .wc{
+  background:linear-gradient(160deg,#e8d8b8,#c8b490);
+  border:2px solid #8a6a3a;border-radius:6px;padding:10px;
+  text-align:center;cursor:pointer;transition:all .2s;
+}
+.weapon-choice .wc:hover{border-color:var(--gold);transform:translateY(-2px);}
+.weapon-choice .wc.selected{background:linear-gradient(160deg,#f5e8c0,#e8c880);border-color:var(--gold-bright);box-shadow:0 0 12px rgba(184,134,11,.5);}
+.weapon-choice .wc svg{width:44px;height:44px;margin-bottom:4px;}
+.weapon-choice .wc .name{font-weight:700;font-size:13px;}
+
+.manoeuvre-list{display:flex;flex-direction:column;gap:6px;}
+.manoeuvre-item{
+  display:flex;justify-content:space-between;align-items:center;
+  background:rgba(0,0,0,.06);padding:8px 10px;border-radius:5px;
+  border:1px solid #a08040;cursor:pointer;transition:all .15s;
+}
+.manoeuvre-item:hover{background:rgba(0,0,0,.12);}
+.manoeuvre-item.selected{background:rgba(184,134,11,.25);border-color:var(--gold);box-shadow:0 0 8px rgba(184,134,11,.4);}
+.manoeuvre-item .dice{font-weight:900;color:#8b1a1a;font-family:'Courier New',monospace;font-size:15px;}
+.manoeuvre-item .dmg{font-size:12px;color:var(--ink-light);}
+
+/* === Progress === */
+.progress-bar{height:10px;background:#3a2010;border-radius:5px;overflow:hidden;border:1px solid #5a3010;margin:6px 0;}
+.progress-bar>div{height:100%;background:linear-gradient(90deg,#b8860b,#daa520);transition:width .4s;}
+
+/* === History sidebar === */
+#history-panel{
+  position:fixed;top:0;right:-320px;width:300px;height:100%;z-index:900;
+  background:linear-gradient(160deg,#1a1208,#0d0906);
+  border-left:2px solid var(--border);color:var(--parchment);
+  padding:14px;overflow-y:auto;transition:right .3s;box-shadow:-4px 0 20px rgba(0,0,0,.6);
+}
+#history-panel.open{right:0;}
+#history-panel h3{color:var(--gold-bright);border-bottom:1px solid var(--gold);padding-bottom:6px;margin-bottom:10px;}
+#history-panel .h-entry{padding:6px 0;border-bottom:1px dotted rgba(255,255,255,.1);font-size:12px;line-height:1.5;}
+#history-panel .h-entry b{color:var(--gold-bright);}
+
+/* === Tabs === */
+.tabs{display:flex;gap:4px;margin-bottom:10px;border-bottom:2px solid var(--border);}
+.tabs button{
+  background:transparent;border:none;color:var(--ink-light);padding:8px 12px;
+  border-radius:5px 5px 0 0;font-size:13px;box-shadow:none;font-weight:600;
+}
+.tabs button.active{background:rgba(184,134,11,.2);color:var(--ink);border-bottom:3px solid var(--gold);}
+.tabs button:hover{background:rgba(0,0,0,.05);transform:none;}
+
+/* === Responsive === */
+@media(max-width:600px){
+  h1{font-size:20px;}
+  h2{font-size:16px;}
+  .weapon-choice{grid-template-columns:1fr;}
+  .die{width:48px;height:48px;font-size:22px;}
+  .creature-card{width:115px;min-width:115px;height:165px;}
+  #topbar{font-size:11px;padding:4px 6px;gap:5px;}
+  .stat{padding:2px 6px;}
+}
+
+/* === SVG art === */
+.svg-ink{stroke:#f0d080;fill:none;stroke-width:2;}
+.svg-blood{stroke:#c42a2a;fill:#c42a2a;}
+
+/* Parchment texture overlay for screens */
+.parchment-bg{
+  background-image:
+    radial-gradient(ellipse at 20% 30%,rgba(255,255,255,.25),transparent 50%),
+    radial-gradient(ellipse at 80% 70%,rgba(0,0,0,.08),transparent 50%);
+}
+
+/* Typewriter text */
+.typewriter{white-space:pre-wrap;line-height:1.7;}
+.typewriter .cursor{display:inline-block;width:2px;height:1em;background:currentColor;animation:blink .7s infinite;vertical-align:text-bottom;}
+@keyframes blink{50%{opacity:0;}}
+
+/* Scrollable table */
+.scroll-table{overflow-x:auto;margin:8px 0;}
+.scroll-table table{width:100%;border-collapse:collapse;font-size:12px;}
+.scroll-table th{background:rgba(184,134,11,.3);padding:6px;text-align:left;border-bottom:2px solid var(--gold);}
+.scroll-table td{padding:5px 6px;border-bottom:1px solid rgba(0,0,0,.1);}
+.scroll-table tr:nth-child(even){background:rgba(0,0,0,.03);}
+
+/* Combat layout */
+.combat-layout{display:flex;flex-direction:column;gap:10px;}
+.combat-enemies{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;}
+.combat-controls{display:flex;flex-direction:column;gap:8px;}
+.attack-btn{
+  background:linear-gradient(180deg,#8b1a1a,#5a0a0a);border-color:#a03030;
+}
+.attack-btn:hover:not(:disabled){background:linear-gradient(180deg,#b03030,#7a1010);}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header id="topbar">
+    <span class="stat">❤ <b id="top-hp">10</b>/10</span>
+    <div class="hpbar"><div id="top-hpbar" style="width:100%"></div></div>
+    <span class="stat">⭐ <b id="top-xp">0</b> XP</span>
+    <span class="stat">🎖 Lv<b id="top-level">1</b></span>
+    <span class="stat">💠 <b id="top-shift">+2</b> Shift</span>
+    <span class="stat">💰 <b id="top-gold">0</b> GC</span>
+    <span class="stat" id="top-rations">🍖 <b>3</b></span>
+  </header>
+
+  <main id="game-area">
+    <!-- ===== TUTORIAL SCREEN ===== -->
+    <section id="screen-tutorial" class="screen active">
+      <h1>⚔ 2D6 Dungeon ⚔</h1>
+      <div class="panel">
+        <h2>📖 游戏说明</h2>
+        <p style="font-size:13px;color:#5a4a35;">你是柯拉丁大陆上的一位冒险者，听说附近有一座地牢，便前来一探究竟。击败地牢中的敌人、收集宝藏、提升等级，成为传奇！</p>
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="tab-basic">🖥 看懂画面</button>
+          <button class="tab-btn" data-tab="tab-flow">🔄 操作流程</button>
+          <button class="tab-btn" data-tab="tab-combat">⚔ 战斗机制</button>
+          <button class="tab-btn" data-tab="tab-special">✨ 特殊机制</button>
+        </div>
+        <div id="tab-basic" class="tab-content">
+          <h3>👀 顶部状态列</h3>
+          <p>画面最上方的深色横条显示你的状态：</p>
+          <ul style="margin-left:18px;font-size:13px;line-height:1.8;">
+            <li>❤ <b>血量</b>：当前 HP / 基线 HP。归零就会倒地。</li>
+            <li>⭐ <b>经验值</b>：击杀敌人与完成任务获得。</li>
+            <li>🎖 <b>等级</b>：影响属性与 HP 基线。</li>
+            <li>💠 <b>Shift 点数</b>：战斗时用来调整骰子。</li>
+            <li>💰 <b>金币</b>：可在城镇市场交易。</li>
+            <li>🍖 <b>口粮</b>：下楼梯与等待时需要消耗。</li>
+          </ul>
+          <h3>🗺 探索画面</h3>
+          <p>每次进入新房间会生成房间卡片与出口按钮。点击出口进入下一个房间。</p>
+          <h3>⚔ 战斗画面</h3>
+          <p>显示敌人卡与你的招式列表。点击「投掷 D66」进行攻击，可在攻击前用 Shift 点数调整骰子。</p>
+        </div>
+        <div id="tab-flow" class="tab-content" style="display:none;">
+          <h3>🔄 完整流程</h3>
+          <ol style="margin-left:18px;font-size:13px;line-height:1.9;">
+            <li><b>建立角色</b>：选择名字、武器、招式、护甲、卷轴。</li>
+            <li><b>进入地牢</b>：从入口房间开始探索。</li>
+            <li><b>生成房间</b>：系统自动滚 D66 决定大小与内容。</li>
+            <li><b>遭遇敌人</b>：有敌人时先战斗，胜利后再处理房间事件。</li>
+            <li><b>收集战利品</b>：金币、物品、经验值。</li>
+            <li><b>继续前进</b>：点击出口，直到找到往下的楼梯。</li>
+            <li><b>下楼梯</b>：需消耗 1 口粮，休息回复 HP。</li>
+            <li><b>回城镇</b>：找到通风井离开，到市场买卖、庙宇祈祷、酒馆打听消息。</li>
+            <li><b>成为传奇</b>：完成第 10 层后返回城镇领奖。</li>
+          </ol>
+        </div>
+        <div id="tab-combat" class="tab-content" style="display:none;">
+          <h3>🎲 战斗规则</h3>
+          <ul style="margin-left:18px;font-size:13px;line-height:1.9;">
+            <li><b>精确打击</b>：自然滚出与招式完全相同的骰子组合，伤害加上全部 Shift 点数。</li>
+            <li><b>Shift 调整</b>：1 点 Shift 可将一颗骰子 ±1，但不能 1↔6 循环跳跃。</li>
+            <li><b>大失败</b>：双 1，必定落空。</li>
+            <li><b>大成功</b>：双 6，任选一个招式必定成功，伤害加全部 Shift。</li>
+            <li><b>干扰（Interrupt）</b>：若你的攻击骰匹配敌人干扰属性，伤害减少。</li>
+            <li><b>护甲偏转</b>：敌人攻击骰匹配你的护甲骰组时，减伤。</li>
+            <li><b>疲劳骰</b>：每回合 +1，达 4 时双方 +1 Shift、5 时 +2、6 时 +3。</li>
+            <li><b>第 7 轮后</b>：敌人的移动型/移物型干扰失效。</li>
+          </ul>
+        </div>
+        <div id="tab-special" class="tab-content" style="display:none;">
+          <h3>✨ 特殊机制</h3>
+          <ul style="margin-left:18px;font-size:13px;line-height:1.9;">
+            <li><b>神明恩惠</b>：向 6 位地底神明献祭获得 FP，消耗 FP 呼叫恩惠。</li>
+            <li><b>血染 / 湿透</b>：8 个房间后会发烧/肺炎，每额外房间扣 1 HP。</li>
+            <li><b>草药</b>：6 种草药可制作 7 种疗方，还能制作药水炸弹。</li>
+            <li><b>药水炸弹</b>：战斗投掷，不占攻击机会。</li>
+            <li><b>撬锁</b>：滚动锁的质量，再用 2D6 + Precision 超过即可开锁。</li>
+            <li><b>通风井</b>：在贴着边界的房间滚 D6，出现 6 可找到（每层一次）。</li>
+          </ul>
+          <p style="margin-top:10px;font-style:italic;color:#5a4a35;">📌 提示：随时点击底部导航列可存档、读档、查看历史记录与成就。</p>
+        </div>
+        <div class="btn-row" style="margin-top:16px;">
+          <button class="primary" id="btn-start-creation">我准备好了，开始游戏</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CHARACTER CREATION ===== -->
+    <section id="screen-create" class="screen">
+      <h1>📜 建立冒险者</h1>
+      <div class="panel">
+        <label style="display:block;margin-bottom:6px;font-weight:700;">冒险者名字</label>
+        <input id="char-name" type="text" value="汉克" maxlength="12"
+          style="width:100%;padding:8px;border:2px solid #8a6a3a;border-radius:5px;background:rgba(255,255,255,.5);font-family:inherit;font-size:14px;">
+        <h2>⚔ 选择武器</h2>
+        <div class="weapon-choice" id="weapon-choice"></div>
+        <h2>🎯 选择两个 Lv1 招式</h2>
+        <div class="manoeuvre-list" id="manoeuvre-list"></div>
+        <h2>🛡 选择护甲</h2>
+        <div class="manoeuvre-list" id="armour-list"></div>
+        <h2>📜 选择一张卷轴</h2>
+        <div class="manoeuvre-list" id="scroll-list"></div>
+        <div class="btn-row" style="margin-top:16px;">
+          <button class="primary" id="btn-confirm-char" disabled>进入地牢</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== DUNGEON SCREEN ===== -->
+    <section id="screen-dungeon" class="screen">
+      <div id="dungeon-header"></div>
+      <div id="dungeon-content"></div>
+    </section>
+
+    <!-- ===== COMBAT SCREEN ===== -->
+    <section id="screen-combat" class="screen">
+      <div class="combat-layout">
+        <div id="combat-header" class="panel" style="padding:8px 12px;margin:0;"></div>
+        <div id="combat-enemies" class="combat-enemies"></div>
+        <div id="combat-log" class="panel" style="padding:8px;margin:0;">
+          <div class="log" id="combat-log-text"></div>
+        </div>
+        <div class="combat-controls">
+          <div class="dice-area" id="combat-dice"></div>
+          <div class="btn-row" id="combat-actions"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TOWN SCREEN ===== -->
+    <section id="screen-town" class="screen">
+      <div id="town-content"></div>
+    </section>
+
+    <!-- ===== GAME OVER ===== -->
+    <section id="screen-gameover" class="screen">
+      <div style="text-align:center;padding:30px 10px;">
+        <h1 style="color:#8b1a1a;font-size:32px;">💀 你倒下了 💀</h1>
+        <p style="font-size:15px;margin:16px 0;">你的冒险在此结束...</p>
+        <div class="panel" style="max-width:400px;margin:20px auto;">
+          <h3>最终成绩</h3>
+          <p>等级：<b id="go-level">1</b></p>
+          <p>经验值：<b id="go-xp">0</b></p>
+          <p>金币：<b id="go-gold">0</b> GC</p>
+          <p>探索房间：<b id="go-rooms">0</b></p>
+          <p>击杀敌人：<b id="go-kills">0</b></p>
+        </div>
+        <div class="btn-row" style="max-width:400px;margin:0 auto;">
+          <button class="primary" onclick="Game.restart()">重新开始</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav id="bottom-nav">
+    <button id="nav-help"><span class="ico">📖</span>说明</button>
+    <button id="nav-save"><span class="ico">💾</span>存档</button>
+    <button id="nav-load"><span class="ico">📂</span>读档</button>
+    <button id="nav-history"><span class="ico">📜</span>历史</button>
+    <button id="nav-achievements"><span class="ico">🏆</span>成就</button>
+    <button id="nav-sound"><span class="ico">🔊</span>音效</button>
+  </nav>
+</div>
+
+<div id="modal-layer"></div>
+<div id="toast-layer"></div>
+<div id="history-panel">
+  <h3>📜 探索历史</h3>
+  <div id="history-list"></div>
+</div>
+
+<script>
+'use strict';
+// ===================================================================
+// 2D6 DUNGEON - Single-file Implementation
+// Faithful to the Core Rules + Tables Codex (Free Version - Level 1)
+// ===================================================================
+
+// ==================== GAME DATA ====================
+const DATA = {
+  // ---- Weapons & Manoeuvres (Level 1 only, plus Lv2/3 for leveling) ----
+  weapons: {
+    longsword: {
+      name: '长剑', icon: 'sword',
+      manoeuvres: {
+        1: [
+          {name:'刺击', en:'THRUST', dice:[6,1], dmg:'D6+1', minRoll:2},
+          {name:'斩击', en:'SLASH', dice:[4,2], dmg:'D6+1', minRoll:2},
+          {name:'劈砍', en:'HACK', dice:[3,2], dmg:'D6+1', minRoll:2},
+          {name:'格挡反刺', en:'PARRY', dice:[2,1], dmg:'D6+1', minRoll:2},
+          {name:'蓄力挥砍', en:'HEAVY SLASH', dice:[5,1], dmg:'D6+2', minRoll:3},
+          {name:'破甲', en:'ARMOUR BREAK', dice:[1,3], dmg:'D6+2', minRoll:3},
+          {name:'横扫', en:'CLEAVE', dice:[4,6], dmg:'D6+2', minRoll:3},
+          {name:'回旋斩', en:'WHIRLING BLADE', dice:[6,3], dmg:'D6+2', minRoll:3},
+        ],
+        2: [
+          {name:'突刺', en:'LUNGE', dice:[4,3], dmg:'D6+2', minRoll:2},
+          {name:'横扫强击', en:'SWEEPING STRIKE', dice:[5,2], dmg:'D6+3', minRoll:3},
+          {name:'上升刺', en:'RISING THRUST', dice:[6,4], dmg:'D6+3', minRoll:3},
+          {name:'旋风', en:'WHIRLWIND', dice:[3,6], dmg:'D6+4', minRoll:4},
+        ],
+        3: [
+          {name:'穿刺', en:'IMPALE', dice:[6,5], dmg:'D6+3', minRoll:3},
+          {name:'雷击', en:'THUNDER STRIKE', dice:[4,5], dmg:'D6+3', minRoll:3},
+          {name:'断筋', en:'SEVERING STRIKE', dice:[2,5], dmg:'D6+4', minRoll:4},
+          {name:'贯穿刺', en:'PIERCING THRUST', dice:[6,6], dmg:'D6+4', minRoll:4},
+        ]
+      }
+    },
+    greataxe: {
+      name: '巨斧', icon: 'axe',
+      manoeuvres: {
+        1: [
+          {name:'劈砍', en:'HACK', dice:[4,2], dmg:'D6+1', minRoll:2},
+          {name:'斩击', en:'SLASH', dice:[3,2], dmg:'D6+1', minRoll:2},
+          {name:'上劈', en:'UPPERCUT', dice:[5,1], dmg:'D6+1', minRoll:2},
+          {name:'顺势斩', en:'CLEAVE', dice:[6,1], dmg:'D6+1', minRoll:2},
+          {name:'重劈', en:'HEAVY SLASH', dice:[6,3], dmg:'D6+2', minRoll:3},
+          {name:'野性挥击', en:'WILD SWING', dice:[2,5], dmg:'D6+2', minRoll:3},
+          {name:'裂颅', en:'SPLIT HEAD', dice:[4,6], dmg:'D6+2', minRoll:3},
+          {name:'断骨', en:'BONE BREAKER', dice:[1,3], dmg:'D6+2', minRoll:3},
+        ],
+        2: [
+          {name:'旋转斩', en:'WHIRLWIND', dice:[4,3], dmg:'D6+2', minRoll:2},
+          {name:'闪击', en:'FLASH STRIKE', dice:[5,2], dmg:'D6+3', minRoll:3},
+          {name:'双重打击', en:'DOUBLE STRIKE', dice:[6,4], dmg:'D6+3', minRoll:3},
+          {name:'旋风斩', en:'CYCLONE', dice:[3,6], dmg:'D6+4', minRoll:4},
+        ],
+        3: [
+          {name:'巨力斩', en:'MIGHTY CLEAVE', dice:[6,5], dmg:'D6+3', minRoll:3},
+          {name:'旋转劈', en:'SPINNING SLASH', dice:[4,5], dmg:'D6+3', minRoll:3},
+          {name:'裂地', en:'EARTH SPLITTER', dice:[2,5], dmg:'D6+4', minRoll:4},
+          {name:'处决', en:'EXECUTION', dice:[6,6], dmg:'D6+4', minRoll:4},
+        ]
+      }
+    },
+    heavymace: {
+      name: '重锤', icon: 'mace',
+      manoeuvres: {
+        1: [
+          {name:'重击', en:'BASH', dice:[4,2], dmg:'D6+1', minRoll:2},
+          {name:'粉碎', en:'CRUSH', dice:[3,2], dmg:'D6+1', minRoll:2},
+          {name:'格挡', en:'BLOCK', dice:[2,1], dmg:'D6+1', minRoll:2},
+          {name:'上挑', en:'UPPERCUT', dice:[5,1], dmg:'D6+1', minRoll:2},
+          {name:'碎骨', en:'BONE CRUNCH', dice:[6,1], dmg:'D6+2', minRoll:3},
+          {name:'晕击', en:'STUNNING BLOW', dice:[6,3], dmg:'D6+2', minRoll:3},
+          {name:'重压', en:'HEAVY PRESS', dice:[1,4], dmg:'D6+2', minRoll:3},
+          {name:'处刑', en:'EXECUTIONER', dice:[5,4], dmg:'D6+2', minRoll:3},
+        ],
+        2: [
+          {name:'眩晕重击', en:'STAGGERING BLOW', dice:[4,3], dmg:'D6+2', minRoll:2},
+          {name:'崩裂', en:'SHATTER', dice:[5,2], dmg:'D6+3', minRoll:3},
+          {name:'头骨碎裂', en:'SKULL CRUSH', dice:[6,4], dmg:'D6+3', minRoll:3},
+          {name:'大地震击', en:'EARTHQUAKE', dice:[3,6], dmg:'D6+4', minRoll:4},
+        ],
+        3: [
+          {name:'神威', en:'DIVINE SMITE', dice:[6,5], dmg:'D6+3', minRoll:3},
+          {name:'毁灭重压', en:'DEVASTATING PRESS', dice:[4,5], dmg:'D6+3', minRoll:3},
+          {name:'碎颅', en:'HEAD SPLITTER', dice:[2,5], dmg:'D6+4', minRoll:4},
+          {name:'诸神黄昏', en:'RAGNAROK', dice:[6,6], dmg:'D6+4', minRoll:4},
+        ]
+      }
+    }
+  },
+
+  // ---- Starting Armour ----
+  startingArmour: [
+    {name:'皮背心', en:'Jerkin', dice:[4], mod:-1, cost:5},
+    {name:'棉甲', en:'Padded Tunic', dice:[5], mod:-1, cost:8},
+    {name:'绗缝外套', en:'Quilted Coat', dice:[3], mod:-1, cost:10},
+    {name:'兽皮紧身衣', en:'Hide Doublet', dice:[2], mod:-1, cost:7},
+  ],
+  // Full armour table (for market)
+  armourTable: [
+    {name:'皮背心', dice:[4], mod:-1, cost:5, type:'light'},
+    {name:'棉甲', dice:[5], mod:-1, cost:8, type:'light'},
+    {name:'绗缝外套', dice:[3], mod:-1, cost:10, type:'light'},
+    {name:'兽皮紧身衣', dice:[2], mod:-1, cost:7, type:'light'},
+    {name:'皮胸甲', dice:[1,3], mod:-1, cost:12, type:'light'},
+    {name:'链甲护腕', dice:[3], mod:-1, cost:14, type:'light'},
+    {name:'加固皮甲', dice:[1,4], mod:-1, cost:18, type:'medium'},
+    {name:'镶嵌皮甲', dice:[2,4], mod:-1, cost:22, type:'medium'},
+    {name:'钢制圆盾', dice:[4,2], mod:-1, cost:25, type:'shield'},
+    {name:'木盾', dice:[1,1], mod:-1, cost:8, type:'shield'},
+    {name:'带纹盾牌', dice:[6,5], mod:-2, cost:45, type:'shield'},
+    {name:'护腕', dice:[3], mod:-1, cost:10, type:'light'},
+    {name:'铁盔', dice:[4], mod:-1, cost:15, type:'medium'},
+    {name:'大头盔', dice:[4], mod:-1, cost:20, type:'medium'},
+    {name:'皮手套', dice:[2], mod:-1, cost:6, type:'light'},
+    {name:'铁手套', dice:[6], mod:-1, cost:18, type:'medium'},
+    {name:'鳞甲', dice:[5,2,4], mod:-2, cost:150, type:'heavy'},
+    {name:'胸甲', dice:[5,3,4], mod:-3, cost:250, type:'heavy'},
+    {name:'板甲', dice:[5,3,4,2], mod:-4, cost:500, type:'heavy'},
+  ],
+
+  // ---- Starting Scrolls ----
+  startingScrolls: [
+    {name:'平衡卷轴', en:'Scroll of Balance', desc:'暂时提升纪律与魔法专注。', orbit:'FACULTY', cost:15},
+    {name:'精神鞭笞', en:'Scroll of Mental Whip', desc:'造成 10 点精神伤害。', orbit:'PSYCHIC', cost:20},
+    {name:'反射卷轴', en:'Scroll of Reflexes', desc:'暂时提升战斗能力。', orbit:'FACULTY', cost:15},
+    {name:'熔金卷轴', en:'Scroll of Melt Metal', desc:'摧毁一个锁或敌人的护甲型干扰。', orbit:'METAMORPH', cost:18},
+  ],
+
+  // ---- Creatures (Level 1) ----
+  // Note: PDF doesn't list dice combos for creature moves; assigned by damage tier.
+  creatures: [
+    {id:'hugespider', name:'巨型蜘蛛', en:'Huge Spider', hp:2, xp:2, sh:1,
+      type:'I', interrupt:[], 
+      moves:[{name:'毒牙刺', dice:[5,2], dmg:3}],
+      desc:'比普通蜘蛛大，有坚硬甲壳与巨大毒牙。'},
+    {id:'workdog', name:'工作犬', en:'Work Dog', hp:4, xp:4, sh:1,
+      type:'A', interrupt:[{type:'sec', val:2, name:'侧击', dmg:-2}],
+      moves:[{name:'咬', dice:[4,2], dmg:3}],
+      desc:'工作犬本能护卫主人，咬合力惊人。'},
+    {id:'guarddog', name:'守卫犬', en:'Guard Dog', hp:6, xp:8, sh:1,
+      type:'A', interrupt:[{type:'sec', val:4, name:'冲撞', dmg:-2}],
+      moves:[{name:'咬', dice:[5,2], dmg:2}],
+      desc:'训练有素的守卫犬，凶恶但经验尚浅。'},
+    {id:'shardpython', name:'碎岩蟒', en:'Shard Rock Python', hp:10, xp:18, sh:1,
+      type:'A', interrupt:[{type:'pri', val:1, name:'偏转', dmg:-2}],
+      moves:[{name:'绞杀', dice:[6,2], dmg:1, special:'strangle'}],
+      desc:'灰色岩石般的皮肤，可缠绕勒死敌人。'},
+    {id:'scout', name:'侦察兵', en:'Scout', hp:5, xp:9, sh:1,
+      type:'H', interrupt:[{type:'pri', val:1, name:'快速跳跃', dmg:-2},{type:'pri', val:6, name:'快速跳跃', dmg:-2}],
+      moves:[{name:'刺', dice:[4,2], dmg:3},{name:'快速冲锋', dice:[5,3], dmg:2}],
+      desc:'身穿绿衣，身手敏捷，善用匕首。'},
+    {id:'guard', name:'守卫', en:'Guard', hp:7, xp:13, sh:1,
+      type:'H', interrupt:[{type:'sec', val:3, name:'盾牌格挡', dmg:-1},{type:'sec', val:5, name:'盾牌格挡', dmg:-1}],
+      moves:[{name:'刺', dice:[4,2], dmg:3},{name:'挥击', dice:[3,5], dmg:2}],
+      desc:'身穿轻型护甲，有些战斗基础。'},
+    {id:'warrior', name:'战士', en:'Warrior', hp:9, xp:22, sh:1,
+      type:'H', interrupt:[{type:'sec', val:3, name:'闪避', dmg:-1}],
+      moves:[{name:'连击', dice:[4,2], dmg:3},{name:'斩击', dice:[5,3], dmg:2}],
+      desc:'战斗技巧娴熟，行动迅速，装备精良。'},
+    {id:'veteran', name:'老兵', en:'Veteran', hp:10, xp:30, sh:1,
+      type:'H', interrupt:[{type:'pri', val:3, name:'格挡', dmg:-2},{type:'pri', val:4, name:'格挡', dmg:-2},{type:'sec', val:5, name:'护甲偏转', dmg:-1},{type:'sec', val:6, name:'护甲偏转', dmg:-1}],
+      moves:[{name:'粉碎打击', dice:[6,3], dmg:1},{name:'刺击', dice:[4,2], dmg:3}],
+      desc:'经验丰富的老兵，曾为士兵，格挡技巧高明。'},
+    {id:'jailor', name:'狱卒', en:'Jailor', hp:6, xp:10, sh:1,
+      type:'H', interrupt:[{type:'sec', val:2, name:'冲撞', dmg:-2}],
+      moves:[{name:'尖锐踢击', dice:[4,2], dmg:2},{name:'拳击', dice:[3,5], dmg:3}],
+      desc:'狱卒生活让其变得坚硬，但战斗技巧有限。'},
+    {id:'labourer', name:'工人', en:'Labourer', hp:4, xp:5, sh:1,
+      type:'H', interrupt:[{type:'pri', val:2, name:'推挤', dmg:-2}],
+      moves:[{name:'上勾拳', dice:[4,2], dmg:3}],
+      desc:'装备简陋，徒手作战，但为人坚韧。'},
+    {id:'thug', name:'暴徒', en:'Thug', hp:3, xp:6, sh:1,
+      type:'H', interrupt:[{type:'sec', val:4, name:'前臂格挡', dmg:-1}],
+      moves:[{name:'拳击', dice:[4,2], dmg:3}],
+      desc:'粗鲁的暴徒，技巧不多，常被当打手。'},
+    {id:'apothecary', name:'药剂师', en:'Apothecary', hp:12, xp:35, sh:1,
+      type:'H', interrupt:[{type:'pri', val:1, name:'致盲烟', dmg:-2},{type:'pri', val:4, name:'致盲烟', dmg:-2},{type:'sec', val:2, name:'发光盾', dmg:-2}],
+      moves:[{name:'火焰炸弹', dice:[4,2], dmg:2},{name:'毒气云', dice:[6,3], dmg:2, special:'noattack'}],
+      desc:'身穿皮衣，携带大量药瓶，掷出攻击。'},
+    {id:'artisan', name:'工匠', en:'Artisan', hp:3, xp:5, sh:1,
+      type:'H', interrupt:[{type:'sec', val:1, name:'偏转', dmg:-2},{type:'sec', val:6, name:'分心', dmg:-1}],
+      moves:[{name:'戳刺', dice:[4,2], dmg:3}],
+      desc:'技艺精湛的工匠，非战士但穿着结实皮衣。'},
+    {id:'blacksmith', name:'铁匠', en:'Blacksmith', hp:6, xp:9, sh:1,
+      type:'H', interrupt:[{type:'sec', val:3, name:'交叉手臂', dmg:-2},{type:'sec', val:6, name:'交叉手臂', dmg:-2}],
+      moves:[{name:'锤击', dice:[5,2], dmg:1}],
+      desc:'强壮的铁匠，身穿厚重皮围裙。'},
+    {id:'preacher', name:'疯狂传教士', en:'Crazed Preacher', hp:4, xp:5, sh:1,
+      type:'H', interrupt:[{type:'pri', val:4, name:'圣经格挡', dmg:-2}],
+      moves:[{name:'疯狂抓挠', dice:[4,2], dmg:3}],
+      desc:'在居民中散布邪恶话语的狂热传教士。'},
+    {id:'cultist', name:'邪教徒', en:'Cultist', hp:5, xp:6, sh:1,
+      type:'H', interrupt:[{type:'sec', val:4, name:'长袍挥扫', dmg:-1}],
+      moves:[{name:'拳击', dice:[4,2], dmg:2}],
+      desc:'为宗教领袖服务的邪教徒，红袍画脸。'},
+    {id:'darkcleric', name:'黑暗牧师', en:'Dark Cleric', hp:11, xp:25, sh:1,
+      type:'H', interrupt:[{type:'sec', val:1, name:'黑暗魔法雾', dmg:0, heal:1},{type:'sec', val:2, name:'黑暗魔法雾', dmg:0, heal:1},{type:'sec', val:3, name:'黑暗魔法雾', dmg:0, heal:1}],
+      moves:[{name:'死灵刺', dice:[4,2], dmg:1},{name:'杖击', dice:[3,5], dmg:3}],
+      desc:'崇拜 MADUVA，操控亡灵之力。'},
+    {id:'fungalgeist', name:'真菌鬼魂', en:'Fungal Geist', hp:5, xp:6, sh:1,
+      type:'F', interrupt:[{type:'sec', val:4, name:'橡胶皮', dmg:-2}],
+      moves:[{name:'菌丝鞭', dice:[4,2], dmg:3}],
+      desc:'矮胖真菌人形，宽大菌盖，躯干覆盖小蘑菇。'},
+    {id:'anaconda', name:'巨型角蟒', en:'Giant Horned Anaconda', hp:15, xp:30, sh:1,
+      type:'A', interrupt:[{type:'sec', val:2, name:'鳞片格挡', dmg:-2},{type:'sec', val:5, name:'鳞片格挡', dmg:-2}],
+      moves:[{name:'窒息', dice:[4,2], dmg:2, special:'smother'},{name:'角撞', dice:[6,3], dmg:2}],
+      desc:'岩石般脊角的巨型棕蛇，擅长伪装。'},
+    {id:'infectedrat', name:'巨型感染鼠', en:'Huge Infected Rat', hp:5, xp:9, sh:1,
+      type:'A', interrupt:[{type:'sec', val:1, name:'扑击', dmg:-1},{type:'sec', val:6, name:'扑击', dmg:-1}],
+      moves:[{name:'感染咬击', dice:[4,2], dmg:3, special:'infection'},{name:'抓挠', dice:[5,3], dmg:2}],
+      desc:'浑身脓包、看似疯狂的巨型老鼠。'},
+    {id:'hugerat', name:'巨型鼠', en:'Huge Rat', hp:3, xp:2, sh:1,
+      type:'A', interrupt:[],
+      moves:[{name:'咬', dice:[4,2], dmg:4}],
+      desc:'比普通老鼠大，饥饿时会攻击任何东西。'},
+    {id:'infernalmonk', name:'炼狱僧', en:'Infernal Monk', hp:6, xp:15, sh:1,
+      type:'H', interrupt:[{type:'pri', val:2, name:'热浪', dmg:-1},{type:'pri', val:5, name:'热浪', dmg:-1}],
+      moves:[{name:'重锤击', dice:[4,2], dmg:2},{name:'火焰鞭', dice:[5,3], dmg:1}],
+      desc:'光头僧侣，红皮黑布，可召唤火焰鞭。'},
+    {id:'medic', name:'医生', en:'Medic', hp:4, xp:5, sh:1,
+      type:'H', interrupt:[{type:'pri', val:3, name:'灵活移动', dmg:-1},{type:'pri', val:4, name:'灵活移动', dmg:-1}],
+      moves:[{name:'刺', dice:[4,2], dmg:2}],
+      desc:'地牢中近似草药师与医生，护甲上沾满血。'},
+    {id:'merchant', name:'商人', en:'Merchant', hp:5, xp:6, sh:1,
+      type:'H', interrupt:[{type:'pri', val:2, name:'偏转', dmg:-1},{type:'pri', val:5, name:'偏转', dmg:-1}],
+      moves:[{name:'快速斩击', dice:[4,2], dmg:2}],
+      desc:'衣着光鲜的商人，在地牢中做生意。'},
+    {id:'mustybloater', name:'霉烂膨胀者', en:'Musty Bloater', hp:9, xp:12, sh:1,
+      type:'F', interrupt:[{type:'pri', val:3, name:'致盲孢子云', dmg:-1},{type:'pri', val:4, name:'致盲孢子云', dmg:-1},{type:'pri', val:5, name:'致盲孢子云', dmg:-1}],
+      moves:[{name:'孢子喷射', dice:[4,2], dmg:2}],
+      desc:'被原始魔法驱动膨胀的真菌，喷射热孢子。'},
+    {id:'cobra', name:'猩红眼镜蛇', en:'Scarlet Cobra', hp:3, xp:6, sh:1,
+      type:'A', interrupt:[{type:'pri', val:2, name:'闪避', dmg:-1},{type:'pri', val:3, name:'闪避', dmg:-1}],
+      moves:[{name:'咬', dice:[4,2], dmg:3, special:'poison'}],
+      desc:'黑底红纹的毒蛇，栖息于地牢缝隙。'},
+    {id:'gorger', name:'黏滑吞食者', en:'Slimy Gorger', hp:10, xp:16, sh:1,
+      type:'M', interrupt:[{type:'sec', val:2, name:'凝胶体', dmg:-2},{type:'sec', val:6, name:'凝胶体', dmg:-2}],
+      moves:[{name:'黏性吸附', dice:[4,2], dmg:1, special:'sticky'}],
+      desc:'原始魔法驱动的深绿黏液，栖息于潮湿空间。'},
+    {id:'warhound', name:'战犬', en:'War Hound', hp:10, xp:25, sh:1,
+      type:'A', interrupt:[{type:'pri', val:5, name:'抬腿', dmg:-2},{type:'pri', val:6, name:'抬腿', dmg:-2}],
+      moves:[{name:'咬', dice:[4,2], dmg:1},{name:'尖刺冲锋', dice:[5,3], dmg:2}],
+      desc:'训练作战的恶犬，带着尖刺项圈。'},
+  ],
+
+  // ---- Rooms (Level 1) ----
+  rooms: {
+    normal: [
+      {id:'emptyspace', name:'空房', desc:'除灰尘与碎石外空无一物。', exits:'random', unique:false, encounter:null},
+      {id:'abandonedpost', name:'废弃哨站', desc:'破旧桌子放着小型神龛。', exits:'wooden', unique:false, encounter:'got1'},
+      {id:'guardpost', name:'守卫哨站', desc:'一名守卫在此。', exits:'wooden', unique:false, encounter:'guard'},
+      {id:'masonworkshop', name:'石匠工坊', desc:'石堆与工具散落一地。', exits:'random', unique:false, encounter:'labourer'},
+      {id:'storagearea', name:'储物区', desc:'箱子和麻袋堆满房间。', exits:'random', unique:false, encounter:'apothecary'},
+      {id:'meetingroom', name:'会议室', desc:'中央有长桌与椅子。', exits:'wooden', unique:false, encounter:'laborer'},
+      {id:'blacksmiths', name:'铁匠铺', desc:'锻造间，铁砧与炉火。', exits:'random', unique:false, encounter:'blacksmith'},
+      {id:'scuffedupspace', name:'磨损空间', desc:'地板有刮痕与旧血迹。', exits:'wooden', unique:false, encounter:'thug'},
+      {id:'holdingcell', name:'关押牢房', desc:'多个牢笼，囚犯在其中。', exits:'reinforced', unique:false, encounter:'jailor'},
+      {id:'washroom', name:'盥洗室', desc:'石砌水池与锈蚀水龙头。', exits:'random', unique:false, encounter:null},
+      {id:'firepitroom', name:'火坑房', desc:'中央有火坑，尚有余烬。', exits:'random', unique:false, encounter:'guarddog'},
+      {id:'kennel', name:'狗舍', desc:'关着狗的铁笼。', exits:'random', unique:false, encounter:'guarddog'},
+      {id:'snaresmith', name:'陷阱工坊', desc:'制作陷阱的工作台。', exits:'random', unique:false, encounter:'artisan'},
+      {id:'weapondump', name:'武器堆置处', desc:'废旧武器堆积如山。', exits:'random', unique:false, encounter:null},
+      {id:'shackleroom', name:'镣铐室', desc:'墙上挂满铁链与镣铐。', exits:'reinforced', unique:false, encounter:'jailor'},
+      {id:'prayerroom', name:'祈祷室', desc:'小小神龛与跪垫。', exits:'curtain', unique:false, encounter:'preacher'},
+      {id:'emptyspace2', name:'空房间', desc:'毫无特色。', exits:'wooden', unique:false, encounter:null},
+      {id:'barracks', name:'兵营', desc:'床铺与私人物品。', exits:'wooden', unique:true, encounter:'warrior'},
+      {id:'poolroom', name:'水池房', desc:'圆形水池，清晰见底。', exits:'random', unique:false, encounter:null},
+      {id:'storagearea2', name:'储藏室', desc:'架子上放满瓶罐。', exits:'random', unique:false, encounter:'apothecary'},
+      {id:'canteen', name:'食堂', desc:'桌椅整齐，有食物余香。', exits:'wooden', unique:false, encounter:'labourer'},
+      {id:'morgue', name:'停尸间', desc:'尸体覆盖白布，阴森刺骨。', exits:'reinforced', unique:false, encounter:'darkcleric'},
+      {id:'sleepingquarters', name:'睡眠区', desc:'整齐床铺与私人物品。', exits:'wooden', unique:false, encounter:'guard'},
+      {id:'holdingcell2', name:'拘留室', desc:'狭窄牢笼。', exits:'reinforced', unique:false, encounter:'jailor'},
+      {id:'trainingroom', name:'训练室', desc:'沙圈中有人对练。', exits:'wooden', unique:false, encounter:'warrior'},
+      {id:'abattoir', name:'屠宰场', desc:'挂满肉钩与血迹。', exits:'random', unique:false, encounter:'labourer'},
+      {id:'dumpspace', name:'垃圾堆', desc:'恶臭的垃圾堆，有东西在里面。', exits:'random', unique:false, encounter:null},
+      {id:'apothecaryshop', name:'药剂铺', desc:'药瓶与草药堆满。', exits:'wooden', unique:false, encounter:'apothecary'},
+      {id:'chapel', name:'小教堂', desc:'彩色玻璃窗与祭坛。', exits:'reinforced', unique:false, encounter:'preacher'},
+      {id:'storeroom', name:'仓库', desc:'储物箱与货架。', exits:'wooden', unique:false, encounter:null},
+    ],
+    small: [
+      {id:'empty', name:'空房', desc:'此小空间空无一物。', exits:'random', unique:false, encounter:null},
+      {id:'strangetext', name:'古怪文字', desc:'墙上刻着奇怪文字。', exits:'random', unique:false, encounter:null},
+      {id:'grakadamural', name:'格拉卡达壁画', desc:'格拉卡达的大壁画。', exits:'random', unique:false, encounter:null, god:'grakada'},
+      {id:'intunericmosaic', name:'因图内里克镶嵌画', desc:'黑暗神明镶嵌画。', exits:'random', unique:false, encounter:null, god:'intuneric'},
+      {id:'maduva', name:'马杜瓦雕像', desc:'扭曲的树枝雕塑。', exits:'random', unique:false, encounter:null, god:'maduva'},
+      {id:'murataynieeffigy', name:'穆拉泰尼雕像', desc:'腐肉神明雕像。', exits:'random', unique:false, encounter:null, god:'murataynie'},
+      {id:'nevazator', name:'涅瓦扎托雕像', desc:'盲眼神明雕像。', exits:'random', unique:false, encounter:null, god:'nevazator'},
+      {id:'radacina', name:'拉达西纳挂毯', desc:'根系女神挂毯。', exits:'random', unique:false, encounter:null, god:'radacina'},
+      {id:'heatedspace', name:'加热空间', desc:'小房间有熔炉。', exits:'random', unique:false, encounter:null},
+      {id:'wallshrine', name:'墙上神龛', desc:'墙上凹槽内的神龛。', exits:'random', unique:false, encounter:null, god:'random'},
+      {id:'banner', name:'旗帜', desc:'两面交叉的旗帜。', exits:'random', unique:false, encounter:null},
+    ],
+    large: [
+      {id:'stoneworkshop', name:'石制工坊', desc:'碎石堆与工具，无人。', exits:'wooden', unique:false, encounter:null},
+      {id:'marblehall', name:'大理石厅', desc:'匀称立柱与中央火盆。', exits:'archway', unique:false, encounter:null},
+      {id:'oldmesshall', name:'旧食堂', desc:'桌椅上积满灰尘。', exits:'wooden', unique:false, encounter:null},
+      {id:'penitentiary', name:'感化院', desc:'地面满是血渍，牢房中有人。', exits:'reinforced', unique:false, encounter:'jailor'},
+      {id:'fountainroom', name:'喷泉房', desc:'中央华丽喷泉，雕刻神明。', exits:'archway', unique:false, encounter:null, god:'random'},
+      {id:'temple', name:'神庙', desc:'彩色玻璃与祭坛，有人布道。', exits:'archway', unique:false, encounter:'preacher'},
+      {id:'sparringchamber', name:'对练室', desc:'沙圈中战士对练。', exits:'wooden', unique:false, encounter:'warrior'},
+      {id:'cratestore', name:'板条箱仓库', desc:'箱子堆满，有隐藏空间。', exits:'wooden', unique:false, encounter:null},
+      {id:'slateshrine', name:'石板神龛', desc:'中央巨大石板，悬金护符。', exits:'archway', unique:false, encounter:null, god:'random'},
+      {id:'dormitory', name:'宿舍', desc:'床铺十二张，两张有人。', exits:'archway', unique:false, encounter:'warrior'},
+      {id:'library', name:'图书馆', desc:'书架环绕，有书桌与卷轴。', exits:'archway', unique:false, encounter:'guard'},
+    ]
+  },
+
+  // ---- Gods ----
+  gods: {
+    grakada: {name:'格拉卡达', title:'核心', items:['stone','earth','sand','coal','forgedmetal','diamond'], gift:'为一件护甲附魔'},
+    intuneric: {name:'因图内里克', title:'幽暗', items:['ink','coal','blackbeetles','ebony','blackfeather','garnet'], gift:'可看穿暗处（袋子/箱子/宝箱 +1）'},
+    maduva: {name:'马杜瓦', title:'腐朽', items:['bone','ash','leather','teeth','wishbone','emerald'], gift:'不再中毒或感染'},
+    murataynie: {name:'穆拉泰尼', title:'血肉', items:['blood','meat','leather','horn','dragonscales','ruby'], gift:'不受血染状态影响'},
+    nevazator: {name:'涅瓦扎托', title:'盲眼', items:['sticks','cloth','hemp','rope','glassorb','sapphire'], gift:'RFUT1 投骰 +3'},
+    radacina: {name:'拉达西纳', title:'根', items:['seeds','roots','mushrooms','vegetables','acorns','pearl'], gift:'三颗种子，每颗可回满血'},
+  },
+  godOrder: ['grakada','intuneric','maduva','murataynie','nevazator','radacina'],
+
+  // ---- Herbs ----
+  herbs: [
+    {id:'dankoma', name:'丹科马茎', cost:7, sell:1, icon:'stem'},
+    {id:'ilios', name:'伊里奥斯花瓣', cost:12, sell:2, icon:'petal'},
+    {id:'kathoto', name:'卡托托刺', cost:3, sell:2, icon:'spine'},
+    {id:'malako', name:'马拉开叶', cost:10, sell:4, icon:'leaf'},
+    {id:'scarlet', name:'猩红奥里瓦图', cost:15, sell:5, icon:'redleaf'},
+    {id:'zoumerous', name:'祖梅鲁斯叶', cost:5, sell:2, icon:'yellowleaf'},
+  ],
+
+  // ---- Potions (Level 1 table) ----
+  potions: [
+    {id:'healing', name:'治疗药水', effect:'回复 10 HP（上限为基线）', cost:32},
+    {id:'gainhealth', name:'增血药水', effect:'获得 20 HP（可超过基线）', cost:50},
+    {id:'finesse', name:'灵巧药水', effect:'+1 Precision，持续 1 个地牢层', cost:6},
+    {id:'strength', name:'力量药水', effect:'+2 Precision，持续 1 个地牢层', cost:40},
+    {id:'furtherhealth', name:'续血药水', effect:'+2 Shift，持续 1 场战斗', cost:20},
+    {id:'prowess', name:'英勇药水', effect:'+1 Shift，持续 1 场战斗', cost:26},
+    {id:'phasing', name:'相位药水', effect:'穿越一扇锁住的门', cost:2},
+    {id:'speed', name:'迅捷药水', effect:'每回合少受 1 伤害，持续 1 场战斗', cost:18},
+    {id:'steadiness', name:'稳定药水', effect:'战斗开始 +2 次免费攻击', cost:13},
+    {id:'constancy', name:'坚恒药水', effect:'+1 Discipline，持续 1 个地牢层', cost:18},
+    {id:'willpower', name:'意志药水', effect:'+1 伤害/击，持续 1 场战斗', cost:15},
+  ],
+
+  // ---- Scrolls (Level 1 table, key ones) ----
+  scrolls: [
+    {id:'fireball', name:'火球术', dmg:'20', cost:20, orbit:'PRIMORDIAL', desc:'造成 20 点火焰伤害。'},
+    {id:'lightning', name:'闪电击', dmg:'50', cost:50, orbit:'PRIMORDIAL', desc:'造成 50 点闪电伤害。'},
+    {id:'mentalwhip', name:'精神鞭笞', dmg:'10', cost:20, orbit:'PSYCHIC', desc:'造成 10 点精神伤害。'},
+    {id:'sunder', name:'裂地术', dmg:'20', cost:30, orbit:'METAMORPH', desc:'对所有敌人造成 20 点伤害。'},
+    {id:'balance', name:'平衡', effect:'+1 Discipline，持续 1 个地牢层', cost:15, orbit:'FACULTY', desc:'提升纪律与魔法专注。'},
+    {id:'reflexes', name:'反射', effect:'+1 Discipline，持续 1 场战斗', cost:10, orbit:'FACULTY', desc:'提升战斗能力。'},
+    {id:'meltmetal', name:'熔金', effect:'摧毁一个锁或护甲型干扰', cost:18, orbit:'METAMORPH', desc:'熔解一个金属锁或护甲干扰。'},
+    {id:'surginghealth', name:'涌血', effect:'+2 HP', cost:55, orbit:'PRIMORDIAL', desc:'回复 2 HP。'},
+  ],
+
+  // ---- Potion Bombs ----
+  potionBombs: [
+    {name:'烟雾弹', ing:['水','孢子/菌类','灰烬','伊里奥斯花瓣'], eff:'敌人本回合无法使用移动型干扰。'},
+    {name:'闪光瓶', ing:['水','煤/炭','羽毛','丹科马茎'], eff:'敌人致盲，本回合无法攻击。'},
+    {name:'暗影壳', ing:['水','炭','墨水','碎虫','猩红奥里瓦图'], eff:'目标失去 5 × 地牢层数 HP。'},
+    {name:'破片爆', ing:['水','牙齿/尖牙','木屑','线','祖梅鲁斯叶'], eff:'造成 2D6+4 伤害。'},
+    {name:'火焰罐', ing:['水','煤/炭','麻布','碎骨','卡托托刺'], eff:'造成 3D6+5 伤害。'},
+  ],
+
+  // ---- XP Table ----
+  levelTable: [
+    {level:1, title:'新手', maxManoeuvres:2, maxManoeuvreLevel:1, xpToNext:100, shift:2, disc:1, prec:0, hpBase:10},
+    {level:2, title:'见习', maxManoeuvres:2, maxManoeuvreLevel:1, xpToNext:500, shift:2, disc:1, prec:0, hpBase:20},
+    {level:3, title:'学徒', maxManoeuvres:2, maxManoeuvreLevel:1, xpToNext:1000, shift:2, disc:2, prec:1, hpBase:30},
+    {level:4, title:'熟练', maxManoeuvres:2, maxManoeuvreLevel:2, xpToNext:2000, shift:2, disc:2, prec:2, hpBase:40},
+    {level:5, title:'老练', maxManoeuvres:2, maxManoeuvreLevel:2, xpToNext:3000, shift:3, disc:2, prec:2, hpBase:50},
+    {level:6, title:'行家', maxManoeuvres:3, maxManoeuvreLevel:2, xpToNext:5000, shift:3, disc:3, prec:3, hpBase:60},
+    {level:7, title:'精湛', maxManoeuvres:3, maxManoeuvreLevel:2, xpToNext:10000, shift:3, disc:3, prec:4, hpBase:70},
+    {level:8, title:'专家', maxManoeuvres:3, maxManoeuvreLevel:3, xpToNext:15000, shift:3, disc:4, prec:4, hpBase:80},
+    {level:9, title:'职业', maxManoeuvres:3, maxManoeuvreLevel:3, xpToNext:25000, shift:4, disc:4, prec:4, hpBase:90},
+    {level:10, title:'大师', maxManoeuvres:3, maxManoeuvreLevel:3, xpToNext:null, shift:4, disc:5, prec:5, hpBase:100},
+  ],
+};
+
+// ==================== AUDIO ====================
+const Audio = {
+  ctx: null,
+  enabled: true,
+  init(){ if(!this.ctx){ try{ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } },
+  play(freq, dur, type='sine', vol=0.08){
+    if(!this.enabled) return;
+    this.init(); if(!this.ctx) return;
+    try{
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, this.ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+      o.connect(g); g.connect(this.ctx.destination);
+      o.start(); o.stop(this.ctx.currentTime + dur);
+    }catch(e){}
+  },
+  click(){ this.play(440, 0.06, 'square', 0.04); },
+  hit(){ this.play(180, 0.15, 'sawtooth', 0.1); },
+  good(){ this.play(660, 0.12, 'sine', 0.08); this.play(880, 0.12, 'sine', 0.06); },
+  bad(){ this.play(120, 0.25, 'sawtooth', 0.1); },
+  gold(){ this.play(880, 0.08, 'sine', 0.06); setTimeout(()=>this.play(1320, 0.12, 'sine', 0.06), 70); },
+  dice(){ this.play(300, 0.08, 'triangle', 0.05); },
+  levelup(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.play(f,0.15,'sine',0.07),i*100)); },
+};
+
+// ==================== UTILITIES ====================
+function rollD6(){ return Math.floor(Math.random()*6)+1; }
+function rollD3(){ return Math.floor((Math.random()*6))+1; } // 1-2=1,3-4=2,5-6=3
+function d3(){ const r=rollD6(); return r<=2?1:r<=4?2:3; }
+function rollD66(){ return [rollD6(), rollD6()]; } // [primary, secondary]
+function d66key(d){ return d[0]*10+d[1]; }
+function parseDamage(str){
+  // "D6+1" / "D6-2" / "D6" / "20" / "3D6+5" / "2D6+4"
+  const m = str.match(/^(\d*)D6([+-]\d+)?$/i);
+  if(!m) return parseInt(str)||0;
+  const count = parseInt(m[1]||'1');
+  let total = 0;
+  for(let i=0;i<count;i++) total += rollD6();
+  if(m[2]) total += parseInt(m[2]);
+  return total;
+}
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function shuffle(a){ const r=[...a]; for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ==================== SVG SPRITE GENERATORS ====================
+const Sprites = {
+  // Creature silhouettes based on type
+  creature(type){
+    if(type==='A'){ // Animal
+      return `<svg viewBox="0 0 100 100"><g stroke="#e8c870" fill="none" stroke-width="2.5">
+        <path d="M25,70 Q30,40 50,38 Q70,40 75,70"/><path d="M50,38 Q45,20 35,18 Q42,28 45,36"/>
+        <path d="M50,38 Q55,20 65,18 Q58,28 55,36"/>
+        <circle cx="42" cy="50" r="2" fill="#e8c870"/><circle cx="58" cy="50" r="2" fill="#e8c870"/>
+        <path d="M46,58 Q50,60 54,58"/>
+      </g></svg>`;
+    }
+    if(type==='F'){ // Fungal
+      return `<svg viewBox="0 0 100 100"><g stroke="#e8c870" fill="none" stroke-width="2.5">
+        <ellipse cx="50" cy="55" rx="30" ry="12"/><path d="M50,67 Q50,85 50,85"/>
+        <path d="M35,55 Q40,50 35,45"/><path d="M65,55 Q60,50 65,45"/>
+      </g></svg>`;
+    }
+    if(type==='H'){ // Humanoid
+      return `<svg viewBox="0 0 100 100"><g stroke="#e8c870" fill="none" stroke-width="2.5">
+        <circle cx="50" cy="25" r="12"/><path d="M50,37 L50,65"/>
+        <path d="M50,45 L30,55"/><path d="M50,45 L70,55"/>
+        <path d="M50,65 L38,85"/><path d="M50,65 L62,85"/>
+      </g></svg>`;
+    }
+    if(type==='I'){ // Insect
+      return `<svg viewBox="0 0 100 100"><g stroke="#e8c870" fill="none" stroke-width="2.5">
+        <circle cx="50" cy="50" r="15"/>
+        <path d="M35,45 L20,35"/><path d="M35,55 L20,65"/>
+        <path d="M65,45 L80,35"/><path d="M65,55 L80,65"/>
+        <circle cx="50" cy="50" r="6"/>
+      </g></svg>`;
+    }
+    if(type==='M'){ // Monster
+      return `<svg viewBox="0 0 100 100"><g stroke="#e8c870" fill="none" stroke-width="2.5">
+        <path d="M30,70 Q30,35 50,30 Q70,35 70,70 Z"/>
+        <circle cx="42" cy="50" r="2" fill="#e8c870"/><circle cx="58" cy="50" r="2" fill="#e8c870"/>
+        <path d="M40,60 Q50,68 60,60"/>
+      </g></svg>`;
+    }
+    return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" stroke="#e8c870" fill="none" stroke-width="2.5"/></svg>`;
+  },
+  
+  room(type){
+    return `<svg viewBox="0 0 100 100"><g stroke="#e8c870" fill="none" stroke-width="2">
+      <rect x="20" y="30" width="60" height="50"/>
+      <path d="M40,80 L40,55 Q50,45 60,55 L60,80"/>
+      <circle cx="50" cy="42" r="3"/>
+    </g></svg>`;
+  },
+  
+  weapon(type){
+    if(type==='sword'){
+      return `<svg viewBox="0 0 100 100"><g stroke="#e8c870" fill="none" stroke-width="3">
+        <path d="M50,10 L50,70"/><path d="M35,70 L65,70"/><path d="M50,70 L50,90"/>
+      </g></svg>`;
+    }
+    if(type==='axe'){
+      return `<svg viewBox="0 0 100 100"><g stroke="#e8c870" fill="none" stroke-width="3">
+        <path d="M50,10 L50,90"/><path d="M50,20 Q75,30 70,50 Q75,70 50,80"/>
+      </g></svg>`;
+    }
+    return `<svg viewBox="0 0 100 100"><g stroke="#e8c870" fill="none" stroke-width="3">
+      <path d="M50,10 L50,80"/><rect x="35" y="15" width="30" height="25" rx="3"/>
+    </g></svg>`;
+  },
+  
+  scroll(){
+    return `<svg viewBox="0 0 100 100"><g stroke="#e8c870" fill="none" stroke-width="2.5">
+      <path d="M25,20 Q20,25 25,30 L75,30 Q80,25 75,20 Z"/>
+      <path d="M25,30 L25,80 Q20,85 25,90 L75,90 Q80,85 75,80 L75,30"/>
+      <path d="M35,45 L65,45"/><path d="M35,55 L65,55"/><path d="M35,65 L55,65"/>
+    </g></svg>`;
+  },
+  
+  herb(icon){
+    const colors = {stem:'#6a9a3a', petal:'#d4a020', spine:'#7a4a9a', leaf:'#4a8a3a', redleaf:'#a02020', yellowleaf:'#c8b020'};
+    const c = colors[icon] || '#6a9a3a';
+    return `<svg viewBox="0 0 100 100"><g stroke="${c}" fill="${c}" stroke-width="2" opacity="0.9">
+      <path d="M50,85 Q45,60 30,40 Q40,42 45,55 Q48,45 50,30 Q52,45 55,55 Q60,42 70,40 Q55,60 50,85 Z"/>
+    </g></svg>`;
+  },
+  
+  potion(){
+    return `<svg viewBox="0 0 100 100"><g stroke="#e8c870" fill="none" stroke-width="2.5">
+      <path d="M42,20 L58,20 L58,35 Q75,50 72,70 Q70,88 50,88 Q30,88 28,70 Q25,50 42,35 Z"/>
+      <path d="M38,55 Q50,60 62,55"/>
+    </g></svg>`;
+  },
+  
+  god(key){
+    return `<svg viewBox="0 0 100 100"><g stroke="#e8c870" fill="none" stroke-width="2">
+      <circle cx="50" cy="50" r="35"/>
+      <circle cx="50" cy="50" r="25" stroke-dasharray="4 3"/>
+      <text x="50" y="58" text-anchor="middle" font-size="24" fill="#e8c870" stroke="none" font-family="serif">✦</text>
+    </g></svg>`;
+  }
+};
+
+// ==================== GAME STATE ====================
+let Game = {
+  phase: 'TUTORIAL',
+  player: null,
+  dungeon: null,
+  combat: null,
+  town: null,
+  history: [],
+  log: [],
+  achievements: {},
+  stats: { roomsExplored:0, kills:0, goldEarned:0 },
+  tempBonus: {},
+  isModalOpen: false,
+  
+  // ---- Save/Load ----
+  save(){
+    const data = {
+      phase: this.phase,
+      player: this.player,
+      dungeon: this.dungeon,
+      history: this.history,
+      log: this.log,
+      achievements: this.achievements,
+      stats: this.stats,
+      tempBonus: this.tempBonus,
+    };
+    try{
+      localStorage.setItem('2d6dungeon_save', JSON.stringify(data));
+      return true;
+    }catch(e){ return false; }
+  },
+  load(){
+    try{
+      const raw = localStorage.getItem('2d6dungeon_save');
+      if(!raw) return false;
+      const data = JSON.parse(raw);
+      this.phase = data.phase || 'MENU';
+      this.player = data.player;
+      this.dungeon = data.dungeon;
+      this.history = data.history || [];
+      this.log = data.log || [];
+      this.achievements = data.achievements || {};
+      this.stats = data.stats || { roomsExplored:0, kills:0, goldEarned:0 };
+      this.tempBonus = data.tempBonus || {};
+      return true;
+    }catch(e){ return false; }
+  },
+  hasSave(){
+    return !!localStorage.getItem('2d6dungeon_save');
+  },
+  restart(){
+    if(confirm('确定要重新开始吗？当前进度会被清除。')){
+      localStorage.removeItem('2d6dungeon_save');
+      location.reload();
+    }
+  },
+};
+
+// ==================== CORE LOGIC ====================
+Game.createPlayer = function(name, weaponId, manoeuvres, armourIdx, scrollIdx){
+  const weapon = DATA.weapons[weaponId];
+  const armour = DATA.startingArmour[armourIdx];
+  const scroll = DATA.startingScrolls[scrollIdx];
+  
+  this.player = {
+    name: name || '冒险者',
+    level: 1,
+    xp: 0,
+    hp: 10,
+    hpBase: 10,
+    shift: 2,
+    discipline: 1,
+    precision: 0,
+    weapon: weaponId,
+    weaponName: weapon.name,
+    manoeuvres: manoeuvres.map(m => ({...m})), // max 2 at lv1
+    maxManoeuvres: 2,
+    maxManoeuvreLevel: 1,
+    armour: armour ? {name:armour.name, dice:[...armour.dice], mod:armour.mod} : null,
+    scrolls: scroll ? [{...scroll}] : [],
+    potions: [{id:'healing', name:'治疗药水', effect:'回复 10 HP（上限为基线）'}],
+    rations: 3,
+    gold: 0,
+    favour: {grakada:0,intuneric:0,maduva:0,murataynie:0,nevazator:0,radacina:0},
+    favourCalledThisLevel: false,
+    items: [],
+    largeItems: [],
+    bloodied: 0,
+    soaked: 0,
+    statuses: [],
+    potionBombs: [],
+    temp: { shiftBonus:0, precisionBonus:0, disciplineBonus:0, damageBonus:0, hpBonus:0, extraAttacks:0 },
+    sideQuests: [],
+    freedPrisoners: 0,
+    enemiesSlain: 0,
+    roomsEntered: 0,
+    usedExitThisLevel: false,
+    seed: Math.random(),
+    log: [],
+  };
+  
+  this.dungeon = {
+    level: 1,
+    rooms: [],
+    currentRoomIdx: -1,
+    currentRoom: null,
+    exits: [],
+    isEntrance: true,
+    roomCount: 0,
+    lastRoomType: null,
+    generationPct: 0,
+    pendingExits: [], // unopened exits
+    inTown: false,
+    visitedRoomIds: [],
+    activeEncounters: [],
+    levelComplete: false,
+  };
+  
+  this.log = [];
+  this.history = [];
+  this.achievements = this.achievements || {};
+  this.stats = { roomsExplored:0, kills:0, goldEarned:0 };
+  this.tempBonus = {};
+  
+  this.enterDungeon(true);
+  this.phase = 'DUNGEON';
+  this.showScreen('screen-dungeon');
+  this.render();
+  Audio.good();
+};
+
+Game.enterDungeon = function(first){
+  if(first){
+    // Entrance room — no content, 3 archway exits
+    this.dungeon.currentRoom = {
+      id:'entrance',
+      name:'入口房间',
+      desc:'你站在地牢入口。石墙湿滑，火把摇曳。三条拱门通往未知的深处。',
+      exits:['archway','archway','archway'],
+      isEntrance:true,
+      visited:true,
+    };
+    this.dungeon.currentRoomIdx = -1;
+    this.dungeon.roomCount = 0;
+    this.dungeon.rooms = [this.dungeon.currentRoom];
+    this.dungeon.generationPct = 5;
+    this.addHistory('进入地牢 - 入口房间');
+  }
+  this.render();
+};
+
+Game.generateRoom = function(){
+  // Roll room size D66
+  let dice = rollD66();
+  let [px, py] = dice;
+  // Handle doubles (except double 6)
+  let rolls = [[px,py]];
+  if(px === py && px !== 6){
+    let d2 = rollD66();
+    rolls.push(d2);
+    px += d2[0]; py += d2[1];
+  }
+  const sizeX = px, sizeY = py;
+  const area = sizeX * sizeY;
+  
+  let tableType = 'normal';
+  if(sizeX === 1 || sizeY === 1){
+    tableType = 'corridor';
+  } else if(area <= 6){
+    tableType = 'small';
+  } else if(area >= 32){
+    tableType = 'large';
+  }
+  
+  // Roll number of exits: D6
+  const exitRoll = rollD6();
+  let numExits = 0;
+  if(exitRoll === 1) numExits = 0;
+  else if(exitRoll <= 3) numExits = 1;
+  else if(exitRoll <= 5) numExits = 2;
+  else numExits = 3;
+  
+  // Pick room from table
+  let room;
+  let table = DATA.rooms[tableType] || DATA.rooms.normal;
+  if(tableType === 'corridor'){
+    room = {id:'corridor', name:'走廊', desc:`狭窄的走廊（${sizeX}×${sizeY}），两端或有出口。`, exits:'archway', unique:false, encounter:null, isCorridor:true};
+  } else {
+    // Filter out uniques already used
+    const usedUnique = (this.dungeon.rooms || []).filter(r=>r.unique).map(r=>r.id);
+    let available = table.filter(r => !r.unique || !usedUnique.includes(r.id));
+    if(available.length === 0) available = table;
+    room = available[Math.floor(Math.random()*available.length)];
+    room = JSON.parse(JSON.stringify(room));
+  }
+  
+  // Assign exits by type
+  let exitType = room.exits;
+  if(exitType === 'random'){
+    const types = ['archway','wooden','metal','reinforced','curtain'];
+    exitType = types[Math.floor(Math.random()*types.length)];
+  }
+  const exitArr = [];
+  for(let i=0;i<numExits;i++) exitArr.push(exitType);
+  
+  const newRoom = {
+    ...room,
+    size:[sizeX, sizeY],
+    area,
+    tableType,
+    exits:exitArr,
+    exitType,
+    isEntrance:false,
+    visited:true,
+    generated:true,
+  };
+  this.dungeon.rooms.push(newRoom);
+  this.dungeon.currentRoom = newRoom;
+  this.dungeon.currentRoomIdx = this.dungeon.rooms.length - 1;
+  this.dungeon.roomCount++;
+  this.player.roomsEntered++;
+  this.stats.roomsExplored++;
+  this.dungeon.generationPct = clamp(Math.floor(this.dungeon.roomCount * 8 + 10), 0, 95);
+  
+  this.addHistory(`探索房间 #${this.dungeon.roomCount}：${newRoom.name}（${sizeX}×${sizeY}，${exitType} 出口×${numExits}）`);
+  
+  // Handle encounter
+  this.dungeon.activeEncounters = [];
+  if(newRoom.encounter){
+    // Determine creature(s)
+    let creatureId = newRoom.encounter;
+    if(creatureId === 'got1'){
+      // Roll on god table
+      const godKeys = DATA.godOrder;
+      const god = godKeys[Math.floor(Math.random()*godKeys.length)];
+      this.player.favour[god] = (this.player.favour[god]||0) + 1;
+      this.addLog(`发现神龛，献祭后获得 ${DATA.gods[god].name} 的 1 点恩惠。`, 'gold');
+      Audio.good();
+    } else {
+      // Find creature
+      const c = DATA.creatures.find(c=>c.id===creatureId || c.id.includes(creatureId));
+      if(c){
+        this.startCombat([c]);
+        return;
+      }
+    }
+  }
+  
+  // Auto-handle other room events
+  if(newRoom.god === 'random'){
+    const god = DATA.godOrder[Math.floor(Math.random()*DATA.godOrder.length)];
+    this.player.favour[god] = (this.player.favour[god]||0) + 1;
+    this.addLog(`发现 ${DATA.gods[god].name} 的神龛，获得 1 点恩惠。`, 'gold');
+  } else if(newRoom.god){
+    this.player.favour[newRoom.god] = (this.player.favour[newRoom.god]||0) + 1;
+    this.addLog(`发现 ${DATA.gods[newRoom.god].name} 的神龛，获得 1 点恩惠。`, 'gold');
+  }
+  
+  // Loot / treasure for empty rooms
+  if(newRoom.name === '空房' || newRoom.name === '空房间' || newRoom.name === '空' || newRoom.isCorridor){
+    this.addLog('此房间没有额外发现。', '');
+  }
+  
+  this.render();
+};
+
+Game.enterRoom = function(exitIdx){
+  // Check if last room or generate new
+  Audio.click();
+  
+  // Check if we should reach last room (after enough exploration)
+  if(this.dungeon.roomCount >= 8 + Math.floor(Math.random()*4)){
+    // Last room: stair down
+    const lastRoom = {
+      id:'lastroom',
+      name:'最后房间',
+      desc:'此房间中央有向下的楼梯。你感受到深渊的召唤。',
+      exits:['stairs'],
+      isLast:true,
+      visited:true,
+      size:[4,4],
+      area:16,
+      tableType:'normal',
+    };
+    this.dungeon.rooms.push(lastRoom);
+    this.dungeon.currentRoom = lastRoom;
+    this.dungeon.currentRoomIdx = this.dungeon.rooms.length - 1;
+    this.addHistory(`抵达最后房间：楼梯向下`);
+    this.dungeon.pendingExits = ['stairs'];
+    this.render();
+    return;
+  }
+  
+  this.dungeon.pendingExits = [];
+  this.generateRoom();
+};
+
+Game.goDownStairs = function(){
+  if(!confirm('确定要下到下一层吗？需要消耗 1 份口粮。')){
+    return;
+  }
+  // Use ration
+  if(this.player.rations > 0){
+    this.player.rations--;
+    const heal = 2 * this.player.level;
+    this.player.hp = Math.min(this.player.hpBase, this.player.hp + heal);
+    this.addLog(`在楼梯上休息，恢复 ${heal} HP。`, 'good');
+  } else {
+    const dmg = Math.floor(this.player.hp / 2);
+    this.player.hp -= Math.min(dmg, 20);
+    this.addLog(`没有口粮，虚弱损失 ${Math.min(dmg,20)} HP。`, 'bad');
+  }
+  this.player.favourCalledThisLevel = false;
+  
+  // Move to next level
+  this.dungeon.level++;
+  if(this.dungeon.level > 10){
+    this.victory();
+    return;
+  }
+  this.player.level = Math.min(10, Math.max(this.player.level, this.dungeon.level));
+  this.updatePlayerStats();
+  
+  // New level entrance room
+  this.dungeon.roomCount = 0;
+  this.dungeon.rooms = [];
+  this.dungeon.generationPct = 5;
+  this.dungeon.currentRoom = {
+    id:'entrance', name:'入口房间',
+    desc:`你来到第 ${this.dungeon.level} 层入口。空气更寒冷，危险更甚。`,
+    exits:['archway','archway','archway'], isEntrance:true, visited:true,
+  };
+  this.dungeon.rooms.push(this.dungeon.currentRoom);
+  this.addHistory(`下到第 ${this.dungeon.level} 层`);
+  this.addLog(`进入第 ${this.dungeon.level} 层。`, 'gold');
+  Audio.levelup();
+  this.render();
+};
+
+Game.updatePlayerStats = function(){
+  const lv = DATA.levelTable[this.player.level-1];
+  if(!lv) return;
+  this.player.hpBase = lv.hpBase;
+  this.player.shift = lv.shift;
+  this.player.discipline = lv.disc;
+  this.player.precision = lv.prec;
+  this.player.maxManoeuvres = lv.maxManoeuvres;
+  this.player.maxManoeuvreLevel = lv.maxManoeuvreLevel;
+};
+
+Game.checkLevelUp = function(){
+  const currentLv = this.player.level;
+  const next = DATA.levelTable[currentLv]; // next level is currentLv (since index=currentLv)
+  if(!next) return; // max
+  if(this.player.xp >= next.xpToNext){
+    this.player.level++;
+    this.player.hpBase = next.hpBase;
+    this.player.hp += 10; // immediate heal
+    this.player.hp = Math.min(this.player.hpBase + (this.player.temp.hpBonus||0), this.player.hp);
+    this.updatePlayerStats();
+    this.addLog(`✨ 升级到 Lv${this.player.level}（${next.title}）！属性提升，+10 HP`, 'gold');
+    Audio.levelup();
+    this.unlockAchievement(`level${this.player.level}`);
+    // Check chain level up
+    this.checkLevelUp();
+  }
+};
+
+Game.gainXP = function(amount){
+  this.player.xp += amount;
+  this.addLog(`获得 ${amount} XP。`, 'gold');
+  this.checkLevelUp();
+};
+
+Game.gainGold = function(amount){
+  this.player.gold += amount;
+  this.stats.goldEarned += amount;
+  this.addLog(`获得 ${amount} GC。`, 'gold');
+  Audio.gold();
+};
+
+Game.addLog = function(msg, type){
+  this.player.log.push({msg, type:type||'', t:Date.now()});
+  if(this.player.log.length > 200) this.player.log.shift();
+  if(this.phase==='COMBAT') this.renderCombatLog();
+  this.renderTopbar();
+};
+
+Game.addHistory = function(msg){
+  this.history.push({msg, t:Date.now()});
+  if(this.history.length > 100) this.history.shift();
+};
+
+Game.unlockAchievement = function(id){
+  if(this.achievements[id]) return;
+  this.achievements[id] = {t:Date.now()};
+  const names = {
+    firstRoom:'初次探索', level2:'Lv2 见习', level3:'Lv3 学徒',
+    level5:'Lv5 老练', level10:'Lv10 大师', firstKill:'首杀',
+    firstBoss:'首领杀手', rich:'富有（100 GC）', completeLevel1:'完成第 1 层',
+    completeLevel10:'完成全部 10 层', foundExit:'找到通风井',
+  };
+  this.addLog(`🏆 解锁成就：${names[id]||id}`, 'gold');
+};
+
+// ==================== COMBAT ====================
+Game.startCombat = function(creatureList){
+  this.phase = 'COMBAT';
+  this.showScreen('screen-combat');
+  
+  // Determine if creature attacks first (scroll cast in combat)
+  this.combat = {
+    enemies: creatureList.map(c => ({
+      ...JSON.parse(JSON.stringify(c)),
+      maxHp: c.hp,
+      curHp: c.hp,
+      alive: true,
+      stunTurns: 0,
+    })),
+    round: 1,
+    fatigue: 1,
+    log: [],
+    playerTurn: true,
+    waitingForShift: false,
+    rolledDice: null,
+    matchedManoeuvre: null,
+    pendingAction: null,
+    combatOver: false,
+    exactStrike: false,
+    extraAttacks: 0,
+    shiftUsedThisRound: 0,
+    creatureNoAttack: false,
+    playerSkipAttack: false,
+  };
+  
+  // Apply combat-start bonuses
+  const tb = this.player.temp;
+  this.combat.extraAttacks = tb.extraAttacks || 0;
+  this.combat.log = [];
+  
+  this.addCombatLog(`⚔ 战斗开始！面对 ${creatureList.map(c=>c.name).join('、')}`, 'bad');
+  this.addCombatLog(`第 1 轮，你有先攻。`, '');
+  this.renderCombat();
+};
+
+Game.addCombatLog = function(msg, type){
+  if(!this.combat) return;
+  this.combat.log.push({msg, type:type||'', t:Date.now()});
+  if(this.combat.log.length > 50) this.combat.log.shift();
+  this.renderCombatLog();
+};
+
+Game.renderCombatLog = function(){
+  const el = document.getElementById('combat-log-text');
+  if(!el) return;
+  el.innerHTML = this.combat.log.map(e => `<div class="entry ${e.type}">${escapeHtml(e.msg)}</div>`).join('');
+  el.scrollTop = el.scrollHeight;
+};
+
+// Player rolls D66
+Game.combatRollPlayer = function(){
+  if(!this.combat || !this.combat.playerTurn) return;
+  Audio.dice();
+  const dice = rollD66();
+  this.combat.rolledDice = dice;
+  this.combat.exactStrike = false;
+  this.combat.waitingForShift = true;
+  this.combat.shiftUsedThisRound = 0;
+  this.addCombatLog(`🎲 你投出 ${dice[0]} 与 ${dice[1]}（主骰 ${dice[0]}、副骰 ${dice[1]}）`, '');
+  this.findMatch();
+  this.renderCombat();
+};
+
+Game.findMatch = function(){
+  const dice = this.combat.rolledDice;
+  if(!dice) return;
+  
+  // Prime attack: double 6
+  if(dice[0]===6 && dice[1]===6){
+    this.combat.matchedManoeuvre = null;
+    this.combat.isPrime = true;
+    this.combat.isMishap = false;
+    this.addCombatLog('✨ 大成功！选择一个招式必定成功。', 'good');
+    return;
+  }
+  // Mishap: double 1
+  if(dice[0]===1 && dice[1]===1){
+    this.combat.matchedManoeuvre = null;
+    this.combat.isPrime = false;
+    this.combat.isMishap = true;
+    this.addCombatLog('💥 大失败！你的攻击落空。', 'bad');
+    return;
+  }
+  
+  this.combat.isPrime = false;
+  this.combat.isMishap = false;
+  
+  // Check exact match first
+  const exact = this.player.manoeuvres.find(m => m.dice[0]===dice[0] && m.dice[1]===dice[1]);
+  if(exact){
+    this.combat.matchedManoeuvre = exact;
+    this.combat.exactStrike = true;
+    this.addCombatLog(`✅ 精确打击！${exact.name}（${exact.dice[0]}-${exact.dice[1]}）`, 'good');
+    return;
+  }
+  // Find any manoeuvre reachable via shift
+  const shiftAvailable = this.getTotalShift();
+  let best = null, bestShift = Infinity;
+  for(const m of this.player.manoeuvres){
+    const needed = Math.abs(dice[0]-m.dice[0]) + Math.abs(dice[1]-m.dice[1]);
+    // Can't shift 1->6 or 6->1 (i.e. can't cross the wrap)
+    // Actually rule: cannot shift from 1 to 6 or 6 to 1. So each die can only move within 1-6 via normal increments,
+    // but this is naturally handled since difference is absolute value. However we must disallow jumps that would go beyond 6 or below 1.
+    // Actually the rule means you can't shift a 1 to a 6 or 6 to 1. So max difference per die is 5 but with wrapping disallowed.
+    // Since we use absolute diff and dice are 1-6, any diff up to 5 is fine as long as it doesn't wrap (e.g. 1->6 diff is 5 but disallowed).
+    // So check: if (dice[i]===1 && m.dice[i]===6) or (dice[i]===6 && m.dice[i]===1) -> invalid
+    if((dice[0]===1 && m.dice[0]===6) || (dice[0]===6 && m.dice[0]===1)) continue;
+    if((dice[1]===1 && m.dice[1]===6) || (dice[1]===6 && m.dice[1]===1)) continue;
+    if(needed <= shiftAvailable && needed < bestShift){
+      best = m; bestShift = needed;
+    }
+  }
+  if(best){
+    this.combat.matchedManoeuvre = best;
+    this.combat.pendingShift = bestShift;
+    this.addCombatLog(`可 Shift ${bestShift} 点到 ${best.name}（${best.dice[0]}-${best.dice[1]}）。`, '');
+  } else {
+    this.combat.matchedManoeuvre = null;
+    this.addCombatLog('⚠ 无法匹配任何招式。此回合落空。', 'bad');
+  }
+};
+
+Game.getTotalShift = function(){
+  let base = this.player.shift + (this.player.temp.shiftBonus||0);
+  // Fatigue
+  const f = this.combat.fatigue;
+  let fatigueBonus = 0;
+  if(f >= 6) fatigueBonus = 3;
+  else if(f === 5) fatigueBonus = 2;
+  else if(f === 4) fatigueBonus = 1;
+  return Math.max(0, base + fatigueBonus - this.combat.shiftUsedThisRound);
+};
+
+// Apply shift to match manoeuvre
+Game.combatApplyShift = function(){
+  if(!this.combat || !this.combat.pendingShift) return;
+  this.combat.shiftUsedThisRound += this.combat.pendingShift;
+  this.combat.pendingShift = 0;
+  this.combat.exactStrike = false;
+  this.addCombatLog(`🔄 Shift 调整 ${this.combat.shiftUsedThisRound} 点，执行 ${this.combat.matchedManoeuvre.name}。`, '');
+  this.renderCombat();
+};
+
+// Execute attack with current manoeuvre
+Game.combatExecuteAttack = function(){
+  if(!this.combat || !this.combat.matchedManoeuvre) return;
+  const m = this.combat.matchedManoeuvre;
+  const target = this.combat.enemies.find(e=>e.alive);
+  if(!target) return;
+  
+  // Roll damage
+  let dmg = parseDamage(m.dmg);
+  if(this.combat.exactStrike){
+    dmg += this.getTotalShift() + this.combat.shiftUsedThisRound;
+    this.addCombatLog(`⚡ 精确打击将 Shift 加到伤害！`, 'good');
+  }
+  dmg += (this.player.temp.damageBonus||0);
+  if(dmg < 1 && rollD6()===6) dmg = 1;
+  if(dmg < 0) dmg = 0;
+  
+  // Check interrupt
+  let interruptReduction = 0;
+  const dice = this.combat.rolledDice;
+  for(const intr of target.interrupt){
+    if(intr.type==='pri' && intr.val === dice[0]) interruptReduction += Math.abs(intr.dmg);
+    if(intr.type==='sec' && intr.val === dice[1]) interruptReduction += Math.abs(intr.dmg);
+    // heal variant
+    if(intr.heal){
+      target.curHp = Math.min(target.maxHp, target.curHp + intr.heal);
+      this.addCombatLog(`${target.name} 的 ${intr.name} 恢复了 ${intr.heal} HP。`, 'bad');
+    }
+  }
+  // Only one interrupt per round
+  if(interruptReduction > 0){
+    this.addCombatLog(`🛡 ${target.name} 的干扰生效，减少 ${interruptReduction} 伤害。`, 'bad');
+    dmg = Math.max(0, dmg - interruptReduction);
+  }
+  
+  target.curHp -= dmg;
+  this.addCombatLog(`💥 你使用 ${m.name} 对 ${target.name} 造成 ${dmg} 伤害！（剩余 ${Math.max(0,target.curHp)} HP）`, 'hit');
+  Audio.hit();
+  
+  if(target.curHp <= 0){
+    target.curHp = 0;
+    target.alive = false;
+    this.addCombatLog(`☠ ${target.name} 被击败！`, 'good');
+    this.player.enemiesSlain++;
+    this.stats.kills++;
+    this.gainXP(target.xp);
+    // Loot
+    const loot = Math.floor(Math.random()*4);
+    if(loot > 0){
+      this.gainGold(loot);
+    }
+  }
+  
+  this.combat.rolledDice = null;
+  this.combat.matchedManoeuvre = null;
+  this.combat.waitingForShift = false;
+  this.combat.exactStrike = false;
+  
+  // Check if all dead
+  if(this.combat.enemies.every(e=>!e.alive)){
+    this.endCombat();
+    return;
+  }
+  
+  // Move to enemy turn
+  this.combat.playerTurn = false;
+  this.renderCombat();
+  setTimeout(()=>this.enemyTurn(), 400);
+};
+
+// Enemy turn
+Game.enemyTurn = function(){
+  if(!this.combat || this.combat.combatOver) return;
+  
+  for(const enemy of this.combat.enemies){
+    if(!enemy.alive) continue;
+    if(enemy.stunTurns > 0){
+      enemy.stunTurns--;
+      this.addCombatLog(`${enemy.name} 被致盲/眩晕，无法攻击。`, 'good');
+      continue;
+    }
+    this.enemyAttack(enemy);
+    if(this.player.hp <= 0) return;
+  }
+  
+  // End of round
+  this.combat.round++;
+  this.combat.fatigue = Math.min(6, this.combat.fatigue + 1);
+  this.combat.playerTurn = true;
+  this.combat.shiftUsedThisRound = 0;
+  
+  // Check death
+  if(this.player.hp <= 0){
+    this.playerDeath();
+    return;
+  }
+  
+  this.addCombatLog(`— 第 ${this.combat.round} 轮，疲劳骰 ${this.combat.fatigue} —`, '');
+  this.renderCombat();
+};
+
+Game.enemyAttack = function(enemy){
+  const dice = rollD66();
+  this.addCombatLog(`🎲 ${enemy.name} 投出 ${dice[0]} 与 ${dice[1]}`, '');
+  
+  // Find best manoeuvre to shift to
+  let best = null, bestShift = 0;
+  const shiftAvail = (enemy.sh || 0) + (this.combat.fatigue >= 6 ? 3 : this.combat.fatigue >= 5 ? 2 : this.combat.fatigue >= 4 ? 1 : 0);
+  for(const m of enemy.moves){
+    const needed = Math.abs(dice[0]-m.dice[0]) + Math.abs(dice[1]-m.dice[1]);
+    if(needed === 0){ best = m; bestShift = 0; break; }
+    if(needed <= shiftAvail && (best===null || needed < bestShift)){
+      best = m; bestShift = needed;
+    }
+  }
+  
+  if(!best){
+    this.addCombatLog(`${enemy.name} 攻击落空。`, 'good');
+    return;
+  }
+  
+  let dmg = best.dmg;
+  if(best.dmg > 0){
+    dmg = Math.max(0, dmg + (best.dmgMod||0));
+  }
+  // Special effects
+  if(best.special === 'noattack'){
+    this.combat.playerSkipAttack = true;
+    this.addCombatLog(`${enemy.name} 的 ${best.name} 使你下回合无法攻击！`, 'bad');
+  }
+  if(best.special === 'poison'){
+    this.player.statuses.push({name:'中毒', turns:2, dmg:1});
+    this.addCombatLog('你中毒了！', 'bad');
+  }
+  if(best.special === 'infection'){
+    this.player.statuses.push({name:'感染', turns:2, dmg:1});
+    this.addCombatLog('伤口感染！', 'bad');
+  }
+  
+  // Armour deflection
+  let reduction = 0;
+  if(this.player.armour){
+    const a = this.player.armour;
+    // check if primary or secondary matches
+    const matchesPrimary = a.dice[0] === dice[0];
+    const matchesSecondary = a.dice.length > 1 && a.dice[1] === dice[1];
+    if(matchesPrimary || matchesSecondary){
+      reduction = Math.abs(a.mod);
+      this.addCombatLog(`🛡 ${a.name} 偏转，减少 ${reduction} 伤害。`, 'good');
+    }
+  }
+  dmg = Math.max(0, dmg - reduction);
+  
+  this.player.hp -= dmg;
+  this.addCombatLog(`⚔ ${enemy.name} 使用 ${best.name} 造成 ${dmg} 伤害！你剩余 ${Math.max(0,this.player.hp)} HP`, 'hit');
+  Audio.hit();
+  
+  // Handle status damage over time
+  for(const s of this.player.statuses){
+    if(s.turns > 0){
+      this.player.hp -= s.dmg;
+      s.turns--;
+      this.addCombatLog(`${s.name} 造成 ${s.dmg} 伤害。`, 'bad');
+    }
+  }
+  this.player.statuses = this.player.statuses.filter(s=>s.turns > 0);
+};
+
+Game.endCombat = function(){
+  this.combat.combatOver = true;
+  this.combat.extraAttacks = 0;
+  this.player.temp.shiftBonus = 0;
+  this.player.temp.extraAttacks = 0;
+  this.player.temp.damageBonus = 0;
+  this.combat.fatigue = 1;
+  
+  this.addCombatLog('🎉 战斗胜利！', 'good');
+  Audio.good();
+  
+  setTimeout(()=>{
+    this.phase = 'DUNGEON';
+    this.combat = null;
+    this.showScreen('screen-dungeon');
+    this.render();
+  }, 1200);
+};
+
+Game.playerDeath = function(){
+  this.addCombatLog('💀 你倒下了...', 'bad');
+  Audio.bad();
+  setTimeout(()=>{
+    this.phase = 'GAMEOVER';
+    document.getElementById('go-level').textContent = this.player.level;
+    document.getElementById('go-xp').textContent = this.player.xp;
+    document.getElementById('go-gold').textContent = this.player.gold;
+    document.getElementById('go-rooms').textContent = this.player.roomsEntered;
+    document.getElementById('go-kills').textContent = this.player.enemiesSlain;
+    this.showScreen('screen-gameover');
+    this.unlockAchievement('death');
+  }, 1500);
+};
+
+// ==================== RENDERING ====================
+Game.showScreen = function(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if(el) el.classList.add('active');
+};
+
+Game.renderTopbar = function(){
+  if(!this.player) return;
+  const p = this.player;
+  document.getElementById('top-hp').textContent = Math.max(0,p.hp);
+  document.getElementById('top-hpbar').style.width = Math.max(0, (p.hp / p.hpBase * 100)) + '%';
+  document.getElementById('top-xp').textContent = p.xp;
+  document.getElementById('top-level').textContent = p.level;
+  document.getElementById('top-shift').textContent = '+' + (p.shift + (p.temp.shiftBonus||0));
+  document.getElementById('top-gold').textContent = p.gold;
+  document.getElementById('top-rations').innerHTML = `🍖 <b>${p.rations}</b>`;
+};
+
+Game.render = function(){
+  this.renderTopbar();
+  if(this.phase === 'DUNGEON'){
+    this.renderDungeon();
+  } else if(this.phase === 'COMBAT'){
+    this.renderCombat();
+  } else if(this.phase === 'TOWN'){
+    this.renderTown();
+  }
+};
+
+Game.renderDungeon = function(){
+  const header = document.getElementById('dungeon-header');
+  const content = document.getElementById('dungeon-content');
+  if(!this.dungeon || !this.dungeon.currentRoom) return;
+  
+  const room = this.dungeon.currentRoom;
+  
+  // Header
+  header.innerHTML = `
+    <div class="panel" style="padding:10px;margin:0 0 10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <h2 style="margin:0;border:none;">🏰 第 ${this.dungeon.level} 层 · 探索 ${this.dungeon.generationPct}%</h2>
+        <span style="font-size:12px;color:#5a4a35;">房间 ${this.dungeon.roomCount}</span>
+      </div>
+      <div class="progress-bar"><div style="width:${this.dungeon.generationPct}%"></div></div>
+    </div>
+  `;
+  
+  // Current room
+  let roomHtml = `
+    <div class="panel">
+      <h2>🚪 ${escapeHtml(room.name)}</h2>
+      <p style="font-size:13px;color:#3a2a1a;">${escapeHtml(room.desc)}</p>
+      ${room.size ? `<p style="font-size:12px;color:#5a4a35;">尺寸：${room.size[0]}×${room.size[1]}（${room.area} 平方） · 类型：${room.tableType==='small'?'小房间':room.tableType==='large'?'大房间':'普通'}</p>` : ''}
+    </div>
+  `;
+  
+  // Exits
+  if(room.exits && room.exits.length > 0){
+    roomHtml += `<div class="panel dark"><h3>🚪 出口</h3><div class="btn-row">`;
+    room.exits.forEach((exitType, i) => {
+      if(exitType === 'stairs'){
+        roomHtml += `<button class="primary" onclick="Game.goDownStairs()">⬇ 向下楼梯（消耗 1 口粮）</button>`;
+      } else {
+        const icons = {archway:'🏛', wooden:'🚪', metal:'⛓', reinforced:'🛡', curtain:'🧵', portcullis:'⛓', stoneslab:'⬛'};
+        const names = {archway:'拱门', wooden:'木门', metal:'金属门', reinforced:'加固门', curtain:'帘幕', portcullis:'石闸门', stoneslab:'石板'};
+        roomHtml += `<button onclick="Game.enterRoom(${i})">${icons[exitType]||'🚪'} ${names[exitType]||exitType} ${i+1}</button>`;
+      }
+    });
+    roomHtml += `</div>`;
+    // Optionally roll for exit shaft
+    if(this.dungeon.roomCount > 2 && !this.dungeon.usedExitThisLevel){
+      roomHtml += `<button class="small" style="margin-top:8px;background:linear-gradient(180deg,#2a5a2a,#1a3a1a);border-color:#3a7a3a;" onclick="Game.searchForExit()">🔍 搜索通风井（离开地牢）</button>`;
+    }
+    roomHtml += `</div>`;
+  } else if(!room.isLast){
+    roomHtml += `<div class="panel"><p>⚠ 此房间没有出口。你必须搜索隐藏门或回到之前的房间。</p>
+      <button class="small" onclick="Game.searchSecretDoor()">🔍 寻找密门</button></div>`;
+  }
+  
+  // Player status
+  roomHtml += this.renderPlayerStatusPanel();
+  
+  // Favour
+  roomHtml += this.renderFavourPanel();
+  
+  content.innerHTML = roomHtml;
+};
+
+Game.renderPlayerStatusPanel = function(){
+  const p = this.player;
+  let html = `<div class="panel"><h3>🧙 ${escapeHtml(p.name)} - Lv${p.level} ${DATA.levelTable[p.level-1].title}</h3>`;
+  html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;font-size:12px;margin-top:6px;">`;
+  html += `<div>❤ HP：${Math.max(0,p.hp)} / ${p.hpBase}</div>`;
+  html += `<div>💠 Shift：+${p.shift}</div>`;
+  html += `<div>🎯 Discipline：${p.discipline}</div>`;
+  html += `<div>🎯 Precision：${p.precision}</div>`;
+  html += `<div>⭐ XP：${p.xp}</div>`;
+  html += `<div>💰 金币：${p.gold} GC</div>`;
+  html += `<div>🍖 口粮：${p.rations}</div>`;
+  html += `<div>🧪 药水：${p.potions.length}/5</div>`;
+  html += `<div>📜 卷轴：${p.scrolls.length}/3</div>`;
+  html += `</div>`;
+  if(p.bloodied > 0) html += `<p style="color:#8b1a1a;font-size:12px;margin-top:6px;">🩸 血染：${p.bloodied}/8 房间（超过 8 会发烧）</p>`;
+  if(p.soaked > 0) html += `<p style="color:#1a5a8b;font-size:12px;">💧 湿透：${p.soaked}/8 房间（超过 8 会肺炎）</p>`;
+  html += `</div>`;
+  return html;
+};
+
+Game.renderFavourPanel = function(){
+  const p = this.player;
+  let html = `<div class="panel"><h3>🙏 神明恩惠</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;font-size:11px;">`;
+  DATA.godOrder.forEach(g => {
+    const god = DATA.gods[g];
+    html += `<div style="background:rgba(0,0,0,.06);padding:4px 6px;border-radius:4px;border:1px solid #a08040;display:flex;justify-content:space-between;"><span>${god.name}</span><b>${p.favour[g]||0}</b></div>`;
+  });
+  html += `</div>`;
+  const totalFavour = DATA.godOrder.reduce((s,g)=>s+(p.favour[g]||0),0);
+  if(totalFavour > 0 && !p.favourCalledThisLevel){
+    html += `<button class="small" style="margin-top:8px;" onclick="Game.callFavour()">🙏 呼叫神恩（本轮层可一次）</button>`;
+  } else if(p.favourCalledThisLevel){
+    html += `<p style="font-size:11px;color:#5a4a35;margin-top:6px;">本层已呼叫过神恩。</p>`;
+  }
+  html += `</div>`;
+  return html;
+};
+
+Game.searchForExit = function(){
+  const room = this.dungeon.currentRoom;
+  if(!room) return;
+  // Simplified: roll 3 dice for each edge
+  const roll = rollD6();
+  this.addLog(`搜索通风井... 投出 ${roll}。`, '');
+  if(roll >= 5){
+    this.dungeon.usedExitThisLevel = true;
+    this.player.usedExitThisLevel = true;
+    this.addLog('✨ 找到通风井！你返回城镇休息。', 'good');
+    this.unlockAchievement('foundExit');
+    this.goToTown();
+  } else {
+    this.addLog('未找到通风井。', '');
+    this.render();
+  }
+};
+
+Game.searchSecretDoor = function(){
+  const room = this.dungeon.currentRoom;
+  if(!room) return;
+  // Simplified
+  if(this.dungeon.roomCount < 8){
+    this.addLog('你在墙边寻找密门...', '');
+    if(rollD6() >= 4){
+      this.addLog('找到了密门！', 'good');
+      room.exits.push('wooden');
+    } else {
+      this.addLog('未发现任何东西。', '');
+    }
+  } else {
+    this.addLog('你决定继续探索。', '');
+  }
+  this.render();
+};
+
+Game.callFavour = function(){
+  const p = this.player;
+  if(p.favourCalledThisLevel) return;
+  // Find god with highest favour
+  let bestGod = null, bestVal = 0;
+  for(const g of DATA.godOrder){
+    if((p.favour[g]||0) > bestVal){ bestVal = p.favour[g]; bestGod = g; }
+  }
+  if(!bestGod || bestVal === 0){
+    Toast.show('没有任何神明的恩惠点！', 'warn');
+    return;
+  }
+  const roll = rollD6();
+  p.favourCalledThisLevel = true;
+  this.addLog(`向 ${DATA.gods[bestGod].name} 呼叫恩惠，投出 ${roll}（需要 ≤ ${bestVal}）。`, '');
+  if(roll <= bestVal){
+    this.addLog(`✨ ${DATA.gods[bestGod].name} 回应了你！`, 'good');
+    Audio.good();
+    // Random favour effect
+    const effects = [
+      ()=>{ p.hp = p.hpBase; this.addLog('HP 回满至基线。', 'good'); },
+      ()=>{ this.player.temp.shiftBonus = (this.player.temp.shiftBonus||0) + 3; this.addLog('下次战斗 +3 Shift。', 'good'); },
+      ()=>{ this.player.temp.precisionBonus = (this.player.temp.precisionBonus||0) + 1; this.addLog('获得 +1 Precision（1 层）。', 'good'); },
+      ()=>{ p.bloodied = 0; p.soaked = 0; this.addLog('移除血染和湿透状态。', 'good'); },
+    ];
+    effects[Math.floor(Math.random()*effects.length)]();
+    // Reset favour
+    p.favour[bestGod] = 0;
+  } else {
+    this.addLog('神明没有回应...', '');
+  }
+  this.render();
+};
+
+Game.goToTown = function(){
+  this.phase = 'TOWN';
+  this.town = {visitedMarket:false, visitedTavern:false, visitedTemple:false, visitedHall:false, visitedHerbalist:false, visitedEngraver:false};
+  // Liberate prisoners
+  for(let i=0;i<this.player.freedPrisoners;i++){
+    const r = rollD6();
+    if(r===2) this.gainGold(rollD6()*6); // simplified
+    else if(r===6) this.gainGold(rollD6()*4*10);
+    this.addLog(`释放的囚犯报恩（投出 ${r}）。`, 'gold');
+  }
+  this.player.freedPrisoners = 0;
+  // Heal up
+  this.player.hp = this.player.hpBase;
+  this.player.bloodied = 0;
+  this.player.soaked = 0;
+  this.showScreen('screen-town');
+  this.renderTown();
+  this.save();
+};
+
+Game.renderTown = function(){
+  const content = document.getElementById('town-content');
+  const p = this.player;
+  
+  let html = `
+    <h1>🏘 城镇</h1>
+    <div class="panel">
+      <h2>🧙 ${escapeHtml(p.name)} - Lv${p.level}</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;font-size:12px;">
+        <div>❤ HP：${p.hp}/${p.hpBase}</div>
+        <div>💰 金币：${p.gold} GC</div>
+        <div>⭐ XP：${p.xp}</div>
+        <div>💠 Shift：+${p.shift}</div>
+        <div>🎯 Discipline：${p.discipline}</div>
+        <div>🎯 Precision：${p.precision}</div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <h2>🏪 市场</h2>
+      <div class="btn-row">
+        <button onclick="Game.townBuy('potion')">🧪 购买药水</button>
+        <button onclick="Game.townBuy('scroll')">📜 购买卷轴</button>
+        <button onclick="Game.townBuy('armour')">🛡 购买护甲</button>
+        <button onclick="Game.townBuy('ration')">🍖 购买口粮（10 SC）</button>
+      </div>
+      <button class="small" onclick="Game.townSell()">💱 出售物品</button>
+    </div>
+    
+    <div class="panel">
+      <h2>🌿 草药师</h2>
+      <button onclick="Game.townHerbalist()">购买草药</button>
+    </div>
+    
+    <div class="panel">
+      <h2>⛪ 神庙</h2>
+      <p style="font-size:12px;margin-bottom:6px;">选择一位神明冥想，获得 1 点恩惠：</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;">
+        ${DATA.godOrder.map(g=>`<button class="small" onclick="Game.townTemple('${g}')">${DATA.gods[g].name}</button>`).join('')}
+      </div>
+    </div>
+    
+    <div class="panel">
+      <h2>🍺 酒馆</h2>
+      <button onclick="Game.townTavern()">打听消息</button>
+      <p style="font-size:11px;margin-top:6px;color:#5a4a35;">（影响下一次地牢探索）</p>
+    </div>
+    
+    <div class="panel">
+      <h2>🏛 市政厅</h2>
+      <button onclick="Game.townArmWrestle()">掰手腕</button>
+    </div>
+    
+    <div class="panel dark">
+      <h2>🚪 返回地牢</h2>
+      <p style="font-size:12px;color:#c9b892;">继续你的冒险。所有状态已恢复。</p>
+      <button class="primary" onclick="Game.returnToDungeon()">⬇ 回到地牢</button>
+    </div>
+  `;
+  content.innerHTML = html;
+};
+
+Game.townBuy = function(type){
+  const p = this.player;
+  if(type === 'potion'){
+    const avail = DATA.potions;
+    const pick = avail[Math.floor(Math.random()*avail.length)];
+    if(p.gold >= pick.cost){
+      p.gold -= pick.cost;
+      p.potions.push({id:pick.id, name:pick.name, effect:pick.effect});
+      if(p.potions.length > 5){ p.potions.shift(); }
+      this.addLog(`购买 ${pick.name}（-${pick.cost} GC）。`, 'gold');
+      Audio.gold();
+    } else {
+      Toast.show(`金币不足！需要 ${pick.cost} GC。`, 'warn');
+    }
+  } else if(type === 'scroll'){
+    const pick = DATA.scrolls[Math.floor(Math.random()*DATA.scrolls.length)];
+    if(p.gold >= pick.cost){
+      p.gold -= pick.cost;
+      p.scrolls.push({...pick});
+      if(p.scrolls.length > 3){ p.scrolls.shift(); }
+      this.addLog(`购买 ${pick.name}（-${pick.cost} GC）。`, 'gold');
+      Audio.gold();
+    } else {
+      Toast.show(`金币不足！需要 ${pick.cost} GC。`, 'warn');
+    }
+  } else if(type === 'armour'){
+    const pick = DATA.armourTable[Math.floor(Math.random()*DATA.armourTable.length)];
+    if(p.gold >= pick.cost){
+      p.gold -= pick.cost;
+      // Replace or add
+      if(!p.armour){ p.armour = {name:pick.name, dice:[...pick.dice], mod:pick.mod}; }
+      else { p.armour = {name:pick.name, dice:[...pick.dice], mod:pick.mod}; } // simplified
+      this.addLog(`购买 ${pick.name}（-${pick.cost} GC）。`, 'gold');
+      Audio.gold();
+    } else {
+      Toast.show(`金币不足！需要 ${pick.cost} GC。`, 'warn');
+    }
+  } else if(type === 'ration'){
+    if(p.gold >= 1){
+      p.gold -= 1;
+      p.rations++;
+      this.addLog(`购买 1 份口粮（-1 GC）。`, 'gold');
+    } else {
+      Toast.show('金币不足！', 'warn');
+    }
+  }
+  this.renderTown();
+  this.renderTopbar();
+};
+
+Game.townSell = function(){
+  // Simplified: sell excess potions/scrolls
+  const p = this.player;
+  let total = 0;
+  if(p.potions.length > 1){
+    const n = p.potions.length - 1;
+    total += n * 15;
+    p.potions = p.potions.slice(0,1);
+  }
+  if(total > 0){
+    p.gold += total;
+    this.addLog(`出售多余药水，获得 ${total} GC。`, 'gold');
+  } else {
+    Toast.show('没有可出售的物品。', '');
+  }
+  this.renderTown();
+  this.renderTopbar();
+};
+
+Game.townHerbalist = function(){
+  const p = this.player;
+  const pick = DATA.herbs[Math.floor(Math.random()*DATA.herbs.length)];
+  if(p.gold >= pick.cost){
+    p.gold -= pick.cost;
+    p.items.push({name:pick.name, type:'herb'});
+    this.addLog(`购买 ${pick.name}（-${pick.cost} GC）。`, 'gold');
+    Audio.gold();
+  } else {
+    Toast.show(`金币不足！需要 ${pick.cost} GC。`, 'warn');
+  }
+  this.renderTown();
+};
+
+Game.townTemple = function(god){
+  this.player.favour[god] = (this.player.favour[god]||0) + 1;
+  this.addLog(`在神庙冥想，获得 ${DATA.gods[god].name} 的 1 点恩惠。`, 'gold');
+  this.renderTown();
+};
+
+Game.townTavern = function(){
+  const roll = (rollD6()+rollD6());
+  this.addLog(`在酒馆打听消息（2D6=${roll}）...`, '');
+  if(roll <= 4){
+    this.player.gold = Math.max(0, this.player.gold - 5);
+    this.addLog('你喝多了，损失 5 GC。', 'bad');
+  } else if(roll >= 10){
+    this.player.temp.shiftBonus = (this.player.temp.shiftBonus||0) + 2;
+    this.addLog('听到有用消息，下次战斗 +2 Shift。', 'good');
+  } else {
+    this.addLog('度过了一个平静的夜晚。', '');
+  }
+  this.renderTown();
+};
+
+Game.townArmWrestle = function(){
+  const roll = (rollD6()+rollD6()) + this.player.discipline;
+  this.addLog(`掰手腕（2D6+Disc=${roll}）...`, '');
+  if(roll >= 13){
+    this.player.discipline += 1;
+    this.addLog('🏆 大胜！永久 +1 Discipline。', 'gold');
+  } else if(roll >= 9){
+    this.player.hp = Math.min(this.player.hpBase, this.player.hp + 4);
+    this.addLog('小胜，+4 HP。', 'good');
+  } else if(roll >= 5){
+    this.addLog('输了，但没大碍。', '');
+  } else {
+    this.player.hp = Math.max(1, this.player.hp - 2);
+    this.addLog('惨败，-2 HP。', 'bad');
+  }
+  this.renderTown();
+  this.renderTopbar();
+};
+
+Game.returnToDungeon = function(){
+  this.phase = 'DUNGEON';
+  this.dungeon.usedExitThisLevel = false;
+  this.dungeon.generationPct = Math.min(95, this.dungeon.generationPct + 5);
+  // Heal on return
+  this.player.hp = this.player.hpBase;
+  this.player.bloodied = 0;
+  this.player.soaked = 0;
+  this.player.favourCalledThisLevel = false;
+  this.showScreen('screen-dungeon');
+  this.render();
+  this.addLog('返回地牢。', '');
+};
+
+Game.victory = function(){
+  this.phase = 'VICTORY';
+  Audio.levelup();
+  const content = document.getElementById('game-area');
+  content.innerHTML = `
+    <div style="text-align:center;padding:40px 10px;">
+      <h1 style="color:#b8860b;font-size:36px;">🏆 传奇！ 🏆</h1>
+      <p style="font-size:16px;margin:20px 0;">你完成了全部 10 层地牢！</p>
+      <p style="font-size:14px;color:#3a2a1a;">你的名字将在柯拉丁大陆上传颂千年。</p>
+      <div class="panel" style="max-width:400px;margin:20px auto;">
+        <h3>最终统计</h3>
+        <p>等级：<b>${this.player.level}</b></p>
+        <p>经验值：<b>${this.player.xp}</b></p>
+        <p>金币：<b>${this.player.gold}</b> GC</p>
+        <p>击杀：<b>${this.player.enemiesSlain}</b></p>
+        <p>探索房间：<b>${this.player.roomsEntered}</b></p>
+      </div>
+      <button class="primary" onclick="Game.restart()">重新开始</button>
+    </div>
+  `;
+  this.unlockAchievement('completeLevel10');
+};
+
+// ==================== COMBAT RENDER ====================
+Game.renderCombat = function(){
+  if(!this.combat) return;
+  const c = this.combat;
+  
+  // Header
+  const hdr = document.getElementById('combat-header');
+  if(hdr){
+    hdr.innerHTML = `
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:12px;">
+        <span><b>第 ${c.round} 轮</b></span>
+        <span>疲劳骰：${c.fatigue}</span>
+        <span>你的 HP：<b style="color:${this.player.hp < 5 ? '#8b1a1a' : '#2a1f14'}">${Math.max(0,this.player.hp)}</b>/${this.player.hpBase}</span>
+        <span>Shift 剩余：${this.getTotalShift()}</span>
+      </div>
+    `;
+  }
+  
+  // Enemies
+  const enemiesEl = document.getElementById('combat-enemies');
+  if(enemiesEl){
+    enemiesEl.innerHTML = c.enemies.map((e,i) => `
+      <div class="card creature-card" style="opacity:${e.alive?1:.3}">
+        <div class="sprite">${Sprites.creature(e.type)}</div>
+        <div class="hpline"><span>${e.name}</span><span style="color:#8b1a1a;">${e.curHp}/${e.maxHp}</span></div>
+        <div class="card-label">${e.name}<br><span style="font-size:9px;">${e.alive?'存活':'已击败'}</span></div>
+      </div>
+    `).join('');
+  }
+  
+  // Dice
+  const diceEl = document.getElementById('combat-dice');
+  if(diceEl){
+    if(c.rolledDice){
+      diceEl.innerHTML = `
+        <div class="die primary">${c.rolledDice[0]}<span class="sub">主骰</span></div>
+        <div class="die secondary">${c.rolledDice[1]}<span class="sub">副骰</span></div>
+      `;
+    } else {
+      diceEl.innerHTML = `
+        <div class="die primary">?<span class="sub">主骰</span></div>
+        <div class="die secondary">?<span class="sub">副骰</span></div>
+      `;
+    }
+  }
+  
+  // Actions
+  const actEl = document.getElementById('combat-actions');
+  if(!actEl) return;
+  
+  if(c.combatOver){
+    actEl.innerHTML = `<button class="primary" onclick="Game.confirmEndCombat()">继续</button>`;
+    return;
+  }
+  
+  if(!c.playerTurn){
+    actEl.innerHTML = `<button disabled>敌人行动中...</button>`;
+    return;
+  }
+  
+  let btns = '';
+  if(!c.rolledDice){
+    btns += `<button class="attack-btn" onclick="Game.combatRollPlayer()">🎲 投掷 D66</button>`;
+  } else if(c.waitingForShift && c.matchedManoeuvre){
+    if(c.pendingShift > 0){
+      btns += `<button class="attack-btn" onclick="Game.combatApplyShift()">🔄 Shift ${c.pendingShift} 点</button>`;
+    }
+    btns += `<button class="primary" onclick="Game.combatExecuteAttack()">⚔ 执行 ${c.matchedManoeuvre.name}</button>`;
+    btns += `<button onclick="Game.combatSkipAttack()">跳过攻击</button>`;
+  } else if(c.matchedManoeuvre){
+    btns += `<button class="primary" onclick="Game.combatExecuteAttack()">⚔ 执行 ${c.matchedManoeuvre.name}</button>`;
+  } else if(c.isPrime){
+    // Choose manoeuvre
+    btns += `<p style="color:#b8860b;font-weight:700;font-size:12px;">✨ 大成功！选择一个招式：</p>`;
+    this.player.manoeuvres.forEach((m,i) => {
+      btns += `<button onclick="Game.combatPrimeAttack(${i})">${m.name}</button>`;
+    });
+  } else if(c.isMishap){
+    btns += `<button class="primary" onclick="Game.combatSkipAttack()">攻击落空，结束回合</button>`;
+  } else {
+    btns += `<button class="primary" onclick="Game.combatSkipAttack()">落空，结束回合</button>`;
+  }
+  
+  // Use potion
+  if(this.player.potions.length > 0 && c.playerTurn){
+    btns += `<button class="small" onclick="Game.combatUsePotion()">🧪 使用药水</button>`;
+  }
+  
+  actEl.innerHTML = btns;
+};
+
+Game.combatPrimeAttack = function(idx){
+  const m = this.player.manoeuvres[idx];
+  if(!m) return;
+  this.combat.matchedManoeuvre = m;
+  this.combat.isPrime = false;
+  this.combat.exactStrike = true; // treat as bonus
+  this.addCombatLog(`✨ 大成功选择 ${m.name}！`, 'good');
+  this.renderCombat();
+};
+
+Game.combatSkipAttack = function(){
+  this.combat.rolledDice = null;
+  this.combat.matchedManoeuvre = null;
+  this.combat.waitingForShift = false;
+  this.combat.isPrime = false;
+  this.combat.isMishap = false;
+  this.combat.pendingShift = 0;
+  this.combat.playerTurn = false;
+  this.renderCombat();
+  setTimeout(()=>this.enemyTurn(), 300);
+};
+
+Game.combatUsePotion = function(){
+  const p = this.player;
+  if(p.potions.length === 0) return;
+  const pot = p.potions.shift();
+  this.addLog(`使用 ${pot.name}。`, 'good');
+  if(pot.id === 'healing'){ p.hp = Math.min(p.hpBase, p.hp + 10); }
+  else if(pot.id === 'gainhealth'){ p.hp += 20; }
+  else if(pot.id === 'phasing' || pot.id === 'finesse'){ p.temp.precisionBonus = (p.temp.precisionBonus||0) + 1; }
+  else if(pot.id === 'strength'){ p.temp.precisionBonus = (p.temp.precisionBonus||0) + 2; }
+  else if(pot.id === 'prowess'){ p.temp.shiftBonus = (p.temp.shiftBonus||0) + 1; }
+  else if(pot.id === 'furtherhealth'){ p.temp.shiftBonus = (p.temp.shiftBonus||0) + 2; }
+  else if(pot.id === 'speed'){ p.temp.damageReduction = (p.temp.damageReduction||0) + 1; }
+  else if(pot.id === 'willpower'){ p.temp.damageBonus = (p.temp.damageBonus||0) + 1; }
+  
+  this.combat.playerTurn = false;
+  this.combat.rolledDice = null;
+  this.combat.matchedManoeuvre = null;
+  this.renderCombat();
+  setTimeout(()=>this.enemyTurn(), 300);
+};
+
+Game.confirmEndCombat = function(){
+  this.phase = 'DUNGEON';
+  this.combat = null;
+  this.showScreen('screen-dungeon');
+  this.render();
+};
+
+// ==================== UI EVENTS ====================
+document.addEventListener('DOMContentLoaded', () => {
+  initTutorial();
+  initCharacterCreation();
+  initNav();
+  initTabs();
+  
+  // Check for save
+  if(Game.hasSave()){
+    const load = confirm('检测到存档，是否读取？\n（取消则开始新游戏）');
+    if(load){
+      if(Game.load()){
+        if(Game.phase === 'COMBAT' && !Game.combat){ Game.phase = 'DUNGEON'; }
+        Game.render();
+        Toast.show('存档读取成功！', 'good');
+      }
+    }
+  }
+});
+
+function initTabs(){
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c=>c.style.display='none');
+      const target = document.getElementById(btn.dataset.tab);
+      if(target) target.style.display = 'block';
+    });
+  });
+}
+
+function initTutorial(){
+  const startBtn = document.getElementById('btn-start-creation');
+  if(startBtn){
+    startBtn.addEventListener('click', () => {
+      Audio.click();
+      Game.showScreen('screen-create');
+      Game.phase = 'CREATION';
+    });
+  }
+}
+
+function initCharacterCreation(){
+  const weaponChoice = document.getElementById('weapon-choice');
+  if(!weaponChoice) return;
+  
+  const weapons = [
+    {id:'longsword', label:'长剑', icon:'sword'},
+    {id:'greataxe', label:'巨斧', icon:'axe'},
+    {id:'heavymace', label:'重锤', icon:'mace'},
+  ];
+  
+  weaponChoice.innerHTML = weapons.map(w => `
+    <div class="wc" data-weapon="${w.id}">
+      ${Sprites.weapon(w.icon)}
+      <div class="name">${w.label}</div>
+    </div>
+  `).join('');
+  
+  let selectedWeapon = null;
+  let selectedManoeuvres = [];
+  let selectedArmour = 0;
+  let selectedScroll = 0;
+  
+  function updateConfirmState(){
+    const btn = document.getElementById('btn-confirm-char');
+    if(btn){
+      btn.disabled = !(selectedWeapon && selectedManoeuvres.length === 2);
+    }
+  }
+  
+  function renderManoeuvres(){
+    const list = document.getElementById('manoeuvre-list');
+    if(!selectedWeapon){ list.innerHTML = '<p style="color:#5a4a35;">请先选择武器。</p>'; return; }
+    const moves = DATA.weapons[selectedWeapon].manoeuvres[1] || [];
+    list.innerHTML = moves.map((m, i) => `
+      <div class="manoeuvre-item ${selectedManoeuvres.includes(i)?'selected':''}" data-idx="${i}">
+        <div>
+          <b>${m.name}</b> <span style="font-size:11px;color:#5a4a35;">(${m.en})</span><br>
+          <span class="dmg">伤害：${m.dmg}</span>
+        </div>
+        <div class="dice">${m.dice[0]}-${m.dice[1]}</div>
+      </div>
+    `).join('');
+    
+    list.querySelectorAll('.manoeuvre-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.dataset.idx);
+        if(selectedManoeuvres.includes(idx)){
+          selectedManoeuvres = selectedManoeuvres.filter(i=>i!==idx);
+        } else if(selectedManoeuvres.length < 2){
+          selectedManoeuvres.push(idx);
+        } else {
+          selectedManoeuvres.shift();
+          selectedManoeuvres.push(idx);
+        }
+        renderManoeuvres();
+        updateConfirmState();
+      });
+    });
+  }
+  
+  function renderArmour(){
+    const list = document.getElementById('armour-list');
+    list.innerHTML = DATA.startingArmour.map((a, i) => `
+      <div class="manoeuvre-item ${selectedArmour===i?'selected':''}" data-idx="${i}">
+        <div><b>${a.name}</b> <span style="font-size:11px;color:#5a4a35;">(${a.en})</span></div>
+        <div class="dice">骰组 ${a.dice.join('&')} · 减伤 ${a.mod}</div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.manoeuvre-item').forEach(el => {
+      el.addEventListener('click', () => {
+        selectedArmour = parseInt(el.dataset.idx);
+        renderArmour();
+      });
+    });
+  }
+  
+  function renderScrolls(){
+    const list = document.getElementById('scroll-list');
+    list.innerHTML = DATA.startingScrolls.map((s, i) => `
+      <div class="manoeuvre-item ${selectedScroll===i?'selected':''}" data-idx="${i}">
+        <div><b>${s.name}</b> <span style="font-size:11px;color:#5a4a35;">(${s.en})</span><br>
+        <span class="dmg">${s.desc}</span></div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.manoeuvre-item').forEach(el => {
+      el.addEventListener('click', () => {
+        selectedScroll = parseInt(el.dataset.idx);
+        renderScrolls();
+      });
+    });
+  }
+  
+  weaponChoice.querySelectorAll('.wc').forEach(el => {
+    el.addEventListener('click', () => {
+      weaponChoice.querySelectorAll('.wc').forEach(e=>e.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedWeapon = el.dataset.weapon;
+      selectedManoeuvres = [];
+      renderManoeuvres();
+      updateConfirmState();
+    });
+  });
+  
+  renderArmour();
+  renderScrolls();
+  
+  const confirmBtn = document.getElementById('btn-confirm-char');
+  if(confirmBtn){
+    confirmBtn.addEventListener('click', () => {
+      if(!selectedWeapon || selectedManoeuvres.length !== 2) return;
+      const name = document.getElementById('char-name').value.trim() || '冒险者';
+      const moves = selectedManoeuvres.map(i => DATA.weapons[selectedWeapon].manoeuvres[1][i]);
+      Game.createPlayer(name, selectedWeapon, moves, selectedArmour, selectedScroll);
+      Toast.show('冒险开始！', 'good');
+    });
+  }
+}
+
+function initNav(){
+  document.getElementById('nav-help').addEventListener('click', () => {
+    Audio.click();
+    showModal('📖 游戏说明', `
+      <div style="max-height:60vh;overflow-y:auto;font-size:13px;line-height:1.8;">
+        <h3>🎯 游戏目标</h3>
+        <p>完成 10 层地牢，成为传奇冒险者。</p>
+        <h3>🖥 看懂画面</h3>
+        <p>顶部深色横条显示：❤ HP、⭐ XP、🎖 等级、💠 Shift、💰 金币、🍖 口粮。</p>
+        <h3>🔄 操作流程</h3>
+        <ol style="margin-left:18px;">
+          <li>选择出口进入新房间</li>
+          <li>房间会随机生成敌人、宝藏、神龛</li>
+          <li>遇到敌人先战斗</li>
+          <li>找到楼梯下到下一层</li>
+          <li>找到通风井可回城镇</li>
+        </ol>
+        <h3>⚔ 战斗机制</h3>
+        <p>投 D66 匹配招式，可用 Shift 调整骰子。双 1 大失败，双 6 大成功。疲劳骰每回合 +1。</p>
+        <h3>✨ 特殊机制</h3>
+        <p>神明恩惠、草药制作、血染/湿透状态、撬锁、通风井...</p>
+      </div>
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="primary" onclick="closeModal()">关闭</button>
+      </div>
+    `);
+  });
+  
+  document.getElementById('nav-save').addEventListener('click', () => {
+    Audio.click();
+    if(Game.save()){
+      Toast.show('💾 游戏已保存！', 'good');
+    } else {
+      Toast.show('保存失败', 'warn');
+    }
+  });
+  
+  document.getElementById('nav-load').addEventListener('click', () => {
+    Audio.click();
+    if(!Game.hasSave()){
+      Toast.show('没有存档', 'warn');
+      return;
+    }
+    if(confirm('读取存档？当前未保存进度会丢失。')){
+      if(Game.load()){
+        Game.render();
+        Toast.show('📂 存档读取成功', 'good');
+      } else {
+        Toast.show('读取失败', 'warn');
+      }
+    }
+  });
+  
+  document.getElementById('nav-history').addEventListener('click', () => {
+    Audio.click();
+    const panel = document.getElementById('history-panel');
+    panel.classList.toggle('open');
+    renderHistory();
+  });
+  
+  document.getElementById('nav-achievements').addEventListener('click', () => {
+    Audio.click();
+    const names = {
+      firstRoom:'初次探索', level2:'Lv2 见习', level3:'Lv3 学徒',
+      level5:'Lv5 老练', level10:'Lv10 大师', firstKill:'首杀',
+      firstBoss:'首领杀手', rich:'富有（100 GC）', completeLevel1:'完成第 1 层',
+      completeLevel10:'完成全部 10 层', foundExit:'找到通风井', death:'壮烈牺牲',
+    };
+    const html = Object.keys(Game.achievements).map(k => 
+      `<div style="padding:6px;border-bottom:1px solid #5a4a35;font-size:12px;">
+        🏆 ${names[k]||k}
+      </div>`
+    ).join('') || '<p style="color:#888;">尚未解锁任何成就。</p>';
+    showModal('🏆 成就', `<div style="max-height:50vh;overflow-y:auto;">${html}</div>
+      <div class="btn-row" style="margin-top:12px;"><button class="primary" onclick="closeModal()">关闭</button></div>`);
+  });
+  
+  document.getElementById('nav-sound').addEventListener('click', () => {
+    Audio.enabled = !Audio.enabled;
+    document.getElementById('nav-sound').innerHTML = Audio.enabled ? '<span class="ico">🔊</span>音效' : '<span class="ico">🔇</span>静音';
+    if(Audio.enabled) Audio.click();
+  });
+}
+
+function renderHistory(){
+  const list = document.getElementById('history-list');
+  if(!list) return;
+  list.innerHTML = Game.history.slice().reverse().map(h => `
+    <div class="h-entry">${escapeHtml(h.msg)}<br><span style="font-size:10px;opacity:.5;">${new Date(h.t).toLocaleTimeString()}</span></div>
+  `).join('') || '<p style="color:#888;font-size:12px;">尚无历史记录。</p>';
+}
+
+// ==================== MODAL / TOAST ====================
+function showModal(title, html){
+  Game.isModalOpen = true;
+  const layer = document.getElementById('modal-layer');
+  layer.innerHTML = `
+    <div class="modal">
+      <h2>${title}</h2>
+      ${html}
+    </div>
+  `;
+  layer.classList.add('active');
+}
+
+function closeModal(){
+  Game.isModalOpen = false;
+  document.getElementById('modal-layer').classList.remove('active');
+}
+
+const Toast = {
+  show(msg, type=''){
+    const layer = document.getElementById('toast-layer');
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.textContent = msg;
+    layer.appendChild(el);
+    setTimeout(()=>{ el.style.opacity = '0'; el.style.transform = 'translateY(-10px)'; el.style.transition = 'all .3s'; }, 2200);
+    setTimeout(()=>el.remove(), 2600);
+  }
+};
+
+// ==================== STARTUP ====================
+// Show tutorial at start
+Game.showScreen('screen-tutorial');
+Game.phase = 'TUTORIAL';
+</script>
+</body>
+</html>
