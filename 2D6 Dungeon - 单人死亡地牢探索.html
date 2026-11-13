@@ -5237,5 +5237,485 @@ console.log('命令：Game.openMap() / Game.setLang("zh"|"en")');
 
 })();
 </script>
+<script>
+// ===================================================================
+// EXTENSION MODULE v4.0 — Boss UI / 地圖可視化 / 多語言
+// ===================================================================
+(function(){
+'use strict';
+
+// ============================================
+// 共用：CSS 樣式注入
+// ============================================
+const style = document.createElement('style');
+style.textContent = `
+/* ============ Boss UI ============ */
+.boss-panel {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(160deg, #3a1010, #1a0505);
+  border: 3px solid #8b1a1a;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(139, 26, 26, 0.6);
+  width: 100%;
+  box-sizing: border-box;
+  animation: bossPulse 2s infinite;
+  position: relative;
+  overflow: hidden;
+}
+.boss-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(255,100,100,0.15), transparent 60%);
+  pointer-events: none;
+}
+@keyframes bossPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 26, 26, 0.6); }
+  50% { box-shadow: 0 0 35px rgba(255, 100, 100, 0.85); }
+}
+.boss-panel.enraged {
+  border-color: #ff2020;
+  animation: bossEnrage 0.6s infinite;
+}
+@keyframes bossEnrage {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+.boss-portrait {
+  width: 90px;
+  height: 90px;
+  background: radial-gradient(circle, #4a1010, #1a0505);
+  border: 2px solid #8b1a1a;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+.boss-portrait::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.6));
+  pointer-events: none;
+}
+.boss-portrait svg {
+  width: 70px;
+  height: 70px;
+  filter: drop-shadow(0 0 8px rgba(255,180,80,0.6));
+  animation: bossFloat 3s ease-in-out infinite;
+}
+@keyframes bossFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.boss-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  color: #f0d080;
+  min-width: 0;
+}
+.boss-name {
+  color: #ffd700;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  text-shadow: 0 0 10px #b8860b, 0 2px 4px #000;
+  letter-spacing: 1px;
+}
+.boss-subtitle {
+  font-size: 11px;
+  color: #c0a060;
+  font-style: italic;
+  margin: 0;
+}
+.boss-hp-bar {
+  height: 22px;
+  background: #3a0808;
+  border: 1px solid #a03030;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+}
+.boss-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c42a2a, #8b1a1a);
+  transition: width 0.4s ease, background 0.3s;
+}
+.boss-hp-fill.enraged {
+  background: linear-gradient(90deg, #ff4040, #c42a2a);
+  animation: hpFlow 1s infinite;
+}
+@keyframes hpFlow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+}
+.boss-hp-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 1px 1px 2px #000;
+  z-index: 1;
+}
+.boss-phase {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  align-self: flex-start;
+}
+.boss-phase.normal {
+  background: rgba(184, 134, 11, 0.3);
+  color: #ffd700;
+}
+.boss-phase.enraged {
+  background: rgba(255, 60, 60, 0.3);
+  color: #ff8080;
+  animation: blink 0.8s infinite;
+}
+.boss-phase.death {
+  background: rgba(100, 100, 100, 0.3);
+  color: #ccc;
+}
+@keyframes blink {
+  50% { opacity: 0.6; }
+}
+
+/* ============ 地圖 ============ */
+.dungeon-map-svg {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  background: #1a1208;
+  border: 2px solid #4a3a25;
+  border-radius: 6px;
+  display: block;
+  margin: 0 auto;
+}
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  margin-top: 10px;
+  justify-content: center;
+}
+.map-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.map-legend .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ============ 語言切換 ============ */
+.lang-switch {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.lang-switch button {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: linear-gradient(180deg, #5a3a20, #3a2412);
+  color: #f0d080;
+  border: 1px solid #8a6a3a;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.lang-switch button.active {
+  background: linear-gradient(180deg, #b8860b, #7a5a14);
+  border-color: #daa520;
+  font-weight: 700;
+}
+`;
+document.head.appendChild(style);
+
+// ============================================
+// 多語言（基礎版）
+// ============================================
+const I18N = {
+  zhTW: {
+    help: '說明', save: '存檔', load: '讀檔', history: '歷史',
+    achievements: '成就', sound: '音效', close: '關閉',
+    cancel: '取消', confirm: '確定', map: '地圖',
+    lang: '語言', langTitle: '🌐 語言切換',
+  },
+  zhCN: {
+    help: '说明', save: '存档', load: '读档', history: '历史',
+    achievements: '成就', sound: '音效', close: '关闭',
+    cancel: '取消', confirm: '确定', map: '地图',
+    lang: '语言', langTitle: '🌐 语言切换',
+  },
+  en: {
+    help: 'Help', save: 'Save', load: 'Load', history: 'History',
+    achievements: 'Achievements', sound: 'Sound', close: 'Close',
+    cancel: 'Cancel', confirm: 'OK', map: 'Map',
+    lang: 'Language', langTitle: '🌐 Language',
+  },
+};
+
+let currentLang = 'zhTW';
+function t(key){ return (I18N[currentLang] && I18N[currentLang][key]) || key; }
+
+function updateNavText(){
+  const nav = document.getElementById('bottom-nav');
+  if(!nav) return;
+  const btns = nav.querySelectorAll('button');
+  const keys = ['help', 'save', 'load', 'history', 'achievements', 'sound'];
+  btns.forEach((btn, i) => {
+    if(i < keys.length){
+      const ico = btn.querySelector('.ico');
+      const icoText = ico ? ico.textContent : '';
+      btn.innerHTML = `<span class="ico">${icoText}</span>${t(keys[i])}`;
+    }
+  });
+}
+
+Game.switchLang = function(lang){
+  currentLang = lang;
+  updateNavText();
+  const label = lang==='zhTW'?'繁體中文':lang==='zhCN'?'简体中文':'English';
+  Toast.show(t('lang') + ' → ' + label, 'good');
+  Audio.click();
+};
+
+// 重新綁定「說明」按鈕（加入語言切換區塊）
+function rebindHelp(){
+  const helpBtn = document.getElementById('nav-help');
+  if(!helpBtn) return;
+  const newBtn = helpBtn.cloneNode(true);
+  helpBtn.parentNode.replaceChild(newBtn, helpBtn);
+  newBtn.addEventListener('click', () => {
+    Audio.click();
+    showModal(t('help'), `
+      <div style="max-height:55vh;overflow-y:auto;font-size:13px;line-height:1.8;">
+        <h3>🎯 遊戲目標</h3>
+        <p>完成 10 層地牢，成為傳奇冒險者。</p>
+        <p style="color:#8a5a00;font-size:12px;">Goal: Complete all 10 dungeon levels to become a legend.</p>
+        <h3>🎲 骰子</h3>
+        <p><b>D6</b>：單骰 · <b>D3</b>：1-2→1，3-4→2，5-6→3 · <b>D66</b>：主骰×10+副骰 · <b>2D6</b>：兩骰相加</p>
+        <h3>⚔ 戰鬥</h3>
+        <p>投 D66 匹配招式。Shift 點數可調整骰子。雙 1 大失敗（落空），雙 6 大成功（任選招式必中）。</p>
+        <p style="color:#8a5a00;font-size:12px;">Roll D66 to match manoeuvres. Use Shift points to adjust. Double 1 = miss. Double 6 = prime attack.</p>
+        <h3>🛡 護甲偏轉</h3>
+        <p>當敵人攻擊骰匹配你的護甲骰組時，減傷。</p>
+        <h3>🙏 神明恩惠</h3>
+        <p>6 位地底神明：格拉卡達 / 因圖內里克 / 馬杜瓦 / 穆拉泰尼 / 涅瓦扎托 / 拉達西納。獻祭獲得 FP，呼叫神恩。</p>
+        <h3>🌿 資源</h3>
+        <p>草藥可製作療方，藥水可戰鬥中使用，符文可雕刻到武器（Lv3+ 掉落）。</p>
+        <h3>👹 首領</h3>
+        <p>每層有 1 位首領，擊敗後才能下樓梯。HP 低於 50% 時進入狂暴狀態。</p>
+        <h3>🗺 地圖</h3>
+        <p>地牢房間探索後可在「地圖」中查看路徑。</p>
+      </div>
+      <div style="margin-top:14px;">
+        <h4 style="color:#8a5a00;">${t('langTitle')}</h4>
+        <div class="lang-switch">
+          <button class="${currentLang==='zhTW'?'active':''}" onclick="Game.switchLang('zhTW');closeModal()">繁體中文</button>
+          <button class="${currentLang==='zhCN'?'active':''}" onclick="Game.switchLang('zhCN');closeModal()">简体中文</button>
+          <button class="${currentLang==='en'?'active':''}" onclick="Game.switchLang('en');closeModal()">English</button>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="primary" onclick="closeModal()">${t('close')}</button>
+      </div>
+    `);
+  });
+}
+
+// ============================================
+// Boss UI
+// ============================================
+const _origRenderCombat4 = Game.renderCombat;
+Game.renderCombat = function(){
+  _origRenderCombat4.apply(this, arguments);
+  if(!this.combat) return;
+  const boss = this.combat.enemies.find(e => e.isBoss && e.alive);
+  if(!boss) return;
+  
+  const enemiesEl = document.getElementById('combat-enemies');
+  if(!enemiesEl) return;
+  
+  const hpPct = Math.max(0, boss.curHp / boss.maxHp * 100);
+  const isEnraged = hpPct < 50 && boss.curHp > 0;
+  const isNearDeath = hpPct < 25 && boss.curHp > 0;
+  
+  enemiesEl.innerHTML = `
+    <div class="boss-panel ${isEnraged?'enraged':''}">
+      <div class="boss-portrait">${Sprites.creature(boss.type)}</div>
+      <div class="boss-info">
+        <h2 class="boss-name">${escapeHtml(boss.name)}</h2>
+        <p class="boss-subtitle">${escapeHtml(boss.en || '')}</p>
+        <div class="boss-hp-bar">
+          <div class="boss-hp-fill ${isEnraged?'enraged':''}" style="width:${hpPct}%"></div>
+          <span class="boss-hp-text">${Math.max(0,boss.curHp)} / ${boss.maxHp}</span>
+        </div>
+        <span class="boss-phase ${isNearDeath?'death':isEnraged?'enraged':'normal'}">
+          ${isNearDeath ? '💀 瀕死' : isEnraged ? '🔥 狂暴' : '⚔ 正常'}
+        </span>
+      </div>
+    </div>
+  `;
+};
+
+// Boss 狂暴機制
+const _origEnemyAttack4 = Game.enemyAttack;
+Game.enemyAttack = function(enemy){
+  if(enemy.isBoss && !enemy._enrageTriggered){
+    const hpPct = enemy.curHp / enemy.maxHp;
+    if(hpPct < 0.5 && enemy.curHp > 0){
+      enemy._enrageTriggered = true;
+      enemy._enraged = true;
+      this.addCombatLog(`🔥 ${enemy.name} 進入狂暴狀態！傷害提升 50%！`, 'bad');
+      Audio.bad();
+      enemy.moves = enemy.moves.map(m => ({
+        ...m,
+        dmg: Math.ceil((m.dmg || 0) * 1.5)
+      }));
+      enemy.sh = (enemy.sh || 0) + 1;
+    }
+  }
+  _origEnemyAttack4.apply(this, arguments);
+};
+
+// ============================================
+// 地圖可視化
+// ============================================
+Game.renderMapSVG = function(){
+  const rooms = this.dungeon && this.dungeon.rooms;
+  if(!rooms || rooms.length === 0){
+    return '<p style="color:#888;text-align:center;padding:20px;">尚未探索任何房間。</p>';
+  }
+  
+  const cols = 5;
+  const cellSize = 60;
+  const rows = Math.ceil(rooms.length / cols);
+  const width = cols * cellSize;
+  const height = rows * cellSize + 20;
+  
+  const positions = rooms.map((room, i) => {
+    const row = Math.floor(i / cols);
+    const col = (row % 2 === 0) ? (i % cols) : (cols - 1 - i % cols);
+    return {
+      x: col * cellSize + cellSize/2,
+      y: row * cellSize + cellSize/2 + 10,
+    };
+  });
+  
+  let svg = `<svg viewBox="0 0 ${width} ${height}" class="dungeon-map-svg" xmlns="http://www.w3.org/2000/svg">`;
+  
+  for(let i = 1; i < positions.length; i++){
+    const from = positions[i-1];
+    const to = positions[i];
+    svg += `<line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="#8a6a3a" stroke-width="2" stroke-dasharray="4 3" />`;
+  }
+  
+  rooms.forEach((room, i) => {
+    const pos = positions[i];
+    const isCurrent = i === rooms.length - 1;
+    let color = '#a08040';
+    let icon = '·';
+    let r = 8;
+    
+    if(room.isEntrance){ color = '#2a8a2a'; icon = '⚓'; }
+    else if(room.isBoss){ color = '#c42a2a'; icon = '👹'; }
+    else if(room.isLast){ color = '#b8860b'; icon = '⬇'; }
+    else if(room.tableType === 'small'){ color = '#6a9a3a'; icon = '·'; }
+    else if(room.tableType === 'large'){ color = '#7a4a9a'; icon = '▲'; }
+    else if(room.isCorridor){ color = '#5a5a5a'; icon = '═'; }
+    
+    if(isCurrent) r = 12;
+    
+    svg += `<circle cx="${pos.x}" cy="${pos.y}" r="${r}" fill="${color}" stroke="${isCurrent ? '#ffd700' : '#3a2a1a'}" stroke-width="${isCurrent ? 3 : 1}" />`;
+    svg += `<text x="${pos.x}" y="${pos.y+3}" text-anchor="middle" font-size="${isCurrent?11:9}" fill="#fff" font-weight="700">${icon}</text>`;
+  });
+  
+  svg += `</svg>`;
+  
+  return `
+    ${svg}
+    <div class="map-legend" style="color:#3a2a1a;">
+      <span><span class="dot" style="background:#2a8a2a;"></span>入口</span>
+      <span><span class="dot" style="background:#a08040;"></span>普通</span>
+      <span><span class="dot" style="background:#6a9a3a;"></span>小房間</span>
+      <span><span class="dot" style="background:#7a4a9a;"></span>大房間</span>
+      <span><span class="dot" style="background:#c42a2a;"></span>首領</span>
+      <span><span class="dot" style="background:#b8860b;"></span>樓梯</span>
+    </div>
+    <p style="text-align:center;font-size:12px;margin-top:8px;color:#5a4a35;">
+      已探索 ${rooms.length} 個房間 · 第 ${this.dungeon.level} 層
+    </p>
+  `;
+};
+
+Game.showMap = function(){
+  Audio.click();
+  showModal('🗺 地圖', `
+    ${this.renderMapSVG()}
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="primary" onclick="closeModal()">${t('close')}</button>
+    </div>
+  `);
+};
+
+// 在地牢畫面加入「地圖」按鈕
+const _origRenderDungeon4 = Game.renderDungeon;
+Game.renderDungeon = function(){
+  _origRenderDungeon4.apply(this, arguments);
+  const content = document.getElementById('dungeon-content');
+  if(!content) return;
+  if(content.querySelector('.map-btn-panel')) return;
+  
+  const extra = document.createElement('div');
+  extra.className = 'panel map-btn-panel';
+  extra.innerHTML = `
+    <div class="btn-row" style="margin:0;">
+      <button class="small" onclick="Game.showMap()">🗺 ${t('map')}</button>
+    </div>
+  `;
+  content.appendChild(extra);
+};
+
+// ============================================
+// 初始化
+// ============================================
+function initV4(){
+  updateNavText();
+  rebindHelp();
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', () => setTimeout(initV4, 80));
+} else {
+  setTimeout(initV4, 80);
+}
+
+console.log('[2D6 Extension v4.0] Boss UI / 地圖 / 多語言 已載入');
+console.log('可用命令：Game.showMap() / Game.switchLang("en")');
+
+})();
+</script>
 </body>
 </html>
