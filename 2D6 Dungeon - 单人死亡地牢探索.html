@@ -3535,5 +3535,669 @@ console.log('[2D6 Extension] 完整扩展已加载：草药制作、药水炸弹
 
 })();
 </script>
+<script>
+// ===================================================================
+// EXTENSION MODULE v2.0 — 符文 / 首领 / 酒馆 / 神庙 / 侧任务 / 传奇
+// ===================================================================
+(function(){
+'use strict';
+
+// ==================== 1. 符文系统（Lv3+ 掉落） ====================
+const RUNES = [
+  {id:'fire', name:'烈焰符文', desc:'攻击 +1 火焰伤害', cost:10, stackable:true, effect:{dmgBonus:1}},
+  {id:'ice', name:'寒霜符文', desc:'攻击时 1/6 机率冻结敌人 1 回合', cost:10, stackable:false, effect:{freezeChance:1/6}},
+  {id:'lightning', name:'闪电符文', desc:'每次命中额外 D3 闪电伤害', cost:15, stackable:true, effect:{extraDice:'D3'}},
+  {id:'vampiric', name:'吸血符文', desc:'击杀敌人回复 5 HP', cost:20, stackable:false, effect:{healOnKill:5}},
+  {id:'sharp', name:'锋利符文', desc:'精确打击时伤害 +2', cost:12, stackable:true, effect:{exactBonus:2}},
+  {id:'swift', name:'迅捷符文', desc:'战斗开始 +1 Shift', cost:18, stackable:false, effect:{startShift:1}},
+  {id:'warding', name:'守护符文', desc:'受到伤害 -1（最小 1）', cost:22, stackable:false, effect:{damageReduce:1}},
+  {id:'cleaving', name:'劈砍符文', desc:'多体战斗时对所有敌人造成主目标 50% 伤害', cost:25, stackable:false, effect:{cleave:true}},
+  {id:'piercing', name:'穿刺符文', desc:'无视敌人 2 点护甲减伤', cost:14, stackable:false, effect:{pierce:2}},
+  {id:'holy', name:'神圣符文', desc:'对亡灵造成双倍伤害', cost:16, stackable:false, effect:{bonusVsType:{U:2}}},
+];
+
+Game.collectRune = function(){
+  if(this.dungeon.level < 3){
+    return null;
+  }
+  if(Math.random() < 0.25){
+    const r = RUNES[Math.floor(Math.random()*RUNES.length)];
+    this.player.runes = this.player.runes || [];
+    // 同一符文可堆叠才允许多个
+    const existing = this.player.runes.filter(x=>x.id===r.id);
+    if(existing.length > 0 && !r.stackable){
+      this.addLog(`🎲 发现符文：${r.name}（已有，不可堆叠）`, 'gold');
+      return null;
+    }
+    this.player.runes.push({...r});
+    this.addLog(`🔮 发现符文：${r.name}！`, 'gold');
+    Audio.good();
+    this.player.runesCollected = (this.player.runesCollected||0) + 1;
+    return r;
+  }
+  return null;
+};
+
+// ==================== 2. 符文雕刻 ====================
+Game.engraveRune = function(runeIdx, target){
+  const p = this.player;
+  const r = p.runes[runeIdx];
+  if(!r) return;
+  if(p.gold < r.cost){
+    Toast.show(`雕刻需要 ${r.cost} GC，金币不足！`, 'warn');
+    return;
+  }
+  p.gold -= r.cost;
+  p.runes.splice(runeIdx,1);
+  p.engravedRunes = p.engravedRunes || [];
+  p.engravedRunes.push({...r, target:target || 'weapon'});
+  this.addLog(`⚒ 将 ${r.name} 雕刻到${target==='thrown'?'投掷武器':'主武器'}（-${r.cost} GC）。`, 'gold');
+  Audio.good();
+  this.renderTown();
+  this.renderTopbar();
+};
+
+Game.getRuneEffect = function(key){
+  const r = (this.player.engravedRunes||[]);
+  let val = 0;
+  for(const rune of r){
+    if(rune.effect[key] !== undefined){
+      if(typeof rune.effect[key] === 'number' && rune.stackable){
+        val += rune.effect[key];
+      } else {
+        val = rune.effect[key];
+      }
+    }
+  }
+  return val;
+};
+
+// ==================== 3. 首领数据（每层一位） ====================
+const BOSSES = {
+  1: {id:'warden', name:'地牢守望者', en:'Dungeon Warden', hp:20, xp:100, sh:2,
+    type:'H', interrupt:[{type:'pri', val:3, name:'重盾格挡', dmg:-2}],
+    moves:[
+      {name:'重锤挥砸', dice:[5,2], dmg:4},
+      {name:'盾撞', dice:[3,4], dmg:3},
+      {name:'战吼', dice:[1,6], dmg:0, special:'stun'},
+    ],
+    desc:'身材魁梧的守卫长，手持重锤与铁盾，守护着地牢第一层的秘密。',
+    loot:{gold:'3D6+10', potions:1}},
+  2: {id:'hierarch', name:'领域主教', en:'Domain Hierarch', hp:26, xp:150, sh:2,
+    type:'H', interrupt:[{type:'sec', val:2, name:'神术护盾', dmg:-2}],
+    moves:[
+      {name:'灵能鞭', dice:[4,3], dmg:4},
+      {name:'神圣冲击', dice:[6,2], dmg:5},
+      {name:'诅咒', dice:[2,5], dmg:2, special:'weak'},
+    ],
+    desc:'身穿华丽法袍的宗教首领，掌握着诡异的黑暗神术。',
+    loot:{gold:'4D6+10', scrolls:1}},
+  3: {id:'cryptlord', name:'墓穴领主', en:'Crypt Lord', hp:32, xp:200, sh:2,
+    type:'U', interrupt:[{type:'sec', val:1, name:'骸骨护甲', dmg:-2}],
+    moves:[
+      {name:'死亡之触', dice:[4,3], dmg:5},
+      {name:'亡灵召唤', dice:[6,3], dmg:0, special:'summon'},
+      {name:'腐臭吐息', dice:[2,5], dmg:4},
+    ],
+    desc:'从深处苏醒的亡灵领主，皮肤干枯如皮革，眼窝中燃烧着冥火。',
+    loot:{gold:'5D6+15', potions:1}},
+  4: {id:'haunt', name:'缠绕之魂', en:'Haunting Wraith', hp:38, xp:250, sh:3,
+    type:'U', interrupt:[{type:'pri', val:1, name:'灵体化', dmg:-3}],
+    moves:[
+      {name:'夺魂', dice:[5,2], dmg:6},
+      {name:'恐惧', dice:[6,4], dmg:3, special:'fear'},
+      {name:'穿心', dice:[3,5], dmg:5},
+    ],
+    desc:'怨念凝成的幽灵，无形无体，只有无尽的仇恨驱动着它。',
+    loot:{gold:'5D6+20', scrolls:1}},
+  5: {id:'infernal', name:'炼狱使徒', en:'Infernal Apostle', hp:45, xp:300, sh:3,
+    type:'H', interrupt:[{type:'sec', val:3, name:'火焰护盾', dmg:-3}],
+    moves:[
+      {name:'火球', dice:[5,2], dmg:6},
+      {name:'熔岩拳', dice:[6,3], dmg:5},
+      {name:'炼狱爆', dice:[1,6], dmg:8, special:'selfdmg'},
+    ],
+    desc:'半人半魔的炼狱使徒，皮肤龟裂喷发岩浆，周围空气燃烧。',
+    loot:{gold:'6D6+25', potions:2}},
+  6: {id:'cultleader', name:'邪教领袖', en:'Cult Leader', hp:52, xp:400, sh:3,
+    type:'H', interrupt:[{type:'sec', val:4, name:'血祭', dmg:-2, heal:2}],
+    moves:[
+      {name:'血祭匕首', dice:[4,3], dmg:6},
+      {name:'精神控制', dice:[2,5], dmg:4, special:'control'},
+      {name:'召唤狂信徒', dice:[6,2], dmg:3, special:'summon'},
+    ],
+    desc:'狂热的邪教领袖，脸上涂满鲜血，眼中充满疯狂。',
+    loot:{gold:'6D6+30', scrolls:2}},
+  7: {id:'beastmaster', name:'百兽之王', en:'Beastmaster', hp:60, xp:500, sh:3,
+    type:'H', interrupt:[{type:'pri', val:6, name:'野兽本能', dmg:-2}],
+    moves:[
+      {name:'兽群撕咬', dice:[4,5], dmg:7},
+      {name:'狂化', dice:[1,6], dmg:2, special:'enrage'},
+      {name:'驯兽鞭', dice:[3,2], dmg:5},
+    ],
+    desc:'驯养群兽的地牢之王，身边总是围绕着凶恶的野兽。',
+    loot:{gold:'7D6+35', potions:1}},
+  8: {id:'maze', name:'迷宫之主', en:'Labyrinth Lord', hp:70, xp:600, sh:4,
+    type:'M', interrupt:[{type:'sec', val:6, name:'空间扭曲', dmg:-3}],
+    moves:[
+      {name:'虚空斩', dice:[5,4], dmg:8},
+      {name:'瞬移突袭', dice:[2,6], dmg:6},
+      {name:'迷宫困锁', dice:[1,5], dmg:4, special:'stun'},
+    ],
+    desc:'能操控空间的存在，周身环绕着扭曲的迷宫幻象。',
+    loot:{gold:'8D6+40', scrolls:2}},
+  9: {id:'cursed', name:'被诅咒者', en:'The Cursed One', hp:80, xp:750, sh:4,
+    type:'U', interrupt:[{type:'pri', val:2, name:'诅咒反噬', dmg:-4}],
+    moves:[
+      {name:'诅咒之爪', dice:[5,3], dmg:9},
+      {name:'绝望哀嚎', dice:[4,6], dmg:6, special:'fear'},
+      {name:'生死轮回', dice:[1,5], dmg:5, heal:5},
+    ],
+    desc:'被远古诅咒缠身的半神，痛苦与怨恨化作强大的力量。',
+    loot:{gold:'9D6+50', potions:2}},
+  10: {id:'dungeonlord', name:'地牢之王', en:'The Dungeon Lord', hp:100, xp:1000, sh:5,
+    type:'H', interrupt:[{type:'pri', val:4, name:'王权护盾', dmg:-4},{type:'sec', val:5, name:'王权护盾', dmg:-3}],
+    moves:[
+      {name:'灭世斩', dice:[6,5], dmg:10},
+      {name:'王者威压', dice:[3,6], dmg:7, special:'fear'},
+      {name:'召唤爪牙', dice:[1,6], dmg:4, special:'summon'},
+      {name:'终极诅咒', dice:[2,5], dmg:8, special:'selfdmg'},
+    ],
+    desc:'十层地牢的绝对统治者，坐拥无尽的宝藏与黑暗力量。',
+    loot:{gold:'10D6+100', scrolls:2, potions:2, legendary:true}},
+};
+
+// ==================== 4. Boss 战启动 ====================
+Game.startBossFight = function(level){
+  const boss = BOSSES[level];
+  if(!boss) return;
+  const bossCreature = {
+    id: boss.id,
+    name: boss.name,
+    en: boss.en,
+    hp: boss.hp,
+    maxHp: boss.hp,
+    curHp: boss.hp,
+    xp: boss.xp,
+    sh: boss.sh,
+    type: boss.type,
+    interrupt: boss.interrupt,
+    moves: boss.moves,
+    desc: boss.desc,
+    isBoss: true,
+    alive: true,
+    loot: boss.loot,
+  };
+  this.dungeon.currentRoom = {
+    id:'bossroom',
+    name:`👹 ${boss.name} 的巢穴`,
+    desc:boss.desc + ' 你感到前所未有的压力。',
+    exits:[],
+    isBoss:true,
+    bossLevel:level,
+    visited:true,
+    size:[6,6],
+    area:36,
+    tableType:'large',
+  };
+  this.dungeon.rooms.push(this.dungeon.currentRoom);
+  this.startCombat([bossCreature]);
+  this.addLog(`👹 首领 ${boss.name} 出现！`, 'bad');
+  Audio.bad();
+};
+
+// ==================== 5. 覆盖 enterRoom：接近层末时触发 Boss ====================
+const _origEnterRoom2 = Game.enterRoom;
+Game.enterRoom = function(exitIdx){
+  // 检查是否接近层末（房间数达 10+ 且尚未击败本层 Boss）
+  if(this.dungeon && !this.dungeon.bossDefeated && this.dungeon.roomCount >= 10){
+    this.dungeon.bossDefeated = false;
+    this.startBossFight(this.dungeon.level);
+    return;
+  }
+  // 若本层 Boss 已击败，直接生成楼梯
+  if(this.dungeon && this.dungeon.bossDefeated){
+    const lastRoom = {
+      id:'lastroom',
+      name:'楼梯间',
+      desc:'楼梯通向下一层。空气越来越冷。',
+      exits:['stairs'],
+      isLast:true,
+      visited:true,
+      size:[4,4],
+      area:16,
+      tableType:'normal',
+    };
+    this.dungeon.rooms.push(lastRoom);
+    this.dungeon.currentRoom = lastRoom;
+    this.dungeon.currentRoomIdx = this.dungeon.rooms.length - 1;
+    this.dungeon.pendingExits = ['stairs'];
+    this.addHistory(`抵达楼梯间`);
+    this.render();
+    return;
+  }
+  _origEnterRoom2.apply(this, arguments);
+};
+
+// ==================== 6. 覆盖 endCombat：Boss 击杀处理 ====================
+const _origEndCombat = Game.endCombat;
+Game.endCombat = function(){
+  // 检查是否是 Boss 战
+  const wasBoss = this.combat && this.combat.enemies.some(e=>e.isBoss);
+  const bossKilled = wasBoss && this.combat.enemies.every(e=>!e.alive);
+  
+  _origEndCombat.apply(this, arguments);
+  
+  if(bossKilled){
+    const boss = this.combat.enemies.find(e=>e.isBoss);
+    this.dungeon.bossDefeated = true;
+    this.addLog(`🏆 击败首领 ${boss.name}！`, 'gold');
+    Audio.levelup();
+    this.unlockAchievement(`boss${this.dungeon.level}`);
+    // 战利品
+    if(boss.loot){
+      if(boss.loot.gold){
+        const gold = parseDamage(boss.loot.gold);
+        this.gainGold(gold);
+      }
+      if(boss.loot.potions){
+        for(let i=0;i<boss.loot.potions;i++){
+          const p = DATA.potions[Math.floor(Math.random()*DATA.potions.length)];
+          this.player.potions.push({id:p.id, name:p.name, effect:p.effect});
+        }
+      }
+      if(boss.loot.scrolls){
+        for(let i=0;i<boss.loot.scrolls;i++){
+          const s = DATA.scrolls[Math.floor(Math.random()*DATA.scrolls.length)];
+          this.player.scrolls.push({...s});
+        }
+      }
+      if(boss.loot.legendary){
+        this.unlockAchievement('completeLevel10');
+      }
+    }
+    // 掉落符文
+    this.collectRune();
+    this.collectRune();
+  }
+  
+  // 每层开始检查 Boss 是否已击败（重置标记）
+  if(this.dungeon && this.dungeon.bossDefeated && this.dungeon.level < 10){
+    setTimeout(()=>{
+      // 显示提示
+      Toast.show('🏆 本层首领已击败！前往楼梯间下到下一层。', 'good');
+    }, 1500);
+  }
+};
+
+// ==================== 7. 符文掉落（Lv3+ 击败普通敌人时） ====================
+const _origGainXP = Game.gainXP;
+Game.gainXP = function(amount){
+  _origGainXP.call(this, amount);
+  // 有概率掉符文（仅 Lv3+）
+  if(this.dungeon && this.dungeon.level >= 3 && Math.random() < 0.03){
+    this.collectRune();
+  }
+};
+
+// ==================== 8. 完整酒馆事件表 (2D6) ====================
+Game.townTavern = function(){
+  const roll = rollD6() + rollD6();
+  this.addLog(`🍺 在酒馆打听消息（2D6=${roll}）...`, '');
+  const p = this.player;
+  let result;
+  
+  if(roll === 2){
+    result = '地牢被侵扰。本次进入地牢时，所有小房间（≤6 平方）都会额外遭遇 1 支巡逻队。';
+    p.temp.smallRoomPatrol = true;
+  } else if(roll === 3 || roll === 4){
+    result = '喝多了，醒来头痛欲裂。失去所有银币（SC）和 2 HP。';
+    p.gold = Math.max(0, p.gold);
+    p.hp = Math.max(1, p.hp - 2);
+  } else if(roll === 5 || roll === 6){
+    result = '听到有人发现另一条地牢入口与独特标记石。本次进入地牢时，可多离开该层一次。';
+    p.temp.extraExit = (p.temp.extraExit||0) + 1;
+  } else if(roll === 7 || roll === 8 || roll === 9){
+    result = '愉快的夜晚，但没什么特别收获。';
+  } else if(roll === 10){
+    result = '老格伦聊起地牢路线，你对某个房间类型更熟悉。进入地牢后第一个新房间可自选类型。';
+    p.temp.chooseFirstRoom = true;
+  } else if(roll === 11){
+    result = '芙蕾达端出暖汤。次日精神百倍。获得 +2 临时 HP（超过基线）。';
+    p.temp.hpBonus = (p.temp.hpBonus||0) + 2;
+    p.hp += 2;
+  } else if(roll === 12){
+    result = '气氛欢腾，据说最近没有袭击。本次进入地牢时该层没有巡逻队。';
+    p.temp.noPatrol = true;
+  }
+  
+  this.addLog(`📖 ${result}`, 'good');
+  Audio.good();
+  this.renderTown();
+  this.renderTopbar();
+};
+
+// ==================== 9. 完整神庙互动 ====================
+Game.townTemple = function(god){
+  if(!god){
+    const p = this.player;
+    let html = `<h3>选择一位神明冥想（+1 FP）</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:4px;">`;
+    DATA.godOrder.forEach(g=>{
+      html += `<button class="small" onclick="Game.townTempleMeditate('${g}')">${DATA.gods[g].name}</button>`;
+    });
+    html += `</div>
+      <h3 style="margin-top:12px;">捐赠宗教文物</h3>
+      <p style="font-size:12px;">每件文物可换取 2 FP（选择神明）。当前持有：${(p.religiousArtifacts||[]).length} 件</p>
+      <div class="btn-row">
+        <button onclick="Game.donateArtifact()" ${(p.religiousArtifacts||[]).length===0?'disabled':''}>捐赠文物</button>
+      </div>
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="primary" onclick="closeModal()">关闭</button>
+      </div>`;
+    showModal('⛪ 神庙', html);
+    return;
+  }
+  p_favour(god);
+};
+
+function p_favour(god){
+  Game.player.favour[god] = (Game.player.favour[god]||0) + 1;
+  Game.addLog(`🧘 在神庙冥想，获得 ${DATA.gods[god].name} 的 1 点恩惠。`, 'gold');
+  Toast.show(`获得 ${DATA.gods[god].name} +1 FP`, 'good');
+  if(Game.phase === 'TOWN') Game.renderTown();
+  Game.renderTopbar();
+}
+
+Game.townTempleMeditate = function(god){
+  p_favour(god);
+  closeModal();
+};
+
+Game.donateArtifact = function(){
+  const p = this.player;
+  if(!p.religiousArtifacts || p.religiousArtifacts.length === 0){
+    Toast.show('没有宗教文物可捐赠。', 'warn');
+    return;
+  }
+  const artifact = p.religiousArtifacts.pop();
+  // 选择神明
+  let html = `<h3>捐赠 ${artifact.name}</h3><p style="font-size:12px;">选择一位神明获得 2 FP：</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:4px;">`;
+  DATA.godOrder.forEach(g=>{
+    html += `<button class="small" onclick="Game.confirmDonate('${g}')">${DATA.gods[g].name}</button>`;
+  });
+  html += `</div><div class="btn-row" style="margin-top:12px;"><button onclick="closeModal()">取消</button></div>`;
+  showModal('⛪ 捐赠文物', html);
+};
+
+Game.confirmDonate = function(god){
+  const p = this.player;
+  p.favour[god] = (p.favour[god]||0) + 2;
+  this.addLog(`📿 捐赠文物给 ${DATA.gods[god].name}，+2 FP。`, 'gold');
+  Audio.good();
+  closeModal();
+  this.renderTown();
+};
+
+// ==================== 10. 侧任务系统 ====================
+Game.addSideQuest = function(quest){
+  if(!this.player.sideQuests) this.player.sideQuests = [];
+  this.player.sideQuests.push({...quest, done:false});
+  this.addLog(`📋 接受侧任务：${quest.name}`, 'gold');
+};
+
+Game.completeSideQuest = function(idx){
+  const q = this.player.sideQuests[idx];
+  if(!q || q.done) return;
+  q.done = true;
+  this.gainXP(50 * this.player.level);
+  this.addLog(`✅ 完成侧任务：${q.name}（+${50*this.player.level} XP）`, 'gold');
+  Audio.levelup();
+};
+
+Game.checkSideQuests = function(){
+  const p = this.player;
+  if(!p.sideQuests) return;
+  p.sideQuests.forEach((q, i) => {
+    if(q.done) return;
+    if(q.type === 'kill' && p.enemiesSlain >= q.target){ this.completeSideQuest(i); }
+    if(q.type === 'gold' && p.gold >= q.target){ this.completeSideQuest(i); }
+    if(q.type === 'rooms' && p.roomsEntered >= q.target){ this.completeSideQuest(i); }
+    if(q.type === 'prisoners' && (p.freedPrisoners||0) >= q.target){ this.completeSideQuest(i); }
+  });
+};
+
+// 覆盖 gainGold / enemiesSlain 变化检测
+const _origGainGold = Game.gainGold;
+Game.gainGold = function(amount){
+  _origGainGold.call(this, amount);
+  this.checkSideQuests();
+};
+
+// 击杀时检查
+const _origEnemyAttack = Game.enemyAttack;
+// 在 endCombat 时检查
+const _origEndCombat2 = Game.endCombat;
+Game.endCombat = function(){
+  _origEndCombat2.call(this);
+  this.checkSideQuests();
+};
+
+// ==================== 11. 侧任务提示 ====================
+Game.openSideQuests = function(){
+  const p = this.player;
+  const quests = p.sideQuests || [];
+  let html = '';
+  if(quests.length === 0){
+    html = '<p style="color:#888;">目前没有侧任务。在探索中可能会遇到。</p>';
+  } else {
+    html = `<div style="display:flex;flex-direction:column;gap:6px;">`;
+    quests.forEach((q,i)=>{
+      const progress = q.done ? '✅ 已完成' : '⏳ 进行中';
+      html += `<div style="padding:8px;border:1px solid ${q.done?'#2a8a2a':'#8a6a3a'};border-radius:5px;background:${q.done?'rgba(42,138,42,.1)':'rgba(184,134,11,.08)'};">
+        <b>${q.name}</b> ${progress}<br>
+        <span style="font-size:12px;">${q.desc}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `<div class="btn-row" style="margin-top:12px;"><button class="primary" onclick="closeModal()">关闭</button></div>`;
+  showModal('📋 侧任务', html);
+};
+
+// ==================== 12. 传奇奖励 ====================
+const LEGENDARY_REWARDS = [
+  '维里菲卡之冠',
+  '德提内尔之法术书',
+  '普特尼克的幽魂护甲',
+  '泽博之盔',
+  '杜姆内祖的金像',
+  '德雷塔斯之杖',
+];
+
+Game.grantLegendaryReward = function(){
+  const roll = rollD6();
+  const reward = LEGENDARY_REWARDS[roll-1];
+  this.player.legendaryReward = reward;
+  this.player.gold += 500;
+  this.addLog(`🏆 获得传奇奖励：${reward} + 500 GC！`, 'gold');
+  this.unlockAchievement('completeLevel10');
+  Audio.levelup();
+  this.showVictoryWithReward(reward);
+};
+
+Game.showVictoryWithReward = function(reward){
+  const content = document.getElementById('game-area');
+  content.innerHTML = `
+    <div style="text-align:center;padding:40px 10px;">
+      <h1 style="color:#b8860b;font-size:36px;">🏆 传奇！ 🏆</h1>
+      <p style="font-size:18px;margin:20px 0;color:#8a5a00;"><b>获得传奇奖励：${reward}</b></p>
+      <p style="font-size:14px;color:#3a2a1a;">你已完成全部 10 层地牢，成为柯拉丁大陆的传奇。</p>
+      <div class="panel" style="max-width:400px;margin:20px auto;">
+        <h3>最终成绩</h3>
+        <p>等级：<b>${this.player.level}</b></p>
+        <p>经验值：<b>${this.player.xp}</b></p>
+        <p>金币：<b>${this.player.gold}</b> GC</p>
+        <p>击杀：<b>${this.player.enemiesSlain}</b></p>
+        <p>探索房间：<b>${this.player.roomsEntered}</b></p>
+        <p>释放囚犯：<b>${this.player.freedPrisoners||0}</b></p>
+      </div>
+      <button class="primary" onclick="Game.restart()">重新开始</button>
+    </div>
+  `;
+  this.phase = 'VICTORY';
+};
+
+// 覆盖 victory
+Game.victory = function(){
+  this.grantLegendaryReward();
+};
+
+// ==================== 13. 覆盖 renderDungeon 添加侧任务与符文按钮 ====================
+const _origRenderDungeon2 = Game.renderDungeon;
+Game.renderDungeon = function(){
+  _origRenderDungeon2.apply(this, arguments);
+  const content = document.getElementById('dungeon-content');
+  if(!content) return;
+  const extra = document.createElement('div');
+  extra.className = 'panel';
+  let btns = '';
+  if(this.player.sideQuests && this.player.sideQuests.length > 0){
+    btns += `<button class="small" onclick="Game.openSideQuests()">📋 侧任务 (${this.player.sideQuests.length})</button>`;
+  }
+  if(this.player.runes && this.player.runes.length > 0){
+    btns += `<button class="small" onclick="Game.openRunePanel()">🔮 符文 (${this.player.runes.length})</button>`;
+  }
+  if(btns){
+    extra.innerHTML = `<h3>🎒 快捷操作</h3><div class="btn-row" style="margin:0;">${btns}</div>`;
+    content.appendChild(extra);
+  }
+};
+
+Game.openRunePanel = function(){
+  const p = this.player;
+  let html = `<h3>🔮 持有的符文</h3>`;
+  if(!p.runes || p.runes.length === 0){
+    html += '<p style="color:#888;">没有符文。第 3 层以上才有机会发现。</p>';
+  } else {
+    html += '<div style="display:flex;flex-direction:column;gap:6px;">';
+    p.runes.forEach((r,i)=>{
+      html += `<div style="padding:8px;border:1px solid #8a6a3a;border-radius:5px;background:rgba(184,134,11,.08);">
+        <b>${r.name}</b><br>
+        <span style="font-size:12px;">${r.desc}</span><br>
+        <span style="font-size:11px;color:#8a5a00;">雕刻需 ${r.cost} GC</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  html += `<div class="btn-row" style="margin-top:12px;">
+    <button class="primary" onclick="closeModal()">关闭</button>
+  </div>`;
+  showModal('🔮 符文', html);
+};
+
+// ==================== 14. 覆盖城镇渲染加入符文雕刻 ====================
+const _origRenderTown2 = Game.renderTown;
+Game.renderTown = function(){
+  _origRenderTown2.apply(this, arguments);
+  const content = document.getElementById('town-content');
+  if(!content) return;
+  // 在草药师之后，插入符文雕刻面板
+  const panels = content.querySelectorAll('.panel');
+  let insertPoint = null;
+  panels.forEach(p => {
+    if(p.textContent.includes('草药师 / 炼金')) insertPoint = p;
+  });
+  if(insertPoint){
+    const runePanel = document.createElement('div');
+    runePanel.className = 'panel';
+    let runeHtml = `<h2>⚒ 雕刻师</h2>`;
+    const p = this.player;
+    if(!p.runes || p.runes.length === 0){
+      runeHtml += `<p style="font-size:12px;color:#5a4a35;">没有可雕刻的符文。第 3 层以上才可能发现。</p>`;
+    } else {
+      runeHtml += `<p style="font-size:12px;">持有 ${p.runes.length} 枚符文（雕刻费用 10-25 GC）</p>`;
+      runeHtml += `<button onclick="Game.openEngraver()">打开符文台</button>`;
+    }
+    runePanel.innerHTML = runeHtml;
+    insertPoint.parentNode.insertBefore(runePanel, insertPoint.nextSibling);
+  }
+};
+
+Game.openEngraver = function(){
+  const p = this.player;
+  let html = `<h3>选择要雕刻的符文</h3>`;
+  html += `<div style="display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow-y:auto;">`;
+  p.runes.forEach((r,i)=>{
+    const can = p.gold >= r.cost;
+    html += `<div style="padding:6px;border:1px solid ${can?'#8a6a3a':'#ccc'};border-radius:5px;background:${can?'rgba(184,134,11,.08)':'rgba(0,0,0,.03)'};opacity:${can?1:.5};">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="flex:1;">
+          <b>${r.name}</b><br>
+          <span style="font-size:11px;">${r.desc}</span>
+        </div>
+        <button class="small" ${can?'':'disabled'} onclick="Game.engraveRune(${i}, 'weapon')">雕刻</button>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  if(p.engravedRunes && p.engravedRunes.length > 0){
+    html += `<h3 style="margin-top:12px;">已雕刻符文</h3>`;
+    p.engravedRunes.forEach(r=>{
+      html += `<div style="font-size:12px;padding:3px 0;">🔮 ${r.name}（${r.target==='thrown'?'投掷武器':'主武器'}）</div>`;
+    });
+  }
+  html += `<div class="btn-row" style="margin-top:12px;"><button class="primary" onclick="closeModal()">关闭</button></div>`;
+  showModal('⚒ 符文雕刻', html);
+};
+
+// ==================== 15. 覆盖 Boss 战后下落检查 ====================
+const _origGoDownStairs = Game.goDownStairs;
+Game.goDownStairs = function(){
+  if(!this.dungeon.bossDefeated){
+    Toast.show('你必须先击败本层首领！', 'warn');
+    return;
+  }
+  // 重置 boss 状态
+  this.dungeon.bossDefeated = false;
+  _origGoDownStairs.call(this);
+};
+
+// ==================== 16. 平衡性调整 ====================
+// 根据玩家等级调整敌人 HP
+const _origStartCombat = Game.startCombat;
+Game.startCombat = function(creatureList){
+  const level = this.dungeon ? this.dungeon.level : 1;
+  // 非 Boss 敌人按层数 +20% HP
+  const isBoss = creatureList.some(c => c.isBoss);
+  if(!isBoss && level > 1){
+    creatureList = creatureList.map(c => {
+      const clone = JSON.parse(JSON.stringify(c));
+      clone.hp = Math.ceil(c.hp * (1 + (level-1) * 0.2));
+      clone.maxHp = clone.hp;
+      clone.curHp = clone.hp;
+      clone.xp = Math.ceil(c.xp * (1 + (level-1) * 0.15));
+      return clone;
+    });
+  }
+  _origStartCombat.call(this, creatureList);
+};
+
+// ==================== 17. 侧任务初始化（首次进入地牢时） ====================
+const _origCreatePlayer2 = Game.createPlayer;
+Game.createPlayer = function(...args){
+  _origCreatePlayer2.apply(this, args);
+  // 初始侧任务
+  this.addSideQuest({name:'地牢清扫', desc:'击败 5 只敌人', type:'kill', target:5});
+  this.addSideQuest({name:'财富积累', desc:'累积获得 50 GC', type:'gold', target:50});
+};
+
+// ==================== 18. 初始化 ====================
+console.log('[2D6 Extension v2.0] 符文、首领、酒馆、神庙、侧任务、传奇奖励已加载');
+console.log('可用命令：Game.openRunePanel() / Game.openSideQuests() / Game.openEngraver()');
+
+})();
+</script>
 </body>
 </html>
