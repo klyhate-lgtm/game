@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>骸骨險境：網頁輕量版</title>
+    <title>骸骨險境：進階版</title>
     <style>
         :root {
-            --bg-color: #2c2a27;
+            --bg-color: #1a1816;
             --paper-bg: #e8dcc4;
             --paper-border: #5c4533;
             --text-dark: #2b1d12;
@@ -15,7 +15,7 @@
             --accent-green: #2f5c3b;
             --accent-blue: #2a526e;
             --accent-gold: #c49a45;
-            --shadow: rgba(0,0,0,0.6);
+            --shadow: rgba(0,0,0,0.7);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
@@ -43,7 +43,7 @@
 
         /* 頂部狀態列 */
         #top-bar {
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.8);
             color: var(--text-light);
             padding: 10px;
             display: flex;
@@ -54,7 +54,7 @@
             font-size: 14px;
         }
 
-        .stat-group { display: flex; gap: 15px; }
+        .stat-group { display: flex; gap: 15px; flex-wrap: wrap; }
         .stat { display: flex; align-items: center; gap: 5px; }
         
         /* 主遊戲區 */
@@ -62,228 +62,216 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 15px;
-            gap: 15px;
+            padding: 10px;
+            gap: 10px;
             overflow-y: auto;
-            position: relative;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.3s ease;
         }
 
-        /* 遭遇卡展示區 (水平捲動) */
-        .card-row {
+        /* 戰鬥區域 (敵人與角色對峙) */
+        #battle-arena {
             display: flex;
-            gap: 15px;
-            overflow-x: auto;
-            padding: 10px 0;
+            justify-content: space-between;
             align-items: center;
-            scrollbar-width: thin;
-            scrollbar-color: var(--accent-gold) var(--bg-color);
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            border: 1px solid #333;
+            min-height: 120px;
         }
-        .card-row::-webkit-scrollbar { height: 8px; }
-        .card-row::-webkit-scrollbar-thumb { background: var(--accent-gold); border-radius: 4px; }
 
-        /* 卡牌樣式 */
-        .card {
-            min-width: 140px;
-            height: 200px;
-            background: var(--paper-bg);
-            border: 3px solid var(--paper-border);
-            border-radius: 8px;
+        .combatant {
             display: flex;
             flex-direction: column;
-            justify-content: flex-end;
-            position: relative;
-            box-shadow: 4px 4px 10px var(--shadow);
+            align-items: center;
+            gap: 5px;
+            width: 120px;
+        }
+        
+        .avatar-svg {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-gold);
+            background: #2c2a27;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            box-shadow: 0 0 10px rgba(196, 154, 69, 0.3);
+        }
+
+        .hp-bar-bg {
+            width: 100%; height: 10px;
+            background: #444;
+            border-radius: 5px;
             overflow: hidden;
-            flex-shrink: 0;
-            cursor: pointer;
-            transition: transform 0.2s;
         }
-        .card:hover { transform: translateY(-5px); }
-        .card:active { transform: translateY(0); }
-        
-        .card-bg {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, #d4c5a9, #b8a483);
-            z-index: 0;
+        .hp-bar-fill {
+            height: 100%; width: 100%;
+            background: var(--accent-red);
+            transition: width 0.3s ease;
         }
-        
-        /* 卡牌底部的半透明黑底標籤 */
-        .card-label {
-            background: rgba(0,0,0,0.75);
-            color: white;
-            padding: 8px;
-            font-size: 12px;
-            text-align: center;
-            z-index: 1;
-            line-height: 1.2;
-            border-top: 1px solid rgba(255,255,255,0.2);
-        }
-        .card-label h3 { margin-bottom: 4px; color: var(--accent-gold); font-size: 14px; }
-        
-        /* 骰子展示區 */
-        #dice-pool {
+
+        /* 遭遇/卡牌區 */
+        .card-row {
             display: flex;
             gap: 10px;
-            flex-wrap: wrap;
-            min-height: 60px;
-            background: rgba(0,0,0,0.3);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px dashed var(--accent-gold);
+            overflow-x: auto;
+            padding: 5px 0;
             align-items: center;
-            justify-content: center;
+            scrollbar-width: thin;
+        }
+        .card-row::-webkit-scrollbar { height: 6px; }
+        .card-row::-webkit-scrollbar-thumb { background: var(--accent-gold); border-radius: 3px; }
+
+        .card {
+            min-width: 100px; height: 140px;
+            background: var(--paper-bg);
+            border: 2px solid var(--paper-border);
+            border-radius: 6px;
+            display: flex; flex-direction: column; justify-content: flex-end;
+            position: relative; overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 2px 2px 5px var(--shadow);
+        }
+        .card-label {
+            background: rgba(0,0,0,0.8); color: white;
+            padding: 4px; font-size: 11px; text-align: center;
+            z-index: 1; line-height: 1.2;
+        }
+        .card-label h4 { color: var(--accent-gold); font-size: 12px; margin-bottom: 2px; }
+
+        /* 骰子池與分配區 */
+        #dice-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #dice-pool {
+            display: flex; gap: 8px; flex-wrap: wrap;
+            min-height: 60px; padding: 10px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 8px; border: 1px dashed var(--accent-gold);
+            align-items: center; justify-content: center;
         }
         
         .die {
-            width: 45px; height: 45px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
+            width: 40px; height: 40px; border-radius: 8px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 20px; font-weight: bold; color: white;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer; transition: transform 0.1s;
+            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+        .die:hover { transform: scale(1.1); }
+        .die.selected { box-shadow: 0 0 10px 3px yellow; transform: scale(1.1); }
+        
         @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
-        .die.attack { background: var(--accent-red); border: 2px solid #5a1e1e; }
-        .die.defense { background: var(--accent-blue); border: 2px solid #1a3648; }
-        .die.skill { background: var(--accent-green); border: 2px solid #1d3a26; }
-        .die.bone { background: #555; color: #ddd; }
+        .die.attack { background: var(--accent-red); border: 2px solid #ff6b6b; }
+        .die.defense { background: var(--accent-blue); border: 2px solid #6bafff; }
+        .die.skill { background: var(--accent-green); border: 2px solid #6bff8b; }
+        .die.bone { background: #888; color: #222; }
+
+        /* 分配區 */
+        #allocation-zones {
+            display: flex; gap: 10px; height: 60px;
+        }
+        .zone {
+            flex: 1; border: 2px dashed #555; border-radius: 8px;
+            display: flex; justify-content: center; align-items: center;
+            color: #666; font-weight: bold; font-size: 14px;
+            flex-wrap: wrap; gap: 5px; padding: 5px;
+            background: rgba(255,255,255,0.05);
+        }
+        .zone.attack-zone { border-color: var(--accent-red); color: var(--accent-red); }
+        .zone.defense-zone { border-color: var(--accent-blue); color: var(--accent-blue); }
+        
+        .die.mini {
+            width: 30px; height: 30px; font-size: 14px; border-radius: 4px; cursor: default;
+        }
 
         /* 底部操作區 */
         #action-bar {
-            padding: 15px;
+            padding: 10px;
             background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            flex-wrap: wrap;
+            display: flex; gap: 10px; justify-content: center;
             z-index: 10;
         }
 
         button {
-            padding: 12px 20px;
-            font-family: inherit;
-            font-size: 16px;
-            font-weight: bold;
-            background: var(--paper-bg);
-            color: var(--text-dark);
-            border: 2px solid var(--paper-border);
-            border-radius: 6px;
-            cursor: pointer;
-            box-shadow: 2px 2px 0 var(--paper-border);
-            transition: all 0.1s;
-            flex: 1;
-            min-width: 120px;
+            padding: 12px 20px; font-family: inherit; font-size: 15px; font-weight: bold;
+            background: var(--paper-bg); color: var(--text-dark);
+            border: 2px solid var(--paper-border); border-radius: 6px;
+            cursor: pointer; box-shadow: 2px 2px 0 var(--paper-border);
+            transition: all 0.1s; flex: 1;
         }
         button:hover:not(:disabled) { background: #fff; transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--paper-border); }
         button:active:not(:disabled) { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--paper-border); }
         button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(100%); }
 
+        /* 技能/商店面板 */
+        #skill-panel {
+            display: none; /* 預設隱藏 */
+            background: var(--paper-bg);
+            border: 2px solid var(--accent-gold);
+            border-radius: 8px; padding: 10px;
+            margin-bottom: 10px;
+        }
+        .skill-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px; border-bottom: 1px solid #ccc;
+        }
+        .skill-item button { flex: none; padding: 5px 10px; font-size: 12px; }
+
         /* 彈窗系統 */
         .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
         }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         
         .modal-content {
-            background: var(--paper-bg);
-            width: 90%;
-            max-width: 600px;
-            max-height: 85vh;
-            border-radius: 10px;
-            padding: 25px;
+            background: var(--paper-bg); width: 90%; max-width: 600px;
+            max-height: 85vh; border-radius: 10px; padding: 25px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
             border: 4px solid var(--paper-border);
-            overflow-y: auto;
-            position: relative;
-            transform: translateY(20px);
-            transition: transform 0.3s;
+            overflow-y: auto; position: relative;
         }
-        .modal-overlay.active .modal-content { transform: translateY(0); }
-
         .modal-content h2 { text-align: center; margin-bottom: 15px; border-bottom: 2px solid var(--paper-border); padding-bottom: 10px; }
-        .modal-content p { margin-bottom: 10px; line-height: 1.6; font-size: 15px; }
-        .modal-content ul { margin-left: 20px; margin-bottom: 15px; line-height: 1.6; }
+        .modal-content p, .modal-content li { margin-bottom: 10px; line-height: 1.6; font-size: 15px; }
+        .modal-content ul, .modal-content ol { margin-left: 20px; }
         .modal-content strong { color: var(--accent-red); }
 
-        /* 底部導航列 */
-        #bottom-nav {
-            display: flex;
-            background: #1a1816;
-            border-top: 1px solid var(--accent-gold);
-            z-index: 20;
+        /* 骰子分配彈窗 */
+        #assign-popup {
+            position: fixed; background: #222; color: white;
+            border: 1px solid var(--accent-gold); border-radius: 8px;
+            padding: 10px; display: none; flex-direction: column; gap: 5px;
+            z-index: 60; box-shadow: 0 4px 15px rgba(0,0,0,0.8);
         }
-        #bottom-nav button {
-            flex: 1;
-            border-radius: 0;
-            border: none;
-            background: transparent;
-            color: var(--text-light);
-            box-shadow: none;
-            padding: 15px 5px;
-            font-size: 14px;
-        }
-        #bottom-nav button:hover { background: rgba(255,255,255,0.1); transform: none; box-shadow: none; }
-        #bottom-nav button:active { background: rgba(255,255,255,0.2); }
+        #assign-popup button { padding: 8px; font-size: 14px; margin: 0; box-shadow: none; }
 
         /* 吐司提示 Toast */
         #toast {
-            position: fixed;
-            top: 20%; left: 50%;
+            position: fixed; top: 15%; left: 50%;
             transform: translateX(-50%) translateY(-20px);
-            background: rgba(0,0,0,0.9);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
+            background: rgba(0,0,0,0.95); color: white;
+            padding: 12px 20px; border-radius: 20px;
             border: 1px solid var(--accent-gold);
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.3s;
-            z-index: 1000;
+            opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 1000;
+            font-size: 14px; text-align: center;
         }
         #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* 歷史紀錄面板 */
-        #history-panel {
-            position: absolute;
-            top: 50px; right: -300px;
-            width: 300px;
-            height: calc(100% - 100px);
-            background: rgba(20, 18, 16, 0.95);
-            border-left: 2px solid var(--accent-gold);
-            color: #ccc;
-            padding: 15px;
-            transition: right 0.3s;
-            z-index: 30;
-            overflow-y: auto;
-        }
-        #history-panel.active { right: 0; }
-        #history-panel h3 { color: var(--accent-gold); margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .log-entry { font-size: 12px; margin-bottom: 8px; border-bottom: 1px dashed #333; padding-bottom: 5px; }
-
-        /* 手機端優化 */
+        /* 手機端 */
         @media (max-width: 600px) {
-            #top-bar { font-size: 12px; padding: 8px; }
-            .stat-group { gap: 8px; }
-            .card { min-width: 120px; height: 170px; }
-            .card-label h3 { font-size: 12px; }
-            .card-label { font-size: 10px; padding: 5px; }
-            button { padding: 10px 15px; font-size: 14px; }
-            #game-container { padding: 10px; }
+            #battle-arena { flex-direction: column; gap: 15px; }
+            .combatant { width: 100%; flex-direction: row; justify-content: space-between; padding: 0 20px;}
+            .avatar-svg { width: 40px; height: 40px; font-size: 20px; }
+            .hp-bar-bg { width: 150px; }
         }
     </style>
 </head>
@@ -294,512 +282,514 @@
         <div class="stat-group">
             <div class="stat">📅 天數: <span id="ui-day">1</span></div>
             <div class="stat">❤️ 生命: <span id="ui-hp">5</span>/<span id="ui-max-hp">5</span></div>
+            <div class="stat">🎲 TP: <span id="ui-tp">0</span></div>
         </div>
         <div class="stat-group">
-            <div class="stat">🎲 訓練點數: <span id="ui-tp">0</span></div>
-            <div class="stat">🏆 擊殺: <span id="ui-kills">0</span></div>
+            <div class="stat">⚔️ 攻擊基數: <span id="ui-atk">1</span></div>
+            <div class="stat">🛡️ 防禦基數: <span id="ui-def">0</span></div>
         </div>
     </div>
 
     <!-- 遊戲主區域 -->
     <div id="game-container">
-        <!-- 狀態文字 (打字機效果) -->
-        <div id="status-text" style="min-height: 60px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; color: var(--text-light); border-left: 4px solid var(--accent-gold); font-size: 15px; line-height: 1.4;"></div>
+        <!-- 狀態文字 -->
+        <div id="status-text" style="min-height: 40px; color: var(--text-light); border-left: 4px solid var(--accent-gold); padding-left: 10px; font-size: 15px;"></div>
 
-        <!-- 遭遇 / 戰利品卡牌區 -->
-        <div class="card-row" id="card-area">
-            <!-- JS 動態生成 -->
+        <!-- 戰鬥區域 -->
+        <div id="battle-arena" style="display: none;">
+            <div class="combatant">
+                <div class="avatar-svg" id="player-avatar">🧝‍♂️</div>
+                <div class="hp-bar-bg"><div class="hp-bar-fill" id="player-hp-bar"></div></div>
+                <div style="color: white; font-size: 12px;">你</div>
+            </div>
+            <div style="color: #888; font-size: 24px;">VS</div>
+            <div class="combatant">
+                <div class="avatar-svg" id="enemy-avatar">👹</div>
+                <div class="hp-bar-bg"><div class="hp-bar-fill" id="enemy-hp-bar"></div></div>
+                <div style="color: white; font-size: 12px;" id="enemy-name">敵人</div>
+            </div>
         </div>
 
-        <!-- 骰子池 -->
-        <div id="dice-pool">
-            <span style="color: #888; font-size: 14px;">擲出的骰子將顯示於此...</span>
-        </div>
-    </div>
+        <!-- 遭遇/戰利品區 -->
+        <div class="card-row" id="card-area"></div>
 
-    <!-- 歷史紀錄側邊欄 -->
-    <div id="history-panel">
-        <h3>📜 冒險歷史</h3>
-        <div id="history-list"></div>
+        <!-- 骰子與分配區 -->
+        <div id="dice-section">
+            <div id="dice-pool">
+                <span style="color: #888; font-size: 14px;">擲出的骰子...</span>
+            </div>
+            <div id="allocation-zones">
+                <div class="zone attack-zone" id="zone-attack">⚔️ 攻擊區</div>
+                <div class="zone defense-zone" id="zone-defense">🛡️ 防禦區</div>
+            </div>
+        </div>
+
+        <!-- 技能樹面板 (休整時顯示) -->
+        <div id="skill-panel">
+            <h3 style="text-align: center; margin-bottom: 10px; color: var(--accent-red);">技能訓練</h3>
+            <div id="skill-list"></div>
+        </div>
     </div>
 
     <!-- 底部操作區 -->
     <div id="action-bar">
-        <button id="btn-main" onclick="handleMainAction()">開始冒險</button>
-        <button id="btn-secondary" onclick="handleSecondaryAction()" style="display: none;">結束回合</button>
+        <button id="btn-main" onclick="handleMainAction()">擲骰子</button>
+        <button id="btn-resolve" onclick="resolveCombat()" style="display: none; background: var(--accent-gold);">結算回合</button>
     </div>
 
-    <!-- 底部導航列 (手機友善) -->
-    <div id="bottom-nav">
-        <button onclick="toggleModal('modal-rules')">📖 說明</button>
-        <button onclick="toggleHistory()">📜 歷史</button>
-        <button onclick="saveGame()">💾 存檔</button>
-        <button onclick="loadGame()">📂 讀檔</button>
-        <button onclick="toggleSound()"><span id="sound-icon">🔊</span> 音效</button>
+    <!-- 骰子分配彈窗 -->
+    <div id="assign-popup">
+        <button onclick="assignDie('attack')" style="background: var(--accent-red); color: white;">⚔️ 分配至攻擊</button>
+        <button onclick="assignDie('defense')" style="background: var(--accent-blue); color: white;">🛡️ 分配至防禦</button>
+        <button onclick="assignDie('discard')" style="background: #555; color: white;">🗑️ 丟棄</button>
+    </div>
+
+    <!-- 說明文件彈窗 -->
+    <div class="modal-overlay active" id="modal-rules">
+        <div class="modal-content">
+            <h2>📖 骸骨險境：進階生存指南</h2>
+            <p><strong>歡迎來到險境！</strong>這是一款硬核的擲骰 RPG。你必須分配骰子來擊敗敵人。</p>
+            
+            <h3>🎯 遊戲目標</h3>
+            <p>撐過 5 天。在「遭遇 ➔ 戰鬥 ➔ 休整」中循環，利用訓練點數 (TP) 升級，活到最後。</p>
+
+            <h3>👀 看懂畫面</h3>
+            <ul>
+                <li>請看<strong>最上方</strong>：你的生命、TP、基礎攻擊與防禦。</li>
+                <li>請看<strong>中間的戰鬥區</strong>：顯示你與敵人的血條。</li>
+                <li>請看<strong>下方的骰子區</strong>：點擊「擲骰子」後，會產生骰子。</li>
+            </ul>
+
+            <h3>⚙️ 核心操作：骰子分配</h3>
+            <ol>
+                <li>擲骰後，骰子會出現在框中。</li>
+                <li><strong>點擊骰子</strong>，會彈出選單。</li>
+                <li>選擇「分配至攻擊」或「分配至防禦」。分配好的骰子會移動到下方的區域。</li>
+                <li>分配完所有想用的骰子後，點擊「結算回合」。</li>
+            </ol>
+            <p><em>💡 提示：攻擊骰用來削減敵人生命；防禦骰用來抵擋敵人本回合的反擊。如果防禦不夠，你就會受傷！</em></p>
+
+            <h3>💡 休整階段</h3>
+            <p>戰鬥結束後，你可以花費 TP 在「技能訓練」面板解鎖被動技能或增加基礎屬性。準備好後點擊「繼續冒險」。</p>
+
+            <button onclick="startGame()" style="margin-top: 20px; width: 100%; background: var(--accent-gold); color: #000;">我準備好了，進入險境</button>
+        </div>
     </div>
 
     <!-- 吐司提示 -->
     <div id="toast">提示訊息</div>
 
-    <!-- 說明文件彈窗 -->
-    <div class="modal-overlay active" id="modal-rules">
-        <div class="modal-content">
-            <h2>📖 骸骨險境：新手生存指南</h2>
-            <p><strong>歡迎來到《骸骨險境》！</strong>這是一款擲骰驅動的硬核 RPG 冒險。你的目標是活得夠久，擊敗所有敵人，成為傳奇。</p>
-            
-            <h3>🎯 遊戲目標</h3>
-            <p>在每一天中，透過「遭遇 ➔ 戰鬥 ➔ 休整」的循環，累積訓練點數升級你的角色，擊敗不斷來襲的敵人。撐過 5 天即為勝利！</p>
-
-            <h3>👀 看懂畫面</h3>
-            <ul>
-                <li>請看畫面<strong>最上方</strong>：有 📅 天數、❤️ 生命值（歸零你就輸了），以及 🎲 訓練點數。</li>
-                <li>畫面<strong>中間</strong>：這裡會顯示你抽到的遭遇卡或戰利品。你可以左右滑動查看。</li>
-                <li>畫面<strong>下方框框</strong>：你的骰子池。擲出的攻擊（紅🔴）、防禦（藍🔵）、技能（綠🟢）會顯示在這裡。</li>
-            </ul>
-
-            <h3>⚙️ 操作步驟</h3>
-            <ol>
-                <li><strong>抽牌</strong>：點擊下方的「抽遭遇卡」。</li>
-                <li><strong>戰鬥</strong>：如果遇到敵人，點擊「擲骰子」。根據骰面，系統會自動幫你計算傷害與防禦。</li>
-                <li><strong>休整</strong>：戰鬥結束後，點擊「休息」回滿血，或點擊「升級」消耗訓練點數強化能力。</li>
-            </ol>
-
-            <h3>💡 特殊機制</h3>
-            <ul>
-                <li><strong>骰子分配</strong>：你的紅色骰子（劍）造成傷害，藍色骰子（盾）抵擋敵人本回合的攻擊。如果防禦不夠，就會扣血！</li>
-                <li><strong>戰利品</strong>：擊敗敵人或和平事件會獲得戰利品，它們能提供永久加成或特殊效果。</li>
-            </ul>
-
-            <button onclick="startGame()" style="margin-top: 20px; width: 100%; background: var(--accent-gold); color: #000;">我準備好了，開始遊戲</button>
-        </div>
-    </div>
-
     <script>
-        // --- 狀態機與核心資料 ---
+        // --- 核心資料 ---
         const gameState = {
-            phase: 'INTRO', // INTRO, ENCOUNTER, BATTLE, REST, GAMEOVER
+            phase: 'INTRO', // INTRO, ENCOUNTER, ROLL, ASSIGN, RESOLVE, REST, GAMEOVER
             day: 1,
-            hp: 5,
-            maxHp: 5,
-            attackBase: 1,
-            defenseBase: 0,
+            hp: 5, maxHp: 5,
+            baseAtk: 1, baseDef: 0,
             trainingPoints: 0,
-            kills: 0,
-            currentEnemy: null,
-            history: [],
-            soundOn: true
+            enemy: null,
+            currentDice: [], // 骰池
+            assignedAtk: [], assignedDef: [],
+            selectedDieIndex: -1,
+            skillsUnlocked: { atk1: false, def1: false, hp1: false } // 技能樹狀態
         };
 
-        // 遭遇卡資料庫 (簡化版)
+        // 遭遇資料庫
         const encounters = [
-            { id: 'e1', type: 'battle', name: '哥布林斥候', desc: '一群哥布林擋住了去路！', enemyHp: 3, enemyAtk: 2, reward: { tp: 1, type: 'loot', name: '破舊的匕首', effect: '+1 攻擊' } },
-            { id: 'e2', type: 'peace', name: '廢棄的營地', desc: '你發現了一個沒人看守的營地。', reward: { tp: 1, type: 'heal', name: '營火休息', effect: '恢復 2 點生命' } },
-            { id: 'e3', type: 'battle', name: '巨大的蜘蛛', desc: '毒牙閃爍著寒光。', enemyHp: 4, enemyAtk: 3, reward: { tp: 2, type: 'loot', name: '毒囊', effect: '+1 防禦' } },
-            { id: 'e4', type: 'treasure', name: '上鎖的寶箱', desc: '這個寶箱看起來很堅固。', reward: { tp: 0, type: 'loot', name: '稀有戰利品', effect: '需要解鎖' } }
+            { id: 'b1', type: 'battle', name: '哥布林', desc: '一隻哥布林擋住了去路！', hp: 3, atk: 2, tp: 1 },
+            { id: 'b2', type: 'battle', name: '巨型蜘蛛', desc: '毒牙閃爍著寒光。', hp: 4, atk: 3, tp: 2 },
+            { id: 'p1', type: 'peace', name: '營火', desc: '你發現了廢棄的營火。', heal: 2, tp: 1 },
+            { id: 't1', type: 'treasure', name: '寶箱', desc: '獲得了一些補給。', heal: 1, tp: 2 }
         ];
 
-        // 音效系統 (Web Audio API)
+        // --- 音效系統 ---
         let audioCtx;
-        function initAudio() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
         function playSound(type) {
-            if (!gameState.soundOn) return;
-            initAudio();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
 
-            if (type === 'click') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-            } else if (type === 'dice') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-            } else if (type === 'hurt') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-            }
+                if (type === 'click') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+                } else if (type === 'dice') {
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+                } else if (type === 'hurt') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+                }
+            } catch(e) { console.log("Audio not allowed"); }
         }
 
-        // --- UI 更新與渲染 ---
+        // --- UI 更新 ---
         function updateUI() {
             document.getElementById('ui-day').innerText = gameState.day;
             document.getElementById('ui-hp').innerText = gameState.hp;
             document.getElementById('ui-max-hp').innerText = gameState.maxHp;
             document.getElementById('ui-tp').innerText = gameState.trainingPoints;
-            document.getElementById('ui-kills').innerText = gameState.kills;
+            document.getElementById('ui-atk').innerText = gameState.baseAtk;
+            document.getElementById('ui-def').innerText = gameState.baseDef;
+
+            // 更新血條
+            document.getElementById('player-hp-bar').style.width = `${Math.max(0, (gameState.hp / gameState.maxHp) * 100)}%`;
+            
+            if (gameState.enemy) {
+                document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (gameState.enemy.hp / gameState.enemy.maxHp) * 100)}%`;
+                document.getElementById('enemy-name').innerText = `${gameState.enemy.name} (${gameState.enemy.hp}/${gameState.enemy.maxHp})`;
+            }
         }
 
-        // 打字機效果
-        let typeInterval;
-        function typeWriter(text, element) {
-            clearInterval(typeInterval);
-            element.innerHTML = '';
+        function typeWriter(text) {
+            const el = document.getElementById('status-text');
+            el.innerHTML = '';
             let i = 0;
-            typeInterval = setInterval(() => {
-                if (i < text.length) {
-                    element.innerHTML += text.charAt(i);
-                    i++;
-                } else {
-                    clearInterval(typeInterval);
-                }
-            }, 30);
-            // 點擊立即顯示
-            element.onclick = () => {
-                clearInterval(typeInterval);
-                element.innerHTML = text;
-            };
-        }
-
-        function logHistory(text) {
-            gameState.history.push(`[第 ${gameState.day} 天] ${text}`);
-            const list = document.getElementById('history-list');
-            const entry = document.createElement('div');
-            entry.className = 'log-entry';
-            entry.innerText = `[第 ${gameState.day} 天] ${text}`;
-            list.prepend(entry);
+            clearInterval(window.typeInt);
+            window.typeInt = setInterval(() => {
+                if (i < text.length) { el.innerHTML += text.charAt(i); i++; }
+                else { clearInterval(window.typeInt); }
+            }, 25);
+            el.onclick = () => { clearInterval(window.typeInt); el.innerHTML = text; };
         }
 
         function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.innerText = msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2500);
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
         }
 
-        // --- 核心遊戲邏輯 (狀態機) ---
+        // --- 遊戲流程控制 ---
         function startGame() {
-            toggleModal('modal-rules', false);
-            gameState.phase = 'ENCOUNTER';
-            gameState.day = 1;
-            gameState.hp = 5; gameState.maxHp = 5;
-            gameState.trainingPoints = 0; gameState.kills = 0;
-            gameState.history = [];
-            document.getElementById('history-list').innerHTML = '';
+            document.getElementById('modal-rules').classList.remove('active');
+            gameState.day = 1; gameState.hp = 5; gameState.maxHp = 5;
+            gameState.baseAtk = 1; gameState.baseDef = 0; gameState.trainingPoints = 0;
+            gameState.skillsUnlocked = { atk1: false, def1: false, hp1: false };
             
             updateUI();
             drawEncounter();
         }
 
         function drawEncounter() {
-            if (gameState.day > 5) {
-                gameOver(true);
-                return;
-            }
-
+            if (gameState.day > 5) { endGame(true); return; }
             gameState.phase = 'ENCOUNTER';
-            gameState.currentEnemy = null;
-            document.getElementById('dice-pool').innerHTML = '<span style="color: #888;">準備擲骰...</span>';
             
-            const btnMain = document.getElementById('btn-main');
-            const btnSec = document.getElementById('btn-secondary');
-            btnMain.style.display = 'block';
-            btnSec.style.display = 'none';
-            btnMain.disabled = true; // 防呆，先鎖定
+            document.getElementById('battle-arena').style.display = 'none';
+            document.getElementById('skill-panel').style.display = 'none';
+            document.getElementById('btn-resolve').style.display = 'none';
+            document.getElementById('dice-pool').innerHTML = '';
+            document.getElementById('zone-attack').innerHTML = '⚔️ 攻擊區';
+            document.getElementById('zone-defense').innerHTML = '🛡️ 防禦區';
 
-            typeWriter("你開始了新一天的冒險，抽取遭遇卡...", document.getElementById('status-text'));
-
-            // 模擬抽牌延遲
-            setTimeout(() => {
-                const enc = encounters[Math.floor(Math.random() * encounters.length)];
-                renderCard(enc);
+            const enc = encounters[Math.floor(Math.random() * encounters.length)];
+            renderCard(enc);
+            
+            if (enc.type === 'battle') {
+                gameState.enemy = { name: enc.name, hp: enc.hp, maxHp: enc.hp, atk: enc.atk, tp: enc.tp };
+                document.getElementById('battle-arena').style.display = 'flex';
+                document.getElementById('player-avatar').innerText = '🧝‍♂️';
+                document.getElementById('enemy-avatar').innerText = enc.name === '哥布林' ? '👺' : '🕷️';
+                updateUI();
                 
-                if (enc.type === 'battle') {
-                    gameState.currentEnemy = { name: enc.name, hp: enc.enemyHp, maxHp: enc.enemyHp, atk: enc.enemyAtk };
-                    btnMain.innerText = '進入戰鬥 (擲骰)';
-                    btnMain.onclick = () => startBattle(enc);
-                    typeWriter(`遭遇敵人：${enc.name} (生命:${enc.enemyHp} / 攻擊:${enc.enemyAtk})！`, document.getElementById('status-text'));
-                } else {
-                    btnMain.innerText = '領取獎勵';
-                    btnMain.onclick = () => resolvePeace(enc);
-                    typeWriter(`和平事件：${enc.name}。${enc.desc}`, document.getElementById('status-text'));
-                }
-                btnMain.disabled = false;
-            }, 800);
+                typeWriter(`遭遇敵人：${enc.name}！點擊「擲骰子」準備戰鬥。`);
+                const btn = document.getElementById('btn-main');
+                btn.innerText = '擲骰子'; btn.disabled = false;
+                btn.onclick = () => enterRollPhase();
+            } else {
+                gameState.enemy = null;
+                typeWriter(`和平事件：${enc.name}。${enc.desc}`);
+                const btn = document.getElementById('btn-main');
+                btn.innerText = '領取獎勵'; btn.disabled = false;
+                btn.onclick = () => {
+                    if(enc.heal) gameState.hp = Math.min(gameState.maxHp, gameState.hp + enc.heal);
+                    gameState.trainingPoints += enc.tp;
+                    updateUI();
+                    enterRestPhase();
+                };
+            }
         }
 
         function renderCard(enc) {
-            const cardArea = document.getElementById('card-area');
-            cardArea.innerHTML = ''; // 清空
-            
-            const card = document.createElement('div');
-            card.className = 'card';
-            
-            // SVG 背景生成
-            let svgBg = '';
-            if (enc.type === 'battle') {
-                svgBg = `<svg width="100%" height="100%" viewBox="0 0 100 100" style="background:#3a1c1c;"><path d="M20,20 L80,80 M80,20 L20,80" stroke="#8b2f2f" stroke-width="8"/></svg>`;
-            } else if (enc.type === 'peace') {
-                svgBg = `<svg width="100%" height="100%" viewBox="0 0 100 100" style="background:#1c3a24;"><circle cx="50" cy="50" r="30" fill="#2f5c3b"/></svg>`;
-            } else {
-                svgBg = `<svg width="100%" height="100%" viewBox="0 0 100 100" style="background:#3a331c;"><rect x="20" y="20" width="60" height="60" fill="#c49a45"/></svg>`;
-            }
-            
-            card.innerHTML = `
-                <div class="card-bg">${svgBg}</div>
-                <div class="card-label">
-                    <h3>${enc.name}</h3>
-                    <div>${enc.type === 'battle' ? '⚔️ 戰鬥' : (enc.type === 'peace' ? '☘️ 和平' : '📦 寶箱')}</div>
+            const area = document.getElementById('card-area');
+            area.innerHTML = `
+                <div class="card">
+                    <div class="card-bg" style="background: ${enc.type === 'battle' ? '#3a1c1c' : '#1c3a24'}; height: 100%;"></div>
+                    <div class="card-label">
+                        <h4>${enc.name}</h4>
+                        <div>${enc.type === 'battle' ? '⚔️ 戰鬥' : '☘️ 事件'}</div>
+                    </div>
                 </div>
             `;
-            cardArea.appendChild(card);
         }
 
-        // 戰鬥階段
-        function startBattle(enc) {
+        // 擲骰階段
+        function enterRollPhase() {
             playSound('dice');
-            gameState.phase = 'BATTLE';
-            const btnMain = document.getElementById('btn-main');
-            const btnSec = document.getElementById('btn-secondary');
+            gameState.phase = 'ROLL';
+            document.getElementById('btn-main').disabled = true;
             
-            btnMain.disabled = true;
-            typeWriter("你擲出了你的骰子...", document.getElementById('status-text'));
+            // 根據當前屬性生成骰子 (基礎 + 技能加成)
+            let atkDiceCount = gameState.baseAtk;
+            let defDiceCount = gameState.baseDef;
+            if (gameState.skillsUnlocked.atk1) atkDiceCount++;
+            if (gameState.skillsUnlocked.def1) defDiceCount++;
 
+            gameState.currentDice = [];
+            // 模擬擲骰：攻擊骰面為 1-3，防禦骰面為 1-2
+            for (let i = 0; i < atkDiceCount; i++) {
+                gameState.currentDice.push({ type: 'attack', value: Math.floor(Math.random() * 3) + 1 });
+            }
+            for (let i = 0; i < defDiceCount; i++) {
+                gameState.currentDice.push({ type: 'defense', value: Math.floor(Math.random() * 2) + 1 });
+            }
+            
+            // 如果完全沒有骰子，給一個骨頭骰防呆
+            if (gameState.currentDice.length === 0) {
+                gameState.currentDice.push({ type: 'bone', value: 0 });
+            }
+
+            renderDicePool();
+            
             setTimeout(() => {
-                // 模擬擲骰：基礎 1 攻擊，隨機 0-2 防禦
-                const attackRoll = gameState.attackBase + Math.floor(Math.random() * 3); // 1-3
-                const defenseRoll = gameState.defenseBase + Math.floor(Math.random() * 2); // 0-1
-                
-                renderDice(attackRoll, defenseRoll);
-                resolveCombat(enc, attackRoll, defenseRoll);
+                typeWriter("請點擊骰子來分配它們！(點擊骰子開啟選單)");
+                gameState.phase = 'ASSIGN';
             }, 500);
         }
 
-        function renderDice(atk, def) {
+        function renderDicePool() {
             const pool = document.getElementById('dice-pool');
             pool.innerHTML = '';
+            gameState.currentDice.forEach((die, index) => {
+                const d = document.createElement('div');
+                d.className = `die ${die.type}`;
+                d.innerText = die.type === 'bone' ? '💀' : die.value;
+                d.onclick = (e) => openAssignPopup(e, index);
+                pool.appendChild(d);
+            });
+        }
+
+        function openAssignPopup(e, index) {
+            if (gameState.phase !== 'ASSIGN') return;
+            playSound('click');
+            gameState.selectedDieIndex = index;
             
-            for(let i=0; i<atk; i++) {
-                const d = document.createElement('div');
-                d.className = 'die attack';
-                d.innerText = '⚔️';
-                pool.appendChild(d);
+            const popup = document.getElementById('assign-popup');
+            popup.style.display = 'flex';
+            const rect = e.target.getBoundingClientRect();
+            popup.style.left = `${rect.left}px`;
+            popup.style.top = `${rect.top - 120}px`; // 顯示在骰子上方
+            
+            // 如果超出螢幕邊界則修正
+            if (rect.left > window.innerWidth - 150) popup.style.left = `${window.innerWidth - 150}px`;
+            if (rect.top < 120) popup.style.top = `${rect.bottom + 10}px`;
+        }
+
+        function assignDie(targetZone) {
+            if (gameState.selectedDieIndex === -1) return;
+            playSound('click');
+            
+            const die = gameState.currentDice[gameState.selectedDieIndex];
+            
+            if (targetZone === 'attack' && die.type !== 'bone') {
+                gameState.assignedAtk.push(die);
+            } else if (targetZone === 'defense' && die.type !== 'bone') {
+                gameState.assignedDef.push(die);
             }
-            for(let i=0; i<def; i++) {
-                const d = document.createElement('div');
-                d.className = 'die defense';
-                d.innerText = '🛡️';
-                pool.appendChild(d);
+            
+            // 從池中移除
+            gameState.currentDice.splice(gameState.selectedDieIndex, 1);
+            document.getElementById('assign-popup').style.display = 'none';
+            
+            renderDicePool();
+            renderAllocatedDice();
+            
+            // 如果池空了，自動顯示結算按鈕
+            if (gameState.currentDice.length === 0) {
+                document.getElementById('btn-main').style.display = 'none';
+                const btnResolve = document.getElementById('btn-resolve');
+                btnResolve.style.display = 'block';
+                btnResolve.onclick = () => resolveCombat();
+                typeWriter("所有骰子已分配。點擊「結算回合」發動攻擊！");
             }
         }
 
-        function resolveCombat(enc, atk, def) {
-            const enemy = gameState.currentEnemy;
+        function renderAllocatedDice() {
+            const atkZone = document.getElementById('zone-attack');
+            const defZone = document.getElementById('zone-defense');
             
-            // 玩家攻擊
-            enemy.hp -= atk;
-            let logMsg = `你造成了 ${atk} 點傷害，`;
+            atkZone.innerHTML = '<div style="width:100%; text-align:center; font-size:12px;">⚔️ 攻擊</div>';
+            defZone.innerHTML = '<div style="width:100%; text-align:center; font-size:12px;">🛡️ 防禦</div>';
+
+            gameState.assignedAtk.forEach(die => {
+                const d = document.createElement('div'); d.className = 'die attack mini'; d.innerText = die.value; atkZone.appendChild(d);
+            });
+            gameState.assignedDef.forEach(die => {
+                const d = document.createElement('div'); d.className = 'die defense mini'; d.innerText = die.value; defZone.appendChild(d);
+            });
+        }
+
+        // 結算階段
+        function resolveCombat() {
+            gameState.phase = 'RESOLVE';
+            document.getElementById('btn-resolve').style.display = 'none';
+            document.getElementById('btn-main').style.display = 'block';
+            document.getElementById('btn-main').disabled = true;
+
+            let totalAtk = gameState.assignedAtk.reduce((sum, die) => sum + die.value, 0);
+            let totalDef = gameState.assignedDef.reduce((sum, die) => sum + die.value, 0);
             
-            if (enemy.hp <= 0) {
-                logMsg += `擊敗了 ${enemy.name}！`;
-                typeWriter(logMsg, document.getElementById('status-text'));
-                logHistory(logMsg);
-                gameState.kills++;
-                
-                setTimeout(() => giveReward(enc), 1000);
+            // 1. 玩家攻擊敵人
+            gameState.enemy.hp -= totalAtk;
+            let log = `你造成了 ${totalAtk} 點傷害。`;
+            
+            if (gameState.enemy.hp <= 0) {
+                log += ` 擊敗了 ${gameState.enemy.name}！`;
+                typeWriter(log);
+                updateUI();
+                setTimeout(() => {
+                    gameState.trainingPoints += gameState.enemy.tp;
+                    showToast(`獲得 ${gameState.enemy.tp} 點 TP`);
+                    enterRestPhase();
+                }, 1500);
                 return;
             }
-            
-            // 敵人反擊
-            let damageTaken = Math.max(0, enemy.atk - def);
+
+            // 2. 敵人反擊
+            let damageTaken = Math.max(0, gameState.enemy.atk - totalDef);
             gameState.hp -= damageTaken;
-            logMsg += `${enemy.name} 反擊！造成 ${enemy.atk} 點傷害，你防禦了 ${def} 點，受到 ${damageTaken} 點傷害。`;
-            
-            typeWriter(logMsg, document.getElementById('status-text'));
-            logHistory(logMsg);
-            updateUI();
+            log += ` ${gameState.enemy.name} 反擊 (攻擊 ${gameState.enemy.atk})，你防禦了 ${totalDef}，受到 ${damageTaken} 點傷害。`;
             
             if (damageTaken > 0) playSound('hurt');
+            typeWriter(log);
+            updateUI();
 
             if (gameState.hp <= 0) {
-                setTimeout(() => gameOver(false), 1000);
+                setTimeout(() => endGame(false), 1500);
                 return;
             }
 
-            // 準備下一回合
-            const btnMain = document.getElementById('btn-main');
-            btnMain.innerText = '下一回合 (擲骰)';
-            btnMain.disabled = false;
-            btnMain.onclick = () => startBattle(enc);
+            // 清理並進入下一輪
+            gameState.assignedAtk = [];
+            gameState.assignedDef = [];
+            document.getElementById('zone-attack').innerHTML = '⚔️ 攻擊區';
+            document.getElementById('zone-defense').innerHTML = '🛡️ 防禦區';
+            document.getElementById('dice-pool').innerHTML = '<span style="color: #888;">點擊擲骰繼續...</span>';
+
+            setTimeout(() => {
+                const btn = document.getElementById('btn-main');
+                btn.innerText = '下一回合 (擲骰)';
+                btn.disabled = false;
+                btn.onclick = () => enterRollPhase();
+            }, 1000);
         }
 
-        function giveReward(enc) {
-            gameState.phase = 'REWARD';
-            const btnMain = document.getElementById('btn-main');
-            
-            if (enc.reward.tp > 0) gameState.trainingPoints += enc.reward.tp;
-            
-            typeWriter(`獲得獎勵：${enc.reward.tp} 點訓練點數。`, document.getElementById('status-text'));
-            logHistory(`獲得 ${enc.reward.tp} 點訓練點數。`);
-            
-            if (enc.reward.type === 'heal') {
-                gameState.hp = Math.min(gameState.maxHp, gameState.hp + 2);
-                logHistory("恢復了 2 點生命。");
-            } else if (enc.reward.type === 'loot') {
-                if (enc.reward.name === '破舊的匕首') gameState.attackBase += 1;
-                if (enc.reward.name === '毒囊') gameState.defenseBase += 1;
-                logHistory(`獲得戰利品：${enc.reward.name} (${enc.reward.effect})。`);
-            }
-            
-            updateUI();
-            btnMain.innerText = '進入休整階段';
-            btnMain.disabled = false;
-            btnMain.onclick = () => enterRestPhase();
-        }
-
-        function resolvePeace(enc) {
-            gameState.phase = 'REWARD';
-            const btnMain = document.getElementById('btn-main');
-            
-            if (enc.reward.tp > 0) gameState.trainingPoints += enc.reward.tp;
-            if (enc.reward.type === 'heal') gameState.hp = Math.min(gameState.maxHp, gameState.hp + 2);
-            
-            logHistory(`和平事件結算：獲得 ${enc.reward.tp} 點訓練點數。`);
-            updateUI();
-            
-            btnMain.innerText = '進入休整階段';
-            btnMain.disabled = false;
-            btnMain.onclick = () => enterRestPhase();
-        }
-
-        // 休整階段
+        // 休整與升級階段
         function enterRestPhase() {
             gameState.phase = 'REST';
             gameState.day++;
-            updateUI();
             
-            const btnMain = document.getElementById('btn-main');
-            const btnSec = document.getElementById('btn-secondary');
-            
-            typeWriter(`第 ${gameState.day} 天即將開始。你在營地休整，生命值已完全恢復。`, document.getElementById('status-text'));
-            logHistory("進入休整階段，生命值完全恢復。");
-            
+            // 休整回滿血 (原版規則：休息動作可回滿)
             gameState.hp = gameState.maxHp;
             updateUI();
+            playSound('click');
 
-            btnMain.style.display = 'block';
-            btnSec.style.display = 'block';
+            document.getElementById('battle-arena').style.display = 'none';
+            document.getElementById('dice-pool').innerHTML = '';
+            document.getElementById('zone-attack').innerHTML = '⚔️ 攻擊區';
+            document.getElementById('zone-defense').innerHTML = '🛡️ 防禦區';
+
+            typeWriter(`第 ${gameState.day} 天到來。你在營地休整，生命值已完全恢復。`);
             
-            btnMain.innerText = '花費 2 TP 升級生命上限 (+1)';
-            btnMain.disabled = gameState.trainingPoints < 2;
-            btnMain.onclick = () => {
-                gameState.trainingPoints -= 2;
-                gameState.maxHp += 1;
-                gameState.hp += 1;
-                updateUI();
-                showToast("升級成功！生命上限 +1");
-                playSound('click');
-                logHistory("花費 2 TP 升級生命上限。");
-                btnMain.disabled = true;
-            };
+            // 顯示技能面板
+            const skillPanel = document.getElementById('skill-panel');
+            skillPanel.style.display = 'block';
+            renderSkills();
 
-            btnSec.innerText = '繼續冒險 (抽下一張卡)';
-            btnSec.onclick = () => {
-                playSound('click');
-                drawEncounter();
+            const btn = document.getElementById('btn-main');
+            btn.innerText = '繼續冒險 (抽遭遇卡)';
+            btn.disabled = false;
+            btn.onclick = () => {
+                if (gameState.day > 5) endGame(true);
+                else drawEncounter();
             };
         }
 
-        // --- 系統功能 ---
-        function gameOver(isWin) {
+        function renderSkills() {
+            const list = document.getElementById('skill-list');
+            list.innerHTML = '';
+            
+            const skills = [
+                { id: 'atk1', name: '武器磨礪 (攻擊池 +1 骰)', cost: 2, desc: '每次擲骰多一顆攻擊骰。' },
+                { id: 'def1', name: '盾牌特訓 (防禦池 +1 骰)', cost: 2, desc: '每次擲骰多一顆防禦骰。' },
+                { id: 'hp1', name: '強健體魄 (生命上限 +2)', cost: 2, desc: '最大生命值增加 2，並回滿血。' }
+            ];
+
+            skills.forEach(skill => {
+                const isOwned = gameState.skillsUnlocked[skill.id];
+                const item = document.createElement('div');
+                item.className = 'skill-item';
+                item.innerHTML = `
+                    <div>
+                        <strong style="color: #333;">${skill.name}</strong><br>
+                        <span style="font-size: 12px; color: #666;">${skill.desc}</span>
+                    </div>
+                    <button ${isOwned || gameState.trainingPoints < skill.cost ? 'disabled' : ''} 
+                            onclick="buySkill('${skill.id}', ${skill.cost})">
+                        ${isOwned ? '已解鎖' : `花費 ${skill.cost} TP`}
+                    </button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function buySkill(id, cost) {
+            if (gameState.trainingPoints >= cost && !gameState.skillsUnlocked[id]) {
+                playSound('click');
+                gameState.trainingPoints -= cost;
+                gameState.skillsUnlocked[id] = true;
+                
+                if (id === 'hp1') {
+                    gameState.maxHp += 2;
+                    gameState.hp = gameState.maxHp;
+                }
+                
+                updateUI();
+                renderSkills();
+                showToast("技能解鎖成功！");
+            }
+        }
+
+        function endGame(isWin) {
             gameState.phase = 'GAMEOVER';
             document.getElementById('btn-main').style.display = 'none';
-            document.getElementById('btn-secondary').style.display = 'none';
+            document.getElementById('btn-resolve').style.display = 'none';
+            document.getElementById('battle-arena').style.display = 'none';
+            document.getElementById('skill-panel').style.display = 'none';
             
             if (isWin) {
-                typeWriter(`🎉 恭喜！你成功撐過了 5 天，成為了真正的傳奇！`, document.getElementById('status-text'));
+                typeWriter(`🎉 恭喜！你成功存活了 5 天，成為了真正的傳奇！`);
             } else {
-                typeWriter(`💀 你的生命值歸零了... 你的骸骨加入了這片險境。`, document.getElementById('status-text'));
-            }
-            logHistory(isWin ? "遊戲勝利！" : "遊戲失敗。");
-        }
-
-        // 彈窗控制
-        function toggleModal(id, forceState = null) {
-            playSound('click');
-            const modal = document.getElementById(id);
-            if (forceState === true) {
-                modal.classList.add('active');
-            } else if (forceState === false) {
-                modal.classList.remove('active');
-            } else {
-                modal.classList.toggle('active');
+                typeWriter(`💀 你的生命值歸零了... 你的骸骨永遠留在了這片險境。`);
+                playSound('hurt');
             }
         }
 
-        function toggleHistory() {
-            playSound('click');
-            document.getElementById('history-panel').classList.toggle('active');
-        }
-
-        function toggleSound() {
-            gameState.soundOn = !gameState.soundOn;
-            document.getElementById('sound-icon').innerText = gameState.soundOn ? '🔊' : '🔇';
-            if(gameState.soundOn) playSound('click');
-        }
-
-        // 存讀檔
-        function saveGame() {
-            playSound('click');
-            localStorage.setItem('tmb_save', JSON.stringify(gameState));
-            showToast("💾 遊戲已儲存！");
-        }
-
-        function loadGame() {
-            playSound('click');
-            const saved = localStorage.getItem('tmb_save');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                Object.assign(gameState, parsed);
-                
-                // 根據階段恢復 UI
-                document.getElementById('ui-day').innerText = gameState.day;
-                document.getElementById('ui-hp').innerText = gameState.hp;
-                document.getElementById('ui-max-hp').innerText = gameState.maxHp;
-                document.getElementById('ui-tp').innerText = gameState.trainingPoints;
-                document.getElementById('ui-kills').innerText = gameState.kills;
-                
-                document.getElementById('history-list').innerHTML = '';
-                gameState.history.forEach(h => {
-                    const entry = document.createElement('div');
-                    entry.className = 'log-entry';
-                    entry.innerText = h;
-                    document.getElementById('history-list').prepend(entry);
-                });
-
-                if (gameState.phase === 'REST') {
-                    enterRestPhase();
-                } else if (gameState.phase === 'ENCOUNTER' || gameState.phase === 'INTRO') {
-                    drawEncounter();
-                } else {
-                    // 戰鬥中存檔較複雜，簡化為重新抽卡防Bug
-                    drawEncounter();
-                }
-                showToast("📂 讀取成功！");
-            } else {
-                showToast("沒有找到存檔！");
+        // 點擊外部關閉彈窗
+        window.onclick = function(event) {
+            const popup = document.getElementById('assign-popup');
+            if (popup.style.display === 'flex' && !event.target.closest('.die') && !event.target.closest('#assign-popup')) {
+                popup.style.display = 'none';
             }
         }
-
-        // 初始化
-        window.onload = () => {
-            // 預設顯示說明彈窗，等待玩家點擊開始
-            document.getElementById('btn-main').disabled = true;
-            document.getElementById('btn-secondary').style.display = 'none';
-        };
 
     </script>
 </body>
