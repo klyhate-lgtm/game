@@ -4199,5 +4199,1043 @@ console.log('可用命令：Game.openRunePanel() / Game.openSideQuests() / Game.
 
 })();
 </script>
+<script>
+// ===================================================================
+// EXTENSION MODULE v3.0 — 战利品 / 搜索 / 撬锁 / 投掷 / 死亡表
+// ===================================================================
+(function(){
+'use strict';
+
+// ==================== 1. 完整战利品表 ====================
+// 依 Tables Codex 原版数据（PT1/PT2、CT1/CT2、BT1/BT2、RPT1/RPT2、RATT1、RUPT1、TAT1、TCT1）
+
+const LOOT = {
+  // Pouch Table 1 (PT1) — 2D6
+  PT1: [
+    {r:[2,2], text:'一个小袋，里面空无一物。', items:[], gold:0},
+    {r:[3,3], text:'袋子里有一个小而无用的石化蜥蜴心。', items:[], gold:0},
+    {r:[4,4], text:'袋子里有 2D6+5 SC。', items:[], gold:'2D6+5', coin:'SC'},
+    {r:[5,5], text:'袋子里有 3 颗干燥的种子。', items:[{name:'种子', type:'misc'}], gold:0},
+    {r:[6,6], text:'袋子里有 4D6 SC。', items:[], gold:'4D6', coin:'SC'},
+    {r:[7,7], text:'袋子里有一把钥匙和一个空袋。', items:[{name:'钥匙', type:'key'},{name:'空袋', type:'misc'}], gold:0},
+    {r:[8,8], text:'袋子里有一些马拉开叶。', items:[{name:'马拉开叶', type:'herb', herbId:'malako'}], gold:0},
+    {r:[9,9], text:'袋子里有 4D6 SC 和 2 颗低品质石榴石。', items:[{name:'低品质石榴石×2', type:'gem'}], gold:'4D6', coin:'SC'},
+    {r:[10,10], text:'袋子里有 2D6 SC、1 把钥匙、1 颗低品质蓝宝石。', items:[{name:'钥匙', type:'key'},{name:'低品质蓝宝石', type:'gem'}], gold:'2D6', coin:'SC'},
+    {r:[11,11], text:'袋子里有 3D6+2 GC、1 颗中品质石榴石、1 颗低品质珍珠。', items:[{name:'中品质石榴石', type:'gem'},{name:'低品质珍珠', type:'gem'}], gold:'3D6+2', coin:'GC'},
+    {r:[12,12], text:'袋子里有一个金色腰带扣价值 2D6 GC 和 1 颗中品质石榴石。', items:[{name:'金色腰带扣', type:'valuable'},{name:'中品质石榴石', type:'gem'}], gold:'2D6', coin:'GC'},
+    {r:[13,13], text:'袋子里有 3D6 SC、1 颗低品质蓝宝石、1 颗低品质红宝石、1 颗中品质珍珠。', items:[{name:'低品质蓝宝石', type:'gem'},{name:'低品质红宝石', type:'gem'},{name:'中品质珍珠', type:'gem'}], gold:'3D6', coin:'SC'},
+    {r:[14,99], text:'袋子里有 3D6+3 GC、1 颗中品质红宝石、1 把钥匙。', items:[{name:'中品质红宝石', type:'gem'},{name:'钥匙', type:'key'}], gold:'3D6+3', coin:'GC'},
+  ],
+  
+  // Pouch Table 2 (PT2) — 2D6 (smaller, simpler)
+  PT2: [
+    {r:[2,2], text:'袋子破烂不堪，一碰就散。', items:[], gold:0},
+    {r:[3,3], text:'袋子是空的。', items:[], gold:0},
+    {r:[4,4], text:'袋子里有一枚小银币（5 SC）。', items:[], gold:5, coin:'SC'},
+    {r:[5,5], text:'袋子里有 2D6 SC。', items:[], gold:'2D6', coin:'SC'},
+    {r:[6,6], text:'袋子里有 1 颗低品质珍珠。', items:[{name:'低品质珍珠', type:'gem'}], gold:0},
+    {r:[7,7], text:'袋子里有 3D6 SC。', items:[], gold:'3D6', coin:'SC'},
+    {r:[8,8], text:'袋子里有一小瓶墨水和羽毛笔。', items:[{name:'墨水', type:'misc'},{name:'羽毛笔', type:'misc'}], gold:0},
+    {r:[9,9], text:'袋子里有 2D6 SC 和 1 颗低品质蓝宝石。', items:[{name:'低品质蓝宝石', type:'gem'}], gold:'2D6', coin:'SC'},
+    {r:[10,10], text:'袋子里有 2D6+2 SC 和 1 颗中品质珍珠。', items:[{name:'中品质珍珠', type:'gem'}], gold:'2D6+2', coin:'SC'},
+    {r:[11,11], text:'袋子里有 1 颗低品质红宝石和 1 把钥匙。', items:[{name:'低品质红宝石', type:'gem'},{name:'钥匙', type:'key'}], gold:0},
+    {r:[12,99], text:'袋子里有 2D6+5 SC 和 1 颗中品质蓝宝石。', items:[{name:'中品质蓝宝石', type:'gem'}], gold:'2D6+5', coin:'SC'},
+  ],
+  
+  // Chest Table 1 (CT1) — 2D6
+  CT1: [
+    {r:[2,2], text:'宝箱里只有泥土和石头。', items:[], gold:0},
+    {r:[3,3], text:'宝箱里有一个空皮袋和几颗向日葵种子。', items:[{name:'空皮袋', type:'container'},{name:'向日葵种子', type:'misc'}], gold:0},
+    {r:[4,4], text:'宝箱里有一些用布包着的奶酪，不够一顿口粮。', items:[{name:'奶酪', type:'food'}], gold:0},
+    {r:[5,5], text:'宝箱里有六根金属钩刺、一段绳子、1 把 +2 撬锁工具(4 次)。', items:[{name:'金属钩刺×6', type:'misc'},{name:'绳子', type:'misc'},{name:'撬锁工具 +2', type:'lockpick', uses:4}], gold:0},
+    {r:[6,6], text:'宝箱里有几件没用的木碗，底部有 2D6+5 SC。', items:[], gold:'2D6+5', coin:'SC'},
+    {r:[7,7], text:'宝箱里塞满了折叠的制服，底部有一件护甲。', items:[{name:'随机护甲', type:'armour'}], gold:0},
+    {r:[8,8], text:'宝箱里有 2D6+5 SC、1 枚价值 D6 GC 的金戒指、1 把投掷斧。', items:[{name:'金戒指', type:'valuable'},{name:'投掷斧', type:'throwable'}], gold:'2D6+5', coin:'SC'},
+    {r:[9,9], text:'宝箱里有 2D6+10 SC 和一个价值 D6+5 SC 的手镯。', items:[{name:'手镯', type:'valuable'}], gold:'2D6+10', coin:'SC'},
+    {r:[10,10], text:'宝箱里有 4D6+4 GC、2D6+2 SC、1 个半件华丽物品。', items:[{name:'半件华丽物品', type:'ornate'}], gold:'4D6+4', coin:'GC'},
+    {r:[11,11], text:'宝箱里有 2 把投掷刀和 1 瓶药水。', items:[{name:'投掷刀×2', type:'throwable'},{name:'药水', type:'potion'}], gold:0},
+    {r:[12,12], text:'宝箱里有 1 份口粮、4D6+2 GC、1 把投掷刀、1 件护甲、一些干肉。', items:[{name:'投掷刀', type:'throwable'},{name:'干肉', type:'food'},{name:'随机护甲', type:'armour'}], gold:'4D6+2', coin:'GC', rations:1},
+    {r:[13,99], text:'宝箱里有一大堆宝石！2 颗中品质珍珠、1 颗低品质红宝石、1 颗中品质石榴石。', items:[{name:'中品质珍珠×2', type:'gem'},{name:'低品质红宝石', type:'gem'},{name:'中品质石榴石', type:'gem'}], gold:0},
+  ],
+  
+  // Chest Table 2 (CT2) — 同 CT1 簡化版
+  CT2: [
+    {r:[2,2], text:'宝箱是空的，只有尘土。', items:[], gold:0},
+    {r:[3,3], text:'宝箱里有一件破旧的外套。', items:[{name:'破旧外套', type:'misc'}], gold:0},
+    {r:[4,4], text:'宝箱里有 2D6+5 SC。', items:[], gold:'2D6+5', coin:'SC'},
+    {r:[5,5], text:'宝箱里有一些旧书，最上面的一本夹着 3D6 SC。', items:[], gold:'3D6', coin:'SC'},
+    {r:[6,6], text:'宝箱里有一个小木盒，里面是 1 颗低品质蓝宝石。', items:[{name:'低品质蓝宝石', type:'gem'}], gold:0},
+    {r:[7,7], text:'宝箱里有一堆布料，2D6+3 SC。', items:[], gold:'2D6+3', coin:'SC'},
+    {r:[8,8], text:'宝箱里有一支精美的羽笔和 1 颗中品质石榴石。', items:[{name:'中品质石榴石', type:'gem'}], gold:0},
+    {r:[9,9], text:'宝箱里有 4D6 SC 和 1 把钥匙。', items:[{name:'钥匙', type:'key'}], gold:'4D6', coin:'SC'},
+    {r:[10,10], text:'宝箱里有一条银链价值 D6+2 GC 和 1 颗低品质红宝石。', items:[{name:'银链', type:'valuable'},{name:'低品质红宝石', type:'gem'}], gold:0},
+    {r:[11,11], text:'宝箱里有 3D6+3 GC。', items:[], gold:'3D6+3', coin:'GC'},
+    {r:[12,99], text:'宝箱里有 5D6+5 GC 和 1 颗中品质红宝石。', items:[{name:'中品质红宝石', type:'gem'}], gold:'5D6+5', coin:'GC'},
+  ],
+  
+  // Bag Table 1 (BT1) — 2D6
+  BT1: [
+    {r:[2,2], text:'袋子里有一堆种子。', items:[{name:'种子', type:'misc'}], gold:0},
+    {r:[3,3], text:'袋子里只有柴火。', items:[{name:'柴火', type:'misc'}], gold:0},
+    {r:[4,4], text:'袋子里有 3 块破碎的金属护甲片（大型物品）。', items:[{name:'破碎金属护甲片×3', type:'large'}], gold:0},
+    {r:[5,5], text:'袋子里有三个空皮袋和两个大土豆。', items:[{name:'空皮袋×3', type:'container'},{name:'土豆×2', type:'food'}], gold:0},
+    {r:[6,6], text:'袋子里有四根短木桩、1 把 +1 撬锁工具(3 次)、1 把投掷斧。', items:[{name:'短木桩×4', type:'misc'},{name:'撬锁工具 +1', type:'lockpick', uses:3},{name:'投掷斧', type:'throwable'}], gold:0},
+    {r:[7,7], text:'袋子底部有一套镣铐、一个铁盒（2D6+10 SC）、一张卷轴。', items:[{name:'镣铐', type:'misc'},{name:'卷轴', type:'scroll'}], gold:'2D6+10', coin:'SC'},
+    {r:[8,8], text:'袋子里有旧衬衫包着的银腰带扣（3D6+10 SC）和一张卷轴。', items:[{name:'银腰带扣', type:'valuable'},{name:'卷轴', type:'scroll'}], gold:'3D6+10', coin:'SC'},
+    {r:[9,9], text:'袋子里有一个钱袋（2D6+5 SC）和一把战斧。', items:[{name:'战斧', type:'weapon'}], gold:'2D6+5', coin:'SC'},
+    {r:[10,10], text:'袋子里有 6D6+10 SC、1 把投掷刀、1 瓶药水。', items:[{name:'投掷刀', type:'throwable'},{name:'药水', type:'potion'}], gold:'6D6+10', coin:'SC'},
+    {r:[11,11], text:'袋子里有一条银项链（3D6+5 SC），镶有 D6+1 颗中品质石榴石。', items:[{name:'银项链', type:'valuable'}], gold:'3D6+5', coin:'SC'},
+    {r:[12,99], text:'袋子里有 D6 颗中品质珍珠、D3+1 颗低品质红宝石、D3 颗低品质翡翠。', items:[{name:'中品质珍珠×D6', type:'gem'},{name:'低品质红宝石', type:'gem'},{name:'低品质翡翠', type:'gem'}], gold:0},
+  ],
+  
+  // Bag Table 2 (BT2) — 同 BT1 精簡
+  BT2: [
+    {r:[2,2], text:'袋子里只有一把干草。', items:[], gold:0},
+    {r:[3,3], text:'袋子里有 2D6+2 SC。', items:[], gold:'2D6+2', coin:'SC'},
+    {r:[4,4], text:'袋子里有一个小木雕（价值 D6 GC）。', items:[{name:'小木雕', type:'valuable'}], gold:0},
+    {r:[5,5], text:'袋子里有 1 颗低品质珍珠。', items:[{name:'低品质珍珠', type:'gem'}], gold:0},
+    {r:[6,6], text:'袋子里有一把匕首和 2D6 SC。', items:[{name:'匕首', type:'weapon'}], gold:'2D6', coin:'SC'},
+    {r:[7,7], text:'袋子里有一些干粮和 3D6 SC。', items:[{name:'干粮', type:'food'}], gold:'3D6', coin:'SC'},
+    {r:[8,8], text:'袋子里有 2D6+2 SC 和 1 颗低品质蓝宝石。', items:[{name:'低品质蓝宝石', type:'gem'}], gold:'2D6+2', coin:'SC'},
+    {r:[9,9], text:'袋子里有一块小银锭（价值 3D6 SC）。', items:[{name:'小银锭', type:'valuable'}], gold:0},
+    {r:[10,10], text:'袋子里有 2D6 GC。', items:[], gold:'2D6', coin:'GC'},
+    {r:[11,11], text:'袋子里有 2D6+3 GC 和 1 颗中品质珍珠。', items:[{name:'中品质珍珠', type:'gem'}], gold:'2D6+3', coin:'GC'},
+    {r:[12,99], text:'袋子里有 3D6+3 GC 和 1 颗中品质蓝宝石。', items:[{name:'中品质蓝宝石', type:'gem'}], gold:'3D6+3', coin:'GC'},
+  ],
+  
+  // Religious Pouch 1 (RPT1) — 2D6
+  RPT1: [
+    {r:[2,2], text:'袋子是空的。', items:[], gold:0},
+    {r:[3,3], text:'袋子里有一些灰烬。', items:[{name:'灰烬', type:'misc'}], gold:0},
+    {r:[4,4], text:'袋子里有一根骨头碎片。', items:[{name:'骨头碎片', type:'misc'}], gold:0},
+    {r:[5,5], text:'袋子里有一块皮革和 2D6 SC。', items:[{name:'皮革', type:'misc'}], gold:'2D6', coin:'SC'},
+    {r:[6,6], text:'袋子里有一颗牙齿。', items:[{name:'牙齿', type:'misc'}], gold:0},
+    {r:[7,7], text:'袋子里有 1 颗低品质红宝石。', items:[{name:'低品质红宝石', type:'gem'}], gold:0},
+    {r:[8,8], text:'袋子里有一小瓶血。', items:[{name:'血液', type:'misc'}], gold:0},
+    {r:[9,9], text:'袋子里有一根羽毛。', items:[{name:'羽毛', type:'misc'}], gold:0},
+    {r:[10,10], text:'袋子里有一枚宗教徽章（价值 2D6 SC）。', items:[{name:'宗教徽章', type:'valuable'}], gold:0},
+    {r:[11,11], text:'袋子里有一截许愿骨。', items:[{name:'许愿骨', type:'misc'}], gold:0},
+    {r:[12,99], text:'袋子里有一颗低品质翡翠和 1 颗低品质红宝石。', items:[{name:'低品质翡翠', type:'gem'},{name:'低品质红宝石', type:'gem'}], gold:0},
+  ],
+  
+  // Religious Pouch 2 (RPT2)
+  RPT2: [
+    {r:[2,2], text:'袋子碎裂，什么都留不下。', items:[], gold:0},
+    {r:[3,3], text:'袋子里有一颗小乌木珠。', items:[{name:'乌木珠', type:'misc'}], gold:0},
+    {r:[4,4], text:'袋子里有一团线和一根针。', items:[{name:'线', type:'misc'},{name:'针', type:'misc'}], gold:0},
+    {r:[5,5], text:'袋子里有刻着树纹的橡果。', items:[{name:'橡果', type:'misc'}], gold:0},
+    {r:[6,6], text:'袋子里有伊里奥斯花瓣。', items:[{name:'伊里奥斯花瓣', type:'herb', herbId:'ilios'}], gold:0},
+    {r:[7,7], text:'袋子里的木牌镶着 3 颗低品质珍珠。', items:[{name:'木牌', type:'valuable'}], gold:0},
+    {r:[8,8], text:'袋子里有一把 +3 撬锁工具(4 次) 和 5D6 SC。', items:[{name:'撬锁工具 +3', type:'lockpick', uses:4}], gold:'5D6', coin:'SC'},
+    {r:[9,9], text:'袋子里有一个玻璃瓶（内含防护光环药水）和 3D6+2 GC。', items:[{name:'防护光环药水', type:'potion'}], gold:'3D6+2', coin:'GC'},
+    {r:[10,10], text:'袋子里有 2 颗爆炸弹珠（需要小心包裹）。', items:[{name:'爆炸弹珠×2', type:'bomb'}], gold:0},
+    {r:[11,11], text:'袋子里有一本宗教手稿（价值 4D6 SC）和 1 把钥匙。', items:[{name:'宗教手稿', type:'valuable'},{name:'钥匙', type:'key'}], gold:0},
+    {r:[12,99], text:'袋子里有 1 颗中品质蓝宝石和 1 小瓶圣水。', items:[{name:'中品质蓝宝石', type:'gem'},{name:'圣水', type:'potion'}], gold:0},
+  ],
+  
+  // Religious Artifact Treasure 1 (RATT1) — 2D6
+  RATT1: [
+    {r:[2,2], text:'只有灰尘和木屑。', items:[], gold:0},
+    {r:[3,3], text:'一个粗糙的小木十字架。', items:[{name:'木十字架', type:'religious'}], gold:0},
+    {r:[4,4], text:'几只老鼠咬碎了一叠书，但留下包裹好的丹科马茎。', items:[{name:'丹科马茎', type:'herb', herbId:'dankoma'}], gold:0},
+    {r:[5,5], text:'一本陈旧的宗教手稿。', items:[{name:'宗教手稿', type:'religious'}], gold:0},
+    {r:[6,6], text:'一把 +1 撬锁工具。', items:[{name:'撬锁工具 +1', type:'lockpick', uses:3}], gold:0},
+    {r:[7,7], text:'有人留下了一瓶酒和面包。获得 1 份口粮。', items:[], gold:0, rations:1},
+    {r:[8,8], text:'五根上好的皮革绳（可能用于装订书）。', items:[{name:'皮革绳×5', type:'misc'}], gold:0},
+    {r:[9,9], text:'一个小巧的华丽小盒，打开后有 1 瓶忠诚药水和 1 个空袋。', items:[{name:'忠诚药水', type:'potion'},{name:'空袋', type:'container'}], gold:0},
+    {r:[10,10], text:'角落的柜子里有一根细银棒（价值 5D6 SC）和一个小空盒。', items:[{name:'细银棒', type:'valuable'},{name:'小空盒', type:'container'}], gold:0},
+    {r:[11,11], text:'发现一个暗格（+15 XP），里面有 D6 颗低品质蓝宝石和 2D6 GC。', items:[{name:'低品质蓝宝石×D6', type:'gem'}], gold:'2D6', coin:'GC', xp:15},
+    {r:[12,99], text:'一个华丽金十字架（价值 20D6+4 GC）和一张深度专注卷轴。', items:[{name:'华丽金十字架', type:'valuable'},{name:'深度专注卷轴', type:'scroll'}], gold:0},
+  ],
+  
+  // Rubbish Pile (RUPT1) — 2D6
+  RUPT1: [
+    {r:[2,2], text:'什么都没有。', items:[], gold:0},
+    {r:[3,4], text:'垃圾堆覆盖着黏性物质，无法使用。', items:[], gold:0},
+    {r:[5,5], text:'这里曾是火烧过的地方，现在只剩一堆灰烬。', items:[{name:'灰烬', type:'misc'}], gold:0},
+    {r:[6,6], text:'满是烧焦的碎片和破烂物件，无法回收。', items:[], gold:0},
+    {r:[7,7], text:'垃圾堆里有几块弯曲的小金属片和一段绳子、一些皮带。', items:[{name:'金属片', type:'misc'},{name:'绳子', type:'misc'},{name:'皮带', type:'misc'}], gold:0},
+    {r:[8,8], text:'这里是火焰的残骸，灰烬中散落着几块煤。', items:[{name:'煤', type:'misc'}], gold:0},
+    {r:[9,9], text:'仔细检查发现是动物烧焦的残骸，有骨头碎片。', items:[{name:'骨头碎片', type:'misc'}], gold:0},
+    {r:[10,10], text:'主要是橡树叶，底部有一个橡果。', items:[{name:'橡果', type:'misc'}], gold:0},
+    {r:[11,11], text:'垃圾里缠着几段织物。', items:[{name:'织物', type:'misc'}], gold:0},
+    {r:[12,99], text:'垃圾底下长着一朵紫色蘑菇。', items:[{name:'紫色蘑菇', type:'herb'}], gold:0},
+  ],
+  
+  // Table Loot (TAT1) — 2D6
+  TAT1: [
+    {r:[2,2], text:'桌上有黑色污渍，不知道是什么留下的。', items:[], gold:0},
+    {r:[3,3], text:'桌面布满划痕。', items:[], gold:0},
+    {r:[4,4], text:'桌面是空的。', items:[], gold:0},
+    {r:[5,5], text:'桌上有一个空袋。', items:[{name:'空袋', type:'container'}], gold:0},
+    {r:[6,6], text:'桌上有一个空袋。', items:[{name:'空袋', type:'container'}], gold:0},
+    {r:[7,7], text:'桌上有一卷绳子。', items:[{name:'绳子', type:'misc'}], gold:0},
+    {r:[8,8], text:'桌上有一个破碎的小神像，可以修复（PC10(2)）获得 1 FP。', items:[{name:'破碎小神像', type:'religious'}], gold:0},
+    {r:[9,9], text:'桌上有一张羊皮纸，上面有些看不懂的字。', items:[{name:'羊皮纸', type:'misc'}], gold:0},
+    {r:[10,10], text:'桌上有一件损坏的护甲。', items:[{name:'损坏护甲', type:'armour'}], gold:0},
+    {r:[11,11], text:'有 4 个人曾坐在这里，空铁盘还在，旁边有 1 把价值 5 SC 的银叉。', items:[{name:'银叉', type:'valuable'}], gold:0},
+    {r:[12,99], text:'桌上有一些毒霉，涂在武器上 1 场战斗每回合 +1 伤害。', items:[{name:'毒霉', type:'weaponoil'}], gold:0},
+  ],
+  
+  // Tea Chest (TCT1) — 2D6
+  TCT1: [
+    {r:[2,2], text:'伸手碰到木刺，-1 HP。箱子是空的。', items:[], gold:0, hp:-1},
+    {r:[3,3], text:'箱子是空的。', items:[], gold:0},
+    {r:[4,4], text:'箱子有茶香，但什么都没有。', items:[], gold:0},
+    {r:[5,5], text:'底部有一个小空盒。', items:[{name:'小空盒', type:'container'}], gold:0},
+    {r:[6,6], text:'底部有一小袋茶叶、一个木杯和一个橡果。', items:[{name:'茶叶', type:'misc'},{name:'木杯', type:'misc'},{name:'橡果', type:'misc'}], gold:0},
+    {r:[7,7], text:'底部有一件皱巴巴的斗篷（价值 3D6 SC），下面有 1 把投掷斧。', items:[{name:'斗篷', type:'valuable'},{name:'投掷斧', type:'throwable'}], gold:0},
+    {r:[8,8], text:'箱子满是木屑，下面有一些随机金属物品。', items:[{name:'金属物品', type:'misc'}], gold:0},
+    {r:[9,9], text:'有人倒了垃圾进来，里面有皮革绳和黑羽毛。', items:[{name:'皮革绳', type:'misc'},{name:'黑羽毛', type:'misc'}], gold:0},
+    {r:[10,10], text:'底部有两根扭曲金属棒、一袋种子、一把 +1 撬锁工具(3 次)。', items:[{name:'扭曲金属棒×2', type:'misc'},{name:'种子', type:'misc'},{name:'撬锁工具 +1', type:'lockpick', uses:3}], gold:0},
+    {r:[11,11], text:'底部有一个破背包，里面有 1 把投掷飞镖和 1 瓶药水。', items:[{name:'投掷飞镖', type:'throwable'},{name:'药水', type:'potion'}], gold:0},
+    {r:[12,99], text:'底部有一只死乌鸦。腿上有 1 枚价值 D6 GC 的金戒指。', items:[{name:'金戒指', type:'valuable'}], gold:0},
+  ],
+};
+
+// ==================== 2. 解析战利品 ====================
+function rollLoot(table, mod=0){
+  const roll = rollD6() + rollD6() + mod;
+  const clamped = Math.max(2, Math.min(14, roll)); // 大部分表上限 14
+  const row = table.find(r => clamped >= r.r[0] && clamped <= r.r[1]);
+  return row || table[table.length-1];
+}
+
+Game.applyLoot = function(row){
+  const p = this.player;
+  if(row.gold && row.gold !== 0){
+    const amount = typeof row.gold === 'string' ? parseDamage(row.gold) : row.gold;
+    if(row.coin === 'SC'){ p.gold += Math.ceil(amount/10); this.addLog(`获得 ${amount} SC（折算 ${Math.ceil(amount/10)} GC）`, 'gold'); }
+    else if(row.coin === 'GC'){ this.gainGold(amount); }
+    else { this.gainGold(amount); }
+  }
+  if(row.xp){ this.gainXP(row.xp); }
+  if(row.hp){ p.hp = Math.max(1, p.hp + row.hp); }
+  if(row.rations){ p.rations += row.rations; this.addLog(`获得 ${row.rations} 份口粮。`, 'good'); }
+  if(row.items && row.items.length){
+    row.items.forEach(it => {
+      // 处理随机护甲
+      if(it.type === 'armour'){
+        const a = DATA.armourTable[Math.floor(Math.random()*DATA.armourTable.length)];
+        p.items.push({name:a.name, type:'armour', dice:a.dice, mod:a.mod, cost:a.cost});
+        this.addLog(`获得护甲：${a.name}`, 'gold');
+        return;
+      }
+      if(it.type === 'scroll'){
+        const s = DATA.scrolls[Math.floor(Math.random()*DATA.scrolls.length)];
+        p.scrolls.push({...s});
+        this.addLog(`获得卷轴：${s.name}`, 'gold');
+        return;
+      }
+      if(it.type === 'potion'){
+        const po = DATA.potions[Math.floor(Math.random()*DATA.potions.length)];
+        p.potions.push({id:po.id, name:po.name, effect:po.effect});
+        this.addLog(`获得药水：${po.name}`, 'gold');
+        return;
+      }
+      if(it.type === 'weapon'){
+        p.items.push({...it});
+        this.addLog(`获得武器：${it.name}`, 'gold');
+        return;
+      }
+      if(it.type === 'throwable'){
+        p.throwables = p.throwables || [];
+        p.throwables.push({name:it.name, type:it.name.includes('飞镖')?'dart':it.name.includes('斧')?'axe':'knife'});
+        this.addLog(`获得投掷武器：${it.name}`, 'gold');
+        return;
+      }
+      if(it.type === 'lockpick'){
+        p.lockpicks = p.lockpicks || [];
+        p.lockpicks.push({mod:it.name.includes('+3')?3:it.name.includes('+2')?2:1, uses:it.uses||3});
+        this.addLog(`获得 ${it.name}`, 'gold');
+        return;
+      }
+      if(it.type === 'herb'){
+        p.herbs[it.herbId||'malako'] = (p.herbs[it.herbId||'malako']||0) + 1;
+        this.addLog(`获得草药：${it.name}`, 'good');
+        return;
+      }
+      if(it.type === 'gem'){
+        p.gems = p.gems || [];
+        p.gems.push({name:it.name, value:Math.floor(Math.random()*40)+10});
+        this.addLog(`获得宝石：${it.name}`, 'gold');
+        return;
+      }
+      // 默认杂物
+      p.items.push({...it});
+      this.addLog(`获得：${it.name}`, 'gold');
+    });
+  }
+  Audio.gold();
+};
+
+// ==================== 3. 主动搜索房间 ====================
+Game.searchCurrentRoom = function(){
+  const room = this.dungeon.currentRoom;
+  if(!room) return;
+  if(room._searched){
+    Toast.show('此房间已被搜索过。', 'warn');
+    return;
+  }
+  room._searched = true;
+  this.addLog(`🔍 搜索 ${room.name}...`, '');
+  
+  // 依房间类型选表
+  const roomName = room.name || '';
+  let table = null, label = '';
+  if(roomName.includes('储物') || roomName.includes('仓') || roomName.includes('箱')){
+    table = LOOT.CT2; label = '宝箱';
+  } else if(roomName.includes('袋') || roomName.includes('麻')){
+    table = LOOT.BT1; label = '袋子';
+  } else if(roomName.includes('神庙') || roomName.includes('神龛') || roomName.includes('祈祷')){
+    table = LOOT.RPT2; label = '宗教物品';
+  } else if(roomName.includes('垃圾') || roomName.includes('废弃')){
+    table = LOOT.RUPT1; label = '垃圾堆';
+  } else if(roomName.includes('食堂') || roomName.includes('会议')){
+    table = LOOT.TAT1; label = '桌子';
+  } else {
+    table = LOOT.PT2; label = '小袋';
+  }
+  
+  const row = rollLoot(table);
+  this.addLog(`📖 ${row.text}`, 'gold');
+  this.applyLoot(row);
+  this.render();
+};
+
+// ==================== 4. 撬锁 UI ====================
+Game.openPickLock = function(lockDC){
+  const p = this.player;
+  if(!p.lockpicks || p.lockpicks.length === 0){
+    Toast.show('你没有撬锁工具。', 'warn');
+    return;
+  }
+  let html = `<h3>🔓 撬锁</h3><p>锁的难度：${lockDC}</p><p>你的撬锁工具：</p><div style="display:flex;flex-direction:column;gap:6px;">`;
+  p.lockpicks.forEach((lp,i)=>{
+    html += `<div style="padding:6px;border:1px solid #8a6a3a;border-radius:4px;display:flex;justify-content:space-between;align-items:center;">
+      <span>+${lp.mod}（剩余 ${lp.uses} 次）</span>
+      <button class="small" onclick="Game.tryPickLock(${lockDC},${i})">使用</button>
+    </div>`;
+  });
+  html += `</div><div class="btn-row" style="margin-top:12px;"><button onclick="closeModal()">取消</button></div>`;
+  showModal('🔓 撬锁', html);
+};
+
+Game.tryPickLock = function(lockDC, lpIdx){
+  const p = this.player;
+  const lp = p.lockpicks[lpIdx];
+  if(!lp) return;
+  const roll = rollD6() + rollD6() + (lp.mod||0) + p.precision;
+  this.addLog(`🔓 撬锁尝试：2D6+${lp.mod}+${p.precision} = ${roll}（需要 ≥ ${lockDC}）`, '');
+  lp.uses--;
+  if(lp.uses <= 0){
+    p.lockpicks.splice(lpIdx,1);
+    this.addLog('撬锁工具损坏了。', 'bad');
+  }
+  if(roll >= lockDC){
+    this.addLog('✅ 锁被撬开！', 'good');
+    Audio.good();
+    closeModal();
+    Toast.show('🔓 锁被撬开！', 'good');
+  } else {
+    this.addLog('❌ 撬锁失败，锁已损坏。', 'bad');
+    Audio.bad();
+    closeModal();
+    Toast.show('撬锁失败。', 'warn');
+  }
+  this.render();
+};
+
+// ==================== 5. 投掷武器系统 ====================
+Game.throwWeapon = function(){
+  const p = this.player;
+  if(!p.throwables || p.throwables.length === 0){
+    Toast.show('你没有投掷武器。', 'warn');
+    return;
+  }
+  if(!this.combat || !this.combat.playerTurn || this.combat.rolledDice){
+    Toast.show('只能在一回合开始时投掷。', 'warn');
+    return;
+  }
+  let html = `<h3>投掷武器</h3><div style="display:flex;flex-direction:column;gap:6px;">`;
+  p.throwables.forEach((w,i)=>{
+    const dmg = w.type==='axe'?6 : w.type==='knife'?4 : 2;
+    html += `<div style="padding:6px;border:1px solid #8a6a3a;border-radius:4px;display:flex;justify-content:space-between;align-items:center;">
+      <span>${w.name}（伤害 ${dmg}）</span>
+      <button class="small" onclick="Game.doThrow(${i})">投掷</button>
+    </div>`;
+  });
+  html += `</div><div class="btn-row" style="margin-top:12px;"><button onclick="closeModal()">取消</button></div>`;
+  showModal('🎯 投掷武器', html);
+};
+
+Game.doThrow = function(idx){
+  const p = this.player;
+  const w = p.throwables[idx];
+  if(!w) return;
+  const target = this.combat.enemies.find(e=>e.alive);
+  if(!target){ closeModal(); return; }
+  const baseDmg = w.type==='axe'?6 : w.type==='knife'?4 : 2;
+  const dice = rollD66();
+  let dmg = baseDmg;
+  // 检查干扰
+  for(const intr of target.interrupt){
+    if(intr.type==='pri' && intr.val === dice[0]) dmg = Math.max(0, dmg + intr.dmg);
+    if(intr.type==='sec' && intr.val === dice[1]) dmg = Math.max(0, dmg + intr.dmg);
+  }
+  target.curHp -= dmg;
+  this.addCombatLog(`🎯 你投出 ${w.name}（投出 ${dice[0]}-${dice[1]}），造成 ${dmg} 伤害！`, 'hit');
+  Audio.hit();
+  if(target.curHp <= 0){
+    target.curHp = 0; target.alive = false;
+    this.addCombatLog(`☠ ${target.name} 被击败！`, 'good');
+    this.gainXP(target.xp);
+  }
+  // 标记为待回收
+  p.throwables.splice(idx,1);
+  p.lostThrowables = p.lostThrowables || [];
+  p.lostThrowables.push({...w, deflected: dmg===0});
+  closeModal();
+  if(this.combat.enemies.every(e=>!e.alive)){
+    this.endCombat();
+    return;
+  }
+  this.renderCombat();
+};
+
+// 战后回收
+const _origEndCombat3 = Game.endCombat;
+Game.endCombat = function(){
+  const p = this.player;
+  if(p.lostThrowables && p.lostThrowables.length > 0){
+    const recovered = [];
+    const lost = [];
+    p.lostThrowables.forEach(w => {
+      if(w.deflected){
+        lost.push(w);
+        this.addLog(`💨 ${w.name} 被偏转，已丢失。`, 'bad');
+        return;
+      }
+      const r = rollD6();
+      if(r >= 4){
+        recovered.push(w);
+        this.addLog(`✅ 回收 ${w.name}。`, 'good');
+      } else {
+        lost.push(w);
+        this.addLog(`❌ ${w.name} 丢失。`, 'bad');
+      }
+    });
+    p.throwables = p.throwables || [];
+    p.throwables.push(...recovered);
+    p.lostThrowables = [];
+  }
+  _origEndCombat3.apply(this, arguments);
+};
+
+// 战斗界面加入投掷按钮
+const _origRenderCombat3 = Game.renderCombat;
+Game.renderCombat = function(){
+  _origRenderCombat3.apply(this, arguments);
+  if(!this.combat || this.combat.combatOver || !this.combat.playerTurn) return;
+  if(this.combat.rolledDice) return;
+  const actEl = document.getElementById('combat-actions');
+  if(!actEl) return;
+  if(this.player.throwables && this.player.throwables.length > 0){
+    const btn = document.createElement('button');
+    btn.className = 'small';
+    btn.textContent = `🎯 投掷武器 (${this.player.throwables.length})`;
+    btn.onclick = () => Game.throwWeapon();
+    // 找到现有按钮区
+    let extra = actEl.querySelector('.throw-extra');
+    if(!extra){
+      extra = document.createElement('div');
+      extra.className = 'throw-extra';
+      extra.style.marginTop = '6px';
+      actEl.appendChild(extra);
+    }
+    extra.innerHTML = '';
+    extra.appendChild(btn);
+  }
+};
+
+// ==================== 6. RFUT1 死亡表（非战斗 HP 归零） ====================
+Game.rollRFUT1 = function(){
+  const roll = rollD6() + rollD6();
+  this.addLog(`💀 投掷 RFUT1（2D6=${roll}）...`, 'bad');
+  let result;
+  if(roll <= 3){
+    result = '你死了。冒险到此结束。';
+    this.playerDeath();
+    return;
+  } else if(roll <= 6){
+    result = '有人把你的刀塞进你手里，说"这次算你走运"。恢复至 1 HP。';
+    this.player.hp = 1;
+  } else if(roll <= 9){
+    result = '你被拖到安全处。恢复至 1 HP，但失去 1 件随机物品。';
+    this.player.hp = 1;
+    if(this.player.items.length > 0){
+      const idx = Math.floor(Math.random()*this.player.items.length);
+      const lost = this.player.items.splice(idx,1)[0];
+      this.addLog(`遗失：${lost.name}`, 'bad');
+    }
+  } else if(roll <= 11){
+    result = '你被医者救起。恢复至 5 HP，失去 D6 金币。';
+    this.player.hp = 5;
+    this.gainGold(-rollD6());
+  } else {
+    result = '一个陌生人扶起你，还给了你一瓶药水。恢复至基线 HP 的 50%。';
+    this.player.hp = Math.ceil(this.player.hpBase / 2);
+  }
+  this.addLog(`📖 ${result}`, 'good');
+  Audio.good();
+  this.render();
+};
+
+// 覆盖 tickStatus 加入死亡表判定
+const _origTickStatus = Game.tickStatus;
+Game.tickStatus = function(){
+  _origTickStatus.apply(this, arguments);
+  if(this.player.hp <= 0 && this.phase !== 'COMBAT'){
+    this.rollRFUT1();
+  }
+};
+
+// ==================== 7. 大型物品限制 ====================
+Game.countLargeItems = function(){
+  const p = this.player;
+  return (p.items||[]).filter(i => i.type==='large' || i.type==='armour').length;
+};
+
+Game.addItem = function(item){
+  if(item.type === 'large' || item.type === 'armour'){
+    if(this.countLargeItems() >= 10){
+      Toast.show('大型物品已达上限（10 件）！', 'warn');
+      return false;
+    }
+  }
+  this.player.items.push(item);
+  return true;
+};
+
+// ==================== 8. 物品价值（出售用） ====================
+Game.getItemValue = function(item){
+  if(item.value) return item.value;
+  if(item.cost) return Math.floor(item.cost * 0.5);
+  const typeValues = {gem:20, valuable:15, weapon:10, armour:15, scroll:8, potion:10, misc:2, herb:3};
+  return typeValues[item.type] || 2;
+};
+
+// 覆盖 townSell 加入杂物出售
+const _origSell = Game.townSellItem;
+Game.townSellItem = function(type, idx){
+  if(type === 'misc'){
+    const p = this.player;
+    const it = p.items[idx];
+    if(!it) return;
+    const val = this.getItemValue(it);
+    p.gold += val;
+    p.items.splice(idx,1);
+    this.addLog(`出售 ${it.name}（+${val} GC）。`, 'gold');
+    Audio.gold();
+    this.renderTown();
+    this.renderTopbar();
+    return;
+  }
+  _origSell.apply(this, arguments);
+};
+
+// 覆盖城镇出售标签加入杂物
+const _origRenderTown3 = Game.renderTown;
+Game.renderTown = function(){
+  _origRenderTown3.apply(this, arguments);
+  const content = document.getElementById('town-content');
+  if(!content) return;
+  // 在出售标签中追加杂物
+  const sellBtn = content.querySelector('[onclick="Game.townSwitchTab(\'sell\')"]');
+  if(sellBtn){
+    // 已存在
+  }
+  // 若当前是出售标签，追加杂物
+  if(Game.townTab === 'sell'){
+    const p = this.player;
+    const panel = content.querySelectorAll('.panel')[1]; // 市场面板
+    if(panel){
+      const items = p.items || [];
+      if(items.length > 0){
+        let miscHtml = `<h3 style="margin-top:8px;">杂物</h3><div style="font-size:12px;">`;
+        items.forEach((it,i)=>{
+          miscHtml += `<div style="padding:3px 0;border-bottom:1px dotted #ccc;display:flex;justify-content:space-between;"><span>${it.name}</span><button class="small" onclick="Game.townSellItem('misc',${i})">出售 (+${this.getItemValue(it)})</button></div>`;
+        });
+        miscHtml += `</div>`;
+        // 找到出售面板
+        const tabs = panel.querySelectorAll('.tabs');
+        if(tabs.length > 0){
+          const sellContent = panel.querySelector('div:not(.tabs)');
+          if(sellContent){
+            const temp = document.createElement('div');
+            temp.innerHTML = miscHtml;
+            sellContent.appendChild(temp);
+          }
+        }
+      }
+    }
+  }
+};
+
+// ==================== 9. 覆盖 renderDungeon 加入搜索按钮 ====================
+const _origRenderDungeon3 = Game.renderDungeon;
+Game.renderDungeon = function(){
+  _origRenderDungeon3.apply(this, arguments);
+  const content = document.getElementById('dungeon-content');
+  if(!content) return;
+  const room = this.dungeon && this.dungeon.currentRoom;
+  if(!room || room.isBoss || room.isLast) return;
+  if(!room._searched){
+    const extra = document.createElement('div');
+    extra.className = 'panel';
+    extra.innerHTML = `
+      <h3>🔍 搜索此房间</h3>
+      <p style="font-size:12px;color:#5a4a35;">你可以搜索一次，可能找到战利品。</p>
+      <button onclick="Game.searchCurrentRoom()">搜索</button>
+    `;
+    content.appendChild(extra);
+  }
+};
+
+// ==================== 10. 初始化额外字段 ====================
+const _origCreatePlayer3 = Game.createPlayer;
+Game.createPlayer = function(...args){
+  _origCreatePlayer3.apply(this, args);
+  Object.assign(this.player, {
+    gems: [],
+    throwables: [],
+    lockpicks: [],
+    lostThrowables: [],
+    religiousArtifacts: [],
+  });
+};
+
+// 存档扩展
+const _origSave = Game.save;
+Game.save = function(){
+  _origSave.call(this);
+};
+
+console.log('[2D6 Extension v3.0] 战利品表、搜索、撬锁、投掷武器、RFUT1 已加载');
+console.log('可用命令：Game.searchCurrentRoom() / Game.openPickLock(dc) / Game.throwWeapon()');
+
+})();
+</script>
+<script>
+// ===================================================================
+// EXTENSION MODULE v4.0 — Boss UI / 地图可视化 / 多语言切换
+// ===================================================================
+(function(){
+'use strict';
+
+// ==================== 1. 多语言字典 ====================
+const I18N = {
+  zh: {
+    'nav.help':'说明','nav.save':'存档','nav.load':'读档','nav.history':'历史','nav.achievements':'成就','nav.sound':'音效','nav.lang':'语言',
+    'top.shift':'Shift',
+    'btn.close':'关闭','btn.cancel':'取消','btn.confirm':'确认','btn.start':'开始',
+    'combat.round':'轮','combat.fatigue':'疲劳',
+    'boss.phase.full':'全盛','boss.phase.wounded':'受创','boss.phase.enraged':'狂暴',
+    'boss.warning':'首领出现！',
+    'map.title':'地图','map.current':'当前位置','map.explored':'已探索','map.boss':'首领','map.stairs':'楼梯',
+    'inv.title':'背包',
+    'town.market':'市场','town.herbalist':'草药师','town.engraver':'雕刻师','town.temple':'神庙','town.tavern':'酒馆','town.hall':'市政厅','town.back':'返回地牢',
+    'lang.toggle':'EN',
+  },
+  en: {
+    'nav.help':'Help','nav.save':'Save','nav.load':'Load','nav.history':'History','nav.achievements':'Achievements','nav.sound':'Sound','nav.lang':'Lang',
+    'top.shift':'Shift',
+    'btn.close':'Close','btn.cancel':'Cancel','btn.confirm':'Confirm','btn.start':'Start',
+    'combat.round':'Round','combat.fatigue':'Fatigue',
+    'boss.phase.full':'Full Strength','boss.phase.wounded':'Wounded','boss.phase.enraged':'Enraged',
+    'boss.warning':'BOSS APPEARS!',
+    'map.title':'Map','map.current':'You are here','map.explored':'Explored','map.boss':'Boss','map.stairs':'Stairs',
+    'inv.title':'Inventory',
+    'town.market':'Market','town.herbalist':'Herbalist','town.engraver':'Engraver','town.temple':'Temple','town.tavern':'Tavern','town.hall':'Town Hall','town.back':'Back to Dungeon',
+    'lang.toggle':'中',
+  }
+};
+
+let LANG = localStorage.getItem('2d6dungeon_lang') || 'zh';
+function t(key){
+  const dict = I18N[LANG] || I18N.zh;
+  return dict[key] || I18N.zh[key] || key;
+}
+window.t = t;
+window.LANG = LANG;
+
+Game.setLang = function(lang){
+  LANG = lang;
+  window.LANG = lang;
+  localStorage.setItem('2d6dungeon_lang', lang);
+  // 更新切换按钮
+  const toggle = document.getElementById('lang-toggle');
+  if(toggle) toggle.innerHTML = `<span class="ico">🌐</span>${t('lang.toggle')}`;
+  // 重新渲染
+  this.renderTopbar();
+  this.renderNavLabels();
+  this.render();
+};
+
+// ==================== 2. 底部导航标签动态更新 ====================
+Game.renderNavLabels = function(){
+  const nav = document.getElementById('bottom-nav');
+  if(!nav) return;
+  const mapping = [
+    {id:'nav-help', key:'nav.help', ico:'📖'},
+    {id:'nav-save', key:'nav.save', ico:'💾'},
+    {id:'nav-load', key:'nav.load', ico:'📂'},
+    {id:'nav-history', key:'nav.history', ico:'📜'},
+    {id:'nav-achievements', key:'nav.achievements', ico:'🏆'},
+    {id:'nav-sound', key:'nav.sound', ico:'🔊'},
+  ];
+  mapping.forEach(m=>{
+    const btn = document.getElementById(m.id);
+    if(btn) btn.innerHTML = `<span class="ico">${m.ico}</span>${t(m.key)}`;
+  });
+  // 音效按钮根据启用状态显示图标
+  if(Audio.enabled){
+    const s = document.getElementById('nav-sound');
+    if(s) s.innerHTML = `<span class="ico">🔊</span>${t('nav.sound')}`;
+  } else {
+    const s = document.getElementById('nav-sound');
+    if(s) s.innerHTML = `<span class="ico">🔇</span>${t('nav.sound')}`;
+  }
+};
+
+// ==================== 3. Boss 阶段系统 ====================
+Game.getBossPhase = function(boss){
+  if(!boss || !boss.isBoss) return null;
+  const pct = boss.curHp / boss.maxHp;
+  if(pct > 0.7) return {key:'boss.phase.full', color:'#daa520', bonus:{shift:0, dmg:0}, pulse:false};
+  if(pct > 0.3) return {key:'boss.phase.wounded', color:'#e07020', bonus:{shift:1, dmg:1}, pulse:true};
+  return {key:'boss.phase.enraged', color:'#e02020', bonus:{shift:2, dmg:2}, pulse:true};
+};
+
+// 覆盖 enemyAttack 应用 Boss 阶段加成
+const _origEnemyAttackV4 = Game.enemyAttack;
+Game.enemyAttack = function(enemy){
+  if(enemy.isBoss){
+    const phase = this.getBossPhase(enemy);
+    if(phase && phase.bonus){
+      enemy._phaseShift = phase.bonus.shift;
+      enemy._phaseDmg = phase.bonus.dmg;
+      // 临时增加 SH
+      enemy._origSh = enemy.sh;
+      enemy.sh = (enemy.sh || 0) + phase.bonus.shift;
+    }
+  }
+  _origEnemyAttackV4.call(this, enemy);
+  // 恢复
+  if(enemy.isBoss && enemy._origSh !== undefined){
+    enemy.sh = enemy._origSh;
+  }
+};
+
+// ==================== 4. Boss UI 渲染 ====================
+const _origRenderCombatV4 = Game.renderCombat;
+Game.renderCombat = function(){
+  _origRenderCombatV4.apply(this, arguments);
+  if(!this.combat) return;
+  const header = document.getElementById('combat-header');
+  if(!header) return;
+  // 移除旧面板
+  const oldPanel = document.getElementById('boss-panel');
+  if(oldPanel) oldPanel.remove();
+  
+  const boss = this.combat.enemies.find(e => e.isBoss && e.alive);
+  if(!boss) return;
+  
+  const phase = this.getBossPhase(boss);
+  const pct = Math.max(0, boss.curHp / boss.maxHp * 100);
+  
+  const panel = document.createElement('div');
+  panel.id = 'boss-panel';
+  panel.style.cssText = `
+    background:linear-gradient(180deg,#2a0a0a,#1a0404);
+    border:2px solid ${phase.color};
+    border-radius:8px;padding:12px;margin:8px 0;
+    box-shadow:0 0 24px ${phase.color}66,inset 0 0 20px ${phase.color}22;
+    animation:bossPulse 1.4s ease-in-out infinite;
+    position:relative;overflow:hidden;
+  `;
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:18px;font-weight:900;color:#f0d080;text-shadow:0 0 12px ${phase.color},0 2px 4px #000;letter-spacing:1px;">👹 ${escapeHtml(boss.name)}</span>
+      <span style="font-size:11px;color:#fff;background:${phase.color};padding:3px 10px;border-radius:10px;font-weight:700;letter-spacing:1px;">${t(phase.key)}</span>
+    </div>
+    <div style="height:20px;background:#0a0202;border-radius:10px;overflow:hidden;border:1px solid ${phase.color};position:relative;">
+      <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${phase.color},#ff4040);transition:width .5s ease;box-shadow:0 0 12px ${phase.color};"></div>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;text-shadow:0 1px 2px #000;">${Math.max(0,boss.curHp)} / ${boss.maxHp} HP</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:#c9b892;margin-top:6px;">
+      <span>⚡ 招式：${boss.moves.map(m=>m.name).join(' · ')}</span>
+      <span>🛡 干扰：${boss.interrupt.length} 种</span>
+    </div>
+  `;
+  // 注入脉冲动画
+  if(!document.getElementById('boss-anim-style')){
+    const style = document.createElement('style');
+    style.id = 'boss-anim-style';
+    style.textContent = `
+      @keyframes bossPulse{
+        0%,100%{box-shadow:0 0 24px ${phase.color}44,inset 0 0 20px ${phase.color}11;}
+        50%{box-shadow:0 0 36px ${phase.color}88,inset 0 0 30px ${phase.color}33;}
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  header.parentNode.insertBefore(panel, header.nextSibling);
+};
+
+// ==================== 5. 地图坐标扩展 ====================
+// 扩展 generateRoom 记录坐标
+const _origGenerateRoomV4 = Game.generateRoom;
+Game.generateRoom = function(){
+  _origGenerateRoomV4.apply(this, arguments);
+  const room = this.dungeon.currentRoom;
+  if(!room || room.mapPos) return;
+  
+  const rooms = this.dungeon.rooms;
+  if(rooms.length < 2){
+    room.mapPos = {x: 2, y: 6};
+    return;
+  }
+  const prev = rooms[rooms.length-2];
+  const prevPos = prev.mapPos || {x: 2, y: 6};
+  const prevSize = prev.size || [4,4];
+  
+  // 优先向右或向下扩展，避免重叠
+  let newX = prevPos.x, newY = prevPos.y;
+  const dir = rollD6();
+  if(dir <= 3){
+    newX = prevPos.x + prevSize[0] + 1;
+    if(newX + 6 > 24){ newX = prevPos.x; newY = prevPos.y + prevSize[1] + 1; }
+  } else {
+    newY = prevPos.y + prevSize[1] + 1;
+    if(newY + 6 > 14){ newX = prevPos.x + prevSize[0] + 1; newY = prevPos.y; }
+  }
+  // 边界保护
+  newX = Math.max(1, Math.min(newX, 24 - 6));
+  newY = Math.max(1, Math.min(newY, 14 - 6));
+  
+  // 冲突检测：如果该位置已有房间，尝试偏移
+  let attempts = 0;
+  while(attempts < 10 && rooms.some(r => r.mapPos && r !== room && Math.abs(r.mapPos.x - newX) < 4 && Math.abs(r.mapPos.y - newY) < 3)){
+    newX = Math.min(24 - 6, newX + 3);
+    if(newX + 6 > 24){ newX = 1; newY = Math.min(14 - 6, newY + 3); }
+    attempts++;
+  }
+  room.mapPos = {x: newX, y: newY};
+};
+
+// 覆盖 startBossFight 分配地图坐标
+const _origStartBossFightV4 = Game.startBossFight;
+Game.startBossFight = function(level){
+  _origStartBossFightV4.call(this, level);
+  const room = this.dungeon.currentRoom;
+  if(room && !room.mapPos){
+    room.mapPos = {x: 10, y: 1};
+    room.size = [6,6];
+  }
+};
+
+// 覆盖 enterRoom 楼梯房间分配坐标
+const _origEnterRoomV4 = Game.enterRoom;
+Game.enterRoom = function(){
+  const beforeCount = this.dungeon ? this.dungeon.rooms.length : 0;
+  _origEnterRoomV4.apply(this, arguments);
+  // 若新增了楼梯房间，分配坐标
+  if(this.dungeon && this.dungeon.rooms.length > beforeCount){
+    const last = this.dungeon.rooms[this.dungeon.rooms.length-1];
+    if(last && last.isLast && !last.mapPos){
+      const prev = this.dungeon.rooms[this.dungeon.rooms.length-2];
+      const prevPos = prev && prev.mapPos ? prev.mapPos : {x:2, y:6};
+      last.mapPos = {x: Math.min(20, prevPos.x + 8), y: 1};
+      last.size = [4,4];
+    }
+  }
+};
+
+// ==================== 6. 地图 SVG 渲染 ====================
+Game.renderMap = function(){
+  const rooms = this.dungeon ? this.dungeon.rooms : [];
+  const cur = this.dungeon ? this.dungeon.currentRoom : null;
+  const gridW = 26, gridH = 14, cell = 24;
+  
+  let svg = `<svg viewBox="0 0 ${gridW*cell} ${gridH*cell}" style="width:100%;height:auto;display:block;background:linear-gradient(180deg,#1a1008,#0d0806);border-radius:8px;border:2px solid #3a2a1a;">`;
+  
+  // 点阵背景
+  for(let x=0;x<gridW;x++){
+    for(let y=0;y<gridH;y++){
+      svg += `<circle cx="${x*cell+cell/2}" cy="${y*cell+cell/2}" r="1.2" fill="#2a1f14"/>`;
+    }
+  }
+  
+  // 路径连线
+  for(let i=1;i<rooms.length;i++){
+    const prev = rooms[i-1], r = rooms[i];
+    if(!prev.mapPos || !r.mapPos) continue;
+    const x1 = (prev.mapPos.x + (prev.size?prev.size[0]/2:2)) * cell;
+    const y1 = (prev.mapPos.y + (prev.size?prev.size[1]/2:2)) * cell;
+    const x2 = (r.mapPos.x + (r.size?r.size[0]/2:2)) * cell;
+    const y2 = (r.mapPos.y + (r.size?r.size[1]/2:2)) * cell;
+    svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#6a5a3a" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.6"/>`;
+  }
+  
+  // 房间矩形
+  rooms.forEach((r)=>{
+    const pos = r.mapPos || {x:2,y:6};
+    const w = (r.size?r.size[0]:4) * cell;
+    const h = (r.size?r.size[1]:4) * cell;
+    const isCur = r === cur;
+    let fill = '#4a3a2a';
+    let stroke = '#6a4a2a';
+    let icon = '';
+    if(r.isBoss){ fill='#8b1a1a'; stroke='#f05050'; icon='👹'; }
+    else if(r.isLast){ fill='#1a5a8b'; stroke='#50a0f0'; icon='⬇'; }
+    else if(isCur){ fill='#8b6914'; stroke='#daa520'; icon='★'; }
+    else if(r.isEntrance){ fill='#3a4a2a'; stroke='#6a8a4a'; }
+    
+    svg += `<rect x="${pos.x*cell}" y="${pos.y*cell}" width="${w}" height="${h}" fill="${fill}" fill-opacity="0.75" stroke="${stroke}" stroke-width="${isCur?3:1.5}" rx="4"/>`;
+    
+    if(icon){
+      svg += `<text x="${pos.x*cell+w/2}" y="${pos.y*cell+h/2+5}" text-anchor="middle" font-size="${isCur?18:14}" fill="#fff">${icon}</text>`;
+    }
+    
+    // 房间编号
+    if(!r.isEntrance && !r.isBoss && !r.isLast){
+      svg += `<text x="${pos.x*cell+8}" y="${pos.y*cell+14}" font-size="9" fill="#c9b892" font-weight="700">${rooms.indexOf(r)}</text>`;
+    }
+  });
+  
+  svg += `</svg>`;
+  return svg;
+};
+
+Game.openMap = function(){
+  if(!this.dungeon || !this.dungeon.rooms || this.dungeon.rooms.length === 0){
+    Toast.show(LANG==='zh'?'尚无地图数据。':'No map data yet.', 'warn');
+    return;
+  }
+  const svg = this.renderMap();
+  const html = `
+    <div style="font-size:12px;color:#5a4a35;margin-bottom:8px;">
+      <b>${LANG==='zh'?'第':'Level'} ${this.dungeon.level} ${LANG==='zh'?'层':'Dungeon'}</b> · 
+      ${this.dungeon.rooms.length} ${LANG==='zh'?'个房间':'rooms'} · 
+      ${this.dungeon.generationPct}% ${LANG==='zh'?'已探索':'explored'}
+    </div>
+    <div style="max-height:60vh;overflow-y:auto;border-radius:8px;">
+      ${svg}
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:10px;font-size:11px;flex-wrap:wrap;">
+      <span style="color:#daa520;">★ ${t('map.current')}</span>
+      <span style="color:#8a6a3a;">■ ${t('map.explored')}</span>
+      <span style="color:#f05050;">👹 ${t('map.boss')}</span>
+      <span style="color:#50a0f0;">⬇ ${t('map.stairs')}</span>
+    </div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="primary" onclick="closeModal()">${t('btn.close')}</button>
+    </div>
+  `;
+  showModal(`🗺 ${t('map.title')}`, html);
+};
+
+// ==================== 7. 地牢快捷按钮加入地图 ====================
+const _origRenderDungeonV4 = Game.renderDungeon;
+Game.renderDungeon = function(){
+  _origRenderDungeonV4.apply(this, arguments);
+  const content = document.getElementById('dungeon-content');
+  if(!content) return;
+  // 找到第一个 .panel 添加地图按钮
+  const firstPanel = content.querySelector('.panel');
+  if(!firstPanel) return;
+  let btnRow = firstPanel.querySelector('.map-btn-row');
+  if(!btnRow){
+    btnRow = document.createElement('div');
+    btnRow.className = 'map-btn-row';
+    btnRow.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;';
+    firstPanel.appendChild(btnRow);
+  }
+  // 避免重复创建
+  if(btnRow.querySelector('.map-toggle-btn')) return;
+  const mapBtn = document.createElement('button');
+  mapBtn.className = 'small map-toggle-btn';
+  mapBtn.innerHTML = `🗺 ${t('map.title')}`;
+  mapBtn.onclick = () => { Audio.click(); Game.openMap(); };
+  btnRow.appendChild(mapBtn);
+};
+
+// ==================== 8. 顶栏多语言 ====================
+const _origRenderTopbarV4 = Game.renderTopbar;
+Game.renderTopbar = function(){
+  if(!this.player) return;
+  const p = this.player;
+  const top = document.getElementById('topbar');
+  if(!top) return;
+  top.innerHTML = `
+    <span class="stat">❤ <b id="top-hp">${Math.max(0,p.hp)}</b>/${p.hpBase}</span>
+    <div class="hpbar"><div id="top-hpbar" style="width:${Math.max(0,p.hp/p.hpBase*100)}%"></div></div>
+    <span class="stat">⭐ <b id="top-xp">${p.xp}</b> XP</span>
+    <span class="stat">🎖 Lv<b id="top-level">${p.level}</b></span>
+    <span class="stat">💠 <b id="top-shift">+${p.shift + (p.temp.shiftBonus||0)}</b> ${t('top.shift')}</span>
+    <span class="stat">💰 <b id="top-gold">${p.gold}</b> GC</span>
+    <span class="stat" id="top-rations">🍖 <b>${p.rations}</b></span>
+  `;
+};
+
+// ==================== 9. 语言切换按钮 ====================
+function appendLangToggle(){
+  const nav = document.getElementById('bottom-nav');
+  if(!nav) return;
+  let btn = document.getElementById('lang-toggle');
+  if(!btn){
+    btn = document.createElement('button');
+    btn.id = 'lang-toggle';
+    btn.onclick = () => {
+      Game.setLang(LANG==='zh' ? 'en' : 'zh');
+      Audio.click();
+    };
+    nav.appendChild(btn);
+  }
+  btn.innerHTML = `<span class="ico">🌐</span>${t('lang.toggle')}`;
+}
+
+// ==================== 10. 初始化 ====================
+// 等待 DOM 就绪后追加语言按钮 + 更新现有导航标签
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initV4);
+} else {
+  initV4();
+}
+
+function initV4(){
+  setTimeout(()=>{
+    appendLangToggle();
+    Game.renderNavLabels();
+    // 若玩家已存在，重渲染顶栏
+    if(Game.player) Game.renderTopbar();
+  }, 300);
+}
+
+// 覆盖 nav-sound 点击后也更新标签
+const origSoundBtn = document.getElementById('nav-sound');
+if(origSoundBtn){
+  origSoundBtn.addEventListener('click', () => {
+    setTimeout(()=>Game.renderNavLabels(), 50);
+  });
+}
+
+// ==================== 11. 说明 ====================
+console.log('[2D6 Extension v4.0] Boss UI + 地图 + 多语言已加载');
+console.log('命令：Game.openMap() / Game.setLang("zh"|"en")');
+
+})();
+</script>
 </body>
 </html>
