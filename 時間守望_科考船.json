@@ -1,0 +1,93 @@
+{
+  "title": "科考船 (1914 NT)",
+  "initialTU": 20,
+  "initialHP": 4,
+  "startLocation": "prologue",
+  "vessels": [
+    { "id": "v_peter", "name": "彼得 \"魔山\" 愛德華茲", "role": "高大的甲板水手", "icon": "💪", "gender": "male", "hp": 5, "stats": { "agility": 1, "charisma": 1, "combat": 4 }, "ability": "【蠻力】：在進行任何力量或戰鬥考驗時，可以無視一個骷髏標記。" },
+    { "id": "v_tom", "name": "湯姆遜·威伯恩", "role": "機修工", "icon": "🔧", "gender": "male", "hp": 4, "stats": { "agility": 2, "charisma": 2, "combat": 2 }, "ability": "【工程大師】：花費 1 時元，可以修復任何損壞的機械，並獲得額外線索。" },
+    { "id": "v_fenrir", "name": "芬里爾", "role": "狗王", "icon": "🐺", "gender": "male", "hp": 4, "stats": { "agility": 3, "charisma": 1, "combat": 2 }, "ability": "【與狗溝通】：可以安撫發狂的雪橇犬，且狗群永遠不會攻擊你。" },
+    { "id": "v_rene", "name": "雷恩·勒布朗", "role": "雜務工", "icon": "🧹", "gender": "male", "hp": 4, "stats": { "agility": 2, "charisma": 3, "combat": 1 }, "ability": "【八面玲瓏】：在與船員交涉時，如果失敗，可以重擲一次骰子。" },
+    { "id": "v_marie", "name": "瑪麗·布萊恩", "role": "教授的助手", "icon": "👩‍🔬", "gender": "female", "hp": 4, "stats": { "agility": 2, "charisma": 3, "combat": 1 }, "ability": "【醫療知識】：花費 1 時元，可以為同地點的任何人恢復 1 點生命。" },
+    { "id": "v_ernest", "name": "恩·勒古斯基", "role": "老練的水手", "icon": "⚓", "gender": "male", "hp": 4, "stats": { "agility": 3, "charisma": 2, "combat": 1 }, "ability": "【雪地生存】：在極寒環境中，檢定失敗不會扣血。" }
+  ],
+  "items": {
+    "item_rifle": { "name": "獵槍", "icon": "🔫", "keep": true },
+    "item_meat": { "name": "鮮肉", "icon": "🥩", "keep": false },
+    "item_torch": { "name": "火把", "icon": "🔥", "keep": true },
+    "item_key": { "name": "船長室鑰匙", "icon": "🗝️", "keep": true },
+    "item_whiskey": { "name": "威士忌", "icon": "🥃", "keep": false },
+    "token_dogs": { 
+      "name": "狗群支援標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='#8bc34a'/><text x='12' y='16' font-size='12' text-anchor='middle' fill='white'>🐺</text></svg>", 
+      "keep": true 
+    },
+    "token_frost": { 
+      "name": "嚴重凍傷標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='#03a9f4'/><text x='12' y='16' font-size='12' text-anchor='middle' fill='white'>❄️</text></svg>", 
+      "keep": true 
+    }
+  },
+  "locations": {
+    "prologue": {
+      "name": "基地：傳送室",
+      "cards": [
+        { "id": "pro_A", "label": "A卡：極地簡報", "cost": 0, "text": "「探員們，1914年的南極探險隊『堅忍號』遭遇了時間異常。船員們開始發瘋，船隻被凍結在冰層中。你們必須調查真相，但要注意，這裡極度寒冷，會迅速消耗你們的生命。」\n(閱讀完請點擊進行意識投射)", "actions": [ { "label": "進行意識投射", "cost": 0, "isTeleport": true } ] }
+      ]
+    },
+    "deck": {
+      "name": "甲板 (Deck)",
+      "cards": [
+        { "id": "dk_A", "label": "A卡：刺骨寒風", "cost": 0, "text": "你們在甲板上醒來。刺骨的寒風幾乎將你們凍僵，大團的霧氣遮蔽了視線。\n在甲板中央，機修工湯姆正在拼命修理一架小飛機，嘴裡不斷咒罵。", "actions": [] },
+        { "id": "dk_B", "label": "B卡：機修工", "cost": 1, "text": "湯姆轉頭看著你們：「我要離開這個鬼地方！如果你想幫忙，我們可以快點走！」", "check": { "attr": "combat", "diff": 2, "successText": "你幫他修好了引擎，他感謝你並給了你一把獵槍防身。", "failText": "你被工具砸傷了。", "failDamage": 1, "giveItemOnSuccess": "item_rifle" }, "actions": [] },
+        { "id": "dk_C", "label": "C卡：進入船艙", "cost": 1, "text": "你們必須進入船艙避寒，否則會凍死。", "actions": [ { "label": "前往休息室", "cost": 0, "nextLoc": "lounge" } ] }
+      ]
+    },
+    "lounge": {
+      "name": "休息室 (Lounge)",
+      "cards": [
+        { "id": "lg_A", "label": "A卡：微弱的爐火", "cost": 0, "text": "休息室裡有一個正在燃燒的火爐，給這裡帶來了一絲暖意。\n一個留著鬍子的男人坐在沙發上，似乎在沉思。", "actions": [] },
+        { "id": "lg_B", "label": "B卡：烤火", "cost": 1, "text": "你們靠近火爐，讓身體重新暖和起來。", "actions": [ { "label": "恢復生命", "cost": 0, "text": "你們感覺好多了。", "heal": 1 } ] },
+        { "id": "lg_C", "label": "C卡：老船長", "cost": 1, "text": "男人抬起頭：「你們好，我是船長。這裡發生了一些可怕的事情，船員們開始發瘋。地下室有東西在作祟...」\n(解鎖廚房與狗窩)", "unlockLoc": ["kitchen", "kennel"], "actions": [] }
+      ]
+    },
+    "kitchen": {
+      "name": "廚房 (Kitchen)",
+      "cards": [
+        { "id": "kt_A", "label": "A卡：食物儲藏室", "cost": 0, "text": "廚房裡瀰漫著腐爛的氣味。儲藏室裡還有一些殘存的物資。", "actions": [] },
+        { "id": "kt_B", "label": "B卡：獲取肉類", "cost": 1, "text": "你在冷藏庫裡發現了一塊還沒壞的鮮肉，這或許能安撫那些發瘋的狗。", "actions": [ { "label": "拿走鮮肉", "cost": 0, "giveItem": "item_meat" } ] },
+        { "id": "kt_C", "label": "C卡：威士忌", "cost": 1, "text": "你在櫃子裡找到一瓶威士忌，可以用來消毒或交易。", "actions": [ { "label": "拿走威士忌", "cost": 0, "giveItem": "item_whiskey" } ] }
+      ]
+    },
+    "kennel": {
+      "name": "狗窩 (Kennel)",
+      "cards": [
+        { "id": "kn_A", "label": "A卡：發狂的雪橇犬", "cost": 0, "text": "狗窩裡傳來十來隻狗的死亡嚎叫。房間裡瀰漫著血腥味。\n在籠子裡，狗群正用凶狠的眼神盯著你們。", "actions": [] },
+        { "id": "kn_B", "label": "B卡：安撫狗群", "cost": 1, "text": "你嘗試丟給牠們一些食物來安撫牠們。", "requires": "item_meat", "check": { "attr": "charisma", "diff": 2, "successText": "狗群安靜了下來，一隻巨大的雪橇犬首領願意跟隨你！", "failText": "狗群搶走了肉，依然對你咆哮。", "giveItemOnSuccess": "token_dogs" }, "actions": [] },
+        { "id": "kn_C", "label": "C卡：搜索狗窩", "cost": 1, "text": "你在角落發現了一具幾乎被啃食殆盡的人類遺骸，旁邊有一把沾滿血跡的鑰匙。", "actions": [ { "label": "拿走船長室鑰匙", "cost": 0, "giveItem": "item_key" } ] }
+      ]
+    },
+    "captain_cabin": {
+      "name": "船長室 (Captain's Cabin)",
+      "cards": [
+        { "id": "cp_A", "label": "A卡：禁閉的房間", "cost": 0, "text": "船長室的大門緊鎖，需要特定的鑰匙才能打開。", "requires": "item_key", "actions": [ { "label": "進入船長室", "cost": 0, "text": "你用鑰匙打開了門。" } ] },
+        { "id": "cp_B", "label": "B卡：航海日誌", "cost": 1, "text": "桌上有著導航工具和航海日誌。翻開最後一頁，記錄著船員們發現了一塊巨大的黑色隕石。\n(解鎖鍋爐房與地下洞穴)", "unlockLoc": ["boiler_room"], "actions": [] }
+      ]
+    },
+    "boiler_room": {
+      "name": "鍋爐房 (Boiler Room)",
+      "cards": [
+        { "id": "br_A", "label": "A卡：極寒與惡臭", "cost": 0, "text": "你們來到了鍋爐房。周圍的溫度低得難以想像，鍋爐早就熄滅了。\n空氣中瀰漫著無法忍受的氣味，一具屍體正在被鍋爐焚燒。", "actions": [] },
+        { "id": "br_B", "label": "B卡：異變生物", "cost": 1, "text": "從黑暗中衝出了一個長著翅膀的怪物，牠的爪子上滴著毒液！", "check": { "attr": "combat", "diff": 4, "successText": "你們合力擊退了怪物。", "failText": "怪物撕咬了你，你嚴重受傷且被凍傷。", "failDamage": 3 }, "actions": [] },
+        { "id": "br_C", "label": "C卡：深入洞穴", "cost": 1, "text": "怪物逃向了更深處的冰層洞穴，那裡似乎是時間異常的源頭。", "actions": [ { "label": "進入洞穴", "cost": 0, "nextLoc": "ice_cave" } ] }
+      ]
+    },
+    "ice_cave": {
+      "name": "冰層洞穴",
+      "cards": [
+        { "id": "ic_A", "label": "A卡：時空裂縫", "cost": 0, "text": "你們來到了洞穴深處，這裡的時間流速極度異常，巨大的黑色隕石散發著詭異的光芒。\n一個被異變的船員首領正站在隕石前。", "actions": [] },
+        { "id": "ic_B", "label": "B卡：最後的決戰", "cost": 1, "text": "你必須摧毀這塊隕石，才能修復時間線！", "check": { "attr": "combat", "diff": 5, "successText": "你成功擊碎了隕石，時間線開始恢復，任務完成！", "failText": "強大的時間衝擊波將你震飛。", "failDamage": 4 }, "actions": [ { "label": "完成任務", "cost": 0, "isWin": true } ] }
+      ]
+    }
+  }
+}

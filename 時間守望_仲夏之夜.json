@@ -1,0 +1,94 @@
+{
+  "title": "仲夏之夜 (6051 AT)",
+  "initialTU": 25,
+  "initialHP": 4,
+  "startLocation": "prologue",
+  "vessels": [
+    { "id": "v_lavinia", "name": "拉維妮婭", "role": "自然交流者", "icon": "🌳", "gender": "female", "hp": 4, "stats": { "agility": 2, "charisma": 3, "combat": 1 }, "ability": "【自然之友】：在森林地帶探索時，可以無視一次失敗的檢定。" },
+    { "id": "v_photios", "name": "佛提奧斯", "role": "潘神笛韻", "icon": "🎵", "gender": "male", "hp": 5, "stats": { "agility": 1, "charisma": 4, "combat": 2 }, "ability": "【迷幻之音】：可以花費 1 時元，讓同地點的隊友免受一次傷害。" },
+    { "id": "v_ruanne", "name": "魯安妮·奧康納", "role": "彩虹橋", "icon": "🌈", "gender": "female", "hp": 4, "stats": { "agility": 3, "charisma": 2, "combat": 1 }, "ability": "【魔法彩虹】：移動到其他地點時，可以少花費 1 點時元。" },
+    { "id": "v_sariel", "name": "沙利葉", "role": "風之精靈", "icon": "🌪️", "gender": "female", "hp": 4, "stats": { "agility": 4, "charisma": 1, "combat": 2 }, "ability": "【疾風】：在敏捷檢定中，自動獲得 +1 成功。" },
+    { "id": "v_bottom", "name": "波頓", "role": "織工", "icon": "🐴", "gender": "male", "hp": 4, "stats": { "agility": 1, "charisma": 3, "combat": 2 }, "ability": "【滑稽的驢頭】：交涉失敗時，不會引發戰鬥，對方只會覺得你很可笑。" },
+    { "id": "v_puck", "name": "帕克", "role": "搗蛋鬼", "icon": "🧚", "gender": "male", "hp": 3, "stats": { "agility": 3, "charisma": 3, "combat": 1 }, "ability": "【惡作劇】：可以重擲一次任何檢定，但如果是大失敗（結果為 0），則扣 1 點生命。" }
+  ],
+  "items": {
+    "item_mask_sun": { "name": "太陽面具", "icon": "☀️", "keep": true },
+    "item_mask_fool": { "name": "愚者面具", "icon": "🃏", "keep": true },
+    "item_mask_death": { "name": "死神面具", "icon": "💀", "keep": true },
+    "item_flower": { "name": "魔法花汁", "icon": "🌸", "keep": false },
+    "token_pink_square": { 
+      "name": "粉色方塊標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='20' height='20' fill='#e91e63' rx='3'/></svg>", 
+      "keep": true 
+    },
+    "token_blue_L": { 
+      "name": "藍色L形標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='10' height='20' fill='#2196f3' rx='2'/><rect x='12' y='12' width='10' height='10' fill='#2196f3' rx='2'/></svg>", 
+      "keep": true 
+    },
+    "token_green_cross": { 
+      "name": "綠色十字標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='8' y='2' width='8' height='20' fill='#4caf50' rx='1'/><rect x='2' y='8' width='20' height='8' fill='#4caf50' rx='1'/></svg>", 
+      "keep": true 
+    }
+  },
+  "locations": {
+    "prologue": {
+      "name": "基地：傳送室",
+      "cards": [
+        { "id": "pro_A", "label": "A卡：時空傳送", "cost": 0, "text": "「你們將前往 6051 年的妖精王國。在那裡，三位強大的命運女神試圖掙脫牢獄。你們必須阻止她們，否則整個時間線將陷入混亂。」\n(閱讀完請點擊進行意識投射)", "actions": [ { "label": "進行意識投射", "cost": 0, "isTeleport": true } ] }
+      ]
+    },
+    "ancient_road": {
+      "name": "古代大道 (Ancient Road)",
+      "cards": [
+        { "id": "ar_A", "label": "A卡：迷霧之路", "cost": 0, "text": "你們在迷霧中醒來，腳下是古老的石磚路。\n前方有一個岔路，一條通往迷霧森林，一條通往破敗的修道院廢墟。", "actions": [] },
+        { "id": "ar_B", "label": "B卡：奇異的雕像", "cost": 1, "text": "路邊有一個奇異的雕像，它的底座上有粉色方塊的凹槽。", "check": { "attr": "charisma", "diff": 2, "successText": "你觸碰了雕像，獲得了一個粉色方塊。", "failText": "雕像發出了詭異的笑聲。", "giveItemOnSuccess": "token_pink_square" }, "actions": [] }
+      ]
+    },
+    "mist_forest": {
+      "name": "迷霧森林 (Mist Forest)",
+      "cards": [
+        { "id": "mf_A", "label": "A卡：妖精的領地", "cost": 0, "text": "你們走進了迷霧森林，這裡到處都是發光的螢火蟲。\n一個調皮的小妖精出現在你們面前：「你們想過去？先陪我玩玩吧！」", "actions": [] },
+        { "id": "mf_B", "label": "B卡：小妖精的考驗", "cost": 1, "text": "小妖精提出了一個謎題。", "check": { "attr": "combat", "diff": 2, "successText": "你成功解開了謎題，小妖精給了你一個藍色 L 形石板。", "failText": "小妖精捉弄了你，你失去了 1 點生命。", "failDamage": 1, "giveItemOnSuccess": "token_blue_L" }, "actions": [] },
+        { "id": "mf_C", "label": "C卡：森林深處", "cost": 1, "text": "穿過迷霧，你們來到了妖精王后的宮殿。", "actions": [ { "label": "前往宮殿", "cost": 0, "nextLoc": "fairy_palace" } ] }
+      ]
+    },
+    "ruins": {
+      "name": "修道院廢墟 (Ruins)",
+      "cards": [
+        { "id": "ru_A", "label": "A卡：破敗的走廊", "cost": 0, "text": "這座廢棄的修道院裡長滿了藤蔓，牆上的壁畫已經斑駁。\n在破敗的祭壇旁，你看到了一個散發著綠光的物體。", "actions": [] },
+        { "id": "ru_B", "label": "B卡：祭壇", "cost": 1, "text": "你走近祭壇，發現了一個綠色十字石板。", "check": { "attr": "agility", "diff": 3, "successText": "你成功拿到了綠色十字石板。", "failText": "你觸發了機關，受了傷。", "failDamage": 2, "giveItemOnSuccess": "token_green_cross" }, "actions": [] },
+        { "id": "ru_C", "label": "C卡：暗道", "cost": 1, "text": "祭壇下方有一條隱蔽的暗道。", "actions": [ { "label": "進入暗道", "cost": 0, "nextLoc": "castle_gate" } ] }
+      ]
+    },
+    "fairy_palace": {
+      "name": "妖精宮殿 (Fairy Palace)",
+      "cards": [
+        { "id": "fp_A", "label": "A卡：仙王的請求", "cost": 0, "text": "妖精王奧布朗接見了你們：「命運女神快要掙脫了，你們必須拿到面具才能對抗她們。去寶庫拿吧。」\n(解鎖寶庫)", "unlockLoc": ["treasury"], "actions": [] }
+      ]
+    },
+    "treasury": {
+      "name": "寶庫 (Treasury)",
+      "cards": [
+        { "id": "tr_A", "label": "A卡：面具的力量", "cost": 0, "text": "寶庫裡陳列著三個面具：太陽、愚者、死神。", "actions": [] },
+        { "id": "tr_B", "label": "B卡：拿走太陽面具", "cost": 1, "text": "太陽面具發出溫暖的光芒。", "actions": [ { "label": "拿走", "cost": 0, "giveItem": "item_mask_sun" } ] },
+        { "id": "tr_C", "label": "C卡：拿走愚者面具", "cost": 1, "text": "愚者面具透著狡黠的笑容。", "actions": [ { "label": "拿走", "cost": 0, "giveItem": "item_mask_fool" } ] },
+        { "id": "tr_D", "label": "D卡：拿走死神面具", "cost": 1, "text": "死神面具冰冷刺骨。", "actions": [ { "label": "拿走", "cost": 0, "giveItem": "item_mask_death" }, { "label": "前往城堡", "cost": 0, "nextLoc": "castle_gate" } ] }
+      ]
+    },
+    "castle_gate": {
+      "name": "城堡入口 (Castle Gate)",
+      "cards": [
+        { "id": "cg_A", "label": "A卡：命運之門", "cost": 0, "text": "你們來到了命運女神的城堡前。大門緊鎖，門上有一個巨大的謎題。", "requires": "token_pink_square", "actions": [ { "label": "放入粉色方塊", "cost": 0, "text": "大門緩緩打開。", "nextLoc": "final_room" } ] }
+      ]
+    },
+    "final_room": {
+      "name": "最終密室",
+      "cards": [
+        { "id": "fr_A", "label": "A卡：命運三女神", "cost": 0, "text": "你們來到了密室，三位命運女神正站在巨大的紡車前，編織著時間的線條。\n「你們無法阻止我們！」", "actions": [] },
+        { "id": "fr_B", "label": "B卡：最終對決", "cost": 1, "text": "你必須運用面具的力量擊敗她們！", "requires": "item_mask_fool", "check": { "attr": "combat", "diff": 5, "successText": "你們成功切斷了她們與紡車的聯繫，命運女神退回了深淵，任務完成！", "failText": "女神們的魔法將你們擊退。", "failDamage": 4 }, "actions": [ { "label": "完成任務", "cost": 0, "isWin": true } ] }
+      ]
+    }
+  }
+}

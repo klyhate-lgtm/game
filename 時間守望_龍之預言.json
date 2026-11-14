@@ -1,0 +1,93 @@
+{
+  "title": "龍之預言 (1419 AT)",
+  "initialTU": 30,
+  "initialHP": 5,
+  "startLocation": "prologue",
+  "vessels": [
+    { "id": "v_athas", "name": "長者阿塔斯", "role": "法師", "icon": "🧙‍♂️", "gender": "male", "hp": 4, "stats": { "agility": 1, "charisma": 2, "combat": 3 }, "ability": "【魔法宗師】：在進行魔法或智力相關檢定時，可以重擲一次骰子。" },
+    { "id": "v_guillem", "name": "吉列姆·伊諾德", "role": "盜賊", "icon": "🗡️", "gender": "male", "hp": 4, "stats": { "agility": 4, "charisma": 2, "combat": 1 }, "ability": "【開鎖大師】：在進行敏捷或巧手檢定時，自動獲得 +1 成功。" },
+    { "id": "v_elisa", "name": "伊萊莎·多爾", "role": "聖騎士", "icon": "🛡️", "gender": "female", "hp": 6, "stats": { "agility": 2, "charisma": 3, "combat": 2 }, "ability": "【神聖護甲】：戰鬥檢定時，可以無視一個骷髏標記。" },
+    { "id": "v_fenok", "name": "芬諾克·謝普寧", "role": "煉金術士", "icon": "🧪", "gender": "male", "hp": 4, "stats": { "agility": 2, "charisma": 2, "combat": 2 }, "ability": "【調配藥水】：花費 1 時元，可以為同地點的人恢復 1 點生命。" },
+    { "id": "v_noli", "name": "諾力·礦錘", "role": "戰士", "icon": "🪓", "gender": "male", "hp": 7, "stats": { "agility": 1, "charisma": 1, "combat": 5 }, "ability": "【狂暴】：生命值低於一半時，戰鬥檢定自動獲得 +1 成功。" },
+    { "id": "v_lyra", "name": "莉雅拉·伊諾德", "role": "刺客", "icon": "🥷", "gender": "female", "hp": 4, "stats": { "agility": 4, "charisma": 1, "combat": 2 }, "ability": "【暗影潛行】：可以避開某些非戰鬥的危險陷阱。" }
+  ],
+  "items": {
+    "item_gold": { "name": "金幣", "icon": "🪙", "keep": true },
+    "item_herb_green": { "name": "藍絲草", "icon": "🌿", "keep": true },
+    "item_herb_brown": { "name": "黑苔", "icon": "🍄", "keep": true },
+    "item_potion": { "name": "小型治療藥劑", "icon": "🧪", "keep": true },
+    "item_scroll": { "name": "火球術卷軸", "icon": "📜", "keep": true },
+    "item_map": { "name": "地下城地圖", "icon": "🗺️", "keep": true },
+    "item_dragon_badge": { "name": "巨龍徽章", "icon": "🐉", "keep": true },
+    "token_pink_square": { 
+      "name": "粉色方塊標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='20' height='20' fill='#e91e63' rx='3'/></svg>", 
+      "keep": true 
+    },
+    "token_blue_L": { 
+      "name": "藍色L形標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='10' height='20' fill='#2196f3' rx='2'/><rect x='12' y='12' width='10' height='10' fill='#2196f3' rx='2'/></svg>", 
+      "keep": true 
+    },
+    "token_green_cross": { 
+      "name": "綠色十字標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='8' y='2' width='8' height='20' fill='#4caf50' rx='1'/><rect x='2' y='8' width='20' height='8' fill='#4caf50' rx='1'/></svg>", 
+      "keep": true 
+    }
+  },
+  "locations": {
+    "prologue": {
+      "name": "基地：傳送室",
+      "cards": [
+        { "id": "pro_A", "label": "A卡：時空傳送", "cost": 0, "text": "「你們將前往 1419 年的阿基瑞亞。這是一個魔法與劍的世界。賽安人的奸細已經潛入了城堡，你們必須找出他並修復時間線。」\n(閱讀完請點擊進行意識投射)", "actions": [ { "label": "進行意識投射", "cost": 0, "isTeleport": true } ] }
+      ]
+    },
+    "tavern": {
+      "name": "巨龍酒館 (Tavern)",
+      "cards": [
+        { "id": "tv_A", "label": "A卡：喧囂的酒館", "cost": 0, "text": "你們在巨龍酒館醒來。這裡擠滿了冒險者、傭兵和盜賊。\n酒館老闆正擦著杯子，旁邊的桌子上有幾個人在賭博。", "actions": [] },
+        { "id": "tv_B", "label": "B卡：酒館老闆", "cost": 1, "text": "你向老闆打聽消息。", "check": { "attr": "charisma", "diff": 2, "successText": "老闆給了你一些情報，並給了你幾枚金幣。", "failText": "老闆覺得你很煩，趕走了你。", "giveItemOnSuccess": "item_gold" }, "actions": [] },
+        { "id": "tv_C", "label": "C卡：賭博的冒險者", "cost": 1, "text": "你加入了一場擲骰遊戲。", "check": { "attr": "charisma", "diff": 3, "successText": "你贏了，對方給了你一個藍色 L 形石板作為抵押。", "failText": "你輸光了身上的錢。", "giveItemOnSuccess": "token_blue_L" }, "actions": [] },
+        { "id": "tv_D", "label": "D卡：前往市場", "cost": 1, "text": "你們走出了酒館，來到了阿基瑞亞的市場。", "unlockLoc": ["market"], "actions": [ { "label": "前往市場", "cost": 0, "nextLoc": "market" } ] }
+      ]
+    },
+    "market": {
+      "name": "市場 (Market)",
+      "cards": [
+        { "id": "mk_A", "label": "A卡：繁華的集市", "cost": 0, "text": "市場裡人聲鼎沸。\n左邊是一家武器店，中間是一家藥劑店，右邊則是一個賣卷軸的商人。", "actions": [] },
+        { "id": "mk_B", "label": "B卡：麥希安的藥劑店", "cost": 1, "text": "藥劑師麥希安熱情地招呼你們：「需要點什麼嗎？」", "check": { "attr": "charisma", "diff": 2, "successText": "你成功買到了一瓶治療藥劑和一些黑苔。", "failText": "你沒錢買，被趕了出去。", "giveItemOnSuccess": ["item_potion", "item_herb_brown"] }, "actions": [] },
+        { "id": "mk_C", "label": "C卡：卷軸商人", "cost": 1, "text": "商人神秘地拿出了一張地圖和一個卷軸。", "check": { "attr": "agility", "diff": 3, "successText": "你成功偷到了地下城地圖和火球術卷軸。", "failText": "你被商人發現，引發了警衛。", "failDamage": 1, "giveItemOnSuccess": ["item_map", "item_scroll"] }, "actions": [] },
+        { "id": "mk_D", "label": "D卡：前往森林", "cost": 1, "text": "你們離開市場，前往城市邊緣的迷失森林。", "unlockLoc": ["forest"], "actions": [ { "label": "前往森林", "cost": 0, "nextLoc": "forest" } ] }
+      ]
+    },
+    "forest": {
+      "name": "迷失森林 (Lost Forest)",
+      "cards": [
+        { "id": "fr_A", "label": "A卡：迷霧與草藥", "cost": 0, "text": "你們走進了茂密的森林。\n在一段距離外的矮樹叢中，花繁葉茂地長了許多草藥。", "actions": [] },
+        { "id": "fr_B", "label": "B卡：採摘草藥", "cost": 1, "text": "你蹲下來嘗試採摘這些藍絲草。", "check": { "attr": "agility", "diff": 2, "successText": "你成功採集到了藍絲草。", "failText": "你被草叢裡的荊棘劃傷了。", "failDamage": 1, "giveItemOnSuccess": "item_herb_green" }, "actions": [] },
+        { "id": "fr_C", "label": "C卡：妖精的洞穴", "cost": 1, "text": "在一個洞穴中，你看到了一個發光的綠色十字石板。", "check": { "attr": "combat", "diff": 3, "successText": "你擊退了洞穴裡的怪物，拿到了綠色十字石板。", "failText": "你被怪物咬傷了。", "failDamage": 2, "giveItemOnSuccess": "token_green_cross" }, "actions": [] }
+      ]
+    },
+    "dock": {
+      "name": "舊碼頭 (Dock)",
+      "cards": [
+        { "id": "dk_A", "label": "A卡：通往城堡的橋", "cost": 0, "text": "你們來到了舊碼頭，這裡有一座通往城堡的橋。\n但是橋上守衛森嚴。", "actions": [] },
+        { "id": "dk_B", "label": "B卡：說服守衛", "cost": 1, "text": "你嘗試用三寸不爛之舌說服守衛放行。", "check": { "attr": "charisma", "diff": 4, "successText": "守衛被你說服了，讓你們通過。", "failText": "守衛不耐煩地趕走了你們。", "failTime": 2 }, "actions": [ { "label": "前往城堡", "cost": 0, "nextLoc": "castle" } ] }
+      ]
+    },
+    "castle": {
+      "name": "城堡地下城 (Castle Dungeon)",
+      "cards": [
+        { "id": "cs_A", "label": "A卡：幽暗的地下通道", "cost": 0, "text": "你們進入了城堡的地下。這裡錯綜複雜，像一個巨大的迷宮。\n墙壁上刻滿了奇怪的符號。", "actions": [] },
+        { "id": "cs_B", "label": "B卡：解開謎題", "cost": 1, "text": "你將粉色方塊與藍色 L 形標記放入牆壁的凹槽中。", "requires": "token_pink_square", "actions": [ { "label": "放入石板", "cost": 0, "text": "一道暗門打開了，散發出邪惡的氣息。", "nextLoc": "boss_room" } ] }
+      ]
+    },
+    "boss_room": {
+      "name": "王座大廳 (Throne Room)",
+      "cards": [
+        { "id": "bs_A", "label": "A卡：被附身的國王", "cost": 0, "text": "你們衝進了大廳。國王米拉芬坐在王座上，他的眼睛發出詭異的光芒。\n「你們來得太晚了，賽安人的計畫已經啟動！」", "actions": [] },
+        { "id": "bs_B", "label": "B卡：最終決戰", "cost": 1, "text": "你必須擊敗被附身的國王，並摧毀時空裂隙！", "check": { "attr": "combat", "diff": 5, "successText": "你擊敗了賽安人的宿主，時間線恢復了正常！", "failText": "黑暗的能量將你們擊飛。", "failDamage": 4 }, "actions": [ { "label": "完成任務", "cost": 0, "isWin": true } ] }
+      ]
+    }
+  }
+}

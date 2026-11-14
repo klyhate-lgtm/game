@@ -1,0 +1,91 @@
+{
+  "title": "面具之下 (-1146 NT)",
+  "initialTU": 25,
+  "initialHP": 5,
+  "startLocation": "prologue",
+  "vessels": [
+    { "id": "v_tefnout", "name": "泰芙諾特", "role": "太陽神女祭司", "icon": "👸", "gender": "female", "hp": 5, "stats": { "agility": 2, "charisma": 3, "combat": 1 }, "ability": "【魔法儀式】：花費 1 時元，可以讓同地點的隊友檢定結果 +2。" },
+    { "id": "v_nefret", "name": "奈芙蕾特", "role": "月神女祭司", "icon": "🌙", "gender": "female", "hp": 4, "stats": { "agility": 2, "charisma": 2, "combat": 2 }, "ability": "【神聖治療】：花費 1 時元，恢復同地點任何人 2 點生命。" },
+    { "id": "v_emhat", "name": "艾姆哈特", "role": "士兵", "icon": "🛡️", "gender": "male", "hp": 6, "stats": { "agility": 1, "charisma": 1, "combat": 4 }, "ability": "【麥德查】：戰鬥檢定時，無視一個骷髏標記。" },
+    { "id": "v_nebka", "name": "奈布卡", "role": "盜墓賊", "icon": "🥷", "gender": "male", "hp": 4, "stats": { "agility": 3, "charisma": 1, "combat": 2 }, "ability": "【開鎖】：在進行敏捷或巧手檢定時，自動獲得 +1 成功。" },
+    { "id": "v_mehyt", "name": "麥伊特", "role": "僕人", "icon": "🧹", "gender": "female", "hp": 4, "stats": { "agility": 2, "charisma": 2, "combat": 2 }, "ability": "【偽裝】：可以輕易混入人群中，交涉檢定失敗不會引發戰鬥。" },
+    { "id": "v_ounas", "name": "奧納斯", "role": "新信徒", "icon": "📜", "gender": "male", "hp": 4, "stats": { "agility": 2, "charisma": 3, "combat": 1 }, "ability": "【圖書館員】：在進行智力或解謎檢定時，可以重擲一次骰子。" }
+  ],
+  "items": {
+    "item_pass": { "name": "城門通行證", "icon": "📜", "keep": true },
+    "item_ring": { "name": "書記官的戒指", "icon": "💍", "keep": true },
+    "item_scroll": { "name": "古老的卷軸", "icon": "📜", "keep": true },
+    "item_gem": { "name": "紅寶石", "icon": "💎", "keep": true },
+    "token_pink_square": { 
+      "name": "粉色方塊標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='20' height='20' fill='#e91e63' rx='3'/></svg>", 
+      "keep": true 
+    },
+    "token_blue_L": { 
+      "name": "藍色L形標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='10' height='20' fill='#2196f3' rx='2'/><rect x='12' y='12' width='10' height='10' fill='#2196f3' rx='2'/></svg>", 
+      "keep": true 
+    },
+    "token_green_cross": { 
+      "name": "綠色十字標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='8' y='2' width='8' height='20' fill='#4caf50' rx='1'/><rect x='2' y='8' width='20' height='8' fill='#4caf50' rx='1'/></svg>", 
+      "keep": true 
+    },
+    "token_yellow_T": { 
+      "name": "黃色T形標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='20' height='8' fill='#ffc107' rx='2'/><rect x='8' y='10' width='8' height='12' fill='#ffc107' rx='2'/></svg>", 
+      "keep": true 
+    }
+  },
+  "locations": {
+    "prologue": {
+      "name": "基地：傳送室",
+      "cards": [
+        { "id": "pro_A", "label": "A卡：時空傳送", "cost": 0, "text": "「你們將前往公元前1146年的底比斯。在那裡，一件被稱為『皇家狗針』的聖物被盜了，這可能引發時空錯亂。你們必須找回它。」\n(閱讀完請點擊進行意識投射)", "actions": [ { "label": "進行意識投射", "cost": 0, "isTeleport": true } ] }
+      ]
+    },
+    "boat": {
+      "name": "小帆船 (尼羅河)",
+      "cards": [
+        { "id": "bt_A", "label": "A卡：尼羅河航行", "cost": 0, "text": "你們在一艘小帆船上醒來。四周是寬闊的尼羅河，遠處可以看到底比斯城的宏偉神廟。\n船長告訴你們，進入城市需要通行證。", "actions": [] },
+        { "id": "bt_B", "label": "B卡：船長的幫助", "cost": 1, "text": "你向船長打聽情報。", "check": { "attr": "charisma", "diff": 2, "successText": "船長交給你們一張通行證。", "failText": "船長不耐煩地趕走了你。", "giveItemOnSuccess": "item_pass" }, "actions": [] }
+      ]
+    },
+    "gate": {
+      "name": "底比斯城門",
+      "cards": [
+        { "id": "gt_A", "label": "A卡：守衛盤查", "cost": 0, "text": "城門守衛攔住了你們：「出示通行證！否則不許進入！」", "requires": "item_pass", "unlockLoc": ["market"], "actions": [ { "label": "出示通行證並進入", "cost": 0, "nextLoc": "market" } ] }
+      ]
+    },
+    "market": {
+      "name": "市場 (Market)",
+      "cards": [
+        { "id": "mk_A", "label": "A卡：喧鬧的集市", "cost": 0, "text": "市場上擠滿了人，商販們大聲叫賣。\n在角落裡，一個神秘的男人似乎在尋找買家。", "actions": [] },
+        { "id": "mk_B", "label": "B卡：神秘交易", "cost": 1, "text": "男人低聲說：「我有你們想要的線索，但需要這個。」他指了指你身上的財物。", "check": { "attr": "charisma", "diff": 3, "successText": "男人交給你們一個藍色L形石板。", "failText": "男人消失在人群中。", "giveItemOnSuccess": "token_blue_L" }, "actions": [] },
+        { "id": "mk_C", "label": "C卡：前往英雄大道", "cost": 1, "text": "沿著主幹道往前走，你們來到了英雄大道。", "unlockLoc": ["avenue"], "actions": [ { "label": "移動", "cost": 0, "nextLoc": "avenue" } ] }
+      ]
+    },
+    "avenue": {
+      "name": "英雄大道 (Avenue)",
+      "cards": [
+        { "id": "av_A", "label": "A卡：宏偉大道", "cost": 0, "text": "這是一條由巨大石像守衛的大道。\n在左側的雕像下，似乎藏著什麼發光的東西。", "actions": [] },
+        { "id": "av_B", "label": "B卡：雕像下的石板", "cost": 1, "text": "你走近雕像，發現底座有一塊粉色方塊石板。", "check": { "attr": "agility", "diff": 2, "successText": "你成功取下了粉色方塊。", "failText": "你觸發了機關，受了傷。", "failDamage": 1, "giveItemOnSuccess": "token_pink_square" }, "actions": [] },
+        { "id": "av_C", "label": "C卡：隱蔽的小巷", "cost": 1, "text": "你走進一條小巷，在垃圾堆裡發現了一個綠色十字石板。", "actions": [ { "label": "拿走綠色十字", "cost": 0, "giveItem": "token_green_cross" } ] }
+      ]
+    },
+    "temple": {
+      "name": "阿蒙神廟 (Temple)",
+      "cards": [
+        { "id": "tp_A", "label": "A卡：神秘的祭壇", "cost": 0, "text": "你們來到了神廟深處，祭壇上有一個巨大的凹槽。\n祭司告訴你們：「只有帶著神聖印記的人才能進入王宮。」", "actions": [] },
+        { "id": "tp_B", "label": "B卡：開啟密道", "cost": 1, "text": "你將粉色方塊與綠色十字放入祭壇的凹槽中，牆壁開始震動。", "requires": "token_pink_square", "check": { "attr": "combat", "diff": 3, "successText": "密道打開了，你們進入了王宮的後方。", "failText": "強大的魔法反噬了你。", "failDamage": 2, "nextLoc": "palace" }, "actions": [] }
+      ]
+    },
+    "palace": {
+      "name": "王宮深處 (Palace)",
+      "cards": [
+        { "id": "pl_A", "label": "A卡：最終的對決", "cost": 0, "text": "在王宮的地下室，你們找到了那個偷走聖物的叛徒。他正準備啟動儀式，將聖物轉移到另一個時空。", "actions": [] },
+        { "id": "pl_B", "label": "B卡：奪回聖物", "cost": 1, "text": "你拔出武器，衝向叛徒。", "check": { "attr": "combat", "diff": 4, "successText": "你擊敗了叛徒，奪回了皇家狗針！時間線恢復了正常。", "failText": "你被強大的魔法擊飛，身受重傷。", "failDamage": 3 }, "actions": [ { "label": "完成任務", "cost": 0, "isWin": true } ] }
+      ]
+    }
+  }
+}

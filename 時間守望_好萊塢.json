@@ -1,0 +1,70 @@
+{
+  "title": "好萊塢 (1982 NT)",
+  "initialTU": 25,
+  "initialHP": 4,
+  "startLocation": "prologue",
+  "vessels": [
+    { "id": "v_scott", "name": "斯科特·布羅迪", "role": "小白臉", "icon": "🕶️", "gender": "male", "hp": 4, "stats": { "agility": 2, "charisma": 4, "combat": 1 }, "ability": "【小白臉】：在與女性角色交涉時，可以免費重擲一次骰子。" },
+    { "id": "v_dave", "name": "戴夫·卡恩", "role": "想成為演員", "icon": "🎬", "gender": "male", "hp": 4, "stats": { "agility": 2, "charisma": 3, "combat": 2 }, "ability": "【演技】：可以假裝成工作人員，混過某些危險區域。" },
+    { "id": "v_maggie", "name": "瑪吉·羅西塔", "role": "不誠實的女僕", "icon": "🧹", "gender": "female", "hp": 4, "stats": { "agility": 3, "charisma": 2, "combat": 1 }, "ability": "【打掃】：在搜索物品時，獲得額外的線索。" },
+    { "id": "v_harvey", "name": "哈維·斯柏克特", "role": "幽靈獵手", "icon": "👻", "gender": "male", "hp": 5, "stats": { "agility": 1, "charisma": 2, "combat": 3 }, "ability": "【超自然心理學】：在面對超自然現象時，不會感到恐懼。" },
+    { "id": "v_lassy", "name": "萊斯·艾斯德", "role": "朋克混混", "icon": "🎸", "gender": "female", "hp": 4, "stats": { "agility": 2, "charisma": 1, "combat": 3 }, "ability": "【無政府主義】：戰鬥中如果處於劣勢，攻擊力會翻倍。" },
+    { "id": "v_ann", "name": "安·羅絲琳·泰瑟", "role": "吸毒者表妹", "icon": "💊", "gender": "female", "hp": 3, "stats": { "agility": 2, "charisma": 2, "combat": 1 }, "ability": "【藥物依賴】：可以消耗 1 生命值來換取一次必然成功的檢定。" }
+  ],
+  "items": {
+    "item_knife": { "name": "屠殺者的刀", "icon": "🔪", "keep": true },
+    "item_glasses": { "name": "破舊的眼鏡", "icon": "👓", "keep": true },
+    "item_swimsuit": { "name": "藍色泳衣", "icon": "👙", "keep": true },
+    "item_album": { "name": "披頭士唱片", "icon": "💿", "keep": true },
+    "item_gun": { "name": "左輪手槍", "icon": "🔫", "keep": true },
+    "token_blood": {
+      "name": "血跡標記",
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='#b71c1c'/><text x='12' y='16' font-size='12' text-anchor='middle' fill='white'>🩸</text></svg>",
+      "keep": true
+    }
+  },
+  "locations": {
+    "prologue": {
+      "name": "基地：傳送室",
+      "cards": [
+        { "id": "pro_A", "label": "A卡：時空裂隙", "cost": 0, "text": "「探員們，1982年的一座別墅發生了嚴重的時間裂縫。據調查，這與1969年的一場降神會有關。你們必須回到過去，阻止悲劇的發生。」\n(閱讀完請點擊進行意識投射)", "actions": [ { "label": "進行意識投射", "cost": 0, "isTeleport": true } ] }
+      ]
+    },
+    "hall_1982": {
+      "name": "別墅大廳 (1982)",
+      "cards": [
+        { "id": "h82_A", "label": "A卡：降神會", "cost": 0, "text": "別墅大廳裡瀰漫著刺鼻的氣味，地毯上畫著奇怪的儀式陣法。\n幾個人正圍坐在中間，試圖進行時空降神。突然，一陣強光閃過，你們的意識被拉入了另一個時空。", "actions": [ { "label": "進入1969年", "cost": 0, "nextLoc": "hall_1969" } ] }
+      ]
+    },
+    "hall_1969": {
+      "name": "別墅大廳 (1969)",
+      "cards": [
+        { "id": "h69_A", "label": "A卡：大屠殺前夕", "cost": 0, "text": "你們在1969年的別墅大廳醒來。外面傳來了尖叫聲和槍聲，大屠殺已經開始了！\n你們必須立刻收集四個遺物，並在游泳池旁的燒烤架上銷毀它們！", "actions": [] },
+        { "id": "h69_B", "label": "B卡：搜索屍體", "cost": 1, "text": "大廳角落有一具屍體，旁邊散落著一些物品。", "check": { "attr": "agility", "diff": 2, "successText": "你找到了一把左輪手槍和破舊的眼鏡。", "failText": "你被嚇壞了，浪費了時間。", "failTime": 1, "giveItemOnSuccess": ["item_gun", "item_glasses"] }, "actions": [] },
+        { "id": "h69_C", "label": "C卡：前往客廳", "cost": 1, "text": "你們必須離開大廳，前往其他房間尋找遺物。", "unlockLoc": ["living_room", "kitchen"], "actions": [ { "label": "前往客廳", "cost": 0, "nextLoc": "living_room" } ] }
+      ]
+    },
+    "living_room": {
+      "name": "客廳 (Living Room)",
+      "cards": [
+        { "id": "lr_A", "label": "A卡：凌亂的客廳", "cost": 0, "text": "客廳裡凌亂不堪，電視機還在播放著雪花，音響裡傳出披頭士的《Helter Skelter》。\n在沙發旁邊，有一張披頭士的白色專輯唱片。", "actions": [] },
+        { "id": "lr_B", "label": "B卡：拿走唱片", "cost": 1, "text": "你走向音響，準備拿走唱片。", "check": { "attr": "agility", "diff": 2, "successText": "你成功拿到了披頭士唱片。", "failText": "你不小心弄斷了唱針，發出了巨大的噪音，引來了注意。", "failDamage": 1, "giveItemOnSuccess": "item_album" }, "actions": [] }
+      ]
+    },
+    "kitchen": {
+      "name": "廚房 (Kitchen)",
+      "cards": [
+        { "id": "kt_A", "label": "A卡：血腥廚房", "cost": 0, "text": "廚房裡滿是血跡，一個廚師倒在了血泊中。\n在案板上，插著一把巨大的菜刀。", "actions": [] },
+        { "id": "kt_B", "label": "B卡：拔出菜刀", "cost": 1, "text": "你握住刀柄，準備把它拔出來。", "check": { "attr": "combat", "diff": 2, "successText": "你成功拔出了屠殺者的刀。", "failText": "刀卡得太緊，你手滑受了傷。", "failDamage": 1, "giveItemOnSuccess": "item_knife" }, "actions": [] }
+      ]
+    },
+    "pool_1969": {
+      "name": "游泳池與花園 (Pool)",
+      "cards": [
+        { "id": "pl_A", "label": "A卡：日光浴與燒烤架", "cost": 0, "text": "你們來到了花園。泳池旁有一個巨大的燒烤架，裡面還有燃燒的餘燼。\n在不遠處的躺椅上，似乎有一件藍色的衣物。", "actions": [] },
+        { "id": "pl_B", "label": "B卡：拿取泳衣", "cost": 1, "text": "你走向躺椅，準備拿走那件藍色泳衣。", "check": { "attr": "agility", "diff": 3, "successText": "你成功拿到了藍色泳衣。", "failText": "一隻巨大的斑點狗衝了出來，咬傷了你。", "failDamage": 2, "giveItemOnSuccess": "item_swimsuit" }, "actions": [] },
+        { "id": "pl_C", "label": "C卡：銷毀遺物", "cost": 1, "text": "你將四個遺物（菜刀、眼鏡、泳衣、唱片）全部扔進了燒烤架的火焰中。\n一股強大的能量波爆發，時間裂縫關閉了！", "requires": "item_knife", "actions": [ { "label": "完成任務", "cost": 0, "isWin": true } ] }
+      ]
+    }
+  }
+}

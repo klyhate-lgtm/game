@@ -1,0 +1,70 @@
+{
+  "title": "深海計劃 (2099 NT)",
+  "initialTU": 25,
+  "initialHP": 4,
+  "startLocation": "prologue",
+  "vessels": [
+    { "id": "v_jabari", "name": "賈巴里·傑克遜", "role": "警衛隊員", "icon": "🛡️", "gender": "male", "hp": 4, "stats": { "agility": 2, "charisma": 1, "combat": 3 }, "ability": "保護者：支援時，每花費1點可為隊友提供+2防禦。" },
+    { "id": "v_caitlin", "name": "蔡琳·帕克", "role": "職業潛水員", "icon": "🤿", "gender": "female", "hp": 4, "stats": { "agility": 3, "charisma": 1, "combat": 2 }, "ability": "潛水員：在水下地點移動時，不消耗額外時間。" },
+    { "id": "v_antonio", "name": "安東尼奧·曼西尼", "role": "駕駛員兼維修工", "icon": "🔧", "gender": "male", "hp": 4, "stats": { "agility": 2, "charisma": 2, "combat": 2 }, "ability": "工程師：修復機械或駕駛載具時，獲得+1額外骰子。" },
+    { "id": "v_karlia", "name": "卡莉亞·伊萬諾娃", "role": "記者", "icon": "📸", "gender": "female", "hp": 4, "stats": { "agility": 1, "charisma": 3, "combat": 2 }, "ability": "情報專家：調查線索時，可以重擲一次失敗的骰子。" }
+  ],
+  "items": {
+    "item_2": { "name": "氧氣瓶", "icon": "🫧", "keep": true },
+    "item_3": { "name": "手電筒", "icon": "🔦", "keep": true },
+    "item_4": { "name": "潛水服", "icon": "🤿", "keep": true },
+    "item_7": { "name": "潛艇鑰匙 (虎鯨-211)", "icon": "🗝️", "keep": true },
+    "item_11": { "name": "重型魚雷", "icon": "🚀", "keep": false },
+    "item_12": { "name": "控制台密碼", "icon": "🔑", "keep": false },
+    "item_17": { "name": "馬格努斯的筆記", "icon": "📓", "keep": true },
+    "item_25": { "name": "利維坦的鱗片", "icon": "🦎", "keep": false }
+  },
+  "locations": {
+    "prologue": {
+      "name": "基地：傳送室",
+      "cards": [
+        { "id": "pro_A", "label": "A卡：最後的準備", "cost": 0, "text": "「探員們，你們即將前往 2099 年的深海基地。一個致命的神經病毒在那裡爆發，馬格努斯博士和他的團隊目前生死未卜。你們的任務是發現解藥，並帶回真相。」\n(閱讀完請點擊進行意識投射)", "actions": [ { "label": "進行意識投射", "cost": 0, "isTeleport": true } ] }
+      ]
+    },
+    "infirmary": {
+      "name": "醫務室 (Infirmary)",
+      "cards": [
+        { "id": "inf_A", "label": "A卡：甦醒", "cost": 0, "text": "你們在醫務室醒來，牆上的時鐘顯示現在是 2099 年。一名醫生正透過觀察窗看著你們。你們發現自己處於水下基地中。", "actions": [] },
+        { "id": "inf_B", "label": "B卡：調查病床", "cost": 1, "text": "病床旁散落著一些醫療用品。", "check": { "attr": "agility", "diff": 2, "successText": "你找到了一些備用的氧氣瓶。", "failText": "你打翻了藥品，浪費了時間。", "failTime": 1, "giveItemOnSuccess": "item_2" }, "actions": [] },
+        { "id": "inf_C", "label": "C卡：醫生", "cost": 1, "text": "醫生透過對講機對你們說：「你們終於醒了。這座基地已經失控了，馬格努斯博士在深淵邊緣失蹤了，你們必須去找他。」\n(解鎖瞭望大廳)", "unlockLoc": ["lounge"], "actions": [] }
+      ]
+    },
+    "lounge": {
+      "name": "瞭望大廳 (Lounge)",
+      "cards": [
+        { "id": "lng_A", "label": "A卡：大廳", "cost": 0, "text": "你們來到了公共大廳。這裡曾經是船員們放鬆的地方。\n吧台旁有一台損壞的服務型無人機。\n角落的桌子上似乎遺落了一些裝備。", "actions": [] },
+        { "id": "lng_B", "label": "B卡：服務無人機", "cost": 1, "text": "無人機發出微弱的雜音：「需要...提供...氧氣...補給...」", "check": { "attr": "combat", "diff": 2, "successText": "你拍打了一下無人機，它吐出了一套潛水服。", "failText": "無人機短路了。", "failDamage": 1, "giveItemOnSuccess": "item_4" }, "actions": [] },
+        { "id": "lng_C", "label": "C卡：角落的裝備", "cost": 1, "text": "桌上散落著一些工具和一個手電筒。", "actions": [ { "label": "拿走手電筒", "cost": 0, "giveItem": "item_3" }, { "label": "前往控制室", "cost": 0, "nextLoc": "control_room" } ] }
+      ]
+    },
+    "control_room": {
+      "name": "控制室 (Control Room)",
+      "cards": [
+        { "id": "ctrl_A", "label": "A卡：緊急狀態", "cost": 0, "text": "房間內紅燈閃爍，全息螢幕上顯示著基地下方有一個巨大的未知生物熱源，也就是「利維坦」。\n一名軍官看到你們說：「你們必須立刻前往停泊區，駕駛潛艇去尋找解藥，否則基地的水壓遲早會壓垮這裡。」", "actions": [] },
+        { "id": "ctrl_B", "label": "B卡：破解控制台", "cost": 1, "text": "中央控制台需要權限才能打開艙門。", "check": { "attr": "agility", "diff": 3, "successText": "你成功破解了系統，獲得了控制台密碼，並解鎖了停泊區。", "failText": "系統反制了你，你受了一點電擊。", "failDamage": 1, "giveItemOnSuccess": "item_12", "unlockLoc": ["dock"] }, "actions": [] }
+      ]
+    },
+    "dock": {
+      "name": "停泊區 (Dock)",
+      "cards": [
+        { "id": "dock_A", "label": "A卡：潛艇庫", "cost": 0, "text": "你們來到了停泊區，這裡停著幾艘潛艇。\n安東尼奧（如果他是你們的載具）立刻認出了那艘全新的「虎鯨-211」型潛艇。\n在牆邊的衣帽櫃中，似乎還有一些物資。", "actions": [] },
+        { "id": "dock_B", "label": "B卡：獲取鑰匙", "cost": 1, "text": "你打開了牆上的應急櫃，裡面插著一把潛艇鑰匙。", "actions": [ { "label": "拿走潛艇鑰匙", "cost": 0, "giveItem": "item_7" } ] },
+        { "id": "dock_C", "label": "C卡：啟動潛艇", "cost": 1, "text": "你將鑰匙插入控制台，潛艇的引擎開始轟鳴。", "requires": "item_7", "unlockLoc": ["ruins"], "actions": [ { "label": "下潛前往海底遺跡", "cost": 0, "nextLoc": "ruins" } ] }
+      ]
+    },
+    "ruins": {
+      "name": "海底遺跡 (Location 2)",
+      "cards": [
+        { "id": "ruin_A", "label": "A卡：沉沒的文明", "cost": 0, "text": "你們駕駛潛艇來到了深海，前方出現了一座巨大的海底城市遺跡。\n潛艇的聲納探測到，那個巨大的生物「利維坦」就在附近徘徊。\n（你們必須在這裡找到馬格努斯博士的線索，才能通關）", "actions": [] },
+        { "id": "ruin_B", "label": "B卡：探索遺跡", "cost": 1, "text": "你穿上了潛水服，進入遺跡內部。在水下的一處平台，你發現了一本防水筆記。", "check": { "attr": "agility", "diff": 3, "successText": "你成功拿到了筆記，這是馬格努斯博士留下的！", "failText": "水壓太大，你必須立刻返回。", "failDamage": 2, "giveItemOnSuccess": "item_17" }, "actions": [] },
+        { "id": "ruin_C", "label": "C卡：遭遇利維坦", "cost": 1, "text": "巨大的觸手從黑暗中伸出，利維坦發現了你們！", "check": { "attr": "combat", "diff": 4, "successText": "你成功擊退了利維坦的幼崽，並拔下了一片鱗片。", "failText": "潛艇受到了嚴重撞擊，你們受傷了。", "failDamage": 2, "giveItemOnSuccess": "item_25" }, "actions": [] },
+        { "id": "ruin_D", "label": "D卡：真相", "cost": 1, "text": "你們回到了潛艇，解讀了筆記。原來利維坦並非怪物，而是守護這座遺跡的生物。病毒是馬格努斯博士過度開採遺跡能源導致的。\n你們現在可以返回基地，或者直接前往深淵投放解藥。", "actions": [ { "label": "完成任務", "cost": 0, "isWin": true } ] }
+      ]
+    }
+  }
+}
