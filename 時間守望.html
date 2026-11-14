@@ -3,45 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>時間守望：核心引擎 (完整卡牌版)</title>
+<title>時間守望：網頁版引擎 (伺服器版)</title>
 <style>
     :root {
-        --bg-dark: #1e252b;
-        --bg-panel: #2a343d;
-        --text-main: #e0e5e9;
-        --text-muted: #8b9bb4;
-        --accent: #4a90e2;
-        --danger: #e25b5b;
-        --success: #50b87d;
-        --card-bg: #ebdcb9;
-        --card-header-bg: #d4c4a8;
-        --card-border: #8c7853;
+        --bg-dark: #1e252b; --bg-panel: #2a343d; --text-main: #e0e5e9;
+        --text-muted: #8b9bb4; --accent: #4a90e2; --danger: #e25b5b;
+        --card-bg: #ebdcb9; --card-border: #8c7853;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; user-select: none; }
     body { background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-image: radial-gradient(circle at center, #2a343d 0%, #111 100%); }
     
-    /* 頂部時間軌道 */
-    .time-track-container {
-        height: 50px; background: #151a1e; border-bottom: 2px solid #000;
-        display: flex; align-items: center; padding: 0 10px; position: relative; overflow-x: auto;
-    }
-    .time-track { display: flex; gap: 2px; margin: auto; position: relative; }
-    .time-slot {
-        width: 26px; height: 26px; background: #2c3842; color: #5a6b7c;
-        display: flex; justify-content: center; align-items: center; font-size: 11px; font-weight: bold;
-        clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-        transition: all 0.3s;
-    }
+    .time-track-container { height: 50px; background: #151a1e; border-bottom: 2px solid #000; display: flex; align-items: center; padding: 0 10px; overflow-x: auto; }
+    .time-track { display: flex; gap: 2px; margin: auto; }
+    .time-slot { width: 26px; height: 26px; background: #2c3842; color: #5a6b7c; display: flex; justify-content: center; align-items: center; font-size: 11px; font-weight: bold; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); transition: all 0.3s; }
     .time-slot.active { background: var(--accent); color: #fff; box-shadow: 0 0 10px var(--accent); transform: scale(1.1); }
     .time-slot.milestone { background: #4a5a6a; color: #fff; }
 
-    main { flex: 1; display: flex; position: relative; overflow: hidden; }
-    
-    /* 左側狀態欄 */
-    .sidebar {
-        width: 220px; background: var(--bg-panel); border-right: 2px solid #151a1e;
-        display: flex; flex-direction: column; padding: 10px; overflow-y: auto;
-    }
+    main { flex: 1; display: flex; overflow: hidden; }
+    .sidebar { width: 220px; background: var(--bg-panel); border-right: 2px solid #151a1e; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
     .stat-box { background: #1e252b; padding: 8px; border-radius: 5px; margin-bottom: 8px; border: 1px solid #3a4a5a; }
     .stat-title { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
     .stat-value { font-size: 20px; font-weight: bold; color: var(--accent); }
@@ -49,49 +28,38 @@
     .inventory { flex: 1; }
     .item-tag { background: #3a4a5a; padding: 4px 8px; border-radius: 12px; font-size: 11px; margin: 4px 4px 0 0; display: inline-block; border: 1px solid #5a6b7c;}
 
-    /* 中間版圖區 */
-    .board-area {
-        flex: 1; display: flex; flex-direction: column; padding: 15px; background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="%233a4a5a" stroke-width="0.5" opacity="0.3"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid)"/></svg>'); overflow-y: auto; }
-    
-    .story-log {
-        flex: 1; background: rgba(0,0,0,0.7); border: 1px solid #3a4a5a; border-radius: 5px;
-        padding: 15px; margin-bottom: 15px; font-size: 15px; line-height: 1.6; overflow-y: auto;
-        font-family: 'Georgia', serif; color: #e8dcc4; white-space: pre-wrap;
-    }
+    .board-area { flex: 1; display: flex; flex-direction: column; padding: 15px; background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="%233a4a5a" stroke-width="0.5" opacity="0.3"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid)"/></svg>'); overflow-y: auto; }
+    .story-log { height: 120px; background: rgba(0,0,0,0.7); border: 1px solid #3a4a5a; border-radius: 5px; padding: 10px; margin-bottom: 15px; font-size: 14px; line-height: 1.5; overflow-y: auto; font-family: 'Georgia', serif; color: #e8dcc4; white-space: pre-wrap; }
 
-    /* 翻牌區域 */
     .location-cards { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 10px; justify-content: center; }
-    .card {
-        width: 140px; height: 200px; background: var(--card-bg); border-radius: 6px;
-        border: 2px solid var(--card-border); box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
-        display: flex; flex-direction: column; cursor: pointer; position: relative;
-        transition: transform 0.2s; overflow: hidden; color: #2c1e16;
-    }
+    .card { width: 140px; height: 200px; background: var(--card-bg); border-radius: 6px; border: 2px solid var(--card-border); box-shadow: 3px 3px 10px rgba(0,0,0,0.5); display: flex; flex-direction: column; cursor: pointer; position: relative; transition: transform 0.2s; overflow: hidden; color: #2c1e16; }
     .card:hover { transform: translateY(-3px) scale(1.02); }
     .card.disabled { filter: grayscale(1); opacity: 0.5; cursor: not-allowed; transform: none; }
     .card.flipped { background: #5a6b7c; border-color: #3a4a5a; color: #fff; }
-    .card-header { background: var(--card-header-bg); padding: 8px; text-align: center; border-bottom: 2px solid var(--card-border); font-weight: bold; font-size: 14px; color: #1a110b; }
+    .card-header { background: var(--card-header-bg); padding: 8px; text-align: center; border-bottom: 2px solid var(--card-border); font-weight: bold; font-size: 13px; color: #1a110b; }
     .card.flipped .card-header { background: #3a4a5a; color: #fff; border-bottom-color: #222; }
     .card-body { flex: 1; padding: 10px; font-size: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
     .card-cost { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; border: 2px solid #fff; font-size: 14px; z-index: 10;}
 
-    /* 彈窗 */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
     .modal-overlay.show { opacity: 1; pointer-events: auto; }
     .modal-content { background: #1e252b; padding: 25px; border-radius: 8px; max-width: 600px; width: 90%; border: 1px solid var(--accent); max-height: 85vh; overflow-y: auto;}
     .modal-title { font-size: 22px; color: var(--accent); margin-bottom: 15px; text-align: center; border-bottom: 1px solid #333; padding-bottom: 10px;}
     .modal-text { font-size: 15px; line-height: 1.6; margin-bottom: 20px; color: #ccc; white-space: pre-wrap;}
     
-    .btn { background: var(--accent); color: white; border: none; padding: 10px; border-radius: 4px; font-size: 15px; cursor: pointer; margin-top: 10px; width: 100%; text-align: center;}
+    .btn { background: var(--accent); color: white; border: none; padding: 10px; border-radius: 4px; font-size: 15px; cursor: pointer; margin-top: 10px; width: 100%; text-align: center; display: block; }
     .btn:hover { background: #357abd; }
     .btn-danger { background: var(--danger); }
-    
-    .dice-area { display: flex; justify-content: center; gap: 10px; margin: 15px 0; }
-    .die { width: 40px; height: 40px; background: #fff; color: #000; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: bold; }
+    .btn-list { background: #3a4a5a; text-align: left; padding-left: 15px; display: flex; justify-content: space-between; align-items: center;}
+    .btn-list:hover { background: #4a5a6a; }
 
     .bottom-bar { background: #151a1e; padding: 8px; display: flex; justify-content: center; gap: 10px; border-top: 2px solid #000; flex-wrap: wrap;}
     .btn-small { background: #3a4a5a; color: #fff; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .btn-small:hover { background: #4a5a6a; }
     
+    .loading-text { text-align: center; color: var(--text-muted); padding: 20px; }
+    .error-text { color: var(--danger); text-align: center; font-size: 13px; margin-top: 10px; }
+
     @media (max-width: 768px) {
         main { flex-direction: column; }
         .sidebar { width: 100%; height: auto; flex-direction: row; overflow-x: auto; padding: 5px; }
@@ -128,7 +96,7 @@
         </div>
 
         <div class="board-area">
-            <div class="story-log" id="story-log">系統待命中。請載入劇本開始。</div>
+            <div class="story-log" id="story-log">系統待命中。請點擊下方「載入劇本」開始。</div>
             <div class="location-cards" id="play-area"></div>
         </div>
     </main>
@@ -138,6 +106,7 @@
         <button class="btn-small" id="nav-rules">📜 規則</button>
         <button class="btn-small" id="nav-save">💾 存檔</button>
         <button class="btn-small" id="nav-read">📥 讀檔</button>
+        <input type="file" id="json-upload" accept=".json" style="display: none;">
     </div>
 
     <div class="modal-overlay" id="modal-overlay">
@@ -145,7 +114,7 @@
     </div>
 
 <script>
-    // ================= 引擎核心狀態 =================
+    // ================= 引擎核心 =================
     const game = {
         script: null,
         state: { tu: 0, hp: 0, currentLocId: null, inventory: [], revealedCards: [], phase: 'IDLE' },
@@ -154,6 +123,7 @@
             this.script = data;
             this.startNewProcess(false);
             document.getElementById('ui-title').innerText = data.title;
+            ui.closeModal();
         },
 
         startNewProcess(keepItems = false) {
@@ -197,11 +167,10 @@
 
             const loc = this.script.locations[this.state.currentLocId];
             
-            loc.cards.forEach((card, index) => {
+            loc.cards.forEach((card) => {
                 const isRevealed = this.state.revealedCards.includes(card.id);
                 const cardEl = document.createElement('div');
                 
-                // 檢查限制
                 let isDisabled = false;
                 if (!isRevealed) {
                     if (this.state.tu < card.cost) isDisabled = true;
@@ -212,7 +181,7 @@
                 
                 cardEl.innerHTML = `
                     <div class="card-cost">${card.cost > 0 ? card.cost : '?'}</div>
-                    <div class="card-header">${isRevealed ? '已翻開' : card.label}</div>
+                    <div class="card-header">${isRevealed ? '已探索' : card.label}</div>
                     <div class="card-body">
                         ${isRevealed ? `<div style="font-size:20px;">👁️</div>` : `
                             <div style="font-size:24px; margin-bottom:5px;">🔍</div>
@@ -222,51 +191,35 @@
                 `;
 
                 if (!isDisabled) {
-                    cardEl.onclick = () => this.handleCardClick(card, index);
+                    cardEl.onclick = () => this.handleCardClick(card);
                 }
                 area.appendChild(cardEl);
             });
         },
 
-        handleCardClick(card, index) {
+        handleCardClick(card) {
             if (this.state.revealedCards.includes(card.id)) {
-                // 如果已翻開，直接顯示閱讀內容，但不再消耗時間
-                ui.showModal('read', card.label, card.text, null, card.actions);
+                ui.showModal('read', card.label, card.text, card.actions, card.giveItem);
                 return;
             }
 
             if (this.state.tu < card.cost) return ui.showModal('notice', '時間不足', '沒有足夠的 TU 翻開此卡牌。');
-            if (card.requires && !this.state.inventory.includes(card.requires)) return ui.showModal('notice', '缺少道具', '你沒有翻開此卡所需的物品。');
 
             this.state.tu -= card.cost;
             this.state.revealedCards.push(card.id);
+            
+            if (card.giveItem && !this.state.inventory.includes(card.giveItem)) {
+                this.state.inventory.push(card.giveItem);
+                document.getElementById('story-log').innerText += `\n\n【獲得物品：${this.script.items[card.giveItem].name}】`;
+            }
+
             this.updateUI();
             this.renderLocation();
 
-            ui.showModal('read', card.label, card.text, card.check, card.actions);
-        },
-
-        resolveCheck(check) {
-            let hits = 0;
-            for(let i=0; i<check.dice; i++) {
-                if (Math.random() >= 0.5) hits++; // 簡單模擬 50% 成功
-            }
-            if (hits >= check.diff) {
-                ui.showModal('notice', '檢定成功', check.successText);
-            } else {
-                if (check.failDamage) this.state.hp -= check.failDamage;
-                if (check.failTime) this.state.tu -= check.failTime;
-                ui.showModal('notice', '檢定失敗', check.failText);
-            }
-            this.updateUI();
-            this.checkGameOver();
+            ui.showModal('read', card.label, card.text, card.actions);
         },
 
         executeAction(action) {
-            if (action.giveItem) {
-                this.state.inventory.push(action.giveItem);
-                document.getElementById('story-log').innerText += `\n\n【獲得物品：${this.script.items[action.giveItem].name}】`;
-            }
             if (action.nextLoc) {
                 this.state.currentLocId = action.nextLoc;
                 this.state.revealedCards = [];
@@ -293,27 +246,86 @@
 
     // ================= UI 控制 =================
     const ui = {
-        showModal(type, title, text, check, actions) {
+        // 新增：動態抓取伺服器上的劇本清單
+        async fetchManifest() {
+            try {
+                // 加上時間戳避免瀏覽器快取
+                const response = await fetch('manifest.json?t=' + new Date().getTime());
+                if (!response.ok) throw new Error('找不到 manifest.json');
+                return await response.json();
+            } catch (err) {
+                console.warn('讀取清單失敗:', err);
+                return null;
+            }
+        },
+
+        async showModal(type, title, text, actions) {
             const modal = document.getElementById('modal-overlay');
             const content = document.getElementById('modal-content');
-            
-            let html = `<div class="modal-title">${title}</div><div class="modal-text">${text}</div>`;
-            
-            if (type === 'read') {
-                if (check && !check.resolved) {
-                    html += `
-                        <div style="background:#333; padding:10px; border-radius:5px; margin-bottom:10px;">
-                            <div style="color:#e25b5b; font-weight:bold; margin-bottom:5px;">遭遇檢定 (需 ${check.diff} 成功)</div>
-                            <button class="btn" onclick="game.resolveCheck(${JSON.stringify(check).replace(/"/g, '&quot;')})">進行檢定</button>
-                        </div>
-                    `;
-                } else if (actions && actions.length > 0) {
-                    actions.forEach(act => {
-                        html += `<button class="btn" onclick='game.executeAction(${JSON.stringify(act)})'>${act.label}</button>`;
+            content.innerHTML = '';
+
+            if (type === 'load') {
+                content.innerHTML = `<div class="modal-title">📂 讀取劇本清單中...</div><div class="loading-text">請稍候</div>`;
+                modal.classList.add('show');
+
+                const manifest = await this.fetchManifest();
+                
+                let html = `<div class="modal-title">📂 選擇劇本</div>`;
+
+                if (manifest && manifest.length > 0) {
+                    // 渲染伺服器上的劇本
+                    manifest.forEach(fileName => {
+                        // 美化顯示名稱：把 "時間守望_" 去掉，把 ".json" 去掉
+                        let displayName = fileName.replace('.json', '').replace(/^時間守望_?/, '');
+                        if (!displayName) displayName = fileName;
+                        
+                        html += `<button class="btn btn-list script-btn" data-file="${fileName}">
+                                    <span>${displayName}</span>
+                                    <span style="font-size:12px; color:#8b9bb4;">(遠端)</span>
+                                 </button>`;
                     });
                 } else {
-                    html += `<button class="btn" onclick="ui.closeModal()">關閉</button>`;
+                    html += `<div class="error-text">無法讀取伺服器清單，或目前沒有伺服器劇本。</div>`;
                 }
+
+                // 保留手動上傳與內建測試
+                html += `<button id="btn-upload-json" class="btn btn-list" style="background:#555; margin-top:20px;">上傳本機 JSON 檔</button>`;
+                html += `<button class="btn" style="background:transparent; border:1px solid #555;" onclick="ui.closeModal()">取消</button>`;
+                
+                content.innerHTML = html;
+
+                // 綁定伺服器劇本點擊事件
+                const scriptBtns = content.querySelectorAll('.script-btn');
+                scriptBtns.forEach(btn => {
+                    btn.onclick = async () => {
+                        const file = btn.getAttribute('data-file');
+                        btn.innerHTML = '<span>載入中...</span>';
+                        try {
+                            const res = await fetch(file + '?t=' + new Date().getTime());
+                            if(!res.ok) throw new Error('檔案不存在');
+                            const data = await res.json();
+                            game.loadScript(data);
+                        } catch (err) {
+                            ui.showModal('notice', '載入失敗', `無法讀取檔案 ${file}：` + err.message);
+                        }
+                    };
+                });
+                
+                // 綁定上傳按鈕
+                document.getElementById('btn-upload-json').onclick = () => document.getElementById('json-upload').click();
+                return;
+            }
+
+            // 以下是原本的彈窗邏輯 (提示、閱讀、結束)
+            let html = `<div class="modal-title">${title || '提示'}</div><div class="modal-text">${text || ''}</div>`;
+
+            if (type === 'read') {
+                if (actions && actions.length > 0) {
+                    actions.forEach((act, idx) => {
+                        html += `<button class="btn action-btn" data-idx="${idx}">${act.label}</button>`;
+                    });
+                }
+                html += `<button class="btn" style="background:#444; margin-top:15px;" onclick="ui.closeModal()">關閉</button>`;
             } else if (type === 'notice') {
                 html += `<button class="btn" onclick="ui.closeModal()">確定</button>`;
             } else if (type === 'end') {
@@ -322,14 +334,24 @@
             }
 
             content.innerHTML = html;
+
+            if (type === 'read' && actions && actions.length > 0) {
+                const btns = content.querySelectorAll('.action-btn');
+                btns.forEach(btn => {
+                    btn.onclick = () => {
+                        const idx = parseInt(btn.getAttribute('data-idx'));
+                        game.executeAction(actions[idx]);
+                    };
+                });
+            }
+
             modal.classList.add('show');
         },
         closeModal() { document.getElementById('modal-overlay').classList.remove('show'); }
     };
 
-    // ================= 載入介面與初始化 =================
+    // ================= 初始化 =================
     window.onload = () => {
-        // 初始化時間軌
         const track = document.getElementById('time-track');
         for(let i=0; i<=60; i++) {
             let slot = document.createElement('div');
@@ -338,16 +360,27 @@
             track.appendChild(slot);
         }
 
-        // 綁定按鈕
-        document.getElementById('nav-load').onclick = () => {
-            // 這裡我們模擬載入第一劇本，實際應用中可做成選單
-            // 請將下方的 AsylumJSON 貼入
-            game.loadScript(AsylumJSON); 
-        };
+        document.getElementById('nav-load').onclick = () => ui.showModal('load');
+        document.getElementById('nav-rules').onclick = () => ui.showModal('notice', '遊戲規則', '點擊中間的卡片來翻開線索。每次翻牌會消耗時間(TU)。如果你缺少特定道具，卡片會變灰。找到關鍵道具並前往正確地點即可獲勝！');
         
-        document.getElementById('nav-rules').onclick = () => {
-            ui.showModal('notice', '遊戲規則', '點擊中間的卡片來翻開線索。每次翻牌會消耗時間(TU)。如果你缺少特定道具，卡片會變灰。找到關鍵道具並前往正確地點即可獲勝！');
+        document.getElementById('json-upload').onchange = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    game.loadScript(data);
+                } catch (err) { 
+                    ui.showModal('notice', '錯誤', 'JSON 格式錯誤，無法讀取！'); 
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
         };
+
+        // 初次打開網頁直接顯示載入選單
+        ui.showModal('load');
     };
 </script>
 </body>
