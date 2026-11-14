@@ -129,16 +129,28 @@
         state: { tu: null, hp: null, currentLocId: null, inventory: [], revealedCards: [], phase: 'IDLE', vessel: null, unlockedLocations: [] },
 
         loadScript(data) {
+            if (!data || !data.locations) {
+                return ui.showNoticeModal('劇本錯誤', '劇本格式不正確，缺少 locations 資料。');
+            }
             this.script = data;
             let startLoc = data.startLocation;
-            if (!data.locations[startLoc]) startLoc = Object.keys(data.locations)[0];
+            if (!startLoc || !data.locations[startLoc]) startLoc = Object.keys(data.locations)[0];
+
+            // 起始解鎖地點：優先用劇本自訂的 startUnlocked，
+            // 否則沿用瘋人院的預設地點（只保留實際存在於劇本中的）
+            let unlocked = data.startUnlocked;
+            if (!Array.isArray(unlocked)) {
+                const defaults = ['day_room', 'infirmary', 'dormitory', 'promenade', 'kitchen'];
+                unlocked = defaults.filter(id => data.locations[id]);
+                if (unlocked.length === 0) unlocked = [startLoc];
+            }
 
             this.state = { 
                 tu: null, hp: null, currentLocId: startLoc, inventory: [], revealedCards: [], phase: 'PLAYING', vessel: null,
-                unlockedLocations: ['day_room', 'infirmary', 'dormitory', 'promenade', 'kitchen'] 
+                unlockedLocations: unlocked.slice()
             };
             
-            document.getElementById('ui-title').innerText = data.title;
+            document.getElementById('ui-title').innerText = data.title || '未命名劇本';
             document.getElementById('ui-vessel').innerText = `尚未附身`;
             document.getElementById('story-log').innerText = "請閱讀序幕卡片，完成準備後點擊「G卡：傳送」進行意識投射。";
             
@@ -541,17 +553,90 @@
             document.getElementById('modal-overlay').classList.add('show');
         },
 
-        showLoadModal() {
-            const content = document.getElementById('modal-content'); content.innerHTML = '';
-            const title = document.createElement('div'); title.className = 'modal-title'; title.innerText = '📂 選擇劇本';
-            const btnInternal = document.createElement('button'); btnInternal.className = 'btn btn-list';
-            btnInternal.innerHTML = `<span>瘋人院 (1921)</span><span style="font-size:12px; color:var(--success);">(完整版)</span>`;
-            btnInternal.onclick = () => game.loadScript(asylumScript);
-            const btnUpload = document.createElement('button'); btnUpload.className = 'btn btn-list'; btnUpload.style.background = '#555'; btnUpload.style.marginTop = '20px'; btnUpload.innerText = '上傳本機 JSON 檔';
-            btnUpload.onclick = () => document.getElementById('json-upload').click();
-            const btnCancel = document.createElement('button'); btnCancel.className = 'btn'; btnCancel.style.background = 'transparent'; btnCancel.style.border = '1px solid #555'; btnCancel.innerText = '取消'; btnCancel.onclick = () => this.closeModal();
-            content.appendChild(title); content.appendChild(btnInternal); content.appendChild(btnUpload); content.appendChild(btnCancel);
+        // ===== 取得伺服器端劇本清單 =====
+        async fetchManifest() {
+            try {
+                const host = window.location.hostname;
+                const path = window.location.pathname.split('/')[1];
+
+                const owner = host.split('.')[0];
+                const repo = path;
+                const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/`;
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('API 請求失敗');
+
+                const files = await response.json();
+                const scripts = files
+                    .filter(file => file.name.startsWith('時間守望_') && file.name.endsWith('.json'))
+                    .map(file => file.name);
+
+                return scripts.length > 0 ? scripts : ["時間守望_瘋人院.json"];
+
+            } catch (err) {
+                console.warn('無法取得 GitHub 檔案清單:', err);
+                ;
+            }
+        },
+
+        // ===== 載入劇本選單（內建 + 伺服器 + 上傳） =====
+        async showLoadModal() {
+            const content = document.getElementById('modal-content');
+            content.innerHTML = `<div class="modal-title">📂 正在取得劇本清單…</div><div class="modal-text">請稍候</div>`;
             document.getElementById('modal-overlay').classList.add('show');
+
+            const manifest = await this.fetchManifest();
+
+            let html = `<div class="modal-title">📂 選擇劇本</div>`;
+
+            // 1. 內建劇本
+            html += `<button class="btn btn-list" id="btn-builtin">
+                        <span>瘋人院 (1921)</span>
+                        <span style="font-size:12px; color:var(--success);">(內建)</span>
+                     </button>`;
+
+            // 2. 伺服器端劇本
+            if (manifest && manifest.length > 0) {
+                manifest.forEach(fileName => {
+                    let displayName = fileName.replace('.json', '').replace(/^時間守望_?/, '');
+                    if (!displayName) displayName = fileName;
+                    html += `<button class="btn btn-list script-btn" data-file="${fileName}">
+                                <span>${displayName}</span>
+                                <span style="font-size:12px; color:#8b9bb4;">(伺服器端)</span>
+                             </button>`;
+                });
+            } else {
+                html += `<div class="modal-text">目前沒有伺服器端劇本。</div>`;
+            }
+
+            // 3. 上傳 / 取消
+            html += `<button class="btn btn-list" id="btn-upload-json" style="background:#555; margin-top:20px;">上傳本機 JSON 檔</button>`;
+            html += `<button class="btn" id="btn-cancel" style="background:transparent; border:1px solid #555;">取消</button>`;
+
+            content.innerHTML = html;
+
+            // 內建
+            document.getElementById('btn-builtin').onclick = () => game.loadScript(asylumScript);
+
+            // 伺服器端
+            content.querySelectorAll('.script-btn').forEach(btn => {
+                btn.onclick = async () => {
+                    const file = btn.getAttribute('data-file');
+                    const orig = btn.innerHTML;
+                    btn.innerHTML = `<span>載入中…</span>`;
+                    try {
+                        const res = await fetch('./' + encodeURIComponent(file) + '?t=' + new Date().getTime());
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        const data = await res.json();
+                        game.loadScript(data);
+                    } catch (err) {
+                        btn.innerHTML = orig;
+                        ui.showNoticeModal('載入失敗', `無法讀取檔案 ${file}：\n${err.message}`);
+                    }
+                };
+            });
+
+            document.getElementById('btn-upload-json').onclick = () => document.getElementById('json-upload').click();
+            document.getElementById('btn-cancel').onclick = () => this.closeModal();
         },
 
         showMoveModal() {
