@@ -1,0 +1,40 @@
+name: Update JSON Manifest
+
+on:
+  push:
+    paths:
+      - '時間守望*.json'
+  workflow_dispatch: # 允許手動觸發
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Generate manifest.json
+        run: |
+          echo "[" > manifest.json
+          first=true
+          # 尋找所有 時間守望 開頭的 json 檔 (排除 manifest.json)
+          for file in 時間守望*.json; do
+            if [ -f "$file" ] && [ "$file" != "manifest.json" ]; then
+              if [ "$first" = true ]; then
+                first=false
+              else
+                echo "," >> manifest.json
+              fi
+              echo "\"$file\"" >> manifest.json
+            fi
+          done
+          echo "]" >> manifest.json
+
+      - name: Commit and Push manifest
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add manifest.json
+          # 如果沒有變更就跳過 commit
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update manifest.json"
+          git push
