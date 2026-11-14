@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>時間守望：網頁版引擎 (完整基地卡)</title>
+<title>時間守望：網頁版引擎 (強制閱讀A卡)</title>
 <style>
     :root {
         --bg-dark: #1e252b; --bg-panel: #2a343d; --text-main: #e0e5e9;
@@ -40,6 +40,7 @@
     .card.flipped .card-header { background: #3a4a5a; color: #fff; border-bottom-color: #222; }
     .card-body { flex: 1; padding: 10px; font-size: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
     .card-cost { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; border: 2px solid #fff; font-size: 14px; z-index: 10;}
+    .card-lock { position: absolute; top: 5px; left: 5px; font-size: 20px; z-index: 10; }
 
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
     .modal-overlay.show { opacity: 1; pointer-events: auto; }
@@ -178,14 +179,26 @@
 
             const loc = this.script.locations[this.state.currentLocId];
             
+            // 【新增】尋找 A 卡，並確認是否已翻開
+            const aCard = loc.cards.find(c => c.label.includes('A卡') || c.id.endsWith('_A'));
+            const isARevealed = !aCard || this.state.revealedCards.includes(aCard.id);
+
             loc.cards.forEach((card) => {
                 const isRevealed = this.state.revealedCards.includes(card.id);
                 const cardEl = document.createElement('div');
                 
                 let isDisabled = false;
+                let lockReason = "";
+
                 if (!isRevealed) {
-                    if (this.state.tu < card.cost) isDisabled = true;
-                    if (card.requires && !this.state.inventory.includes(card.requires)) isDisabled = true;
+                    if (this.state.tu < card.cost) { isDisabled = true; lockReason = "時間不足"; }
+                    if (card.requires && !this.state.inventory.includes(card.requires)) { isDisabled = true; lockReason = "缺道具"; }
+                    
+                    // 【新增】如果 A 卡還沒翻開，且這不是 A 卡，則鎖定
+                    if (aCard && card.id !== aCard.id && !isARevealed) {
+                        isDisabled = true; 
+                        lockReason = "需先讀A卡";
+                    }
                 }
 
                 cardEl.className = `card ${isRevealed ? 'flipped' : ''} ${isDisabled ? 'disabled' : ''}`;
@@ -195,8 +208,9 @@
                     <div class="card-header">${isRevealed ? '已探索' : card.label}</div>
                     <div class="card-body">
                         ${isRevealed ? `<div style="font-size:20px;">👁️</div>` : `
-                            <div style="font-size:24px; margin-bottom:5px;">🔍</div>
-                            ${card.requires ? `<div style="color:#8b2b24; font-size:11px; font-weight:bold;">需: ${this.script.items[card.requires]?.name}</div>` : ''}
+                            <div style="font-size:24px; margin-bottom:5px;">${isDisabled && lockReason === "需先讀A卡" ? '🔒' : '🔍'}</div>
+                            ${isDisabled ? `<div style="color:#8b2b24; font-size:11px; font-weight:bold;">${lockReason}</div>` : ''}
+                            ${card.requires && !isDisabled ? `<div style="color:#8b2b24; font-size:11px; font-weight:bold;">需: ${this.script.items[card.requires]?.name}</div>` : ''}
                         `}
                     </div>
                 `;
@@ -428,15 +442,16 @@
                         <div class="rule-section">
                             <h3>🕹️ 3. 操作步驟</h3>
                             <p>👉 <b>第一步：讀故事</b>。看畫面上方黑色框框裡的文字，了解你現在在哪裡。</p>
-                            <p>👉 <b>第二步：點卡片</b>。點擊中間的卡牌來探索、移動或戰鬥。彈出視窗後，如果有按鈕記得點擊（例如「拿走物品」）。</p>
-                            <p>👉 <b>第三步：注意限制</b>。如果卡片上寫著 <span class="highlight-red">「需: XXX」</span> 或呈現灰色，代表你缺道具或時間不夠。請先去找鑰匙或線索！</p>
-                            <p>👉 <b>第四步：卡關了怎麼辦？</b> 如果這個地點的卡片都翻完了，你可以點擊底部的 <b>「🗺️ 前往他處」</b> 來切換場景！</p>
+                            <p>👉 <b>第二步：點卡片</b>。點擊中間的卡牌來探索。彈出視窗後，如果有按鈕記得點擊（例如「拿走物品」）。</p>
+                            <p>👉 <b>第三步：注意限制</b>。如果卡片上寫著 <span class="highlight-red">「需: XXX」</span> 或呈現灰色，代表你缺道具或時間不夠。</p>
+                            <p>👉 <b>第四步：A卡優先</b>。每到新區域，必須先讀完該區域的 <b>「A卡」</b>，其他卡片才會解鎖！</p>
+                            <p>👉 <b>第五步：卡關怎麼辦？</b> 如果這個地點的卡片都翻完了，你可以點擊底部的 <b>「🗺️ 前往他處」</b> 來切換場景！</p>
                         </div>
 
                         <div class="rule-section">
                             <h3>🎲 4. 特殊機制 (很重要！)</h3>
                             <p><b>考驗與擲骰</b>：當你點擊有 🎲 圖示的卡片，會進入擲骰考驗。擲出 <b>4、5、6</b> 算成功。你可以花費 TU 來「投入變數」增加骰子。</p>
-                            <p><b>時間循環 (Time Loop)</b>：失敗了千萬別灰心！時間歸零後，你可以選擇<span class="highlight">「保留特定道具重新開始」</span>。下一輪你會帶著經驗和道具，更輕鬆地破關！</p>
+                            <p><b>時間循環 (Time Loop)</b>：失敗了千萬別灰心！時間歸零後，你可以選擇<span class="highlight">「保留特定道具重新開始」</span>。</p>
                         </div>
                         
                         <button class="btn" style="margin-top:20px; background:var(--success);" onclick="ui.closeModal(); ui.showModal('load');">我準備好了，開始遊戲！</button>
