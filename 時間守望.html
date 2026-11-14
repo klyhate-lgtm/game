@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>時間守望：網頁版引擎 (GitHub 自動化版)</title>
+<title>時間守望：網頁版引擎 (新手教學完整版)</title>
 <style>
     :root {
         --bg-dark: #1e252b; --bg-panel: #2a343d; --text-main: #e0e5e9;
@@ -47,6 +47,13 @@
     .modal-title { font-size: 22px; color: var(--accent); margin-bottom: 15px; text-align: center; border-bottom: 1px solid #333; padding-bottom: 10px;}
     .modal-text { font-size: 15px; line-height: 1.6; margin-bottom: 20px; color: #ccc; white-space: pre-wrap;}
     
+    /* 新手說明專用樣式 */
+    .rule-section { margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border-left: 4px solid var(--accent);}
+    .rule-section h3 { color: #fff; margin-bottom: 10px; font-size: 18px; display: flex; align-items: center; gap: 8px;}
+    .rule-section p { margin-bottom: 8px; font-size: 14px; }
+    .highlight { color: var(--accent); font-weight: bold; }
+    .highlight-red { color: var(--danger); font-weight: bold; }
+
     .btn { background: var(--accent); color: white; border: none; padding: 10px; border-radius: 4px; font-size: 15px; cursor: pointer; margin-top: 10px; width: 100%; text-align: center; display: block; }
     .btn:hover { background: #357abd; }
     .btn-danger { background: var(--danger); }
@@ -305,31 +312,24 @@
 
     // ================= UI 控制 =================
     const ui = {
-        // 新增：自動抓取 GitHub 上的劇本清單
+        // 自動抓取 GitHub 上的劇本清單
         async fetchManifest() {
             try {
-                // 判斷是否在 GitHub Pages 環境下
                 const host = window.location.hostname; 
                 const path = window.location.pathname.split('/')[1];
                 
-                // 如果是本地端 (localhost) 或直接開啟檔案 (file://)，回傳預設備用清單
+                // 本地端測試防呆
                 if (host === 'localhost' || host === '127.0.0.1' || host === '' || !host.endsWith('github.io')) {
-                    console.log('本地端環境，無法自動抓取 GitHub API，使用預設清單。');
                     return ["時間守望_瘋人院.json", "時間守望_深海計畫.json"];
                 }
 
-                const owner = host.split('.')[0]; // 您的 GitHub 帳號
-                const repo = path; // 您的專案名稱
-
-                // 呼叫 GitHub API 取得資料夾內所有檔案
+                const owner = host.split('.')[0];
+                const repo = path;
                 const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/`;
                 const response = await fetch(apiUrl);
-                
-                if (!response.ok) throw new Error('API 請求失敗，可能是儲存庫為私有或尚未部署。');
+                if (!response.ok) throw new Error('API 請求失敗');
 
                 const files = await response.json();
-                
-                // 過濾出符合條件的 JSON 檔案
                 const scripts = files
                     .filter(file => file.name.endsWith('.json') && file.name !== 'manifest.json')
                     .map(file => file.name);
@@ -338,7 +338,6 @@
                 
             } catch (err) {
                 console.warn('無法取得 GitHub 檔案清單:', err);
-                // 發生錯誤時，提供備用清單，確保玩家還是能玩到內建劇本
                 return ["時間守望_瘋人院.json", "時間守望_深海計畫.json"];
             }
         },
@@ -375,16 +374,14 @@
                 
                 content.innerHTML = html;
 
-                // 安全綁定：伺服器劇本點擊事件
                 const scriptBtns = content.querySelectorAll('.script-btn');
                 scriptBtns.forEach(btn => {
                     btn.onclick = async () => {
                         const file = btn.getAttribute('data-file');
                         btn.innerHTML = '<span>載入中...</span>';
                         try {
-                            // 加上 ./ 確保讀取當前目錄下的檔案
                             const res = await fetch('./' + file + '?t=' + new Date().getTime());
-                            if(!res.ok) throw new Error('讀取失敗，請確認檔案存在。');
+                            if(!res.ok) throw new Error('讀取失敗');
                             const data = await res.json();
                             game.loadScript(data);
                         } catch (err) {
@@ -393,12 +390,49 @@
                     };
                 });
                 
-                // 安全綁定：本機上傳按鈕
                 document.getElementById('btn-upload-json').onclick = () => document.getElementById('json-upload').click();
                 return;
             }
 
-            // 其他彈窗邏輯 (閱讀、通知、結束)
+            // --- 華麗的新手說明專用 UI ---
+            if (type === 'rules') {
+                content.innerHTML = `
+                    <div class="modal-title">📜 新手特工生存指南</div>
+                    <div class="modal-text" style="text-align:left;">
+                        
+                        <div class="rule-section">
+                            <h3>🎯 1. 遊戲目標</h3>
+                            <p>你現在是一名穿越時空的探員。你必須在 <span class="highlight-red">時間耗盡（歸零）</span> 或 <span class="highlight-red">生命歸零</span> 之前，找到任務的關鍵道具並完成目標！</p>
+                        </div>
+
+                        <div class="rule-section">
+                            <h3>🖥️ 2. 看懂畫面</h3>
+                            <p>🔹 <b>最上方時間軌道</b>：發光的數字就是你們剩下的時間（TU）。每次行動都會扣除時間。</p>
+                            <p>🔹 <b>左側儀表板</b>：顯示你的 <b>生命 (HP)</b> 和收集到的 <b>持有物品</b>。</p>
+                            <p>🔹 <b>中間的行動卡牌</b>：這是你們目前能做的事。卡牌右上角的紅圈代表「需要花費多少 TU」。</p>
+                        </div>
+
+                        <div class="rule-section">
+                            <h3>🕹️ 3. 操作步驟</h3>
+                            <p>👉 <b>第一步：讀故事</b>。看畫面上方黑色框框裡的文字，了解你現在在哪裡。</p>
+                            <p>👉 <b>第二步：點卡片</b>。點擊中間的卡牌來探索、移動或戰鬥。</p>
+                            <p>👉 <b>第三步：注意限制</b>。如果卡片上寫著 <span class="highlight-red">「需: XXX」</span> 或呈現灰色，代表你缺道具或時間不夠。請先去找鑰匙或線索！</p>
+                        </div>
+
+                        <div class="rule-section">
+                            <h3>🎲 4. 特殊機制 (很重要！)</h3>
+                            <p><b>考驗與擲骰</b>：當你點擊有 🎲 圖示的卡片，會進入擲骰考驗。擲出 <b>4、5、6</b> 算成功。你可以花費 TU 來「投入變數」增加骰子。</p>
+                            <p><b>時間循環 (Time Loop)</b>：失敗了千萬別灰心！時間歸零後，你可以選擇<span class="highlight">「保留特定道具重新開始」</span>。下一輪你會帶著經驗和道具，更輕鬆地破關！</p>
+                        </div>
+                        
+                        <button class="btn" style="margin-top:20px; background:var(--success);" onclick="ui.closeModal(); ui.showModal('load');">我準備好了，開始遊戲！</button>
+                    </div>
+                `;
+                modal.classList.add('show');
+                return;
+            }
+
+            // 其他基本彈窗 (閱讀、提示、結束)
             let html = `<div class="modal-title">${title || '提示'}</div><div class="modal-text">${text || ''}</div>`;
 
             if (type === 'read') {
@@ -436,6 +470,7 @@
 
     // ================= 初始化 =================
     window.onload = () => {
+        // 生成時間軌
         const track = document.getElementById('time-track');
         for(let i=0; i<=60; i++) {
             let slot = document.createElement('div');
@@ -444,8 +479,9 @@
             track.appendChild(slot);
         }
 
+        // 綁定按鈕
         document.getElementById('nav-load').onclick = () => ui.showModal('load');
-        document.getElementById('nav-rules').onclick = () => ui.showModal('notice', '遊戲規則', '點擊中間的卡片來翻開線索。每次翻牌會消耗時間(TU)。遭遇考驗時需擲骰(4,5,6成功)，可花費TU增加骰子。如果缺少特定道具，卡片會變灰。');
+        document.getElementById('nav-rules').onclick = () => ui.showModal('rules'); // 點擊規則呼叫專屬 UI
         
         document.getElementById('json-upload').onchange = (e) => {
             const file = e.target.files[0];
@@ -463,8 +499,8 @@
             e.target.value = '';
         };
 
-        // 初次打開網頁直接顯示載入選單
-        ui.showModal('load');
+        // 初次打開網頁：強制先看新手教學，看完後才顯示載入清單
+        ui.showModal('rules');
     };
 </script>
 </body>
