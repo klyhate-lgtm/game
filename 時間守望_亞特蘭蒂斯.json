@@ -1,0 +1,91 @@
+{
+  "title": "亞特蘭蒂斯 (公元前9600 NT)",
+  "initialTU": 25,
+  "initialHP": 5,
+  "startLocation": "prologue",
+  "vessels": [
+    { "id": "v_priestess", "name": "海倫娜", "role": "高階女祭司", "icon": "👸", "gender": "female", "hp": 5, "stats": { "agility": 2, "charisma": 3, "combat": 1 }, "ability": "【神諭】：每當進行考驗時，可以花費 1 TU 重擲一顆失敗的骰子。" },
+    { "id": "v_soldier", "name": "阿瑞斯", "role": "皇家衛兵", "icon": "🛡️", "gender": "male", "hp": 6, "stats": { "agility": 2, "charisma": 1, "combat": 4 }, "ability": "【銅牆鐵壁】：戰鬥檢定時，可以無視一個骷髏標記。" },
+    { "id": "v_scholar", "name": "索倫", "role": "皇家學者", "icon": "📚", "gender": "male", "hp": 4, "stats": { "agility": 1, "charisma": 2, "combat": 2 }, "ability": "【博學多聞】：在圖書館或神殿進行智力/調查檢定時，自動獲得 +1 成功。" },
+    { "id": "v_inventor", "name": "達文", "role": "機械發明家", "icon": "⚙️", "gender": "male", "hp": 4, "stats": { "agility": 3, "charisma": 2, "combat": 1 }, "ability": "【工程大師】：花費 1 TU，可以修復損壞的古代機械，並從中獲得額外線索。" },
+    { "id": "v_noble", "name": "莉薇婭", "role": "貴族千金", "icon": "👗", "gender": "female", "hp": 4, "stats": { "agility": 2, "charisma": 4, "combat": 1 }, "ability": "【社交名媛】：在與 NPC 交涉時，可以免費重擲一次骰子。" },
+    { "id": "v_smuggler", "name": "科爾", "role": "港口走私者", "icon": "🚣", "gender": "male", "hp": 4, "stats": { "agility": 3, "charisma": 2, "combat": 2 }, "ability": "【熟悉地形】：在港口或地下區域移動時，不消耗額外時間。" }
+  ],
+  "items": {
+    "item_crystal": { "name": "水晶碎片", "icon": "💎", "keep": true },
+    "item_pearl": { "name": "深海珍珠", "icon": "🦪", "keep": false },
+    "item_trident": { "name": "波塞冬三叉戟", "icon": "🔱", "keep": true },
+    "item_gear": { "name": "古代青銅齒輪", "icon": "⚙️", "keep": false },
+    "item_map": { "name": "皇家圖書館地圖", "icon": "🗺️", "keep": true },
+    "token_pink_square": { 
+      "name": "粉色方塊標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='20' height='20' fill='#e91e63' rx='3'/></svg>", 
+      "keep": true 
+    },
+    "token_blue_L": { 
+      "name": "藍色L形標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='10' height='20' fill='#2196f3' rx='2'/><rect x='12' y='12' width='10' height='10' fill='#2196f3' rx='2'/></svg>", 
+      "keep": true 
+    },
+    "token_green_cross": { 
+      "name": "綠色十字標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='8' y='2' width='8' height='20' fill='#4caf50' rx='1'/><rect x='2' y='8' width='20' height='8' fill='#4caf50' rx='1'/></svg>", 
+      "keep": true 
+    }
+  },
+  "locations": {
+    "prologue": {
+      "name": "基地：傳送室",
+      "cards": [
+        { "id": "pro_A", "label": "A卡：時空警報", "cost": 0, "text": "「探員們，公元前9600年的亞特蘭蒂斯即將迎來毀滅性的災難。但根據歷史，這場災難被某種力量延遲了，導致時間線嚴重錯亂。你們必須找到延遲的原因，並讓歷史回到正軌。」\n(閱讀完請點擊進行意識投射)", "actions": [ { "label": "進行意識投射", "cost": 0, "isTeleport": true } ] }
+      ]
+    },
+    "atlantis_center": {
+      "name": "亞特蘭蒂斯中央廣場",
+      "cards": [
+        { "id": "ac_A", "label": "A卡：繁華的城市", "cost": 0, "text": "你們在一個巨大的廣場醒來，周圍是宏偉的白色建築和巨大的青銅雕像。天空中懸浮著一顆散發著藍光的巨大水晶。市民們行色匆匆，似乎對即將到來的災難一無所知。", "actions": [] },
+        { "id": "ac_B", "label": "B卡：市集商人", "cost": 1, "text": "一個神秘的商人向你兜售：「來自深海的珍珠，可以讓你在水下呼吸。」", "check": { "attr": "charisma", "diff": 2, "successText": "你成功說服商人免費送給你一顆。", "failText": "商人拒絕了你的討價還價。", "giveItemOnSuccess": "item_pearl" }, "actions": [] },
+        { "id": "ac_C", "label": "C卡：通往神殿的路", "cost": 1, "text": "你們需要前往水晶神殿，尋找關於能量核心的線索。", "unlockLoc": ["temple"], "actions": [ { "label": "前往水晶神殿", "cost": 0, "nextLoc": "temple" } ] }
+      ]
+    },
+    "temple": {
+      "name": "水晶神殿",
+      "cards": [
+        { "id": "tp_A", "label": "A卡：莊嚴的神殿", "cost": 0, "text": "神殿內部由巨大的水晶柱支撐，中央祭壇上放置著一個空的水晶底座。空氣中瀰漫著一股神聖而威嚴的氣息。", "actions": [] },
+        { "id": "tp_B", "label": "B卡：祈禱的女祭司", "cost": 1, "text": "一位女祭司正在向海神祈禱。她告訴你們，維持城市能源的水晶已經被盜，如果找不到替代品，城市將在幾天內沉沒。", "unlockLoc": ["library"], "actions": [ { "label": "詢問更多線索", "cost": 0, "text": "女祭司指向圖書館：「也許那裡有關於古代水晶的記載。」" } ] },
+        { "id": "tp_C", "label": "C卡：隱藏的暗格", "cost": 1, "text": "你在祭壇下方發現了一個隱藏的暗格，上面刻有幾何圖案。", "check": { "attr": "agility", "diff": 3, "successText": "你成功打開暗格，找到了一塊藍色L形標記。", "failText": "你的動作觸發了機關，受到了電擊。", "failDamage": 1, "giveItemOnSuccess": "token_blue_L" }, "actions": [] }
+      ]
+    },
+    "library": {
+      "name": "皇家圖書館",
+      "cards": [
+        { "id": "lb_A", "label": "A卡：古老的藏書", "cost": 0, "text": "圖書館裡藏書萬卷，空氣中瀰漫著舊羊皮紙的味道。一位老學者正在翻閱資料。", "actions": [] },
+        { "id": "lb_B", "label": "B卡：老學者的研究", "cost": 1, "text": "老學者告訴你們：「維持城市能源的水晶碎片，似乎散落在了城市周圍的各個角落。我記錄了它們可能的位置。」", "unlockLoc": ["harbor", "underground"], "actions": [ { "label": "查看他的筆記", "cost": 0, "giveItem": "item_map", "text": "你獲得了圖書館地圖。" } ] },
+        { "id": "lb_C", "label": "C卡：禁忌的魔法書", "cost": 1, "text": "你在書架深處發現了一本被鎖鏈鎖住的書，散發著邪惡的氣息。", "requires": "token_blue_L", "actions": [ { "label": "打開書本", "cost": 0, "text": "書中提到，除了水晶，還有一個強大的神器可以拯救城市——波塞冬三叉戟。", "unlockLoc": ["underground"] } ] }
+      ]
+    },
+    "harbor": {
+      "name": "港口",
+      "cards": [
+        { "id": "hb_A", "label": "A卡：繁忙的碼頭", "cost": 0, "text": "港口停泊著無數船隻，水手們正在搬運貨物。一個倉庫引起了你們的注意。", "actions": [] },
+        { "id": "hb_B", "label": "B卡：封鎖的倉庫", "cost": 1, "text": "倉庫大門緊鎖，門上有一個神秘的標記。", "actions": [ { "label": "嘗試撬鎖", "cost": 0, "text": "你利用工具撬開了鎖，發現裡面藏著一塊綠色十字標記。", "giveItem": "token_green_cross" } ] },
+        { "id": "hb_C", "label": "C卡：走私者的交易", "cost": 1, "text": "一個走私者向你招手：「我有你們想要的東西，但需要用珍珠來換。」", "requires": "item_pearl", "actions": [ { "label": "用珍珠交換", "cost": 0, "text": "你獲得了水晶碎片。", "giveItem": "item_crystal", "nextLoc": "palace" } ] }
+      ]
+    },
+    "underground": {
+      "name": "地下迷宮",
+      "cards": [
+        { "id": "ug_A", "label": "A卡：黑暗的通道", "cost": 0, "text": "你們點燃火把，進入蜿蜒曲折的地下通道。空氣中潮濕且冰冷。", "actions": [] },
+        { "id": "ug_B", "label": "B卡：青銅齒輪", "cost": 1, "text": "通道中佈滿了古老的機械裝置，你發現了一個散發著微光的青銅齒輪。", "check": { "attr": "combat", "diff": 3, "successText": "你成功取出了齒輪。", "failText": "齒輪觸發了火焰陷阱。", "failDamage": 2, "giveItemOnSuccess": "item_gear" }, "actions": [] },
+        { "id": "ug_C", "label": "C卡：三叉戟的祭壇", "cost": 1, "text": "在迷宮深處，你看到了一個祭壇，上面插著一把三叉戟。", "requires": "token_green_cross", "actions": [ { "label": "拔出三叉戟", "cost": 0, "text": "你成功拔出了波塞冬三叉戟！一股強大的力量湧入你的體內。", "giveItem": "item_trident" } ] }
+      ]
+    },
+    "palace": {
+      "name": "王宮大殿",
+      "cards": [
+        { "id": "pl_A", "label": "A卡：國王的委託", "cost": 0, "text": "國王接見了你們：「你們找到了水晶碎片？太好了！但我們還需要啟動這座城市的備用能源，否則一切都太遲了。」", "actions": [] },
+        { "id": "pl_B", "label": "B卡：重啟能源核心", "cost": 1, "text": "你將水晶碎片放入能源核心的插槽中，古老的機器開始轟鳴。", "requires": "item_crystal", "check": { "attr": "agility", "diff": 3, "successText": "能源核心成功啟動！時間線恢復正常，亞特蘭蒂斯將按照歷史進程沉沒。任務完成！", "failText": "機器短路，你受到了輕傷。", "failDamage": 2 }, "actions": [ { "label": "完成任務", "cost": 0, "isWin": true } ] }
+      ]
+    }
+  }
+}

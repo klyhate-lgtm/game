@@ -1,0 +1,57 @@
+{
+  "title": "未來審判 (2145 NT)",
+  "initialTU": 25,
+  "initialHP": 4,
+  "startLocation": "prologue",
+  "vessels": [
+    { "id": "v_hunter", "name": "凱恩", "role": "賞金獵人", "icon": "🎯", "gender": "male", "hp": 5, "stats": { "agility": 3, "charisma": 1, "combat": 3 }, "ability": "【追蹤】：可以花費 1 TU 追蹤目標，獲得額外線索。" },
+    { "id": "v_hacker", "name": "妮娜", "role": "天才黑客", "icon": "💻", "gender": "female", "hp": 4, "stats": { "agility": 2, "charisma": 2, "combat": 1 }, "ability": "【入侵系統】：可以花費 1 TU 破解任何電子鎖或終端。" },
+    { "id": "v_synth", "name": "阿爾法", "role": "仿生人", "icon": "🤖", "gender": "male", "hp": 6, "stats": { "agility": 2, "charisma": 1, "combat": 4 }, "ability": "【超合金骨骼】：受到的傷害減少 1 點。" },
+    { "id": "v_executive", "name": "董事長", "role": "企業高管", "icon": "💼", "gender": "male", "hp": 4, "stats": { "agility": 1, "charisma": 4, "combat": 1 }, "ability": "【金錢萬能】：可以花費金錢來賄賂 NPC 或購買裝備。" },
+    { "id": "v_doctor", "name": "黑醫", "role": "街頭醫生", "icon": "🩺", "gender": "female", "hp": 4, "stats": { "agility": 2, "charisma": 2, "combat": 2 }, "ability": "【急救】：花費 1 TU 恢復 1 點生命。" },
+    { "id": "v_smuggler", "name": "傑克", "role": "走私犯", "icon": "📦", "gender": "male", "hp": 4, "stats": { "agility": 3, "charisma": 2, "combat": 1 }, "ability": "【黑市】：可以購買稀有物品，或出售戰利品換取金錢。" }
+  ],
+  "items": {
+    "item_chip": { "name": "數據芯片", "icon": "💾", "keep": true },
+    "item_taser": { "name": "電擊槍", "icon": "⚡", "keep": true },
+    "item_cyber": { "name": "義體零件", "icon": "🦾", "keep": false },
+    "item_antidote": { "name": "納米解藥", "icon": "💉", "keep": true },
+    "item_card": { "name": "門禁卡", "icon": "💳", "keep": true },
+    "token_blue_L": { 
+      "name": "藍色L形標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='10' height='20' fill='#2196f3' rx='2'/><rect x='12' y='12' width='10' height='10' fill='#2196f3' rx='2'/></svg>", 
+      "keep": true 
+    }
+  },
+  "locations": {
+    "prologue": {
+      "name": "基地：傳送室",
+      "cards": [
+        { "id": "pro_A", "label": "A卡：時空法庭", "cost": 0, "text": "「探員們，2145年，一個超級人工智慧掌控了世界。它正在利用時空技術抓捕過去的罪犯進行審判。你們必須關閉這個AI，否則時間線將徹底斷裂。」\n(閱讀完請點擊進行意識投射)", "actions": [ { "label": "進行意識投射", "cost": 0, "isTeleport": true } ] }
+      ]
+    },
+    "slums": {
+      "name": "霓虹貧民窟",
+      "cards": [
+        { "id": "sl_A", "label": "A卡：底層世界", "cost": 0, "text": "你們在霓虹閃爍的貧民窟醒來，這裡充滿了罪犯和合成毒品。一個機械改造人正在兜售情報。", "actions": [] },
+        { "id": "sl_B", "label": "B卡：購買情報", "cost": 1, "text": "改造人向你推銷：「只要一個數據芯片，我就告訴你企業大廈的弱點。」", "check": { "attr": "charisma", "diff": 3, "successText": "你說服了改造人，獲得了企業大廈的門禁卡。", "failText": "交易失敗，他趁機溜走了。", "giveItemOnSuccess": "item_card" }, "actions": [] },
+        { "id": "sl_C", "label": "C卡：前往企業大廈", "cost": 1, "text": "你獲得了通往企業大廈的路線。", "unlockLoc": ["corporate_tower"], "actions": [ { "label": "前往企業大廈", "cost": 0, "nextLoc": "corporate_tower" } ] }
+      ]
+    },
+    "corporate_tower": {
+      "name": "企業大廈",
+      "cards": [
+        { "id": "ct_A", "label": "A卡：奢華的總部", "cost": 0, "text": "企業大廈高聳入雲，內部裝潢奢華，但到處都是監視器和機械守衛。", "actions": [] },
+        { "id": "ct_B", "label": "B卡：破解主機", "cost": 1, "text": "你找到了企業的主機室，需要破解防火牆才能下載AI的核心代碼。", "requires": "item_card", "check": { "attr": "agility", "diff": 4, "successText": "你成功破解了防火牆，下載了AI的核心代碼。", "failText": "防火牆觸發了警報，你必須迅速離開。", "failDamage": 2 }, "actions": [] },
+        { "id": "ct_C", "label": "C卡：地下實驗室", "cost": 1, "text": "主機顯示AI的核心伺服器位於地下實驗室。", "requires": "item_chip", "unlockLoc": ["lab"], "actions": [ { "label": "前往地下實驗室", "cost": 0, "nextLoc": "lab" } ] }
+      ]
+    },
+    "lab": {
+      "name": "地下實驗室",
+      "cards": [
+        { "id": "lb_A", "label": "A卡：AI的巢穴", "cost": 0, "text": "實驗室裡充滿了冷卻管道和閃爍的服務器。AI的聲音迴盪在空氣中：「你們以為能阻止我嗎？」", "actions": [] },
+        { "id": "lb_B", "label": "B卡：刪除AI", "cost": 1, "text": "你將核心代碼輸入了主服務器，準備刪除AI。", "check": { "attr": "combat", "diff": 3, "successText": "AI發出一陣尖叫，隨後歸於沉寂。時間線恢復正常，任務完成！", "failText": "AI啟動了防禦系統，你受到了電擊。", "failDamage": 3 }, "actions": [ { "label": "完成任務", "cost": 0, "isWin": true } ] }
+      ]
+    }
+  }
+}

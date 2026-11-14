@@ -1,0 +1,65 @@
+{
+  "title": "蒸汽叛亂 (1888 NT)",
+  "initialTU": 30,
+  "initialHP": 4,
+  "startLocation": "prologue",
+  "vessels": [
+    { "id": "v_inventor", "name": "艾薩克", "role": "天才發明家", "icon": "🧪", "gender": "male", "hp": 4, "stats": { "agility": 2, "charisma": 2, "combat": 2 }, "ability": "【機械天才】：花費 1 TU 可以改造一件道具，使其威力翻倍。" },
+    { "id": "v_detective", "name": "福爾摩斯", "role": "顧問偵探", "icon": "🕵️", "gender": "male", "hp": 5, "stats": { "agility": 2, "charisma": 3, "combat": 1 }, "ability": "【演繹法】：每次調查線索時，自動獲得額外一條線索。" },
+    { "id": "v_engineer", "name": "布魯諾", "role": "蒸汽工程師", "icon": "⚙️", "gender": "male", "hp": 5, "stats": { "agility": 1, "charisma": 2, "combat": 3 }, "ability": "【蒸汽護甲】：受到傷害時，可以花費 1 TU 減少 1 點傷害。" },
+    { "id": "v_assassin", "name": "艾薇", "role": "秘密刺客", "icon": "🗡️", "gender": "female", "hp": 3, "stats": { "agility": 4, "charisma": 1, "combat": 1 }, "ability": "【暗影】：在任何潛行檢定中，自動獲得 +2 成功。" },
+    { "id": "v_reporter", "name": "克拉拉", "role": "戰地記者", "icon": "📸", "gender": "female", "hp": 3, "stats": { "agility": 2, "charisma": 4, "combat": 1 }, "ability": "【人脈】：可以免費重擲一次交涉檢定。" },
+    { "id": "v_noble", "name": "蒙巴頓勳爵", "role": "沒落貴族", "icon": "🎩", "gender": "male", "hp": 4, "stats": { "agility": 1, "charisma": 3, "combat": 2 }, "ability": "【貴族特權】：可以花費金錢賄賂 NPC 來獲取情報。" }
+  ],
+  "items": {
+    "item_core": { "name": "蒸汽核心", "icon": "🔋", "keep": true },
+    "item_bomb": { "name": "定時炸彈", "icon": "💣", "keep": false },
+    "item_revolver": { "name": "左輪手槍", "icon": "🔫", "keep": true },
+    "item_blueprint": { "name": "炸彈藍圖", "icon": "📜", "keep": true },
+    "item_info": { "name": "機密文件", "icon": "📁", "keep": true },
+    "token_pink_square": { 
+      "name": "粉色方塊標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='20' height='20' fill='#e91e63' rx='3'/></svg>", 
+      "keep": true 
+    }
+  },
+  "locations": {
+    "prologue": {
+      "name": "基地：傳送室",
+      "cards": [
+        { "id": "pro_A", "label": "A卡：時空警報", "cost": 0, "text": "「探員們，1888年的倫敦出現了一個極度危險的時空異常。一個被稱為『蒸汽叛亂』的組織竊取了未來的科技，準備炸毀議會大廈，引發時間線崩潰。你們必須阻止他們！」\n(閱讀完請點擊進行意識投射)", "actions": [ { "label": "進行意識投射", "cost": 0, "isTeleport": true } ] }
+      ]
+    },
+    "london_street": {
+      "name": "倫敦街頭",
+      "cards": [
+        { "id": "ls_A", "label": "A卡：霧都", "cost": 0, "text": "你們在濃霧瀰漫的倫敦街頭醒來。空氣中瀰漫著煤煙味，馬車在石板路上奔馳。你們注意到一個行蹤可疑的人。", "actions": [] },
+        { "id": "ls_B", "label": "B卡：跟蹤可疑人物", "cost": 1, "text": "你悄悄跟蹤那個可疑人物，來到了一個隱蔽的地下入口。", "check": { "attr": "agility", "diff": 2, "successText": "你成功跟蹤他到地下工廠，沒有被發現。", "failText": "你被發現了，他迅速逃跑，你浪費了時間。", "failTime": 2 }, "actions": [] },
+        { "id": "ls_C", "label": "C卡：前往博覽會", "cost": 1, "text": "根據線索，叛亂組織的目標是萬國博覽會。", "unlockLoc": ["expo"], "actions": [ { "label": "前往博覽會", "cost": 0, "nextLoc": "expo" } ] }
+      ]
+    },
+    "expo": {
+      "name": "萬國博覽會",
+      "cards": [
+        { "id": "ex_A", "label": "A卡：水晶宮", "cost": 0, "text": "博覽會人山人海，各種奇妙的發明陳列其中。你們發現了一個被層層保護的展台。", "actions": [] },
+        { "id": "ex_B", "label": "B卡：破解展台", "cost": 1, "text": "展台上展示著一個巨大的蒸汽核心，這可能就是叛亂組織的目標。", "check": { "attr": "agility", "diff": 3, "successText": "你成功從展台上拆下了一個蒸汽核心。", "failText": "警報響起，你不得不撤離。", "failTime": 2, "giveItemOnSuccess": "item_core" }, "actions": [] },
+        { "id": "ex_C", "label": "C卡：地下酒吧", "cost": 1, "text": "你跟蹤線索來到了博覽會下方的一個地下酒吧，這裡似乎是叛亂組織的據點。", "unlockLoc": ["underground_bar"], "actions": [ { "label": "進入酒吧", "cost": 0, "nextLoc": "underground_bar" } ] }
+      ]
+    },
+    "underground_bar": {
+      "name": "地下酒吧",
+      "cards": [
+        { "id": "ub_A", "label": "A卡：叛亂者的據點", "cost": 0, "text": "酒吧裡瀰漫著劣質酒精和火藥的味道。幾名叛亂者正在討論炸彈的部署計劃。", "actions": [] },
+        { "id": "ub_B", "label": "B卡：竊取藍圖", "cost": 1, "text": "你發現桌子上放著一份炸彈藍圖，但周圍有很多守衛。", "check": { "attr": "agility", "diff": 3, "successText": "你成功順走了藍圖。", "failText": "守衛發現了你，你被迫撤退。", "failDamage": 1, "giveItemOnSuccess": "item_blueprint" }, "actions": [] },
+        { "id": "ub_C", "label": "C卡：審問俘虜", "cost": 1, "text": "你們抓住了一名叛亂者，他透露了炸彈已經被安裝在議會大廈的鐘樓裡。", "requires": "item_blueprint", "unlockLoc": ["clock_tower"], "actions": [ { "label": "得知地點", "cost": 0, "text": "你獲得了鐘樓的位置。" } ] }
+      ]
+    },
+    "clock_tower": {
+      "name": "議會大廈鐘樓",
+      "cards": [
+        { "id": "ct_A", "label": "A卡：大笨鐘", "cost": 0, "text": "你們來到了鐘樓腳下，炸彈的倒計時聲音清晰可聞。", "actions": [] },
+        { "id": "ct_B", "label": "B卡：拆除炸彈", "cost": 1, "text": "炸彈被安放在鐘樓的機械結構中，時間只剩下幾分鐘。", "requires": "item_core", "check": { "attr": "agility", "diff": 4, "successText": "你利用蒸汽核心替換了炸彈的引爆裝置，成功解除了危機！", "failText": "你在拆彈過程中觸發了警報，時間緊迫。", "failTime": 3 }, "actions": [ { "label": "完成任務", "cost": 0, "isWin": true } ] }
+      ]
+    }
+  }
+}

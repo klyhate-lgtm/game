@@ -1,0 +1,63 @@
+{
+  "title": "三國迷局 (208 NT)",
+  "initialTU": 25,
+  "initialHP": 5,
+  "startLocation": "prologue",
+  "vessels": [
+    { "id": "v_general", "name": "趙雲", "role": "常山趙子龍", "icon": "⚔️", "gender": "male", "hp": 6, "stats": { "agility": 3, "charisma": 2, "combat": 4 }, "ability": "【七進七出】：在戰鬥中，可以額外投擲 1 顆骰子。" },
+    { "id": "v_strategist", "name": "諸葛亮", "role": "臥龍先生", "icon": "🪶", "gender": "male", "hp": 4, "stats": { "agility": 1, "charisma": 4, "combat": 1 }, "ability": "【錦囊妙計】：可以花費 1 TU 看穿敵人的計謀，降低考驗難度 1。" },
+    { "id": "v_assassin", "name": "貂蟬", "role": "絕世舞姬", "icon": "💃", "gender": "female", "hp": 4, "stats": { "agility": 4, "charisma": 4, "combat": 1 }, "ability": "【連環計】：可以花費 1 TU 讓敵人陷入混亂，跳過他們的回合。" },
+    { "id": "v_blacksmith", "name": "鐵匠", "role": "鍛造大師", "icon": "🔨", "gender": "male", "hp": 5, "stats": { "agility": 2, "charisma": 1, "combat": 3 }, "ability": "【神兵利器】：可以花費 1 TU 為隊友打造一把武器，增加 1 點戰鬥力。" },
+    { "id": "v_refugee", "name": "流民", "role": "黃巾餘孽", "icon": "🧑‍🌾", "gender": "male", "hp": 4, "stats": { "agility": 3, "charisma": 1, "combat": 2 }, "ability": "【熟悉地形】：在野外或廢墟中移動時，不消耗額外時間。" },
+    { "id": "v_spy", "name": "細作", "role": "曹魏密探", "icon": "🕵️", "gender": "male", "hp": 4, "stats": { "agility": 3, "charisma": 2, "combat": 1 }, "ability": "【偽裝】：可以花費 1 TU 偽裝成敵軍，避免一次戰鬥。" }
+  ],
+  "items": {
+    "item_seal": { "name": "兵符", "icon": "🪙", "keep": true },
+    "item_letter": { "name": "密信", "icon": "✉️", "keep": true },
+    "item_sword": { "name": "青銅劍", "icon": "🗡️", "keep": true },
+    "item_poison": { "name": "毒藥", "icon": "🧪", "keep": false },
+    "item_scroll": { "name": "古卷", "icon": "📜", "keep": true },
+    "token_green_cross": { 
+      "name": "綠色十字標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='8' y='2' width='8' height='20' fill='#4caf50' rx='1'/><rect x='2' y='8' width='20' height='8' fill='#4caf50' rx='1'/></svg>", 
+      "keep": true 
+    }
+  },
+  "locations": {
+    "prologue": {
+      "name": "基地：傳送室",
+      "cards": [
+        { "id": "pro_A", "label": "A卡：三國風雲", "cost": 0, "text": "「探員們，208年，赤壁之戰前夕。一個神秘的時空裂縫出現在了曹軍大營，導致歷史偏離了軌道。你們必須潛入曹營，找到裂縫的源頭並修復它。」\n(閱讀完請點擊進行意識投射)", "actions": [ { "label": "進行意識投射", "cost": 0, "isTeleport": true } ] }
+      ]
+    },
+    "cao_camp": {
+      "name": "曹軍大營",
+      "cards": [
+        { "id": "cc_A", "label": "A卡：戒備森嚴", "cost": 0, "text": "你們在曹軍大營外圍醒來，軍營裡燈火通明，巡邏隊來回穿梭。", "actions": [] },
+        { "id": "cc_B", "label": "B卡：偷取兵符", "cost": 1, "text": "你需要一個兵符才能混入中軍帳。", "check": { "attr": "agility", "diff": 3, "successText": "你成功從一名將軍身上偷到了兵符。", "failText": "你被發現了，被迫撤退。", "failDamage": 1, "giveItemOnSuccess": "item_seal" }, "actions": [] },
+        { "id": "cc_C", "label": "C卡：潛入中軍帳", "cost": 1, "text": "你利用兵符混入了中軍帳，發現這裡有一個散發著紫光的裂縫。", "requires": "item_seal", "unlockLoc": ["tent"], "actions": [ { "label": "進入中軍帳", "cost": 0, "nextLoc": "tent" } ] }
+      ]
+    },
+    "tent": {
+      "name": "中軍帳",
+      "cards": [
+        { "id": "tt_A", "label": "A卡：時空裂縫", "cost": 0, "text": "中軍帳內，一個時空裂縫正在不斷擴大，周圍的士兵似乎被某種力量控制，變得異常狂躁。", "actions": [] },
+        { "id": "tt_B", "label": "B卡：關閉裂縫", "cost": 1, "text": "你嘗試用古代卷軸來關閉裂縫。", "requires": "item_scroll", "check": { "attr": "charisma", "diff": 4, "successText": "裂縫開始縮小，時間線恢復正常。任務完成！", "failText": "裂縫的能量反噬了你。", "failDamage": 3 }, "actions": [ { "label": "完成任務", "cost": 0, "isWin": true } ] }
+      ]
+    },
+    "market": {
+      "name": "市集",
+      "cards": [
+        { "id": "mk_A", "label": "A卡：混亂的市集", "cost": 0, "text": "市集上人聲鼎沸，但空氣中瀰漫著不安的氣氛。一個神秘的道士在角落裡擺攤。", "actions": [] },
+        { "id": "mk_B", "label": "B卡：道士的預言", "cost": 1, "text": "道士告訴你：「要想關閉裂縫，需要一件上古神器。」", "check": { "attr": "charisma", "diff": 3, "successText": "道士交給了你一個古卷。", "failText": "道士搖了搖頭，不再理你。", "giveItemOnSuccess": "item_scroll", "unlockLoc": ["temple"] }, "actions": [] }
+      ]
+    },
+    "temple": {
+      "name": "廢棄神廟",
+      "cards": [
+        { "id": "tp_A", "label": "A卡：神廟廢墟", "cost": 0, "text": "這座神廟已經廢棄多年，牆上長滿了青苔，但依然能感受到一股神秘的力量。", "actions": [] },
+        { "id": "tp_B", "label": "B卡：解開機關", "cost": 1, "text": "你在神廟深處發現了一個密室，上面有一個綠色十字標記的凹槽。", "actions": [ { "label": "放入標記", "cost": 0, "text": "密室打開，裡面放著一把青銅劍。", "giveItem": "item_sword" } ] }
+      ]
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "title": "二戰密碼 (1943 NT)",
+  "initialTU": 25,
+  "initialHP": 5,
+  "startLocation": "prologue",
+  "vessels": [
+    { "id": "v_spy", "name": "詹姆斯", "role": "軍情六處間諜", "icon": "🕵️", "gender": "male", "hp": 5, "stats": { "agility": 3, "charisma": 3, "combat": 1 }, "ability": "【偽裝大師】：可以花費 1 TU 偽裝成敵軍，避免一次戰鬥。" },
+    { "id": "v_codebreaker", "name": "艾倫", "role": "密碼學家", "icon": "🧠", "gender": "male", "hp": 4, "stats": { "agility": 1, "charisma": 2, "combat": 2 }, "ability": "【圖靈機】：在破解密碼或進行智力檢定時，可以重擲所有失敗的骰子。" },
+    { "id": "v_resistance", "name": "瑪麗", "role": "游擊隊領袖", "icon": "⚔️", "gender": "female", "hp": 5, "stats": { "agility": 2, "charisma": 3, "combat": 2 }, "ability": "【游擊戰術】：在進行戰鬥時，可以額外投擲一顆骰子。" },
+    { "id": "v_officer", "name": "漢斯", "role": "德軍叛逃軍官", "icon": "🎖️", "gender": "male", "hp": 5, "stats": { "agility": 2, "charisma": 2, "combat": 3 }, "ability": "【內部資訊】：可以提前看到敵軍的弱點，戰鬥檢定難度降低 1。" },
+    { "id": "v_woman", "name": "維拉", "role": "蘇聯女特工", "icon": "💃", "gender": "female", "hp": 4, "stats": { "agility": 3, "charisma": 2, "combat": 2 }, "ability": "【致命誘惑】：在交涉時，可以讓對方放鬆警惕，降低難度 1。" },
+    { "id": "v_explosives", "name": "湯姆", "role": "爆破專家", "icon": "💥", "gender": "male", "hp": 4, "stats": { "agility": 2, "charisma": 1, "combat": 3 }, "ability": "【定時炸彈】：可以花費 1 TU 製作一個炸彈，對單一敵人或障礙造成巨大傷害。" }
+  ],
+  "items": {
+    "item_part": { "name": "密碼機零件", "icon": "⚙️", "keep": true },
+    "item_id": { "name": "偽裝證件", "icon": "🪪", "keep": true },
+    "item_radio": { "name": "無線電台", "icon": "📻", "keep": true },
+    "item_poison": { "name": "氰化鉀膠囊", "icon": "💊", "keep": false },
+    "item_file": { "name": "機密文件", "icon": "📁", "keep": true },
+    "token_pink_square": { 
+      "name": "粉色方塊標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='20' height='20' fill='#e91e63' rx='3'/></svg>", 
+      "keep": true 
+    }
+  },
+  "locations": {
+    "prologue": {
+      "name": "基地：傳送室",
+      "cards": [
+        { "id": "pro_A", "label": "A卡：布萊切利園的警告", "cost": 0, "text": "「探員們，1943年，德軍獲得了來自未來的超級密碼機，導致盟軍節節敗退。你們的任務是潛入德軍總部，竊取密碼機的核心零件，並摧毀它。」\n(閱讀完請點擊進行意識投射)", "actions": [ { "label": "進行意識投射", "cost": 0, "isTeleport": true } ] }
+      ]
+    },
+    "blecthley": {
+      "name": "布萊切利園",
+      "cards": [
+        { "id": "bl_A", "label": "A卡：盟軍密碼基地", "cost": 0, "text": "你們來到了英國的密碼破譯中心。艾倫·圖靈正在焦急地等待你們：「我們需要你們拿到德軍的密碼機零件，這是我們唯一的機會。」", "actions": [] },
+        { "id": "bl_B", "label": "B卡：偽造證件", "cost": 1, "text": "你需要偽造一份德軍證件才能混入敵營。", "check": { "attr": "agility", "diff": 2, "successText": "你成功偽造了一份高級軍官證件。", "failText": "偽造失敗，浪費了時間。", "failTime": 1, "giveItemOnSuccess": "item_id" }, "actions": [] },
+        { "id": "bl_C", "label": "C卡：前往巴黎", "cost": 1, "text": "你獲得了前往巴黎的任務指示。", "unlockLoc": ["paris"], "actions": [ { "label": "前往巴黎", "cost": 0, "nextLoc": "paris" } ] }
+      ]
+    },
+    "paris": {
+      "name": "巴黎小巷",
+      "cards": [
+        { "id": "pa_A", "label": "A卡：占領下的巴黎", "cost": 0, "text": "巴黎被德軍佔領，街道上隨處可見巡邏的士兵。你需要找到當地的抵抗組織。", "actions": [] },
+        { "id": "pa_B", "label": "B卡：接頭暗號", "cost": 1, "text": "你來到一家咖啡館，與抵抗組織成員接頭。", "check": { "attr": "charisma", "diff": 3, "successText": "你成功與抵抗組織取得聯繫，他們為你提供了德軍總部的內部地圖。", "failText": "接頭失敗，你被懷疑了。", "failDamage": 1 }, "actions": [] },
+        { "id": "pa_C", "label": "C卡：德軍總部", "cost": 1, "text": "抵抗組織為你指明了德軍總部的位置。", "unlockLoc": ["german_hq"], "actions": [ { "label": "前往德軍總部", "cost": 0, "nextLoc": "german_hq" } ] }
+      ]
+    },
+    "german_hq": {
+      "name": "德軍總部",
+      "cards": [
+        { "id": "gh_A", "label": "A卡：戒備森嚴", "cost": 0, "text": "德軍總部大樓守衛森嚴，到處都是巡邏隊和監視器。", "actions": [] },
+        { "id": "gh_B", "label": "B卡：竊取零件", "cost": 1, "text": "你悄悄潛入了實驗室，密碼機零件就在一個保險箱裡。", "requires": "item_id", "check": { "attr": "agility", "diff": 4, "successText": "你成功竊取了密碼機零件。", "failText": "警報響起，你被迫撤離。", "failDamage": 2, "giveItemOnSuccess": "item_part" }, "actions": [] },
+        { "id": "gh_C", "label": "C卡：發現機密", "cost": 1, "text": "你在保險箱旁發現了一份機密文件，裡面提到了密碼機的弱點。", "requires": "item_part", "actions": [ { "label": "拿走文件", "cost": 0, "giveItem": "item_file", "unlockLoc": ["submarine"] } ] }
+      ]
+    },
+    "submarine": {
+      "name": "潛艇基地",
+      "cards": [
+        { "id": "sb_A", "label": "A卡：最終決戰", "cost": 0, "text": "你帶著零件和機密文件來到了潛艇基地，這裡隱藏著德軍最後的指揮部。", "actions": [] },
+        { "id": "sb_B", "label": "B卡：摧毀密碼機", "cost": 1, "text": "你將零件安裝在密碼機上，並啟動了銷毀程序。", "requires": "item_file", "check": { "attr": "combat", "diff": 3, "successText": "密碼機發出轟鳴，最終化為灰燼。時間線恢復正常！", "failText": "德軍士兵發現了你，你必須立即撤離。", "failDamage": 2 }, "actions": [ { "label": "完成任務", "cost": 0, "isWin": true } ] }
+      ]
+    }
+  }
+}

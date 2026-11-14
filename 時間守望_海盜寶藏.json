@@ -1,0 +1,65 @@
+{
+  "title": "海盜寶藏 (1715 NT)",
+  "initialTU": 30,
+  "initialHP": 5,
+  "startLocation": "prologue",
+  "vessels": [
+    { "id": "v_captain", "name": "黑鬍子", "role": "海盜船長", "icon": "🏴‍☠️", "gender": "male", "hp": 6, "stats": { "agility": 2, "charisma": 3, "combat": 4 }, "ability": "【威懾】：在戰鬥開始時，可以讓敵人減少 1 顆骰子。" },
+    { "id": "v_navigator", "name": "吉姆", "role": "領航員", "icon": "🧭", "gender": "male", "hp": 4, "stats": { "agility": 3, "charisma": 2, "combat": 1 }, "ability": "【星象導航】：在海上移動時，不消耗額外時間。" },
+    { "id": "v_gunner", "name": "紅髮安妮", "role": "火砲手", "icon": "💣", "gender": "female", "hp": 5, "stats": { "agility": 2, "charisma": 2, "combat": 3 }, "ability": "【精準射擊】：在戰鬥中，可以花費 1 TU 直接消滅一個敵人。" },
+    { "id": "v_assassin", "name": "影子", "role": "刺客", "icon": "🗡️", "gender": "male", "hp": 4, "stats": { "agility": 4, "charisma": 1, "combat": 2 }, "ability": "【暗殺】：在潛行時，可以重擲失敗的骰子。" },
+    { "id": "v_hostage", "name": "總督之女", "role": "人質", "icon": "👸", "gender": "female", "hp": 3, "stats": { "agility": 2, "charisma": 4, "combat": 1 }, "ability": "【談判籌碼】：可以花費 1 TU 說服敵人停止攻擊。" },
+    { "id": "v_bartender", "name": "老酒保", "role": "酒館老闆", "icon": "🍺", "gender": "male", "hp": 4, "stats": { "agility": 1, "charisma": 3, "combat": 2 }, "ability": "【小道消息】：可以免費獲得關於寶藏的額外線索。" }
+  ],
+  "items": {
+    "item_map": { "name": "藏寶圖", "icon": "🗺️", "keep": true },
+    "item_powder": { "name": "火藥桶", "icon": "🧨", "keep": false },
+    "item_cutlass": { "name": "彎刀", "icon": "⚔️", "keep": true },
+    "item_gold": { "name": "金幣", "icon": "🪙", "keep": true },
+    "item_compass": { "name": "神秘羅盤", "icon": "🧭", "keep": true },
+    "token_pink_square": { 
+      "name": "粉色方塊標記", 
+      "icon": "<svg width='18' height='18' viewBox='0 0 24 24'><rect x='2' y='2' width='20' height='20' fill='#e91e63' rx='3'/></svg>", 
+      "keep": true 
+    }
+  },
+  "locations": {
+    "prologue": {
+      "name": "基地：傳送室",
+      "cards": [
+        { "id": "pro_A", "label": "A卡：海盜的呼喚", "cost": 0, "text": "「探員們，1715年的加勒比海，著名的海盜船長『黑鬍子』的寶藏被詛咒了，這導致時間線出現了一個巨大的漩渦。你們必須找到寶藏，解開詛咒。」\n(閱讀完請點擊進行意識投射)", "actions": [ { "label": "進行意識投射", "cost": 0, "isTeleport": true } ] }
+      ]
+    },
+    "tortuga": {
+      "name": "托爾圖加酒館",
+      "cards": [
+        { "id": "tt_A", "label": "A卡：海盜的天堂", "cost": 0, "text": "你們在一個擁擠的酒館醒來，空氣中瀰漫著朗姆酒和火藥的味道。一個獨眼海盜正在大聲吹噓他的冒險。", "actions": [] },
+        { "id": "tt_B", "label": "B卡：打聽消息", "cost": 1, "text": "你向酒保打聽關於黑鬍子寶藏的消息。", "check": { "attr": "charisma", "diff": 2, "successText": "酒保告訴你，寶藏埋在骷髏島，但需要一張藏寶圖。", "failText": "酒保忙於應付其他客人，沒有理會你。", "unlockLoc": ["skull_island"] }, "actions": [] },
+        { "id": "tt_C", "label": "C卡：賭博贏藏寶圖", "cost": 1, "text": "你加入了一場賭局，對面是一個獨眼海盜，他手裡拿著一張藏寶圖。", "check": { "attr": "charisma", "diff": 3, "successText": "你贏得了藏寶圖！", "failText": "你輸光了身上的錢。", "giveItemOnSuccess": "item_map" }, "actions": [] }
+      ]
+    },
+    "skull_island": {
+      "name": "骷髏島",
+      "cards": [
+        { "id": "si_A", "label": "A卡：陰森的島嶼", "cost": 0, "text": "骷髏島上佈滿了白骨和破敗的船隻。空氣中瀰漫著不祥的氣息。", "actions": [] },
+        { "id": "si_B", "label": "B卡：解開謎題", "cost": 1, "text": "你在島上發現了一個古老的石門，上面刻有謎題。", "requires": "item_map", "check": { "attr": "agility", "diff": 3, "successText": "石門打開，露出了一條通往地下的通道。", "failText": "你觸發了陷阱，受到了傷害。", "failDamage": 2, "unlockLoc": ["cave"] }, "actions": [] },
+        { "id": "si_C", "label": "C卡：幽靈船長", "cost": 1, "text": "一個幽靈船長出現在你面前，他要求你為他找到他的羅盤。", "actions": [ { "label": "接受任務", "cost": 0, "text": "幽靈船長告訴你，羅盤在美人魚海灣。", "unlockLoc": ["mermaid_bay"] } ] }
+      ]
+    },
+    "cave": {
+      "name": "寶藏洞穴",
+      "cards": [
+        { "id": "cv_A", "label": "A卡：閃閃發光的寶藏", "cost": 0, "text": "洞穴裡堆滿了金幣和珠寶，但在寶藏的正中央，放著一個散發著幽光的羅盤。", "actions": [] },
+        { "id": "cv_B", "label": "B卡：拿走寶藏", "cost": 1, "text": "你伸手去拿羅盤，突然整個洞穴開始震動。", "check": { "attr": "combat", "diff": 4, "successText": "你成功拿走了羅盤，並解除了詛咒。時間線恢復正常！", "failText": "洞穴坍塌，你被石頭砸傷。", "failDamage": 3 }, "actions": [ { "label": "完成任務", "cost": 0, "isWin": true } ] }
+      ]
+    },
+    "mermaid_bay": {
+      "name": "美人魚海灣",
+      "cards": [
+        { "id": "mb_A", "label": "A卡：危險的海域", "cost": 0, "text": "海灣的水面平靜如鏡，但水下似乎隱藏著巨大的危險。", "actions": [] },
+        { "id": "mb_B", "label": "B卡：尋找羅盤", "cost": 1, "text": "你潛入水中，發現羅盤卡在了一個巨大的貝殼裡。", "check": { "attr": "agility", "diff": 3, "successText": "你成功拿到了羅盤。", "failText": "一隻巨大的螃蟹攻擊了你。", "failDamage": 2, "giveItemOnSuccess": "item_compass" }, "actions": [] },
+        { "id": "mb_C", "label": "C卡：歸還羅盤", "cost": 1, "text": "你將羅盤歸還給幽靈船長，他微笑著消失了。", "requires": "item_compass", "actions": [ { "label": "獲得祝福", "cost": 0, "text": "幽靈船長給了你一把彎刀作為感謝。", "giveItem": "item_cutlass", "nextLoc": "cave" } ] }
+      ]
+    }
+  }
+}
