@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>時間守望：網頁版引擎 (新手教學完整版)</title>
+<title>時間守望：網頁版引擎 (修復移動與背包)</title>
 <style>
     :root {
         --bg-dark: #1e252b; --bg-panel: #2a343d; --text-main: #e0e5e9;
@@ -47,7 +47,6 @@
     .modal-title { font-size: 22px; color: var(--accent); margin-bottom: 15px; text-align: center; border-bottom: 1px solid #333; padding-bottom: 10px;}
     .modal-text { font-size: 15px; line-height: 1.6; margin-bottom: 20px; color: #ccc; white-space: pre-wrap;}
     
-    /* 新手說明專用樣式 */
     .rule-section { margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border-left: 4px solid var(--accent);}
     .rule-section h3 { color: #fff; margin-bottom: 10px; font-size: 18px; display: flex; align-items: center; gap: 8px;}
     .rule-section p { margin-bottom: 8px; font-size: 14px; }
@@ -60,6 +59,8 @@
     .btn-success { background: var(--success); }
     .btn-list { background: #3a4a5a; text-align: left; padding-left: 15px; display: flex; justify-content: space-between; align-items: center;}
     .btn-list:hover { background: #4a5a6a; }
+    .btn-move { background: #8e44ad; }
+    .btn-move:hover { background: #71368a; }
 
     .bottom-bar { background: #151a1e; padding: 8px; display: flex; justify-content: center; gap: 10px; border-top: 2px solid #000; flex-wrap: wrap;}
     .btn-small { background: #3a4a5a; color: #fff; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; }
@@ -114,6 +115,7 @@
 
     <div class="bottom-bar">
         <button class="btn-small" id="nav-load">📂 載入劇本</button>
+        <button class="btn-small" id="nav-move">🗺️ 前往他處</button> <!-- 新增移動按鈕 -->
         <button class="btn-small" id="nav-rules">📜 規則</button>
         <button class="btn-small" id="nav-save">💾 存檔</button>
         <button class="btn-small" id="nav-read">📥 讀檔</button>
@@ -191,7 +193,7 @@
                 cardEl.className = `card ${isRevealed ? 'flipped' : ''} ${isDisabled ? 'disabled' : ''}`;
                 
                 cardEl.innerHTML = `
-                    <div class="card-cost">${card.cost > 0 ? card.cost : '?'}</div>
+                    ${!isRevealed ? `<div class="card-cost">${card.cost > 0 ? card.cost : '?'}</div>` : ''}
                     <div class="card-header">${isRevealed ? '已探索' : card.label}</div>
                     <div class="card-body">
                         ${isRevealed ? `<div style="font-size:20px;">👁️</div>` : `
@@ -219,6 +221,7 @@
             this.state.tu -= card.cost;
             this.state.revealedCards.push(card.id);
             
+            // 翻牌時直接給的物品
             if (card.giveItem && !this.state.inventory.includes(card.giveItem)) {
                 this.state.inventory.push(card.giveItem);
                 document.getElementById('story-log').innerText += `\n\n【獲得物品：${this.script.items[card.giveItem].name}】`;
@@ -286,6 +289,12 @@
         },
 
         executeAction(action) {
+            // 【修復】處理 ACTION 給予物品
+            if (action.giveItem && !this.state.inventory.includes(action.giveItem)) {
+                this.state.inventory.push(action.giveItem);
+                document.getElementById('story-log').innerText += `\n\n【獲得物品：${this.script.items[action.giveItem].name}】`;
+            }
+
             if (action.nextLoc) {
                 this.state.currentLocId = action.nextLoc;
                 this.state.revealedCards = [];
@@ -302,6 +311,18 @@
             ui.closeModal();
         },
 
+        // 【新增】切換地點功能
+        moveLocation(targetLocId) {
+            if (this.state.tu < 1) return ui.showModal('notice', '時間不足', '沒有足夠的時間移動。');
+            this.state.tu -= 1; // 基礎移動花費 1 TU
+            this.state.currentLocId = targetLocId;
+            this.state.revealedCards = [];
+            this.updateUI();
+            document.getElementById('story-log').innerText = `你們花費了 1 TU 移動到了：${this.script.locations[targetLocId].name}`;
+            this.renderLocation();
+            ui.closeModal();
+        },
+
         checkGameOver() {
             if (this.state.phase === 'PLAYING' && (this.state.tu <= 0 || this.state.hp <= 0)) {
                 this.state.phase = 'GAMEOVER';
@@ -312,13 +333,11 @@
 
     // ================= UI 控制 =================
     const ui = {
-        // 自動抓取 GitHub 上的劇本清單
-		async fetchManifest() {
+        async fetchManifest() {
             try {
                 const host = window.location.hostname; 
                 const path = window.location.pathname.split('/')[1];
                 
-                // 本地端測試防呆
                 if (host === 'localhost' || host === '127.0.0.1' || host === '' || !host.endsWith('github.io')) {
                     return ["時間守望_瘋人院.json", "時間守望_深海計畫.json"];
                 }
@@ -330,8 +349,7 @@
                 if (!response.ok) throw new Error('API 請求失敗');
 
                 const files = await response.json();
-                
-                // 這裡加上了 startsWith('時間守望_') 的條件
+                // 只抓取 時間守望_ 開頭並且是 .json 的檔案
                 const scripts = files
                     .filter(file => file.name.startsWith('時間守望_') && file.name.endsWith('.json'))
                     .map(file => file.name);
@@ -396,7 +414,6 @@
                 return;
             }
 
-            // --- 華麗的新手說明專用 UI ---
             if (type === 'rules') {
                 content.innerHTML = `
                     <div class="modal-title">📜 新手特工生存指南</div>
@@ -417,8 +434,9 @@
                         <div class="rule-section">
                             <h3>🕹️ 3. 操作步驟</h3>
                             <p>👉 <b>第一步：讀故事</b>。看畫面上方黑色框框裡的文字，了解你現在在哪裡。</p>
-                            <p>👉 <b>第二步：點卡片</b>。點擊中間的卡牌來探索、移動或戰鬥。</p>
+                            <p>👉 <b>第二步：點卡片</b>。點擊中間的卡牌來探索、移動或戰鬥。彈出視窗後，如果有按鈕記得點擊（例如「拿走物品」）。</p>
                             <p>👉 <b>第三步：注意限制</b>。如果卡片上寫著 <span class="highlight-red">「需: XXX」</span> 或呈現灰色，代表你缺道具或時間不夠。請先去找鑰匙或線索！</p>
+                            <p>👉 <b>第四步：卡關了怎麼辦？</b> 如果這個地點的卡片都翻完了，你可以點擊底部的 <b>「🗺️ 前往他處」</b> 來切換場景！</p>
                         </div>
 
                         <div class="rule-section">
@@ -434,7 +452,32 @@
                 return;
             }
 
-            // 其他基本彈窗 (閱讀、提示、結束)
+            // 移動介面
+            if (type === 'move') {
+                let html = `<div class="modal-title">🗺️ 前往他處 (花費 1 TU)</div>`;
+                for (let locId in game.script.locations) {
+                    if (locId !== game.state.currentLocId) { // 不顯示當前地點
+                        html += `<button class="btn btn-list move-btn" data-loc="${locId}">
+                                    <span>${game.script.locations[locId].name}</span>
+                                    <span style="font-size:12px; color:#8b9bb4;">(切換地點)</span>
+                                 </button>`;
+                    }
+                }
+                html += `<button class="btn" style="background:transparent; border:1px solid #555;" onclick="ui.closeModal()">取消</button>`;
+                content.innerHTML = html;
+                
+                const moveBtns = content.querySelectorAll('.move-btn');
+                moveBtns.forEach(btn => {
+                    btn.onclick = () => {
+                        const targetLoc = btn.getAttribute('data-loc');
+                        game.moveLocation(targetLoc);
+                    };
+                });
+                
+                modal.classList.add('show');
+                return;
+            }
+
             let html = `<div class="modal-title">${title || '提示'}</div><div class="modal-text">${text || ''}</div>`;
 
             if (type === 'read') {
@@ -472,7 +515,6 @@
 
     // ================= 初始化 =================
     window.onload = () => {
-        // 生成時間軌
         const track = document.getElementById('time-track');
         for(let i=0; i<=60; i++) {
             let slot = document.createElement('div');
@@ -481,9 +523,9 @@
             track.appendChild(slot);
         }
 
-        // 綁定按鈕
         document.getElementById('nav-load').onclick = () => ui.showModal('load');
-        document.getElementById('nav-rules').onclick = () => ui.showModal('rules'); // 點擊規則呼叫專屬 UI
+        document.getElementById('nav-move').onclick = () => ui.showModal('move'); // 綁定移動按鈕
+        document.getElementById('nav-rules').onclick = () => ui.showModal('rules');
         
         document.getElementById('json-upload').onchange = (e) => {
             const file = e.target.files[0];
@@ -501,7 +543,6 @@
             e.target.value = '';
         };
 
-        // 初次打開網頁：強制先看新手教學，看完後才顯示載入清單
         ui.showModal('rules');
     };
 </script>
