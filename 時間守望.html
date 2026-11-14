@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>時間守望：網頁版引擎 (完整規則版)</title>
+<title>時間守望：網頁版引擎 (GitHub 自動化版)</title>
 <style>
     :root {
         --bg-dark: #1e252b; --bg-panel: #2a343d; --text-main: #e0e5e9;
@@ -51,16 +51,18 @@
     .btn:hover { background: #357abd; }
     .btn-danger { background: var(--danger); }
     .btn-success { background: var(--success); }
-    .btn-list { background: #3a4a5a; text-align: left; padding-left: 15px;}
+    .btn-list { background: #3a4a5a; text-align: left; padding-left: 15px; display: flex; justify-content: space-between; align-items: center;}
     .btn-list:hover { background: #4a5a6a; }
 
     .bottom-bar { background: #151a1e; padding: 8px; display: flex; justify-content: center; gap: 10px; border-top: 2px solid #000; flex-wrap: wrap;}
     .btn-small { background: #3a4a5a; color: #fff; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; }
     
-    /* 骰子 UI */
     .dice-pool { display: flex; justify-content: center; gap: 10px; margin: 15px 0; }
     .die { width: 45px; height: 45px; background: #fff; color: #000; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 22px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
     .die.success { background: var(--success); color: #fff; border: 2px solid #fff; }
+
+    .loading-text { text-align: center; color: var(--text-muted); padding: 20px; }
+    .error-text { color: var(--danger); text-align: center; font-size: 13px; margin-top: 10px; }
     
     @media (max-width: 768px) {
         main { flex-direction: column; }
@@ -221,7 +223,6 @@
             ui.showModal('read', card.label, card.text, card.actions, card.giveItem, card.check);
         },
 
-        // 執行擲骰檢定
         executeCheck(check) {
             let diceCount = 1;
             let extraTime = 0;
@@ -304,24 +305,100 @@
 
     // ================= UI 控制 =================
     const ui = {
-        showModal(type, title, text, actions, giveItem, check) {
+        // 新增：自動抓取 GitHub 上的劇本清單
+        async fetchManifest() {
+            try {
+                // 判斷是否在 GitHub Pages 環境下
+                const host = window.location.hostname; 
+                const path = window.location.pathname.split('/')[1];
+                
+                // 如果是本地端 (localhost) 或直接開啟檔案 (file://)，回傳預設備用清單
+                if (host === 'localhost' || host === '127.0.0.1' || host === '' || !host.endsWith('github.io')) {
+                    console.log('本地端環境，無法自動抓取 GitHub API，使用預設清單。');
+                    return ["時間守望_瘋人院.json", "時間守望_深海計畫.json"];
+                }
+
+                const owner = host.split('.')[0]; // 您的 GitHub 帳號
+                const repo = path; // 您的專案名稱
+
+                // 呼叫 GitHub API 取得資料夾內所有檔案
+                const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/`;
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) throw new Error('API 請求失敗，可能是儲存庫為私有或尚未部署。');
+
+                const files = await response.json();
+                
+                // 過濾出符合條件的 JSON 檔案
+                const scripts = files
+                    .filter(file => file.name.endsWith('.json') && file.name !== 'manifest.json')
+                    .map(file => file.name);
+
+                return scripts.length > 0 ? scripts : ["時間守望_瘋人院.json"];
+                
+            } catch (err) {
+                console.warn('無法取得 GitHub 檔案清單:', err);
+                // 發生錯誤時，提供備用清單，確保玩家還是能玩到內建劇本
+                return ["時間守望_瘋人院.json", "時間守望_深海計畫.json"];
+            }
+        },
+
+        async showModal(type, title, text, actions, giveItem, check) {
             const modal = document.getElementById('modal-overlay');
             const content = document.getElementById('modal-content');
             content.innerHTML = '';
 
             if (type === 'load') {
-                content.innerHTML = `
-                    <div class="modal-title">📂 選擇劇本</div>
-                    <button id="btn-load-asylum" class="btn btn-list">瘋人院 (完整版)</button>
-                    <button id="btn-upload-json" class="btn btn-list" style="background:#555; margin-top:20px;">上傳外部 JSON 檔</button>
-                    <button class="btn" style="background:transparent; border:1px solid #555;" onclick="ui.closeModal()">取消</button>
-                `;
-                document.getElementById('btn-load-asylum').onclick = () => game.loadScript(asylumScript);
-                document.getElementById('btn-upload-json').onclick = () => document.getElementById('json-upload').click();
+                content.innerHTML = `<div class="modal-title">📂 正在讀取伺服器劇本...</div><div class="loading-text">請稍候</div>`;
                 modal.classList.add('show');
+
+                const manifest = await this.fetchManifest();
+                
+                let html = `<div class="modal-title">📂 選擇劇本</div>`;
+
+                if (manifest && manifest.length > 0) {
+                    manifest.forEach(fileName => {
+                        let displayName = fileName.replace('.json', '').replace(/^時間守望_?/, '');
+                        if (!displayName) displayName = fileName;
+                        
+                        html += `<button class="btn btn-list script-btn" data-file="${fileName}">
+                                    <span>${displayName}</span>
+                                    <span style="font-size:12px; color:#8b9bb4;">(伺服器端)</span>
+                                 </button>`;
+                    });
+                } else {
+                    html += `<div class="error-text">目前沒有伺服器劇本。</div>`;
+                }
+
+                html += `<button id="btn-upload-json" class="btn btn-list" style="background:#555; margin-top:20px;">上傳本機 JSON 檔</button>`;
+                html += `<button class="btn" style="background:transparent; border:1px solid #555;" onclick="ui.closeModal()">取消</button>`;
+                
+                content.innerHTML = html;
+
+                // 安全綁定：伺服器劇本點擊事件
+                const scriptBtns = content.querySelectorAll('.script-btn');
+                scriptBtns.forEach(btn => {
+                    btn.onclick = async () => {
+                        const file = btn.getAttribute('data-file');
+                        btn.innerHTML = '<span>載入中...</span>';
+                        try {
+                            // 加上 ./ 確保讀取當前目錄下的檔案
+                            const res = await fetch('./' + file + '?t=' + new Date().getTime());
+                            if(!res.ok) throw new Error('讀取失敗，請確認檔案存在。');
+                            const data = await res.json();
+                            game.loadScript(data);
+                        } catch (err) {
+                            ui.showModal('notice', '載入失敗', `無法讀取檔案 ${file}：\n${err.message}`);
+                        }
+                    };
+                });
+                
+                // 安全綁定：本機上傳按鈕
+                document.getElementById('btn-upload-json').onclick = () => document.getElementById('json-upload').click();
                 return;
             }
 
+            // 其他彈窗邏輯 (閱讀、通知、結束)
             let html = `<div class="modal-title">${title || '提示'}</div><div class="modal-text">${text || ''}</div>`;
 
             if (type === 'read') {
@@ -389,232 +466,6 @@
         // 初次打開網頁直接顯示載入選單
         ui.showModal('load');
     };
-</script>
-
-<!-- ================= 內建完整《瘋人院》劇本 ================= -->
-<script>
-const asylumScript = {
-  "title": "瘋人院 (1921 NT)",
-  "initialTU": 25,
-  "initialHP": 5,
-  "startLocation": "prologue",
-  "intro": "系統準備中...",
-  "items": {
-    "item_22": { "name": "物品22 (鋼琴裡的東西)", "icon": "📄", "keep": false },
-    "item_24": { "name": "物品24 (瘋子給的東西)", "icon": "🔮", "keep": true },
-    "item_8": { "name": "物品8 (護士給的)", "icon": "🔑", "keep": true },
-    "item_7": { "name": "物品7 (藥櫃裡的東西)", "icon": "💊", "keep": false },
-    "item_6": { "name": "大號鑰匙", "icon": "🗝️", "keep": true },
-    "item_4": { "name": "物品4 (紳士給的)", "icon": "📜", "keep": false }
-  },
-  "locations": {
-    "prologue": {
-      "name": "基地：時空轉移室",
-      "cards": [
-        {
-          "id": "base_A",
-          "label": "基地卡：時空轉移室",
-          "cost": 0,
-          "text": "你們小隊進入房間，你們走的每一步都包含著兩種情緒極端：首先是當你們第一次接觸到這個技術並開始訓練時的興奮，以及迫不及待想離開這個基地跨越時間、空間去發現其他世界新的或者舊知識。\n\n「嘿！夥計們，我們情況緊急，不要停下你們的腳步！」Bob 對你們大喊著。\n\n當你進入這個房間時，一個柔和而寧靜的聲音在空中迴盪，夾雜著細微的金屬雜音。\n「你們遲到了 42 秒，請在未來更好的管理你們的時間。即便如此，還是歡迎你們，調查員。我是勞拉。組織認為你們有能力接受第一次時空轉移。祝賀你們。時空轉移器已經準備就緒。在你們進入它們之前，請見一下你們的訓練官 Bob，請遵照他的指示行動。」\n\n現在請一張一張輪流閱讀卡片 B 到 G。",
-          "actions": [
-            { "label": "進入轉移艙，前往 1921 年", "cost": 0, "nextLoc": "day_room" }
-          ]
-        }
-      ]
-    },
-    "day_room": {
-      "name": "活動室 (Day Room)",
-      "cards": [
-        {
-          "id": "dr_A",
-          "label": "A卡：午後陽光",
-          "cost": 1,
-          "text": "你們發現自己正在瘋人院的日照房裡，現在是午後，房間很安靜並在留聲機中播放著一個甜美且安靜的音樂。一點點陽光正灑滿整個角落。\n負責管理大廳的護士站在門邊，在她旁邊，一個男人非常專注地看著他的棋盤。\n背後，陽光透過巨大的落地窗戶照耀進來，一名年輕女人正在畫畫，她用鬼鬼祟祟和不安的眼神看著你們。\n在房間的角落裡，一個男人坐在那裡示意你們過去。",
-          "actions": []
-        },
-        {
-          "id": "dr_B",
-          "label": "B卡：護士",
-          "cost": 1,
-          "text": "「你們不會又來問我今天的日程安排了吧？拜託，每天都一樣，你們可以在活動室休息或者去門廊轉轉，天黑記得回宿舍。如果要找我的話，我會在醫務室等你們，我的名字叫約-曼-芬！」",
-          "actions": []
-        },
-        {
-          "id": "dr_C",
-          "label": "C卡：下棋的男人",
-          "cost": 1,
-          "text": "當你們靠近這個男人時，你們聽到他自言自語道：\n「我可能是瘋了，但是我不會讓自己被帶走的。」\n當你們走到他身旁時，他開始對你們說道：\n「他們帶走了那些瘋子們！所有的瘋子們！他們說這些主教都瘋了！只有蝎足牌的眼淚才能輕載他們！他們帶走了那些瘋子！」\n你看向棋盤，你發現棋盤上的主教都不見了。",
-          "actions": []
-        },
-        {
-          "id": "dr_D",
-          "label": "D卡：畫畫的女人",
-          "cost": 1,
-          "text": "你靠近她，年輕的女士繼續她的畫畫，完全沒有理會你們。\n(畫布上畫著一隻長著翅膀的獅子，角落寫著奇怪的文字。)",
-          "actions": []
-        },
-        {
-          "id": "dr_E",
-          "label": "E卡：角落的男人",
-          "cost": 1,
-          "text": "「你知道我知道你知道的嗎？我什麼都知道，我沒瘋。是他們瘋了。連那些陰謀我也全都知道。我也知道你們將會拯救我們。現在我把我從那些人身上偷來的東西給你們。」\n(獲得物品24)",
-          "actions": [
-            { "label": "拿走物品24", "cost": 0, "giveItem": "item_24" }
-          ]
-        },
-        {
-          "id": "dr_F",
-          "label": "F卡：鋼琴",
-          "cost": 1,
-          "text": "你搜查了這架舊鋼琴。在鋼琴的內部，你發現了一個隱藏的隔層，裡面放著物品22。",
-          "actions": [
-            { "label": "拿走物品22", "cost": 0, "giveItem": "item_22" }
-          ]
-        }
-      ]
-    },
-    "infirmary": {
-      "name": "醫務室 (Infirmary)",
-      "cards": [
-        {
-          "id": "inf_A",
-          "label": "A卡：醫務室",
-          "cost": 1,
-          "text": "當你們穿過瘋人院的主走廊，打開一扇門牌上掛著「護士房」標誌的門。\n在門後，一個巨大的房間裡擺放著一些床，其中有些躺著患者。\n在床旁，一名實習護士正在細心照料著病人，約瑟芬正看著她。約瑟芬你們在日照房都見過的。\n一名醫生站在你們面前，一直衝你們微笑，似乎想跟你們說話。\n在房間右側，一個巨大的藥櫃吸引了你們的注意。",
-          "actions": []
-        },
-        {
-          "id": "inf_B",
-          "label": "B卡：實習護士",
-          "cost": 1,
-          "text": "「哦！又是你們，我剛剛遇到了亞桑特醫生，他跟我說今天他組織了一場小型聚會，他的辦公室不遠，如果你想了解更多，待會去宿舍找我，我在那等你。」\n(獲得標記與物品8)",
-          "actions": [
-            { "label": "拿走物品8", "cost": 0, "giveItem": "item_8" }
-          ]
-        },
-        {
-          "id": "inf_E",
-          "label": "E卡：巨大的藥櫃",
-          "cost": 1,
-          "text": "你看著這個巨大的藥櫃，裡面塞滿了各種藥品。\n(如果你有鑰匙24，得到物品7)",
-          "actions": []
-        }
-      ]
-    },
-    "promenade": {
-      "name": "門廊 (Promenade)",
-      "cards": [
-        {
-          "id": "pro_A",
-          "label": "A卡：庭院",
-          "cost": 1,
-          "text": "即使陽光照射著這裡，風吹的依舊有些冷。這個院子被高牆包圍，你多少有些想要打破這裡的衝動。\n在左面 3 個男人正在進行一場馬球比賽。\n右邊一扇大門緊鎖，兩名守衛把守著。透過大門你能看到一個公園和一些樹。\n再往右邊，靠近牆邊，一個紳士正在圍著一個圈跳著一種即興舞蹈。",
-          "actions": []
-        },
-        {
-          "id": "pro_B",
-          "label": "B卡：馬球比賽",
-          "cost": 1,
-          "text": "其中一個馬球手上前詢問並邀請你在旁邊看守。\n「嘿！原來你還沒死。要不要來一場緊張刺激的馬球比賽？」\n(如果你想加入他們的比賽：執行靈巧檢定。如果通過考驗，你將立即獲得標記)",
-          "actions": []
-        },
-        {
-          "id": "pro_C",
-          "label": "C卡：大門守衛",
-          "cost": 1,
-          "text": "透過大門，你能看到一個公園，大門被鎖住，並且有2名守衛用警惕的眼神盯著他們。\n(如果你有物品4，你可以立即翻開本板塊)",
-          "actions": []
-        },
-        {
-          "id": "pro_D",
-          "label": "D卡：跳舞的紳士",
-          "cost": 1,
-          "text": "你們看到一名男子很有活力：\n「我真是太高興，我和你，我其實是一個老練的特工，我找到了一些線索，但是我的神智喪失了，如果你找到它了請帶來給我。」\n(獲得物品4)",
-          "actions": [
-            { "label": "拿走物品4", "cost": 0, "giveItem": "item_4" }
-          ]
-        }
-      ]
-    },
-    "dormitory": {
-      "name": "宿舍 (Dormitory)",
-      "cards": [
-        {
-          "id": "dorm_A",
-          "label": "A卡：宿舍",
-          "cost": 1,
-          "text": "你走了幾分鐘就到了寢室。你進入寢室，這是一間大房子，兩邊擺滿了床。現在只有一些床上有人躺著，發出一些喃喃自語的聲音和一些呼嚕聲。在左面，一個病人正喊你們過去。\n在房間的盡頭，是病人們的私人儲物櫃。\n在右面，透過窗戶你們能看到東面有一個巨大的公園，你可以靠得更近一些去看周邊地區的範圍。",
-          "actions": []
-        },
-        {
-          "id": "dorm_B",
-          "label": "B卡：求救的病人",
-          "cost": 1,
-          "text": "男人綁在他的床上，他的臉扭曲並且哭喊著，請求你們解開他的束縛：\n「他們想要殺死我！我還不能死！我還沒做完我的事情！我沒有瘋！放了我吧！沒有人會知道這件事情的！救救我！」\n(如果你想解救他，通過靈巧檢定來翻開下一個板塊)",
-          "actions": []
-        },
-        {
-          "id": "dorm_C",
-          "label": "C卡：儲物櫃",
-          "cost": 1,
-          "text": "你可以在房間的後半部打開多個鎖。這是一個很普通的瘋狂測試，你可以在任何你想要的時候停下，但是你可以拿走的物品數量會根據剩餘的盾標誌來決定。\n如果你停下時還有2個盾，隨機抽取一個物品。\n如果你停下時沒有盾，你可以拿取全部3個物品。\n(獲得物品30)",
-          "actions": [
-            { "label": "拿走物品30", "cost": 0, "giveItem": "item_30" }
-          ]
-        },
-        {
-          "id": "dorm_D",
-          "label": "D卡：窗外",
-          "cost": 1,
-          "text": "你靠近窗戶觀看公園，你看到一個巨大的溫室，在它附近有什麼東西穿了過去，一個動物！\n眨眼之間，野獸就消失了。那個野獸看起來像一隻長著翅膀的貓，是真實的還是幻覺呢？",
-          "actions": []
-        },
-        {
-          "id": "dorm_E",
-          "label": "E卡：暴動的病人",
-          "cost": 1,
-          "text": "你一面對他時，這個男人就緊盯著你，他的臉上露出了不寧靜的嘲諷大笑，看起來很恐怖，「果然……果然……是你。是你！那個劊子手！那個把我留在這等我到死的傢伙！」\n他向你衝了過來……\n(與他戰鬥！)",
-          "actions": []
-        }
-      ]
-    },
-    "kitchen": {
-      "name": "廚房 (Kitchen)",
-      "cards": [
-        {
-          "id": "kit_A",
-          "label": "A卡：廚房",
-          "cost": 1,
-          "text": "在走廊徘徊了一段時間後，你們到達了靠近空蕩蕩的餐廳的廚房。一種難聞的氣味彌漫在這個狹窄的房間，炊具邊上，幾個人正在忙碌著。\n在左面，一個看起來50多歲的男人看到你並且開始衝你露出微笑。在後面，兩個男人在洗盤子並沒注意到你們。\n在更遠點，一個男人和一個女人正小聲談論著什麼。",
-          "actions": []
-        },
-        {
-          "id": "kit_B",
-          "label": "B卡：廚師",
-          "cost": 1,
-          "text": "「從這裡出去，你們這些瘋子，你們覺得你們現在在哪裡？我們正在工作呢！」\n你看到，有個非常大的金屬鑰匙綁在這個男人的腰帶上。\n(為了從他身上偷取這把鑰匙，你需要靈巧檢定。如果成功，拿取物品6)",
-          "actions": [
-            { "label": "拿走物品6", "cost": 0, "giveItem": "item_6" }
-          ]
-        },
-        {
-          "id": "kit_C",
-          "label": "C卡：爐子",
-          "cost": 1,
-          "text": "這裡的氣味令人作嘔，巨大的鍋裡煮著不知名的肉類。你不想在這裡多待一秒。",
-          "actions": []
-        },
-        {
-          "id": "kit_D",
-          "label": "D卡：偷鑰匙",
-          "cost": 1,
-          "text": "你悄悄靠近那個男人。\n(如果你成功通過檢定，你將獲得大號鑰匙)",
-          "actions": []
-        }
-      ]
-    }
-  }
-};
 </script>
 </body>
 </html>
