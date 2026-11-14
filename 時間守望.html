@@ -602,15 +602,37 @@
         showRulesModal() {
             const content = document.getElementById('modal-content');
             content.innerHTML = `
-                <div class="modal-title">📜 新手特工生存指南</div>
-                <div class="modal-text" style="text-align:left;">
-                    <div class="rule-section" style="margin-bottom:20px; background:rgba(0,0,0,0.2); padding:15px; border-left:4px solid #4a90e2;">
-                        <h3 style="color:#fff; margin-bottom:10px;">🎯 1. 遊戲目標</h3><p>在時間(TU)或生命(HP)歸零前完成任務！</p>
+                    <div class="modal-title">📜 新手特工生存指南</div>
+                    <div class="modal-text" style="text-align:left;">
+                        
+                        <div class="rule-section">
+                            <h3>🎯 1. 遊戲目標</h3>
+                            <p>你現在是一名穿越時空的探員。你必須在 <span class="highlight-red">時間耗盡（歸零）</span> 或 <span class="highlight-red">生命歸零</span> 之前，找到任務的關鍵道具並完成目標！</p>
+                        </div>
+
+                        <div class="rule-section">
+                            <h3>🖥️ 2. 看懂畫面</h3>
+                            <p>🔹 <b>最上方時間軌道</b>：發光的數字就是你們剩下的時間（TU）。每次行動都會扣除時間。</p>
+                            <p>🔹 <b>左側儀表板</b>：顯示你的 <b>生命 (HP)</b> 和收集到的 <b>持有物品</b>。</p>
+                            <p>🔹 <b>中間的行動卡牌</b>：這是你們目前能做的事。卡牌右上角的紅圈代表「需要花費多少 TU」。</p>
+                        </div>
+
+                        <div class="rule-section">
+                            <h3>🕹️ 3. 操作步驟</h3>
+                            <p>👉 <b>第一步：讀故事</b>。看畫面上方黑色框框裡的文字，了解你現在在哪裡。</p>
+                            <p>👉 <b>第二步：點卡片</b>。點擊中間的卡牌來探索。彈出視窗後，如果有按鈕記得點擊（例如「拿走物品」）。</p>
+                            <p>👉 <b>第三步：注意限制</b>。如果卡片上寫著 <span class="highlight-red">「需: XXX」</span> 或呈現灰色，代表你缺道具或時間不夠。</p>
+                            <p>👉 <b>第四步：A卡優先</b>。每到新區域，必須先讀完該區域的 <b>「A卡」</b>，其他卡片才會解鎖！</p>
+                            <p>👉 <b>第五步：卡關怎麼辦？</b> 如果這個地點的卡片都翻完了，你可以點擊底部的 <b>「🗺️ 前往他處」</b> 來切換場景！</p>
+                        </div>
+
+                        <div class="rule-section">
+                            <h3>🎲 4. 特殊機制 (很重要！)</h3>
+                            <p><b>考驗與擲骰</b>：當你點擊有 🎲 圖示的卡片，會進入擲骰考驗。擲出 <b>4、5、6</b> 算成功。你可以花費 TU 來「投入變數」增加骰子。</p>
+                            <p><b>時間循環 (Time Loop)</b>：失敗了千萬別灰心！時間歸零後，你可以選擇<span class="highlight">「保留特定道具重新開始」</span>。</p>
+                        </div>                     
                     </div>
-                    <div class="rule-section" style="margin-bottom:20px; background:rgba(0,0,0,0.2); padding:15px; border-left:4px solid #4a90e2;">
-                        <h3 style="color:#fff; margin-bottom:10px;">🕹️ 2. 探索與解鎖</h3><p>透過探索獲得線索與幾何標記，會解鎖全新的區域（如地底迷宮、地牢）。</p>
-                    </div>
-                </div>`;
+                `;
             const startBtn = document.createElement('button'); startBtn.className = 'btn'; startBtn.style.background = 'var(--success)'; startBtn.style.marginTop = '20px'; startBtn.innerText = '開始遊戲！';
             startBtn.onclick = () => { this.closeModal(); this.showLoadModal(); };
             content.appendChild(startBtn);
