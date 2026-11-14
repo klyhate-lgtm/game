@@ -313,7 +313,7 @@
     // ================= UI 控制 =================
     const ui = {
         // 自動抓取 GitHub 上的劇本清單
-        async fetchManifest() {
+		async fetchManifest() {
             try {
                 const host = window.location.hostname; 
                 const path = window.location.pathname.split('/')[1];
@@ -330,8 +330,10 @@
                 if (!response.ok) throw new Error('API 請求失敗');
 
                 const files = await response.json();
+                
+                // 這裡加上了 startsWith('時間守望_') 的條件
                 const scripts = files
-                    .filter(file => file.name.endsWith('.json') && file.name !== 'manifest.json')
+                    .filter(file => file.name.startsWith('時間守望_') && file.name.endsWith('.json'))
                     .map(file => file.name);
 
                 return scripts.length > 0 ? scripts : ["時間守望_瘋人院.json"];
