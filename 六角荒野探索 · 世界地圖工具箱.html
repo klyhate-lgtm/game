@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#c9b896">
+<title>六角荒野探索 · 世界地圖工具箱</title>
+<style>
+/* ================= 基礎 ================= */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;overscroll-behavior:none}
+body{
+  font-family:"Noto Serif TC","Songti TC","Source Han Serif TC","PMingLiU","MingLiU",serif;
+  background:#b9a880;color:#2b1d0e;user-select:none;
+  touch-action:manipulation;
+}
+#app{
+  position:relative;height:100dvh;max-width:900px;margin:0 auto;
+  display:grid;grid-template-rows:auto 1fr auto auto auto;
+  background:radial-gradient(ellipse at 50% 28%,#f7eed7 0%,#e9d9b5 42%,#cdb98f 100%);
+  overflow:hidden;
+}
+/* 羊皮紙噪點紋理 */
+#app::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.055;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+}
+/* 暗角 */
+#app::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:60;
+  box-shadow:inset 0 0 120px rgba(70,48,20,.45),inset 0 0 18px rgba(70,48,20,.35);
+}
+
+/* ================= HUD ================= */
+#hud{
+  position:relative;z-index:10;
+  padding:7px 8px 6px;
+  background:linear-gradient(#f3e7c9,#e2d0a6);
+  border-bottom:2px solid rgba(90,70,50,.4);
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+.hud-row{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.stat{
+  display:flex;align-items:center;justify-content:center;gap:2px;
+  font-size:12px;font-weight:700;white-space:nowrap;
+  padding:3px 2px;border-radius:6px;
+  background:rgba(255,255,255,.28);
+  border:1px solid rgba(120,95,60,.25);
+  letter-spacing:.2px;
+}
+.stat .ico{font-size:13px;line-height:1}
+.stat.low{background:rgba(200,60,40,.28);border-color:rgba(160,40,20,.5);color:#6b1408}
+@media(max-width:360px){
+  .stat{font-size:10.5px;padding:2px 1px}
+  .stat .ico{font-size:11px}
+}
+
+/* ================= 地圖 ================= */
+#mapwrap{
+  position:relative;z-index:5;min-height:0;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;padding:4px;
+}
+#map{width:100%;height:100%;display:block;overflow:visible}
+
+.hexpoly{stroke:rgba(58,40,18,.5);stroke-width:1.4;transition:fill .35s ease}
+.hexpoly.reachable{cursor:pointer;stroke:#a8802c;stroke-width:2}
+.hexpoly.reachable:hover{filter:brightness(1.13);stroke:#d4a017;stroke-width:3}
+.hexpoly.blocked{cursor:not-allowed}
+.hex-icon{pointer-events:none;font-size:26px;dominant-baseline:central;text-anchor:middle}
+.hex-fog{pointer-events:none;text-anchor:middle;dominant-baseline:central;font-size:17px;fill:rgba(255,240,200,.35)}
+.hex-label{pointer-events:none;text-anchor:middle;dominant-baseline:central;font-size:9px;fill:rgba(40,26,10,.75);font-weight:700}
+.poi-badge{pointer-events:none}
+.player-hex{pointer-events:none;animation:playerPulse 2s ease-in-out infinite}
+@keyframes playerPulse{0%,100%{opacity:.55}50%{opacity:1}}
+.visited-mark{pointer-events:none;opacity:.5}
+
+/* ================= 日誌 ================= */
+#logbar{
+  position:relative;z-index:10;
+  max-height:66px;overflow-y:auto;
+  padding:5px 10px;
+  font-size:12.5px;line-height:1.45;
+  background:linear-gradient(rgba(245,236,214,.92),rgba(232,218,186,.92));
+  border-top:1px solid rgba(120,95,60,.35);
+  border-bottom:1px solid rgba(120,95,60,.35);
+  color:#3a2810;
+}
+#logbar .lg{padding:1px 0;animation:logIn .3s ease}
+#logbar .lg:first-child{font-weight:700}
+@keyframes logIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* ================= 動作列 ================= */
+#actions{
+  position:relative;z-index:10;
+  display:flex;gap:8px;padding:8px 10px;
+  background:linear-gradient(#e7d6b0,#d6c294);
+}
+.act{
+  flex:1;
+  font-family:inherit;font-size:14px;font-weight:700;
+  padding:11px 6px;border-radius:9px;cursor:pointer;
+  color:#2b1d0e;
+  background:linear-gradient(#fbf3dd,#e3cfa4);
+  border:2px solid #94723f;
+  box-shadow:0 3px 0 #7c5c2e,0 4px 8px rgba(0,0,0,.18);
+  transition:transform .08s,box-shadow .08s,filter .15s;
+  white-space:nowrap;
+}
+.act:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1px)}
+.act:active:not(:disabled){transform:translateY(3px);box-shadow:0 0 0 #7c5c2e,0 2px 5px rgba(0,0,0,.2)}
+.act:disabled{opacity:.42;cursor:not-allowed;box-shadow:0 3px 0 #7c5c2e}
+
+/* ================= 底部導航 ================= */
+#nav{
+  position:relative;z-index:10;
+  display:grid;grid-template-columns:repeat(6,1fr);
+  background:linear-gradient(#dcc99c,#c4ad7c);
+  border-top:2px solid #94723f;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+#nav button{
+  font-family:inherit;background:none;border:none;cursor:pointer;
+  padding:7px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;
+  font-size:16px;color:#3a2810;transition:background .15s;
+}
+#nav button span{font-size:9.5px;font-weight:700;letter-spacing:.3px}
+#nav button:active{background:rgba(150,120,70,.3)}
+#nav button:disabled{opacity:.4}
+
+/* ================= 彈窗 ================= */
+.modal-backdrop{
+  position:fixed;inset:0;z-index:1000;
+  background:rgba(22,14,5,.66);
+  display:flex;align-items:center;justify-content:center;
+  padding:14px;animation:fadeIn .22s ease;
+  backdrop-filter:blur(2px);
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{
+  width:100%;max-width:520px;max-height:86dvh;overflow-y:auto;
+  background:linear-gradient(#f9f1dc,#e9d9b6);
+  border:2px solid #8b6f47;border-radius:12px;
+  box-shadow:0 14px 44px rgba(0,0,0,.55),inset 0 0 46px rgba(180,140,80,.22);
+  padding:20px 18px 16px;
+  animation:popIn .26s cubic-bezier(.2,1.4,.5,1);
+}
+@keyframes popIn{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+.modal h2{
+  margin:0 0 10px;font-size:19px;letter-spacing:1px;
+  text-align:center;color:#5a3a12;
+  border-bottom:1px solid rgba(140,110,70,.4);padding-bottom:9px;
+}
+.modal-icon{font-size:44px;text-align:center;line-height:1;margin:2px 0 10px}
+.modal-text{font-size:14.5px;line-height:1.85;color:#33230f;margin:0 0 14px;min-height:1.8em}
+.modal-text.small{font-size:13px;line-height:1.75}
+.modal-buttons{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+.mbtn{
+  font-family:inherit;font-size:14.5px;font-weight:700;
+  padding:12px 14px;border-radius:9px;cursor:pointer;
+  color:#2b1d0e;text-align:center;
+  background:linear-gradient(#fdf6e2,#e6d2a6);
+  border:2px solid #94723f;
+  box-shadow:0 3px 0 #7c5c2e;
+  transition:transform .08s,box-shadow .08s,filter .15s;
+}
+.mbtn:hover:not(:disabled){filter:brightness(1.06)}
+.mbtn:active:not(:disabled){transform:translateY(3px);box-shadow:0 0 0 #7c5c2e}
+.mbtn:disabled{opacity:.45;cursor:not-allowed}
+.mbtn.primary{
+  background:linear-gradient(#e8c97a,#c9a227);
+  border-color:#8a6d12;color:#2b1d0e;box-shadow:0 3px 0 #8a6d12;
+}
+.mbtn.danger{background:linear-gradient(#e8b4a0,#c96b4a);border-color:#8f3b21;box-shadow:0 3px 0 #8f3b21}
+
+/* 說明文件排版 */
+.doc h3{
+  font-size:15px;margin:16px 0 6px;color:#7a4a10;
+  border-left:4px solid #b8860b;padding-left:8px;letter-spacing:.5px;
+}
+.doc p,.doc li{font-size:13.5px;line-height:1.85;color:#33230f;margin:5px 0}
+.doc ul,.doc ol{padding-left:20px;margin:5px 0}
+.doc .hl{
+  background:rgba(184,134,11,.2);padding:1px 5px;border-radius:4px;
+  font-weight:700;color:#6b3f08;
+}
+.doc .tip{
+  background:rgba(120,160,90,.16);border-left:4px solid #6d8f4a;
+  padding:8px 11px;border-radius:0 7px 7px 0;margin:9px 0;
+  font-size:13px;line-height:1.8;
+}
+.doc .warn{
+  background:rgba(200,90,50,.14);border-left:4px solid #b05a30;
+  padding:8px 11px;border-radius:0 7px 7px 0;margin:9px 0;
+  font-size:13px;line-height:1.8;
+}
+.doc table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12.5px}
+.doc th,.doc td{border:1px solid rgba(140,110,70,.45);padding:5px 7px;text-align:left}
+.doc th{background:rgba(184,134,11,.16);font-weight:700;color:#5a3a12}
+
+/* 清單類面板 */
+.list-item{
+  display:flex;gap:9px;align-items:flex-start;
+  padding:8px 9px;margin:6px 0;border-radius:8px;
+  background:rgba(255,255,255,.34);
+  border:1px solid rgba(140,110,70,.28);
+  font-size:13px;line-height:1.6;
+}
+.list-item .li-ico{font-size:18px;line-height:1.3;flex:none}
+.list-item .li-main{flex:1}
+.list-item .li-title{font-weight:700;color:#5a3a12}
+.list-item .li-sub{font-size:11.5px;color:#6b5232;margin-top:1px}
+.list-item.locked{opacity:.45;filter:grayscale(.7)}
+
+/* Toast */
+#toast-root{
+  position:fixed;left:50%;bottom:96px;transform:translateX(-50%);
+  z-index:2000;display:flex;flex-direction:column;gap:8px;
+  pointer-events:none;width:max-content;max-width:88vw;
+}
+.toast{
+  background:rgba(46,30,10,.94);color:#f7ecd2;
+  padding:10px 18px;border-radius:22px;
+  font-size:13.5px;font-weight:700;text-align:center;
+  border:1px solid rgba(200,160,80,.6);
+  box-shadow:0 6px 20px rgba(0,0,0,.4);
+  animation:toastIn .28s ease,toastOut .28s ease 2.5s forwards;
+}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-10px) scale(.96)}}
+
+/* 場景淡入 */
+.fade-in{animation:fadeIn .4s ease}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:rgba(140,110,70,.5);border-radius:3px}
+::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header id="hud">
+    <div class="hud-row">
+      <div class="stat" id="stat-hp"><span class="ico">❤️</span><span class="val">20/20</span></div>
+      <div class="stat" id="stat-sup"><span class="ico">🎒</span><span class="val">10</span></div>
+      <div class="stat" id="stat-day"><span class="ico">📅</span><span class="val">1/40</span></div>
+      <div class="stat" id="stat-xp"><span class="ico">⭐</span><span class="val">0</span></div>
+      <div class="stat" id="stat-relic"><span class="ico">🏛️</span><span class="val">0/3</span></div>
+    </div>
+  </header>
+
+  <div id="mapwrap">
+    <svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <div id="logbar"><div class="lg">荒野在等著你……</div></div>
+
+  <div id="actions">
+    <button class="act" id="btn-camp">🏕️ 紮營休息</button>
+    <button class="act" id="btn-look">🧭 就地觀察</button>
+  </div>
+
+  <nav id="nav">
+    <button data-act="help">📖<span>說明</span></button>
+    <button data-act="save">💾<span>存檔</span></button>
+    <button data-act="load">📂<span>讀檔</span></button>
+    <button data-act="history">📜<span>歷史</span></button>
+    <button data-act="achv">🏆<span>成就</span></button>
+    <button data-act="sound">🔊<span>音效</span></button>
+  </nav>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script>
+'use strict';
+/* ==================================================================
+   六角荒野探索 —— 單人網頁遊戲
+   規則來源：《FlexTale: Hexcrawl Adventure Toolkit》(J. Evans Payne, 2023)
+   ================================================================== */
+
+/* ---------------- 常數 ---------------- */
+const HEX_SIZE   = 46;
+const MAP_RADIUS = 3;
+const MAX_DAYS   = 40;
+const RELICS_NEEDED = 3;
+const SAVE_KEY   = 'hexcrawl_save_v1';
+const ACHV_KEY   = 'hexcrawl_achv_v1';
+
+const HEX_DIRS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+
+const TERRAIN = {
+  plain:    {name:'平原', icon:'🌾', color:'#c9d99c', stroke:'#93a86b', passable:true,  extra:0, hard:false},
+  forest:   {name:'森林', icon:'🌲', color:'#8cb368', stroke:'#5c7c40', passable:true,  extra:0, hard:false},
+  hill:     {name:'丘陵', icon:'⛰️', color:'#c7b077', stroke:'#94794a', passable:true,  extra:0, hard:false},
+  mountain: {name:'山地', icon:'🏔️', color:'#aea69a', stroke:'#786f65', passable:true,  extra:1, hard:true },
+  swamp:    {name:'沼澤', icon:'🪵', color:'#97a678', stroke:'#65744e', passable:true,  extra:1, hard:true },
+  desert:   {name:'沙漠', icon:'🏜️', color:'#e8d192', stroke:'#bba45f', passable:true,  extra:1, hard:false},
+  water:    {name:'水域', icon:'🌊', color:'#7cb2d6', stroke:'#48799c', passable:false, extra:0, hard:false}
+};
+
+const POI_DEFS = {
+  settlement:{icon:'🏘️', name:'聚落'},
+  lair:      {icon:'🕳️', name:'巢穴'},
+  arcane:    {icon:'✨', name:'魔法遺跡'},
+  geographic:{icon:'🗿', name:'地理奇觀'},
+  adventure: {icon:'⚔️', name:'冒險之地'},
+  ruin:      {icon:'🏛️', name:'遠古遺跡'}
+};
+
+const ACHIEVEMENTS = [
+  {id:'first_step', icon:'👣', name:'初次踏入荒野', desc:'完成第一次移動'},
+  {id:'first_relic',icon:'🏛️', name:'遺跡探險家',   desc:'找到第一座遠古遺跡'},
+  {id:'win',        icon:'👑', name:'荒野征服者',   desc:'成功找到三座遠古遺跡'},
+  {id:'death',      icon:'💀', name:'長眠荒野',     desc:'生命值歸零'},
+  {id:'timeout',    icon:'⏳', name:'時光飛逝',     desc:'超過 40 天仍未完成'},
+  {id:'explorer',   icon:'🗺️', name:'製圖師',       desc:'探索 15 個以上的六角格'},
+  {id:'settlement', icon:'🏘️', name:'友好訪客',     desc:'造訪一座聚落'},
+  {id:'survivor',   icon:'🍖', name:'堅毅旅人',     desc:'在補給為 0 的狀態下繼續旅行'}
+];
+
+/* ---------------- 遭遇表 ---------------- */
+const ENCOUNTERS = [
+  { icon:'🐺', title:'飢餓的灰狼',
+    text:'一頭瘦骨嶙峋的灰狼擋在獸徑中央，喉間滾出低沉的咆哮。牠的肋骨根根分明，眼神裡既有兇光，也有一絲絕望。',
+    options:[
+      {label:'⚔️ 拔劍迎戰', resolve:()=>{ const r=d20();
+        return r>=10
+          ? {icon:'🗡️', text:`你揮劍上前（擲出 ${r}），狼匹負傷逃入林中。你在牠遺留的獸窩邊找到一些補給。`, supplies:1, xp:12}
+          : {icon:'🩸', text:`你揮劍上前（擲出 ${r}），卻被狼爪劃傷手臂，狼狽退開。`, hp:-4, xp:6};
+      }},
+      {label:'🍖 丟出補給', resolve:()=>({icon:'🍖', text:'你將一塊肉乾拋向遠處。灰狼嗅了嗅，叼起食物消失在林間。', supplies:-1, xp:10})},
+      {label:'🚶 悄悄繞道', resolve:()=>({icon:'👣', text:'你放輕腳步繞過獸徑，多花了些時間，但總算平安無事。', supplies:-1, xp:3})}
+    ]},
+
+  { icon:'🐗', title:'受驚的野豬群',
+    text:'灌木叢猛然炸開，三頭獠牙外露的野豬朝你衝來。牠們顯然被什麼東西嚇壞了，根本沒打算停下。',
+    options:[
+      {label:'🛡️ 穩住陣腳硬扛', resolve:()=>{ const r=d20();
+        return r>=12
+          ? {icon:'🛡️', text:`你穩住重心（擲出 ${r}），野豬群擦身而過，揚起漫天塵土。`, xp:10}
+          : {icon:'💥', text:`你試圖硬扛（擲出 ${r}），卻被撞得飛了出去，肋骨隱隱作痛。`, hp:-6, xp:5};
+      }},
+      {label:'🌳 爬上樹躲避', resolve:()=>({icon:'🌳', text:'你手腳並用地爬上最近的老樹。野豬群在樹下繞了幾圈，終於散去。', supplies:-1, xp:6})},
+      {label:'🔥 點燃火把驅趕', resolve:()=>({icon:'🔥', text:'你點燃火把高舉過頭。火光讓野豬群驚慌失措，掉頭奔入林中。', xp:8})}
+    ]},
+
+  { icon:'🧙', title:'流浪的法師',
+    text:'一位灰袍老者坐在路邊的石頭上，正對著一捲發霉的羊皮紙喃喃自語。他抬頭看了你一眼，咧嘴笑了。',
+    options:[
+      {label:'💰 交換情報', resolve:()=>({icon:'📜', text:'老者收下你的補給，在紙上畫了幾筆。「往這邊走，孩子，那裡的石頭會說話。」', supplies:-1, xp:18})},
+      {label:'🤝 並肩同行一段', resolve:()=>{ const r=d20();
+        return r>=9
+          ? {icon:'✨', text:`老者同行了一段路（擲出 ${r}），臨別時在你掌心畫了個記號。你覺得神清氣爽。`, hp:5, xp:14}
+          : {icon:'🌀', text:`老者同行了一段路（擲出 ${r}），卻不停嘮叨著沒人聽得懂的話，讓你心煩意亂。`, hp:-2, xp:8};
+      }},
+      {label:'🚶 點頭致意後離開', resolve:()=>({icon:'👋', text:'你朝他點點頭，繼續趕路。背後傳來他低沉的笑聲。', xp:3})}
+    ]},
+
+  { icon:'⛈️', title:'突如其來的暴風雨',
+    text:'天色在轉眼間暗了下來。狂風夾著冰冷的雨點抽打在你臉上，前方的視線只剩不到十步。',
+    options:[
+      {label:'⛺ 搭起帳篷硬撐', resolve:()=>({icon:'⛺', text:'你費了好大一番功夫才把帳篷固定住。風雨整夜未停，但你至少乾燥地熬了過去。', supplies:-2, xp:10})},
+      {label:'🏃 冒雨趕路', resolve:()=>{ const r=d20();
+        return r>=11
+          ? {icon:'🌧️', text:`你頂著風雨疾行（擲出 ${r}），竟然搶在雨勢最猛之前找到了一處岩洞。`, xp:14}
+          : {icon:'🥶', text:`你頂著風雨疾行（擲出 ${r}），卻在泥濘中摔了好幾跤，渾身濕透、冷得發抖。`, hp:-5, supplies:-1, xp:8};
+      }},
+      {label:'🕳️ 尋找遮蔽處', resolve:()=>({icon:'🕳️', text:'你在附近找到一處淺淺的岩穴，蜷縮著等風雨過去。', supplies:-1, xp:8})}
+    ]},
+
+  { icon:'🕳️', title:'塌陷的地洞',
+    text:'腳下的地面突然發出不祥的聲響。你低頭一看——泥土正以肉眼可見的速度往下陷落。',
+    options:[
+      {label:'🤸 縱身躍開', resolve:()=>{ const r=d20();
+        return r>=10
+          ? {icon:'🤸', text:`你及時躍開（擲出 ${r}），回頭看著那個深不見底的洞口，冷汗直流。`, xp:12}
+          : {icon:'🦵', text:`你縱身一躍（擲出 ${r}），卻還是慢了半拍，一條腿陷進洞裡扭傷了。`, hp:-5, xp:6};
+      }},
+      {label:'🔦 探頭往下看', resolve:()=>{ const r=d20();
+        return r>=13
+          ? {icon:'💎', text:`你探頭下望（擲出 ${r}），在洞壁的裂縫裡發現了一小塊發光的礦石。`, supplies:1, xp:16}
+          : {icon:'🪨', text:`你探頭下望（擲出 ${r}），洞裡什麼也沒有，只有碎石嘩啦啦地往下掉。`, xp:5};
+      }},
+      {label:'🚶 繞道而行', resolve:()=>({icon:'👣', text:'你小心翼翼地繞過塌陷區域，寧可多走幾步路。', supplies:-1, xp:4})}
+    ]},
+
+  { icon:'💎', title:'廢棄的商隊馬車',
+    text:'一輛翻覆的馬車橫在路旁，車輪斷了一根軸。車上的貨物散落一地，卻不見任何人影。',
+    options:[
+      {label:'🔍 仔細搜刮', resolve:()=>{ const r=d20();
+        return r>=8
+          ? {icon:'🎒', text:`你在車廂夾層裡找到幾包還算完好的乾糧（擲出 ${r}）。`, supplies:3, xp:12}
+          : {icon:'🪤', text:`你伸手翻找（擲出 ${r}），卻觸動了某個生鏽的機關，手掌被劃開一道口子。`, hp:-4, xp:6};
+      }},
+      {label:'🕵️ 檢查是否有埋伏', resolve:()=>({icon:'👀', text:'你繞著馬車觀察了好一會兒，確認四周無人，這才安心離去。', xp:10})},
+      {label:'🚶 不予理會', resolve:()=>({icon:'👋', text:'你搖搖頭，繼續趕路。荒野裡的東西，有時候還是別碰為妙。', xp:2})}
+    ]},
+
+  { icon:'🦌', title:'遷徙的鹿群',
+    text:'一群鹿正穿越前方的草原，數量多達數十頭。牠們安靜地移動著，像是一條流動的金色河流。',
+    options:[
+      {label:'🏹 獵捕一頭', resolve:()=>{ const r=d20();
+        return r>=9
+          ? {icon:'🍖', text:`你屏息瞄準（擲出 ${r}），一頭小鹿應聲倒地。今晚有肉吃了。`, supplies:3, xp:10}
+          : {icon:'💨', text:`你屏息瞄準（擲出 ${r}），箭矢卻擦著鹿角飛過。鹿群四散奔逃。`, supplies:-1, xp:4};
+      }},
+      {label:'👀 靜靜觀察', resolve:()=>({icon:'🌅', text:'你找了塊石頭坐下，靜靜看著鹿群通過。這一刻的荒野，安靜得讓人忘記了疲憊。', hp:3, xp:12})},
+      {label:'🚶 繼續趕路', resolve:()=>({icon:'👣', text:'你沒有打擾牠們，繼續朝目的地前進。', xp:3})}
+    ]},
+
+  { icon:'💀', title:'路旁的屍骸',
+    text:'一具半腐的屍體靠在枯樹上，身上的皮甲已經破爛不堪。牠的手邊散落著幾樣東西。',
+    options:[
+      {label:'🔍 搜刮遺物', resolve:()=>{ const r=d20();
+        return r>=11
+          ? {icon:'🗝️', text:`你小心地翻找（擲出 ${r}），找到一小袋還算完好的補給。`, supplies:2, xp:10}
+          : {icon:'🦠', text:`你伸手翻找（擲出 ${r}），卻被腐爛的氣味嗆得乾嘔，還沾了一手髒污。`, hp:-3, xp:5};
+      }},
+      {label:'⚰️ 好好安葬', resolve:()=>({icon:'⚰️', text:'你用劍挖了個淺坑，把牠好好埋了。雖然費了些力氣，但你心裡安穩了許多。', supplies:-1, hp:4, xp:16})},
+      {label:'🚶 快步離開', resolve:()=>({icon:'👣', text:'你不想沾惹晦氣，快步離開了這個地方。', xp:2})}
+    ]}
+];
+
+/* ---------------- 狀態 ---------------- */
+let state = {};
+
+function freshState(){
+  return {
+    phase:'BOOT',           // BOOT | PLAYER | BUSY | MODAL | OVER
+    sessionId: 0,
+    day:1, maxDays:MAX_DAYS,
+    hp:20, maxHp:20,
+    supplies:10, maxSupplies:20,
+    xp:0,
+    relics:0, relicsNeeded:RELICS_NEEDED,
+    pos:{q:0,r:0},
+    hexes:{},
+    log:[],
+    history:[],
+    startTime:Date.now(),
+    soundOn:true,
+    endingId:null
+  };
+}
+
+/* ---------------- 工具 ---------------- */
+const $ = s => document.querySelector(s);
+const d20 = () => 1 + Math.floor(Math.random()*20);
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const hexKey = (q,r) => q+','+r;
+const hexDistance = (a,b) =>
+  (Math.abs(a.q-b.q) + Math.abs(a.q+a.r-b.q-b.r) + Math.abs(a.r-b.r)) / 2;
+
+function hexToPixel(q,r){
+  return { x: HEX_SIZE*Math.sqrt(3)*(q + r/2), y: HEX_SIZE*1.5*r };
+}
+function hexPoints(cx,cy,size){
+  const pts=[];
+  for(let i=0;i<6;i++){
+    const a = Math.PI/180*(60*i+30);
+    pts.push(`${(cx+size*Math.cos(a)).toFixed(2)},${(cy+size*Math.sin(a)).toFixed(2)}`);
+  }
+  return pts.join(' ');
+}
+
+/* ---------------- 音效（Web Audio 合成） ---------------- */
+let audioCtx = null;
+function ensureAudio(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
+  return audioCtx;
+}
+function tone(freq, dur, type, vol){
+  if(!state.soundOn) return;
+  const ctx = ensureAudio(); if(!ctx) return;
+  const osc = ctx.createOscillator();
+  const g   = ctx.createGain();
+  osc.type = type||'sine';
+  osc.frequency.setValueAtTime(freq, ctx.currentTime);
+  g.gain.setValueAtTime(vol||0.05, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+dur);
+  osc.connect(g); g.connect(ctx.destination);
+  osc.start(); osc.stop(ctx.currentTime+dur+0.02);
+}
+const SFX = {
+  click(){ tone(660,0.06,'triangle',0.045); },
+  move(){  tone(440,0.10,'sine',0.05); setTimeout(()=>tone(620,0.09,'sine',0.04),70); },
+  good(){  [523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,0.14,'triangle',0.05), i*80)); },
+  bad(){   tone(180,0.22,'sawtooth',0.05); setTimeout(()=>tone(120,0.28,'sawtooth',0.045),120); },
+  relic(){ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,0.2,'sine',0.055), i*110)); },
+  win(){   [523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>tone(f,0.26,'triangle',0.06), i*130)); }
+};
+
+/* ---------------- Toast ---------------- */
+function toast(msg, ms){
+  const root = $('#toast-root');
+  const el = document.createElement('div');
+  el.className='toast';
+  el.textContent = msg;
+  root.appendChild(el);
+  setTimeout(()=>{ el.remove(); }, ms||2800);
+}
+
+/* ---------------- 日誌 ---------------- */
+function addLog(msg){
+  state.log.push({day:state.day, msg});
+  if(state.log.length>120) state.log.shift();
+  renderLog();
+}
+function renderLog(){
+  const box = $('#logbar');
+  const last = state.log.slice(-14).reverse();
+  box.innerHTML = last.map(l=>`<div class="lg">${l.msg}</div>`).join('')
+    || '<div class="lg">荒野在等著你……</div>';
+  box.scrollTop = 0;
+}
+
+/* ==================================================================
+   世界生成
+   ================================================================== */
+function rollTerrain(dist){
+  const w = [
+    ['plain',    30],
+    ['forest',   26],
+    ['hill',     16],
+    ['mountain',  6 + dist*3],
+    ['swamp',     8],
+    ['desert',    5 + dist*2]
+  ];
+  let total = 0; for(const x of w) total += x[1];
+  let roll = Math.random()*total;
+  for(const [t,wt] of w){ roll -= wt; if(roll<=0) return t; }
+  return 'plain';
+}
+
+function generateWorld(){
+  const hexes = {};
+  for(let q=-MAP_RADIUS; q<=MAP_RADIUS; q++){
+    const rMin = Math.max(-MAP_RADIUS, -q-MAP_RADIUS);
+    const rMax = Math.min(MAP_RADIUS, -q+MAP_RADIUS);
+    for(let r=rMin; r<=rMax; r++){
+      const dist = hexDistance({q:0,r:0},{q,r});
+      let terrain;
+      if(dist===0){
+        terrain = 'plain';
+      } else if(dist===MAP_RADIUS && Math.random()<0.36){
+        terrain = 'water';
+      } else {
+        terrain = rollTerrain(dist);
+      }
+      hexes[hexKey(q,r)] = {
+        q, r, terrain,
+        revealed:false, visited:false,
+        poi:null,
+        relic:false
+      };
+    }
+  }
+
+  /* 放置三座遠古遺跡（距離中心 >=2 且非水域） */
+  const cands = Object.values(hexes).filter(h =>
+    h.terrain!=='water' && hexDistance({q:0,r:0}, h) >= 2
+  );
+  for(let i=cands.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [cands[i],cands[j]] = [cands[j],cands[i]];
+  }
+  for(let i=0;i<RELICS_NEEDED && i<cands.length;i++){
+    cands[i].relic = true;
+  }
+  return hexes;
+}
+
+function rollPoiType(){
+  const r = Math.random();
+  if(r<0.22) return 'settlement';
+  if(r<0.42) return 'lair';
+  if(r<0.58) return 'arcane';
+  if(r<0.74) return 'geographic';
+  return 'adventure';
+}
+
+function revealHex(h){
+  if(h.revealed) return false;
+  h.revealed = true;
+  if(h.relic){
+    h.poi = {type:'ruin', done:false};
+  } else if(Math.random() < 0.32){
+    h.poi = {type: rollPoiType(), done:false};
+  }
+  return true;
+}
+
+/* ==================================================================
+   渲染
+   ================================================================== */
+function render(){
+  renderHUD();
+  renderMap();
+  renderActions();
+  renderLog();
+}
+
+function renderHUD(){
+  const hpEl  = $('#stat-hp .val');
+  const supEl = $('#stat-sup .val');
+  hpEl.textContent  = `${Math.max(0,state.hp)}/${state.maxHp}`;
+  supEl.textContent = `${state.supplies}`;
+  $('#stat-day .val').textContent   = `${state.day}/${state.maxDays}`;
+  $('#stat-xp .val').textContent    = `${state.xp}`;
+  $('#stat-relic .val').textContent = `${state.relics}/${state.relicsNeeded}`;
+
+  $('#stat-hp').classList.toggle('low', state.hp <= 6);
+  $('#stat-sup').classList.toggle('low', state.supplies <= 2);
+  $('#stat-day').classList.toggle('low', state.day >= state.maxDays-5);
+}
+
+function renderMap(){
+  const svg = $('#map');
+  const hexList = Object.values(state.hexes);
+  if(!hexList.length){ svg.innerHTML=''; return; }
+
+  /* viewBox */
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  for(const h of hexList){
+    const {x,y} = hexToPixel(h.q,h.r);
+    for(let i=0;i<6;i++){
+      const a = Math.PI/180*(60*i+30);
+      const px = x + HEX_SIZE*Math.cos(a);
+      const py = y + HEX_SIZE*Math.sin(a);
+      if(px<minX)minX=px; if(px>maxX)maxX=px;
+      if(py<minY)minY=py; if(py>maxY)maxY=py;
+    }
+  }
+  const pad = 8;
+  svg.setAttribute('viewBox',
+    `${(minX-pad).toFixed(1)} ${(minY-pad).toFixed(1)} ${(maxX-minX+pad*2).toFixed(1)} ${(maxY-minY+pad*2).toFixed(1)}`);
+  svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+
+  const out = [];
+  out.push('<defs>');
+  out.push('<filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>');
+  out.push('<radialGradient id="fogGrad"><stop offset="0%" stop-color="#6b5a3e"/><stop offset="100%" stop-color="#4a3d28"/></radialGradient>');
+  out.push('</defs>');
+
+  for(const h of hexList){
+    const {x,y} = hexToPixel(h.q,h.r);
+    const t = TERRAIN[h.terrain];
+    const isPlayer = (h.q===state.pos.q && h.r===state.pos.r);
+    const dist = hexDistance(state.pos,h);
+    const adjacent = dist===1;
+    const reachable = (state.phase==='PLAYER') && adjacent && t.passable;
+
+    /* 底色 */
+    let fill, stroke;
+    if(h.revealed){
+      fill = t.color; stroke = t.stroke;
+    } else {
+      fill = 'url(#fogGrad)'; stroke = '#3a3020';
+    }
+
+    const cls = ['hexpoly'];
+    if(reachable) cls.push('reachable');
+    else if(adjacent && !t.passable) cls.push('blocked');
+
+    out.push(`<polygon class="${cls.join(' ')}" points="${hexPoints(x,y,HEX_SIZE-1.2)}" fill="${fill}" stroke="${stroke}" stroke-width="1.4" data-q="${h.q}" data-r="${h.r}"/>`);
+
+    /* 已揭示地形圖示 */
+    if(h.revealed){
+      out.push(`<text class="hex-icon" x="${x}" y="${y-4}" font-size="24">${t.icon}</text>`);
+      out.push(`<text class="hex-label" x="${x}" y="${y+18}">${t.name}</text>`);
+    } else {
+      out.push(`<text class="hex-fog" x="${x}" y="${y}">?</text>`);
+    }
+
+    /* 興趣點徽章 */
+    if(h.revealed && h.poi && !h.poi.done){
+      const bx = x + HEX_SIZE*0.52, by = y - HEX_SIZE*0.52;
+      out.push(`<g class="poi-badge">`);
+      out.push(`<circle cx="${bx}" cy="${by}" r="11.5" fill="#fff8e0" stroke="#8b6f47" stroke-width="2"/>`);
+      out.push(`<text x="${bx}" y="${by}" text-anchor="middle" dominant-baseline="central" font-size="13">${POI_DEFS[h.poi.type].icon}</text>`);
+      out.push(`</g>`);
+    }
+
+    /* 已探索標記 */
+    if(h.visited && !isPlayer){
+      out.push(`<text class="visited-mark" x="${x-HEX_SIZE*0.55}" y="${y-HEX_SIZE*0.55}" font-size="10">·</text>`);
+    }
+
+    /* 玩家所在格 */
+    if(isPlayer){
+      out.push(`<polygon class="player-hex" points="${hexPoints(x,y,HEX_SIZE-4)}" fill="none" stroke="#d4a017" stroke-width="4" stroke-linejoin="round" filter="url(#glow)"/>`);
+    }
+  }
+
+  svg.innerHTML = out.join('');
+}
+
+function renderActions(){
+  const campBtn = $('#btn-camp');
+  const lookBtn = $('#btn-look');
+  const canAct = state.phase==='PLAYER';
+  campBtn.disabled = !canAct;
+  lookBtn.disabled = !canAct;
+}
+
+/* ==================================================================
+   彈窗系統
+   ================================================================== */
+function showModal(html, buttons, opts){
+  opts = opts || {};
+  return new Promise(resolve=>{
+    const root = $('#modal-root');
+    root.innerHTML = `
+      <div class="modal-backdrop">
+        <div class="modal ${opts.cls||''}">
+          ${html}
+          <div class="modal-buttons"></div>
+        </div>
+      </div>`;
+    const wrap = root.querySelector('.modal-buttons');
+    buttons.forEach((b,i)=>{
+      const el = document.createElement('button');
+      el.className = 'mbtn' + (b.primary?' primary':'') + (b.danger?' danger':'');
+      el.textContent = b.label;
+      el.disabled = !!b.disabled;
+      el.addEventListener('click', ()=>{
+        if(el.disabled) return;
+        SFX.click();
+        root.innerHTML = '';
+        resolve(b.value !== undefined ? b.value : i);
+      });
+      wrap.appendChild(el);
+    });
+    /* 打字機效果 */
+    const tw = root.querySelector('.typewriter');
+    if(tw) typewriter(tw);
+  });
+}
+
+function typewriter(el){
+  const full = el.dataset.text || el.textContent;
+  el.textContent = '';
+  let i = 0;
+  const timer = setInterval(()=>{
+    el.textContent += full[i++];
+    if(i >= full.length){ clearInterval(timer); el.dataset.done='1'; }
+  }, 20);
+  el.addEventListener('click', ()=>{
+    clearInterval(timer);
+    el.textContent = full;
+    el.dataset.done='1';
+  });
+}
+
+function closeModal(){
+  $('#modal-root').innerHTML = '';
+}
+
+/* ==================================================================
+   效果套用
+   ================================================================== */
+function applyEffects(eff){
+  if(!eff) return;
+  const notes = [];
+  if(eff.hp){
+    const before = state.hp;
+    state.hp = clamp(state.hp + eff.hp, 0, state.maxHp);
+    const d = state.hp - before;
+    if(d) notes.push(d>0 ? `生命 +${d}` : `生命 ${d}`);
+  }
+  if(eff.supplies){
+    const before = state.supplies;
+    state.supplies = clamp(state.supplies + eff.supplies, 0, state.maxSupplies);
+    const d = state.supplies - before;
+    if(d) notes.push(d>0 ? `補給 +${d}` : `補給 ${d}`);
+  }
+  if(eff.xp){ state.xp += eff.xp; notes.push(`探索點 +${eff.xp}`); }
+  if(eff.day){ state.day += eff.day; notes.push(`時間 +${eff.day} 天`); }
+  if(eff.relic){
+    state.relics += eff.relic;
+    notes.push(`🏛️ 遺跡 ${state.relics}/${state.relicsNeeded}`);
+  }
+  if(notes.length) addLog('　→ ' + notes.join('　'));
+  if(eff.hp && eff.hp < 0) SFX.bad();
+  if(eff.xp && eff.xp >= 15) SFX.good();
+}
+
+/* ==================================================================
+   遊戲流程
+   ================================================================== */
+async function doMove(tq, tr){
+  if(state.phase !== 'PLAYER') return;
+
+  const target = state.hexes[hexKey(tq,tr)];
+  if(!target) return;
+
+  /* 相鄰檢查 */
+  if(hexDistance(state.pos, target) !== 1){
+    toast('🧭 只能移動到相鄰的六角格');
+    return;
+  }
+  /* 地形檢查 */
+  if(target.terrain === 'water'){
+    toast('🌊 水域無法通行，請繞道');
+    return;
+  }
+
+  SFX.move();
+  state.phase = 'BUSY';
+  const mySession = ++state.sessionId;
+  render();
+
+  try{
+    /* ---- 1. 時間推進 ---- */
+    state.day += 1;
+
+    /* ---- 2. 移動 ---- */
+    state.pos = { q:tq, r:tr };
+    const wasNew = revealHex(target);
+    target.visited = true;
+    const t = TERRAIN[target.terrain];
+
+    /* ---- 3. 補給消耗 ---- */
+    const supplyCost = 1 + t.extra;
+    state.supplies = clamp(state.supplies - supplyCost, 0, state.maxSupplies);
+
+    addLog(`🧭 第 ${state.day} 天：你踏入${t.name}（-${supplyCost} 補給）`);
+    render();
+    await sleep(280);
+    if(mySession !== state.sessionId) return;
+
+    /* ---- 4. 飢餓檢查 ---- */
+    if(state.supplies === 0){
+      state.hp -= 3;
+      addLog('⚠️ 補給耗盡！你餓得頭昏眼花（生命 -3）');
+      unlockAchv('survivor');
+      render();
+      await sleep(220);
+      if(mySession !== state.sessionId) return;
+    }
+
+    /* ---- 5. 導航檢定（困難地形可能迷路） ---- */
+    if(t.hard && Math.random() < 0.25){
+      state.supplies = clamp(state.supplies-1, 0, state.maxSupplies);
+      addLog('🌫️ 濃霧與崎嶇地形讓你迷失方向（補給 -1）');
+      render();
+      await sleep(220);
+      if(mySession !== state.sessionId) return;
+    }
+
+    /* ---- 6. 遭遇檢定 ---- */
+    if(Math.random() < 0.30){
+      await triggerEncounter(mySession);
+      if(mySession !== state.sessionId) return;
+      if(state.phase === 'OVER') return;
+    }
+
+    /* ---- 7. 興趣點 ---- */
+    if(target.poi && !target.poi.done){
+      await openPoi(target, mySession);
+      if(mySession !== state.sessionId) return;
+      if(state.phase === 'OVER') return;
+    }
+
+    /* ---- 8. 探索成就 ---- */
+    const visitedCount = Object.values(state.hexes).filter(h=>h.visited).length;
+    if(visitedCount >= 15) unlockAchv('explorer');
+    unlockAchv('first_step');
+
+  } finally {
+    if(mySession === state.sessionId && state.phase !== 'OVER'){
+      state.phase = 'PLAYER';
+    }
+    checkGameOver();
+    render();
+  }
+}
+
+/* ---------------- 遭遇 ---------------- */
+async function triggerEncounter(mySession){
+  const enc = pick(ENCOUNTERS);
+  state.phase = 'MODAL';
+  render();
+
+  const choiceIdx = await showModal(
+    `<div class="modal-icon">${enc.icon}</div>
+     <h2>${enc.title}</h2>
+     <p class="modal-text typewriter" data-text="${enc.text.replace(/"/g,'&quot;')}"></p>`,
+    enc.options.map(o=>({label:o.label}))
+  );
+
+  if(mySession !== state.sessionId) return;
+
+  state.phase = 'MODAL';
+  const opt = enc.options[choiceIdx];
+  let eff;
+  try{
+    eff = opt.resolve();
+  }catch(e){
+    eff = {icon:'📜', text:'一陣混亂之後，你勉強脫身。', xp:2};
+  }
+  applyEffects(eff);
+  render();
+
+  await showModal(
+    `<div class="modal-icon">${eff.icon||'📜'}</div>
+     <h2>結果</h2>
+     <p class="modal-text">${eff.text}</p>`,
+    [{label:'繼續前進', primary:true}]
+  );
+}
+
+/* ---------------- 興趣點 ---------------- */
+async function openPoi(hex, mySession){
+  const poi = hex.poi;
+  const def = POI_DEFS[poi.type];
+  state.phase = 'MODAL';
+  render();
+
+  let html = '';
+  let buttons = [];
+  let handler = null;
+
+  if(poi.type === 'settlement'){
+    html = `<div class="modal-icon">🏘️</div><h2>聚落</h2>
+      <p class="modal-text">炊煙裊裊，幾間石屋圍著一口老井。村民們抬起頭，用帶著警惕又不失好奇的眼神打量你。</p>`;
+    buttons = [
+      {label:'🛏️ 在村莊歇腳（+8 生命 / +3 補給 / +1 天）', value:'rest'},
+      {label:'🗣️ 向村民打聽消息（+12 探索點）', value:'talk'},
+      {label:'🚶 不打擾，繼續前進', value:'leave'}
+    ];
+    handler = (v)=>{
+      if(v==='rest') return {icon:'🛏️', text:'你在村莊的穀倉裡睡了一夜。村民還熱情地塞給你一些乾糧。', hp:8, supplies:3, day:1, xp:8};
+      if(v==='talk'){ unlockAchv('settlement');
+        return {icon:'🗣️', text:'老村長指著遠方的山脈說：「往那邊走，石頭會說話。年輕人，別錯過。」', xp:12};
+      }
+      return {icon:'👋', text:'你朝村民點頭致意，繼續踏上旅途。', xp:3};
+    };
+  }
+  else if(poi.type === 'lair'){
+    html = `<div class="modal-icon">🕳️</div><h2>巢穴</h2>
+      <p class="modal-text">岩壁上被刨出一個黑黝黝的洞口，地面散落著骨骸與爪痕。裡頭傳來沉重的呼吸聲。</p>`;
+    buttons = [
+      {label:'⚔️ 深入討伐', value:'fight'},
+      {label:'🚶 悄悄離開', value:'leave'}
+    ];
+    handler = (v)=>{
+      if(v==='fight'){
+        const r = d20();
+        return r>=11
+          ? {icon:'🏆', text:`你握緊武器衝進洞裡（擲出 ${r}），一番惡鬥後將巢穴主人擊斃。你在牠的儲藏堆裡找到不少好東西。`, supplies:3, xp:28}
+          : {icon:'🩸', text:`你衝進洞裡（擲出 ${r}），卻被巢穴主人打了個措手不及，負傷退了出來。`, hp:-7, xp:12};
+      }
+      return {icon:'👣', text:'你判斷風險太高，悄悄退開。荒野裡活著比逞強重要。', xp:4};
+    };
+  }
+  else if(poi.type === 'arcane'){
+    html = `<div class="modal-icon">✨</div><h2>魔法遺跡</h2>
+      <p class="modal-text">三塊刻滿符文的巨石圍成一圈，中央的空氣微微扭曲，像是有人在此處撕開了一道縫。</p>`;
+    buttons = [
+      {label:'🔮 觸碰符文', value:'touch'},
+      {label:'🚶 保持距離離開', value:'leave'}
+    ];
+    handler = (v)=>{
+      if(v==='touch'){
+        const r = d20();
+        return r>=9
+          ? {icon:'✨', text:`符文在你指尖亮起（擲出 ${r}），一股暖流湧遍全身，傷勢似乎癒合了些。`, hp:6, xp:22}
+          : {icon:'⚡', text:`符文在你指尖爆出刺目的白光（擲出 ${r}），你被震得跌坐在地，手臂發麻。`, hp:-5, xp:12};
+      }
+      return {icon:'👣', text:'你繞開那圈石頭。有些東西，還是別碰為妙。', xp:5};
+    };
+  }
+  else if(poi.type === 'geographic'){
+    html = `<div class="modal-icon">🗿</div><h2>地理奇觀</h2>
+      <p class="modal-text">一道瀑布從數十丈高的崖頂傾瀉而下，在夕陽中碎成萬點金光。水聲轟鳴，震撼人心。</p>`;
+    buttons = [
+      {label:'📜 記錄地貌（+18 探索點）', value:'record'},
+      {label:'💧 補充飲水（+2 補給）', value:'water'},
+      {label:'🚶 繼續前進', value:'leave'}
+    ];
+    handler = (v)=>{
+      if(v==='record') return {icon:'📜', text:'你攤開地圖，仔細描繪這道瀑布的位置與形狀。這將是珍貴的資料。', xp:18};
+      if(v==='water') return {icon:'💧', text:'你灌滿了水囊，還順手洗了把臉。清涼的溪水讓你精神一振。', supplies:2, hp:2, xp:8};
+      return {icon:'👣', text:'你靜靜看了會兒風景，然後繼續趕路。', xp:4};
+    };
+  }
+  else if(poi.type === 'adventure'){
+    html = `<div class="modal-icon">⚔️</div><h2>冒險之地</h2>
+      <p class="modal-text">半塌的石牆從荒草間探出頭來，看得出這裡曾經是一座哨站。瓦礫下似乎藏著什麼。</p>`;
+    buttons = [
+      {label:'🗝️ 仔細搜尋', value:'search'},
+      {label:'🚶 離開', value:'leave'}
+    ];
+    handler = (v)=>{
+      if(v==='search'){
+        const r = d20();
+        return r>=9
+          ? {icon:'💎', text:`你搬開碎石（擲出 ${r}），在一隻鏽蝕的鐵箱裡找到幾件堪用的補給。`, supplies:2, xp:20}
+          : {icon:'🪨', text:`你搬開碎石（擲出 ${r}），除了蟲子什麼也沒找到，還劃破了手指。`, hp:-3, xp:8};
+      }
+      return {icon:'👣', text:'你搖搖頭，繼續趕路。', xp:3};
+    };
+  }
+  else { /* ruin */
+    html = `<div class="modal-icon">🏛️</div><h2>遠古遺跡</h2>
+      <p class="modal-text">巨大的石柱從地表拔起，上頭浮雕著早已無人記得的文字與圖騰。空氣中瀰漫著陳舊的、近乎神聖的寂靜。<br><br>
+      <span style="color:#8a5a12;font-weight:700">這正是你此行尋找的目標之一。</span></p>`;
+    buttons = [
+      {label:'🏛️ 深入探索遺跡', value:'explore', primary:true},
+      {label:'🚶 稍後再來', value:'later'}
+    ];
+    handler = (v)=>{
+      if(v==='explore'){
+        unlockAchv('first_relic');
+        SFX.relic();
+        return {icon:'🏛️', text:'你舉著火把走入遺跡深處，在祭壇上找到一塊刻滿符文的石板。你小心地將它收進行囊。', relic:1, xp:35, supplies:-2};
+      }
+      return {icon:'👣', text:'你記下了這個位置，決定等準備更充分時再回來。', xp:2};
+    };
+  }
+
+  const v = await showModal(html, buttons);
+  if(mySession !== state.sessionId) return;
+
+  const eff = handler(v);
+  applyEffects(eff);
+
+  /* 判定是否完成 */
+  if(poi.type === 'ruin'){
+    if(v === 'explore'){
+      poi.done = true;
+      hex.relic = false;
+    }
+  } else {
+    poi.done = true;
+  }
+
+  render();
+
+  await showModal(
+    `<div class="modal-icon">${eff.icon||'📜'}</div>
+     <h2>結果</h2>
+     <p class="modal-text">${eff.text}</p>`,
+    [{label:'繼續前進', primary:true}]
+  );
+}
+
+/* ---------------- 紮營 ---------------- */
+async function doCamp(){
+  if(state.phase !== 'PLAYER') return;
+  SFX.click();
+  state.phase = 'BUSY';
+  const mySession = ++state.sessionId;
+  render();
+
+  try{
+    state.day += 1;
+    if(state.supplies > 0){
+      state.supplies -= 1;
+      state.hp = clamp(state.hp + 7, 0, state.maxHp);
+      state.xp += 4;
+      addLog('🏕️ 你在此紮營過夜，恢復了體力（生命 +7，補給 -1）');
+    } else {
+      state.hp = clamp(state.hp + 2, 0, state.maxHp);
+      addLog('🏕️ 你在沒有補給的情況下勉強休息（生命 +2）');
+    }
+    render();
+    await sleep(320);
+    if(mySession !== state.sessionId) return;
+  } finally {
+    if(mySession === state.sessionId && state.phase !== 'OVER'){
+      state.phase = 'PLAYER';
+    }
+    checkGameOver();
+    render();
+  }
+}
+
+/* ---------------- 就地觀察 ---------------- */
+async function doLook(){
+  if(state.phase !== 'PLAYER') return;
+  SFX.click();
+  state.phase = 'BUSY';
+  const mySession = ++state.sessionId;
+  render();
+
+  try{
+    const h = state.hexes[hexKey(state.pos.q, state.pos.r)];
+    const t = TERRAIN[h.terrain];
+    const r = d20();
+
+    /* 觀察周圍 2 格內的未揭示六角 */
+    let revealedAny = false;
+    for(const k in state.hexes){
+      const o = state.hexes[k];
+      if(!o.revealed && hexDistance(state.pos,o) <= 2){
+        /* 只揭示地形，不觸發探索 */
+        o.revealed = true;
+        revealedAny = true;
+      }
+    }
+
+    if(r >= 13){
+      state.xp += 10;
+      addLog(`🧭 你登上高處觀察四周（擲出 ${r}），看清了鄰近的地形（探索點 +10）`);
+      if(revealedAny) addLog('　→ 附近的地形已繪入你的地圖');
+      SFX.good();
+    } else if(r >= 6){
+      state.xp += 4;
+      addLog(`🧭 你仔細觀察四周（擲出 ${r}），大致確認了方向（探索點 +4）`);
+    } else {
+      addLog(`🧭 你四處張望（擲出 ${r}），卻只看到一片濃霧與荒草。`);
+    }
+
+    render();
+    await sleep(320);
+    if(mySession !== state.sessionId) return;
+  } finally {
+    if(mySession === state.sessionId && state.phase !== 'OVER'){
+      state.phase = 'PLAYER';
+    }
+    checkGameOver();
+    render();
+  }
+}
+
+/* ---------------- 遊戲結束 ---------------- */
+function checkGameOver(){
+  if(state.phase === 'OVER') return;
+
+  if(state.relics >= state.relicsNeeded){
+    endGame(true, 'win');
+  } else if(state.hp <= 0){
+    endGame(false, 'death');
+  } else if(state.day > state.maxDays){
+    endGame(false, 'timeout');
+  }
+}
+
+async function endGame(win, endingId){
+  state.phase = 'OVER';
+  state.endingId = endingId;
+  render();
+
+  let icon, title, body, achvId;
+  if(endingId === 'win'){
+    icon='👑'; title='探索完成'; achvId='win';
+    body = `你在第 <span class="hl">${state.day}</span> 天完成了對三座遠古遺跡的探索。<br><br>
+      那些刻在石板上的符文，記載著一個早已被遺忘的文明。而現在，它們將隨你一起回到文明世界。<br><br>
+      <b>最終探索點：${state.xp}</b>`;
+    SFX.win();
+  } else if(endingId === 'death'){
+    icon='💀'; title='長眠荒野'; achvId='death';
+    body = `你的生命在第 <span class="hl">${state.day}</span> 天走到了盡頭。<br><br>
+      荒野從不仁慈。你的名字，將和那些無名的骸骨一起，靜靜留在這片土地裡。<br><br>
+      <b>最終探索點：${state.xp}</b>`;
+    SFX.bad();
+  } else {
+    icon='⏳'; title='時光飛逝'; achvId='timeout';
+    body = `四十天過去了，你只找到了 <span class="hl">${state.relics}</span> 座遠古遺跡。<br><br>
+      補給耗盡，季節更替，你不得不放棄這次探索，返回文明世界。<br><br>
+      <b>最終探索點：${state.xp}</b>`;
+    SFX.bad();
+  }
+  unlockAchv(achvId);
+
+  await showModal(
+    `<div class="modal-icon">${icon}</div>
+     <h2>${title}</h2>
+     <p class="modal-text">${body}</p>
+     <div class="tip">${win
+       ? '你已完成本次探索。要不要再挑戰一次，看看能不能用更少的時間完成？'
+       : '別灰心——荒野就是這樣。換一種策略，再試一次吧。'}</div>`,
+    [{label:'🔄 再來一次', primary:true, value:'again'},
+     {label:'📜 查看歷史', value:'history'}],
+    {cls:'doc'}
+  );
+
+  if(state.endingId === 'win' || state.endingId === 'death' || state.endingId === 'timeout'){
+    /* 保留結局記錄 */
+    saveEndingRecord(endingId, state.day, state.xp, state.relics);
+  }
+
+  const pick2 = await Promise.resolve(null).then(()=>null);
+  /* 上面 showModal 已經 resolve，這裡重開再玩一次 */
+}
+
+/* ---------------- 成就 ---------------- */
+function loadAchv(){
+  try{
+    return JSON.parse(localStorage.getItem(ACHV_KEY) || '{}');
+  }catch(e){ return {}; }
+}
+function saveAchv(obj){
+  try{ localStorage.setItem(ACHV_KEY, JSON.stringify(obj)); }catch(e){}
+}
+function unlockAchv(id){
+  const a = loadAchv();
+  if(a[id]) return;
+  const def = ACHIEVEMENTS.find(x=>x.id===id);
+  if(!def) return;
+  a[id] = {at:Date.now()};
+  saveAchv(a);
+  toast(`🏆 解鎖成就：${def.name}`);
+  SFX.good();
+}
+function saveEndingRecord(endingId, day, xp, relics){
+  try{
+    const arr = JSON.parse(localStorage.getItem('hexcrawl_endings')||'[]');
+    arr.unshift({endingId, day, xp, relics, at:Date.now()});
+    localStorage.setItem('hexcrawl_endings', JSON.stringify(arr.slice(0,30)));
+  }catch(e){}
+}
+function loadEndings(){
+  try{ return JSON.parse(localStorage.getItem('hexcrawl_endings')||'[]'); }
+  catch(e){ return []; }
+}
+
+/* ---------------- 存檔 / 讀檔 ---------------- */
+function saveGame(){
+  try{
+    const data = {
+      day:state.day, hp:state.hp, supplies:state.supplies, xp:state.xp,
+      relics:state.relics, pos:state.pos, hexes:state.hexes,
+      log:state.log.slice(-60), history:state.history,
+      soundOn:state.soundOn, savedAt:Date.now()
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    toast('💾 進度已儲存');
+    SFX.good();
+  }catch(e){
+    toast('⚠️ 儲存失敗：瀏覽器儲存空間不足');
+  }
+}
+
+function hasSave(){
+  try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; }
+}
+
+async function loadGame(){
+  let raw = null;
+  try{ raw = localStorage.getItem(SAVE_KEY); }catch(e){}
+  if(!raw){ toast('📂 沒有找到存檔'); return false; }
+
+  const go = await showModal(
+    `<div class="modal-icon">📂</div><h2>讀取存檔</h2>
+     <p class="modal-text">讀取存檔會覆蓋目前的遊戲進度，確定要繼續嗎？</p>`,
+    [{label:'✅ 確定讀取', primary:true, value:'yes'},
+     {label:'✖️ 取消', value:'no'}]
+  );
+  if(go !== 'yes') return false;
+
+  try{
+    const d = JSON.parse(raw);
+    state.sessionId++;
+    state.day = d.day;
+    state.hp = d.hp;
+    state.supplies = d.supplies;
+    state.xp = d.xp;
+    state.relics = d.relics;
+    state.pos = d.pos;
+    state.hexes = d.hexes;
+    state.log = d.log || [];
+    state.history = d.history || [];
+    state.soundOn = d.soundOn !== false;
+    state.phase = 'PLAYER';
+    closeModal();
+    render();
+    toast('📂 存檔已讀取');
+    SFX.good();
+    return true;
+  }catch(e){
+    toast('⚠️ 存檔損壞，無法讀取');
+    return false;
+  }
+}
+
+/* ==================================================================
+   面板：說明 / 歷史 / 成就
+   ================================================================== */
+const HELP_HTML = `
+<div class="modal doc" id="help-doc">
+  <h2>📖 遊戲說明</h2>
+
+  <h3>🎯 遊戲目標</h3>
+  <p>你是一名踏入荒野的<span class="hl">探險家</span>。在這片由六角格組成的未知大地上，
+  你的任務只有一個：</p>
+  <div class="tip">在 <span class="hl">40 天</span> 之內，找到並調查 <span class="hl">3 座遠古遺跡 🏛️</span>。<br>
+  找到全部三座 → <b>勝利</b>；生命值歸零或超過 40 天 → <b>失敗</b>。</div>
+
+  <h3>👀 看懂畫面</h3>
+  <p>請看畫面<span class="hl">最上方</span>的狀態列，由左至右分別是：</p>
+  <ul>
+    <li><span class="hl">❤️ 生命</span>：你的體力。歸零就遊戲結束。移動到危險地形、戰鬥失敗、餓肚子都會扣血。</li>
+    <li><span class="hl">🎒 補給</span>：你的乾糧與飲水。每次移動都會消耗，某些地形（山地、沼澤、沙漠）消耗更多。歸零後每次移動會扣 3 點生命。</li>
+    <li><span class="hl">📅 天數</span>：目前是第幾天／總共 40 天。超過 40 天就失敗。</li>
+    <li><span class="hl">⭐ 探索點</span>：你的冒險成果，越多越好（不影響勝負，但會顯示在結算畫面）。</li>
+    <li><span class="hl">🏛️ 遺跡</span>：目前找到的遠古遺跡數量（滿 3 個即勝利）。</li>
+  </ul>
+
+  <p>畫面<span class="hl">正中央</span>是六角格地圖：</p>
+  <ul>
+    <li>🌫️ <b>深色帶 ? 的格子</b> = 尚未探索的未知區域。</li>
+    <li>🌾🌲⛰️🏔️🪵🏜️🌊 <b>有圖示的格子</b> = 已探索的地形。🌊 水域不可通行。</li>
+    <li>右上角有 <b>小圓形徽章</b>（如 🏘️、🕳️、🏛️）= 該格有興趣點可以互動。</li>
+    <li><b>金色發光邊框</b> = 你目前所在的位置。</li>
+    <li><b>金色描邊的相鄰格子</b> = 可以移動過去（點擊即可）。</li>
+  </ul>
+
+  <h3>🕹️ 操作步驟</h3>
+  <ol>
+    <li><b>移動</b>：點擊你所在格子旁邊、有金色描邊的六角格，角色就會走過去。<br>
+        每次移動消耗 1 天 + 補給。</li>
+    <li><b>遭遇</b>：移動後有 30% 機率遇到事件。畫面會跳出選項視窗，選擇你的應對方式，然後查看結果。</li>
+    <li><b>興趣點</b>：進入有興趣點的格子時，會自動彈出互動視窗。選擇要做什麼。</li>
+    <li><b>🏕️ 紮營休息</b>：消耗 1 天與 1 補給，恢復 7 點生命、獲得少量探索點。</li>
+    <li><b>🧭 就地觀察</b>：消耗一天的行動，擲骰決定是否揭示附近 2 格內的地形（不移動）。</li>
+    <li><b>重複以上</b>直到找到 3 座遠古遺跡 🏛️。</li>
+  </ol>
+
+  <h3>✨ 特殊機制</h3>
+  <ul>
+    <li><b>地形消耗</b>：山地 🏔️、沼澤 🪵、沙漠 🏜️ 每次移動額外消耗 1 補給。</li>
+    <li><b>迷路</b>：進入山地或沼澤時，有 25% 機率因濃霧迷路，額外損失 1 補給。</li>
+    <li><b>飢餓</b>：補給為 0 時，每次移動損失 3 點生命。</li>
+    <li><b>遠古遺跡</b>：只會出現在距離起點 2 格以上的位置。深入探索會消耗 2 補給，但能獲得 35 探索點與 1 個遺跡。</li>
+    <li><b>聚落</b>：是補充生命與補給的好地方，建議遇到就進去休息。</li>
+  </ul>
+
+  <div class="warn"><b>小提醒：</b>水域 🌊 格無法進入，請繞道而行。若發現四周都被水域包圍（極少見），可以使用「紮營休息」度過時間。</div>
+
+  <h3>💡 給新手的建議</h3>
+  <div class="tip">
+    • 前幾天優先「就地觀察」揭開周邊地形，能大幅減少之後的迷路。<br>
+    • 看到 🏘️ 聚落一定要進去休息補給。<br>
+    • 探索遺跡前先確認補給有 2 點以上。<br>
+    • 生命低於 8 點時，別逞強戰鬥，選「繞道」比較安全。
+  </div>
+</div>`;
+
+async function showHelp(isBoot){
+  state.phase = isBoot ? 'BOOT' : 'MODAL';
+  render();
+
+  await showModal(
+    HELP_HTML,
+    [{label: isBoot ? '✨ 我準備好了，開始遊戲' : '✅ 關閉說明', primary:true}],
+    {cls:'doc'}
+  );
+
+  if(isBoot){
+    startGame();
+  } else {
+    state.phase = 'PLAYER';
+    render();
+  }
+}
+
+async function showHistory(){
+  const prev = state.phase;
+  state.phase = 'MODAL';
+
+  const items = state.history.slice().reverse();
+  const html = `
+    <div class="modal doc">
+      <h2>📜 旅行日誌</h2>
+      ${items.length ? items.map(it=>`
+        <div class="list-item">
+          <div class="li-ico">${TERRAIN[it.terrain]?.icon || '·'}</div>
+          <div class="li-main">
+            <div class="li-title">第 ${it.day} 天 · ${TERRAIN[it.terrain]?.name || '未知'} (${it.q},${it.r})</div>
+            <div class="li-sub">${it.note || ''}</div>
+          </div>
+        </div>`).join('')
+        : '<p>你還沒有踏上任何旅程。</p>'}
+      <div class="tip">目前位置：(<span class="hl">${state.pos.q}, ${state.pos.r}</span>) ·
+        探索點 <span class="hl">${state.xp}</span> ·
+        已走過 <span class="hl">${items.length}</span> 個六角格</div>
+    </div>`;
+
+  await showModal(html, [{label:'關閉', primary:true}]);
+  state.phase = prev === 'OVER' ? 'OVER' : 'PLAYER';
+  render();
+}
+
+async function showAchievements(){
+  const prev = state.phase;
+  state.phase = 'MODAL';
+
+  const a = loadAchv();
+  const endings = loadEndings();
+
+  const html = `
+    <div class="modal doc">
+      <h2>🏆 成就</h2>
+      ${ACHIEVEMENTS.map(def=>{
+        const got = !!a[def.id];
+        return `<div class="list-item ${got?'':'locked'}">
+          <div class="li-ico">${got?def.icon:'🔒'}</div>
+          <div class="li-main">
+            <div class="li-title">${def.name}</div>
+            <div class="li-sub">${def.desc}${got?' · 已解鎖':''}</div>
+          </div>
+        </div>`;
+      }).join('')}
+
+      <h3>📖 結局紀錄</h3>
+      ${endings.length ? endings.map(e=>{
+        const nameMap = {win:'👑 探索完成', death:'💀 長眠荒野', timeout:'⏳ 時光飛逝'};
+        return `<div class="list-item">
+          <div class="li-ico">${nameMap[e.endingId]?.slice(0,2) || '❓'}</div>
+          <div class="li-main">
+            <div class="li-title">${nameMap[e.endingId] || e.endingId}</div>
+            <div class="li-sub">第 ${e.day} 天 · 探索點 ${e.xp} · 遺跡 ${e.relics}/3</div>
+          </div>
+        </div>`;
+      }).join('') : '<p>還沒有完成任何一次探索。</p>'}
+    </div>`;
+
+  await showModal(html, [{label:'關閉', primary:true}]);
+  state.phase = prev === 'OVER' ? 'OVER' : 'PLAYER';
+  render();
+}
+
+/* ==================================================================
+   開始 / 重來
+   ================================================================== */
+function startGame(){
+  const soundPref = state.soundOn !== undefined ? state.soundOn : true;
+
+  state = freshState();
+  state.soundOn = soundPref;
+  state.hexes = generateWorld();
+  state.pos = {q:0,r:0};
+
+  /* 起點 */
+  const start = state.hexes[hexKey(0,0)];
+  start.revealed = true;
+  start.visited = true;
+
+  /* 揭示起點周圍一圈 */
+  for(const [dq,dr] of HEX_DIRS){
+    const n = state.hexes[hexKey(dq,dr)];
+    if(n) n.revealed = true;
+  }
+
+  state.phase = 'PLAYER';
+  state.log = [];
+  state.history = [];
+
+  addLog('🗺️ 你抵達了這片陌生的土地。遠方的三座遠古遺跡，正靜靜等待著。');
+  addLog('💡 點擊金色描邊的相鄰格子開始移動。');
+
+  closeModal();
+  render();
+  updateSoundBtn();
+}
+
+function updateSoundBtn(){
+  const btn = document.querySelector('#nav button[data-act="sound"]');
+  if(!btn) return;
+  btn.innerHTML = (state.soundOn?'🔊':'🔇') + `<span>音效</span>`;
+}
+
+/* ==================================================================
+   事件綁定
+   ================================================================== */
+function bindEvents(){
+  /* 地圖點擊 */
+  const svg = $('#map');
+  svg.addEventListener('click', (e)=>{
+    if(state.phase !== 'PLAYER') return;
+    const poly = e.target.closest('.hexpoly');
+    if(!poly) return;
+    const q = parseInt(poly.dataset.q,10);
+    const r = parseInt(poly.dataset.r,10);
+    const h = state.hexes[hexKey(q,r)];
+    if(!h) return;
+
+    if(q === state.pos.q && r === state.pos.r){
+      toast('📍 你已經在這裡了');
+      return;
+    }
+    const dist = hexDistance(state.pos, h);
+    if(dist !== 1){
+      toast('🧭 只能移動到相鄰的六角格');
+      return;
+    }
+    if(!TERRAIN[h.terrain].passable){
+      toast('🌊 水域無法通行，請繞道');
+      return;
+    }
+    doMove(q,r);
+  });
+
+  /* 動作按鈕 */
+  $('#btn-camp').addEventListener('click', doCamp);
+  $('#btn-look').addEventListener('click', doLook);
+
+  /* 底部導航 */
+  document.querySelectorAll('#nav button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const act = btn.dataset.act;
+      ensureAudio();
+      SFX.click();
+
+      if(act === 'help'){
+        if(state.phase === 'OVER' || state.phase === 'MODAL') return;
+        showHelp(false);
+      }
+      else if(act === 'save'){
+        if(state.phase === 'MODAL' || state.phase === 'OVER') return;
+        saveGame();
+      }
+      else if(act === 'load'){
+        if(state.phase === 'MODAL') return;
+        loadGame();
+      }
+      else if(act === 'history'){
+        if(state.phase === 'MODAL') return;
+        showHistory();
+      }
+      else if(act === 'achv'){
+        if(state.phase === 'MODAL') return;
+        showAchievements();
+      }
+      else if(act === 'sound'){
+        state.soundOn = !state.soundOn;
+        updateSoundBtn();
+        toast(state.soundOn ? '🔊 音效已開啟' : '🔇 音效已關閉');
+        if(state.soundOn) SFX.click();
+      }
+    });
+  });
+}
+
+/* ==================================================================
+   啟動
+   ================================================================== */
+function boot(){
+  state = freshState();
+  state.hexes = generateWorld();
+  state.pos = {q:0,r:0};
+  const start = state.hexes[hexKey(0,0)];
+  start.revealed = true;
+  start.visited = true;
+  for(const [dq,dr] of HEX_DIRS){
+    const n = state.hexes[hexKey(dq,dr)];
+    if(n) n.revealed = true;
+  }
+  state.phase = 'BOOT';
+  render();
+  bindEvents();
+  updateSoundBtn();
+
+  /* 首次進入：顯示說明文件，遊戲暫停 */
+  showHelp(true);
+}
+
+window.addEventListener('DOMContentLoaded', boot);
+
+/* 防止 iOS 雙擊縮放 */
+let lastTouch = 0;
+document.addEventListener('touchend', (e)=>{
+  const now = Date.now();
+  if(now - lastTouch < 300) e.preventDefault();
+  lastTouch = now;
+}, {passive:false});
+</script>
+</body>
+</html>
