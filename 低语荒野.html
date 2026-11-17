@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>低语荒野 · 单人随机冒险</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;min-height:100%}
+  body{
+    background:radial-gradient(circle at 50% -10%,#241d3a,#0b0910 65%);
+    color:#ddd8c8;
+    font-family:"Noto Serif SC","Songti SC","STSong",Georgia,serif;
+    font-size:14px;line-height:1.6;
+  }
+  #app{max-width:1220px;margin:0 auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+  /* ---------- 顶栏 ---------- */
+  #topbar{display:flex;justify-content:space-between;align-items:center;
+    border-bottom:1px solid #37304f;padding-bottom:10px;flex-wrap:wrap;gap:10px}
+  .logo{display:flex;align-items:center;gap:9px;font-size:21px;letter-spacing:5px;color:#c9a227;text-shadow:0 0 18px rgba(201,162,39,.35)}
+  .logo svg{filter:drop-shadow(0 0 6px rgba(201,162,39,.5))}
+  .hud{display:flex;gap:6px 16px;font-size:13px;color:#9891b3;flex-wrap:wrap;align-items:center}
+  .hud b{color:#e6dfc9;font-weight:600}
+  /* ---------- 布局 ---------- */
+  #board{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:10px}
+  @media(max-width:900px){#board{grid-template-columns:1fr}}
+  .panel{background:linear-gradient(180deg,#181426,#131020);border:1px solid #2e2942;
+    border-radius:10px;padding:10px;box-shadow:0 4px 22px rgba(0,0,0,.45)}
+  /* ---------- 地图 ---------- */
+  #mapWrap svg{width:100%;height:auto;display:block;border-radius:6px}
+  .hex{transition:filter .12s, stroke .12s;cursor:default}
+  .hex.reach{cursor:pointer}
+  .hex.reach:hover{filter:brightness(1.45) drop-shadow(0 0 6px #c9a227)}
+  .hex.here{stroke:#ffe28a;stroke-width:3}
+  .maplabel{font-size:9px;fill:#fff6d8;text-anchor:middle;pointer-events:none;
+    paint-order:stroke;stroke:#11101c;stroke-width:2.6px;stroke-linejoin:round}
+  .maplabel.town{fill:#ffd964;font-weight:700}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:#8b84a6;margin-top:8px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  /* ---------- 队伍 ---------- */
+  .char{background:#1d1830;border:1px solid #2f2a46;border-radius:8px;padding:8px 9px;margin-bottom:8px}
+  .char.dead{opacity:.42;filter:grayscale(1);border-color:#5a2430}
+  .char-head{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+  .cname{color:#ffe9a8;font-size:15px;letter-spacing:1px}
+  .cocc{font-size:11px;color:#8f88ab}
+  .hpbar{height:6px;background:#2a2438;border-radius:3px;overflow:hidden;margin:5px 0 4px}
+  .hpbar>div{height:100%;background:linear-gradient(90deg,#7a2d3a,#c14b58);transition:width .3s}
+  .char.dead .hpbar>div{background:#3a2a2a}
+  .row{display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px;color:#a49dbe}
+  .row b{color:#ded6ee;font-weight:600}
+  .omen{color:#8c82a8;font-size:10.5px;font-style:italic}
+  /* ---------- 行动条 ---------- */
+  #actionBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button{
+    font-family:inherit;font-size:13.5px;cursor:pointer;color:#f0e8d0;
+    background:linear-gradient(180deg,#2f2749,#221c36);
+    border:1px solid #4b3f6e;border-radius:7px;padding:8px 16px;
+    transition:.15s;letter-spacing:1px;
+  }
+  button:hover{background:linear-gradient(180deg,#3e3360,#2b2344);border-color:#8a6fc4;
+    box-shadow:0 0 12px rgba(138,111,196,.45)}
+  button:active{transform:translateY(1px)}
+  button.primary{background:linear-gradient(180deg,#6b5220,#4a3712);border-color:#c9a227;color:#ffe9a8}
+  button.primary:hover{box-shadow:0 0 16px rgba(201,162,39,.6)}
+  button.danger{background:linear-gradient(180deg,#5a2230,#3a1420);border-color:#a3405a}
+  .hint{font-size:12px;color:#7f789a;margin-left:4px}
+  /* ---------- 日志 ---------- */
+  #logPanel{height:260px;overflow-y:auto;padding:10px 12px}
+  #logPanel::-webkit-scrollbar{width:8px}
+  #logPanel::-webkit-scrollbar-thumb{background:#3a3455;border-radius:4px}
+  #log p{margin:0 0 3px;font-size:13px}
+  .c-dim{color:#7d7699}
+  .c-good{color:#8fd18f}
+  .c-bad{color:#e08a8a}
+  .c-death{color:#ff5f6d;font-weight:700;letter-spacing:1px}
+  .c-warn{color:#e8c463}
+  .c-round{color:#8a7fc4;border-top:1px dashed #322b4a;padding-top:4px;margin-top:6px}
+  .c-town{color:#7cc6e8}
+  .c-title{color:#c9a227;font-size:15px;letter-spacing:2px}
+  /* ---------- 开始画面 ---------- */
+  #startScreen{text-align:center;padding:40px 20px}
+  #startScreen h2{color:#c9a227;font-size:26px;letter-spacing:8px;margin:0 0 14px}
+  #startScreen p{color:#a49dbe;max-width:620px;margin:0 auto 10px;font-size:13.5px}
+  .combatBox{margin-top:8px}
+  .mon{display:inline-flex;align-items:center;gap:6px;background:#241c2e;border:1px solid #4a2a35;
+    border-radius:6px;padding:4px 10px;margin:3px;font-size:12px;color:#e0a8a8}
+  .mon.wounded{color:#b98}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="logo">
+      <svg width="26" height="26" viewBox="0 0 100 100">
+        <polygon points="50,5 93,28 93,72 50,95 7,72 7,28" fill="none" stroke="#c9a227" stroke-width="6"/>
+        <circle cx="50" cy="50" r="13" fill="#c9a227"/>
+      </svg>
+      <span>低语荒野</span>
+    </div>
+    <div class="hud" id="hud"></div>
+  </header>
+
+  <div id="board">
+    <div class="panel" id="mapPanel">
+      <div id="mapWrap"></div>
+      <div class="legend">
+        <span><i style="background:#6f8f4f"></i>平原</span>
+        <span><i style="background:#5a8a9c"></i>沿海</span>
+        <span><i style="background:#38602f"></i>森林</span>
+        <span><i style="background:#8a7a4a"></i>丘陵</span>
+        <span><i style="background:#6a6a72"></i>山脉</span>
+        <span><i style="background:#4a5535"></i>沼泽</span>
+        <span><i style="background:#22456b"></i>海洋</span>
+      </div>
+    </div>
+    <div class="panel" id="partyPanel"></div>
+  </div>
+
+  <div id="actionBar"></div>
+  <div class="panel" id="logPanel"><div id="log"></div></div>
+</div>
+
+<script>
+/* ============================================================
+   低语荒野 · 单人随机冒险
+   ============================================================ */
+
+/* ---------------- 骰子与工具 ---------------- */
+const die = n => 1 + Math.floor(Math.random() * n);
+function roll(n, s){ let t = 0; for(let i = 0; i < n; i++) t += die(s); return t; }
+function pick(a){ return a[Math.floor(Math.random() * a.length)]; }
+function dice(str){
+  if(typeof str === 'number') return str;
+  const m = String(str).match(/(\d*)d(\d+)([+-]\d+)?/);
+  if(!m) return parseInt(str) || 0;
+  let t = roll(m[1] ? +m[1] : 1, +m[2]);
+  if(m[3]) t += parseInt(m[3]);
+  return t;
+}
+function statMod(v){
+  if(v <= 3) return -3;
+  if(v <= 5) return -2;
+  if(v <= 8) return -1;
+  if(v <= 12) return 0;
+  if(v <= 15) return 1;
+  if(v <= 17) return 2;
+  return 3;
+}
+
+/* ---------------- 数据表 ---------------- */
+const NAMES = ['阿贵','石头','小满','狗剩','铁蛋','二丫','大壮','阿福','三顺','来福','春生','秋收','小翠','老蔫','拴柱','满仓','栓子','黑豆','泥鳅','阿土','胖虎','豆芽','二狗','火根','禾苗','麦穗','谷雨','惊蛰','长庚','阿七'];
+
+const OCCUPATIONS = [
+  {name:'农夫', weapon:'干草叉', dmg:'1d6', goods:'母鸡'},
+  {name:'铁匠', weapon:'铁锤', dmg:'1d4', goods:'钢钳'},
+  {name:'猎人', weapon:'短弓', dmg:'1d6', goods:'鹿皮'},
+  {name:'伐木工', weapon:'手斧', dmg:'1d6', goods:'一捆木柴'},
+  {name:'矿工', weapon:'铁镐', dmg:'1d6', goods:'提灯'},
+  {name:'佣兵', weapon:'长剑', dmg:'1d8', goods:'兽皮甲'},
+  {name:'盗贼', weapon:'匕首', dmg:'1d4', goods:'精良工具'},
+  {name:'吟游诗人', weapon:'匕首', dmg:'1d4', goods:'尤克里里'},
+  {name:'法师学徒', weapon:'匕首', dmg:'1d4', goods:'黑色魔法书'},
+  {name:'屠夫', weapon:'剁刀', dmg:'1d6', goods:'半扇牛肉'},
+  {name:'鞋匠', weapon:'锥子', dmg:'1d4', goods:'鞋拔'},
+  {name:'磨坊主', weapon:'棍棒', dmg:'1d4', goods:'面粉 1 磅'},
+  {name:'牧人', weapon:'法杖', dmg:'1d4', goods:'牧羊犬'},
+  {name:'士兵', weapon:'长矛', dmg:'1d8', goods:'盾牌'},
+  {name:'侍从', weapon:'长剑', dmg:'1d8', goods:'钢盔'},
+  {name:'算命师', weapon:'匕首', dmg:'1d4', goods:'塔罗牌'},
+  {name:'赌徒', weapon:'棍棒', dmg:'1d4', goods:'骰子'},
+  {name:'草药师', weapon:'棍棒', dmg:'1d4', goods:'草药 1 磅'},
+  {name:'制绳匠', weapon:'小刀', dmg:'1d4', goods:'绳索 100 英尺'},
+  {name:'车匠', weapon:'棍棒', dmg:'1d4', goods:'手推车'},
+  {name:'行会乞丐', weapon:'投石索', dmg:'1d4', goods:'拐杖'},
+  {name:'走私者', weapon:'投石索', dmg:'1d4', goods:'防水袋'},
+  {name:'掘墓人', weapon:'铁锹', dmg:'1d4', goods:'泥刀'},
+  {name:'亡命徒', weapon:'短剑', dmg:'1d6', goods:'皮甲'},
+];
+
+const OMENS = [
+  '严冬 · 所有攻击掷骰','公牛 · 近战攻击掷骰','吉日 · 远程攻击掷骰','狼群养大 · 徒手攻击',
+  '马上受孕 · 骑乘攻击','生于战场 · 伤害掷骰','熊之道 · 近战伤害','鹰眼 · 远程伤害',
+  '群猎者 · 起始武器攻击与伤害','织机下出生 · 技能检定','狐狸的狡黠 · 发现陷阱','四叶草 · 发现暗门',
+  '第七子 · 法术检定','狂怒风暴 · 法术伤害','正义之心 · 驱散邪祟','瘟疫幸存者 · 魔法治疗',
+  '幸运吉兆 · 豁免检定','守护天使 · 逃离陷阱','蜘蛛咬伤幸存者 · 抗毒','遭雷击 · 反射豁免',
+  '熬过饥荒 · 强韧豁免','抵住诱惑 · 意志豁免','吉屋 · 护甲等级','眼镜蛇之速 · 先攻',
+  '丰收 · 生命值','战士之臂 · 暴击表','凶宅 · 腐化','破碎之星 · 大失败',
+  '鸟鸣 · 语言数量','野孩子 · 速度'
+];
+
+const EQUIPMENT = ['背包','蜡烛','铁链','粉笔','铁撬','火石与火镰','抓钩','小锤','圣徽','圣水',
+  '提灯','手镜','油瓶','木杆','口粮','绳索','大麻袋','盗贼工具','火把','水囊'];
+
+const MONSTERS = {
+  kobold:  {name:'狗头人', ac:10, hp:'1d4',   atk:0, dmg:'1d3',   init:0,  xp:1},
+  goblin:  {name:'地精',   ac:12, hp:'1d6',   atk:-1,dmg:'1d4',   init:0,  xp:1},
+  rat:     {name:'巨鼠',   ac:13, hp:'1d6',   atk:2, dmg:'1d4',   init:1,  xp:1},
+  wolf:    {name:'狼',     ac:12, hp:'1d6',   atk:2, dmg:'1d4',   init:1,  xp:1},
+  snake:   {name:'毒蛇',   ac:11, hp:'1d8',   atk:2, dmg:'1d4',   init:1,  xp:1},
+  skeleton:{name:'骷髅',   ac:9,  hp:'1d6',   atk:0, dmg:'1d3',   init:0,  xp:1},
+  zombie:  {name:'僵尸',   ac:9,  hp:'2d6',   atk:3, dmg:'1d4',   init:-1, xp:2},
+  orc:     {name:'兽人',   ac:14, hp:'1d8',   atk:1, dmg:'1d6',   init:0,  xp:2},
+  bandit:  {name:'匪徒',   ac:15, hp:'1d8',   atk:2, dmg:'1d8',   init:0,  xp:2},
+  spider:  {name:'巨蜘蛛', ac:13, hp:'1d8',   atk:2, dmg:'1d4',   init:2,  xp:2},
+  harpy:   {name:'鹰身女妖',ac:12,hp:'2d6',   atk:2, dmg:'1d4',   init:1,  xp:2},
+  cultist: {name:'邪教徒', ac:11, hp:'1d6',   atk:0, dmg:'1d4',   init:0,  xp:1},
+  ghoul:   {name:'食尸鬼', ac:12, hp:'2d6',   atk:3, dmg:'1d4',   init:1,  xp:3},
+  wight:   {name:'尸妖',   ac:14, hp:'3d6',   atk:4, dmg:'1d6',   init:1,  xp:3},
+  ogre:    {name:'食人魔', ac:16, hp:'4d8',   atk:5, dmg:'1d6+6', init:-1, xp:3},
+};
+
+const TERRAIN = {
+  plains:  {name:'平原', color:'#6f8f4f', ap:2},
+  coast:   {name:'沿海', color:'#5a8a9c', ap:2},
+  forest:  {name:'森林', color:'#38602f', ap:3},
+  hills:   {name:'丘陵', color:'#8a7a4a', ap:3},
+  mountain:{name:'山脉', color:'#6a6a72', ap:4},
+  swamp:   {name:'沼泽', color:'#4a5535', ap:4},
+  ocean:   {name:'海洋', color:'#22456b', ap:99},
+};
+
+const COLS = 12, ROWS = 9;
+
+/* ---------------- 游戏状态 ---------------- */
+const state = {
+  mode: 'title',           // title | explore | combat | gameover
+  day: 1,
+  ap: 6,
+  maxAp: 6,
+  weather: '晴朗',
+  gold: 0,
+  rations: 10,
+  party: [],
+  map: [],
+  pos: {r:4, c:5},
+  combat: null,
+  logs: [],
+};
+
+/* ---------------- 日志 ---------------- */
+function log(msg, cls){
+  state.logs.push({msg, cls: cls || ''});
+  if(state.logs.length > 220) state.logs.shift();
+  renderLog();
+}
+function renderLog(){
+  const el = document.getElementById('log');
+  el.innerHTML = state.logs.map(l => `<p class="c-${l.cls || 'dim'}">${l.msg}</p>`).join('');
+  const p = document.getElementById('logPanel');
+  p.scrollTop = p.scrollHeight;
+}
+
+/* ---------------- 角色生成 ---------------- */
+function createCharacter(){
+  const stats = {
+    str: roll(3,6), agi: roll(3,6), sta: roll(3,6),
+    per: roll(3,6), int: roll(3,6), lck: roll(3,6)
+  };
+  const occ = pick(OCCUPATIONS);
+  const hp = Math.max(1, die(4) + statMod(stats.sta));
+  return {
+    name: pick(NAMES),
+    occ: occ.name,
+    weapon: occ.weapon,
+    dmg: occ.dmg,
+    goods: occ.goods,
+    equip: pick(EQUIPMENT),
+    omen: pick(OMENS),
+    alignment: pick(['守序','中立','混乱']),
+    stats,
+    hp, maxHp: hp,
+    level: 0,
+    xp: 0,
+    alive: true,
+    cp: roll(5,12)
+  };
+}
+
+/* ---------------- 地图生成 ---------------- */
+function genMap(){
+  const map = [];
+  for(let r = 0; r < ROWS; r++){
+    const row = [];
+    for(let c = 0; c < COLS; c++){
+      let t;
+      if(c >= COLS - 2) t = 'ocean';
+      else if(c === COLS - 3) t = 'coast';
+      else {
+        const q = Math.random();
+        if(q < 0.08) t = 'mountain';
+        else if(q < 0.22) t = 'hills';
+        else if(q < 0.38) t = 'forest';
+        else if(q < 0.45) t = 'swamp';
+        else t = 'plains';
+      }
+      row.push({t, loc: null});
+    }
+    map.push(row);
+  }
+  map[4][5] = {t:'plains',  loc:'火炉村'};
+  map[3][7] = {t:'plains',  loc:'铁冠城'};
+  map[6][8] = {t:'coast',   loc:'银环港'};
+  map[2][3] = {t:'forest',  loc:'青苔谷'};
+  map[6][2] = {t:'hills',   loc:'黑巷镇'};
+  map[7][5] = {t:'swamp',   loc:'血月塔'};
+  return map;
+}
+
+/* ---------------- 六角几何 ---------------- */
+function hexPoints(cx, cy, size){
+  const pts = [];
+  for(let i = 0; i < 6; i++){
+    const a = Math.PI / 180 * (60 * i - 90);
+    pts.push((cx + size * Math.cos(a)).toFixed(1) + ',' + (cy + size * Math.sin(a)).toFixed(1));
+  }
+  return pts.join(' ');
+}
+function neighborDirs(r){
+  return (r % 2 === 0)
+    ? [[0,1],[0,-1],[-1,0],[-1,-1],[1,0],[1,-1]]
+    : [[0,1],[0,-1],[-1,0],[-1,1],[1,0],[1,1]];
+}
+function isAdjacent(a, b){
+  return neighborDirs(a.r).some(([dr, dc]) => a.r + dr === b.r && a.c + dc === b.c);
+}
+
+/* ---------------- 渲染：地图 ---------------- */
+function renderMap(){
+  const size = 24;
+  const w = Math.sqrt(3) * size;
+  const h = 1.5 * size;
+  const pad = 10;
+  const svgW = pad * 2 + w * (COLS + 0.5);
+  const svgH = pad * 2 + size * 2 + h * (ROWS - 1);
+
+  let s = `<svg viewBox="0 0 ${svgW.toFixed(0)} ${svgH.toFixed(0)}" xmlns="http://www.w3.org/2000/svg">`;
+  s += `<rect width="100%" height="100%" fill="#0f0d18" rx="6"/>`;
+
+  for(let r = 0; r < ROWS; r++){
+    for(let c = 0; c < COLS; c++){
+      const cell = state.map[r][c];
+      const cx = pad + w / 2 + w * (c + 0.5 * (r % 2));
+      const cy = pad + size + h * r;
+      const here = state.pos.r === r && state.pos.c === c;
+      const reach = state.mode === 'explore' && isAdjacent(state.pos, {r,c}) && cell.t !== 'ocean';
+      const cls = 'hex' + (here ? ' here' : '') + (reach ? ' reach' : '');
+      s += `<polygon class="${cls}" data-r="${r}" data-c="${c}" points="${hexPoints(cx, cy, size)}"
+              fill="${TERRAIN[cell.t].color}" stroke="#15121f" stroke-width="1.6"/>`;
+      if(cell.loc){
+        s += `<text class="maplabel town" x="${cx}" y="${cy + 3}">${cell.loc}</text>`;
+      }
+      if(here){
+        s += `<circle cx="${cx}" cy="${cy - (cell.loc ? 9 : 0)}" r="4.5" fill="#ffe28a" stroke="#3a2f0a" stroke-width="1.5"/>`;
+      }
+    }
+  }
+  s += `</svg>`;
+  document.getElementById('mapWrap').innerHTML = s;
+
+  document.querySelectorAll('.hex.reach').forEach(el => {
+    el.addEventListener('click', () => {
+      tryMove(+el.dataset.r, +el.dataset.c);
+    });
+  });
+}
+
+/* ---------------- 渲染：队伍 ---------------- */
+function renderParty(){
+  const el = document.getElementById('partyPanel');
+  if(!state.party.length){
+    el.innerHTML = `<div class="hint" style="padding:20px 4px;text-align:center">尚未创建队伍</div>`;
+    return;
+  }
+  el.innerHTML = state.party.map(c => {
+    const ac = 10 + statMod(c.stats.agi) + (c.level > 0 ? 1 : 0);
+    return `<div class="char ${c.alive ? '' : 'dead'}">
+      <div class="char-head">
+        <span class="cname">${c.alive ? '' : '💀 '}${c.name}</span>
+        <span class="cocc">${c.occ} · ${c.level === 0 ? '0级' : c.level + '级'}</span>
+      </div>
+      <div class="hpbar"><div style="width:${Math.max(0, c.hp / c.maxHp * 100)}%"></div></div>
+      <div class="row">
+        <span>HP <b>${Math.max(0, c.hp)}</b>/${c.maxHp}</span>
+        <span>AC <b>${ac}</b></span>
+        <span>XP <b>${c.xp}</b></span>
+      </div>
+      <div class="row">
+        <span>力<b>${c.stats.str}</b></span>
+        <span>敏<b>${c.stats.agi}</b></span>
+        <span>耐<b>${c.stats.sta}</b></span>
+        <span>个<b>${c.stats.per}</b></span>
+        <span>智<b>${c.stats.int}</b></span>
+        <span>幸<b>${c.stats.lck}</b></span>
+      </div>
+      <div class="row"><span>${c.weapon}（${c.dmg}）· ${c.alignment} · ${c.goods}</span></div>
+      <div class="row omen">预兆：${c.omen}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------------- 渲染：顶栏 ---------------- */
+function renderHud(){
+  const el = document.getElementById('hud');
+  if(state.mode === 'title'){ el.innerHTML = ''; return; }
+  const alive = state.party.filter(c => c.alive).length;
+  el.innerHTML = `
+    <span>第 <b>${state.day}</b> 天</span>
+    <span>AP <b>${state.ap}</b>/${state.maxAp}</span>
+    <span>天气 <b>${state.weather}</b></span>
+    <span>金币 <b>${state.gold}</b> cp</span>
+    <span>口粮 <b>${state.rations}</b></span>
+    <span>存活 <b>${alive}</b>/${state.party.length}</span>`;
+}
+
+/* ---------------- 渲染：行动条 ---------------- */
+function renderActions(){
+  const bar = document.getElementById('actionBar');
+  if(state.mode === 'title'){
+    bar.innerHTML = `<button class="primary" onclick="startGame()">⚔ 创建四名乡民，踏入荒野</button>`;
+    return;
+  }
+  if(state.mode === 'gameover'){
+    bar.innerHTML = `<button class="primary" onclick="restartGame()">🔄 新的一批乡民踏上旅途</button>
+      <span class="hint">旧的尸骨会留在荒野里，但低语从不停止。</span>`;
+    return;
+  }
+  if(state.mode === 'combat'){
+    bar.innerHTML = `
+      <button class="primary" onclick="combatRound()">⚔ 进入下一轮</button>
+      <button class="danger" onclick="flee()">🏃 逃跑</button>
+      <span class="hint">第 ${state.combat.round} 轮</span>`;
+    return;
+  }
+  // explore
+  bar.innerHTML = `
+    <button onclick="restDay()">🌙 扎营过夜（恢复 AP 与生命）</button>
+    <span class="hint">点击相邻六角格移动（AP ${state.ap}）</span>`;
+}
+
+/* ---------------- 总渲染 ---------------- */
+function render(){
+  renderHud();
+  renderMap();
+  renderParty();
+  renderActions();
+}
+
+/* ---------------- 开始游戏 ---------------- */
+function startGame(){
+  state.party = [];
+  for(let i = 0; i < 4; i++) state.party.push(createCharacter());
+  state.gold = state.party.reduce((s, c) => s + c.cp, 0);
+  state.map = genMap();
+  state.pos = {r:4, c:5};
+  state.mode = 'explore';
+  state.logs = [];
+  log('火炉村的清晨，雾气还没散。四个乡民背着微薄的行囊，走进了不欢迎凡人的荒野。', 'title');
+  state.party.forEach(c => {
+    log(`${c.name}（${c.occ}）：力量${c.stats.str} 敏捷${c.stats.agi} 耐力${c.stats.sta} 个性${c.stats.per} 智力${c.stats.int} 幸运${c.stats.lck} · HP ${c.maxHp} · 武器 ${c.weapon}（${c.dmg}）· 货物 ${c.goods}`, 'dim');
+  });
+  log(`全队资金合计 ${state.gold} cp。`, 'good');
+  log('你站在火炉村中央。四周的六角格在雾里若隐若现。', 'dim');
+  render();
+}
+
+function restartGame(){
+  state.mode = 'title';
+  state.party = [];
+  state.combat = null;
+  state.day = 1;
+  state.ap = 6;
+  state.rations = 10;
+  state.gold = 0;
+  state.logs = [];
+  renderLog();
+  startGame();
+}
+
+/* ---------------- 移动 ---------------- */
+function tryMove(r, c){
+  if(state.mode !== 'explore') return;
+  const cell = state.map[r][c];
+  if(cell.t === 'ocean'){ log('海洋无法徒步穿越。', 'dim'); return; }
+  if(!isAdjacent(state.pos, {r,c})){ log('只能移动到相邻的六角格。', 'dim'); return; }
+  const cost = TERRAIN[cell.t].ap;
+  if(state.ap < cost){ log('行动点不足以进入该地形，需要扎营休息。', 'warn'); return; }
+
+  state.ap -= cost;
+  state.pos = {r, c};
+  log(`队伍进入了 ${TERRAIN[cell.t].name}${cell.loc ? '（' + cell.loc + '）' : ''}。消耗 ${cost} AP。`, 'dim');
+
+  // 迷路判定（非道路）
+  if(die(20) === 1){
+    log('你们在这片地形里迷了路，多花了些脚程。', 'warn');
+    state.ap = Math.max(0, state.ap - 1);
+  }
+
+  arrive(r, c);
+}
+
+function arrive(r, c){
+  const cell = state.map[r][c];
+
+  // 城镇
+  if(cell.loc){
+    log(`你们抵达了 ${cell.loc}。`, 'town');
+    state.rations += roll(1, 3);
+    healParty(roll(1, 2));
+    log('队伍在镇上补给、歇脚，恢复了少量生命，也补充了口粮。', 'good');
+    render();
+    return;
+  }
+
+  // 遭遇判定
+  if(checkEncounter(cell.t)){
+    triggerEvent(cell.t);
+  } else {
+    render();
+  }
+}
+
+function checkEncounter(t){
+  if(t === 'plains' || t === 'coast') return die(4) === 1;
+  if(t === 'forest' || t === 'hills') return die(6) <= 2;
+  if(t === 'swamp' || t === 'mountain') return die(4) <= 2;
+  return false;
+}
+
+/* ---------------- 事件表 ---------------- */
+const EVENTS = {
+  plains: [
+    {n:'烧焦的农舍', d:'田埂尽头有座烧塌一半的农舍，灶台下埋着一只裂口的陶罐。',
+     run(){ const cp = roll(3,20); state.gold += cp; log(`你们撬开陶罐，获得 ${cp} 枚铜币。`, 'good'); }},
+    {n:'路边的野坟', d:'草原上有座新坟，木牌写着：“给过路人——求你把我也埋了，鞋归你。”',
+     run(){ startCombat([{type:'snake', count:roll(1,3)}], '你们挖开坟墓，盘在棺边的毒蛇被惊动了！'); }},
+    {n:'牧场的狼群', d:'羊圈外的草地上，几匹瘦狼正撕扯一头死羊。你们走近时，狼群齐齐抬起头。',
+     run(){ startCombat([{type:'wolf', count:roll(1,3)}], '狼群朝你们龇出了獠牙。'); }},
+    {n:'拦路的“税”', d:'三个浑身酒气的汉子从路沟里跳出来，为首的把豁口砍刀往肩上一扛。',
+     run(){ startCombat([{type:'bandit', count:roll(1,2)}], '“此路是我开！”匪徒们扑了上来。'); }},
+    {n:'野莓盛开的草甸', d:'坡上的野莓正熟，蜜蜂乱飞。队伍停下采摘。',
+     run(){ const h = roll(1,3); healParty(h); state.rations += roll(1,2);
+       log(`你们摘了满兜野莓，恢复 ${h} 点生命，还多出一些口粮。`, 'good'); }},
+    {n:'孤树上的旅人', d:'草原上唯一的歪脖子树上吊着一具风干的旅人尸体。树根下的行囊被野兔拱开。',
+     run(){ const cp = roll(2,10); state.gold += cp;
+       log(`你们安葬了旅人，他钱袋里的 ${cp} 枚铜钱算是谢礼。`, 'good'); }},
+    {n:'独眼老野猪', d:'队长一脚踩进草窝，一头独眼老野猪嗷地蹿起，獠牙上挂着一块碎布。',
+     run(){ const c = pickAlive();
+       if(c){ const dmg = die(3); c.hp -= dmg; log(`${c.name} 被野猪顶伤，受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); }
+       state.rations = Math.max(0, state.rations - 1); }},
+    {n:'风吹草浪', d:'大风刮过无路无标的草原，草浪翻涌。',
+     run(){ healParty(roll(1,3)); log('你们在草浪里静坐片刻，疲惫稍减。', 'good'); }},
+  ],
+
+  forest: [
+    {n:'倒下的巨树', d:'一棵被雷劈倒的巨树横在林间，树洞里塞着半只发霉的皮箱。',
+     run(){ const cp = roll(2,20); state.gold += cp; log(`皮箱里有 ${cp} 枚铜币。`, 'good'); }},
+    {n:'林中的低语', d:'灌木丛里传来窸窣的脚步声和尖细的低语。几个绿皮小家伙正从树后探头。',
+     run(){ startCombat([{type:'kobold', count:roll(1,4)+1}], '狗头人尖叫着冲了出来！'); }},
+    {n:'蘑菇圈', d:'林间空地上长着一圈雪白的蘑菇，圈心的草叶上凝着露水。',
+     run(){ healParty(roll(1,4)); state.rations += roll(1,2);
+       log('你们采了些蘑菇充饥，恢复了一些体力，也补充了口粮。', 'good'); }},
+    {n:'猎人的陷阱', d:'“咔嚓”一声，队长的脚踝被藤蔓编的活套勒住，人整个被吊上了半空。',
+     run(){ const c = pickAlive();
+       if(c){ const dmg = roll(1,3); c.hp -= dmg; log(`${c.name} 被吊起摔下，受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); } }},
+    {n:'树梢的蛛影', d:'头顶的枝叶间垂下一根银亮的丝，几只毛茸茸的长腿正缓缓下探。',
+     run(){ startCombat([{type:'spider', count:roll(1,2)}], '巨蜘蛛从树上扑了下来！'); }},
+    {n:'圆环的巡林人', d:'一个披着树皮甲的巡林人从树后现身，手里搭着未上弦的弓。',
+     run(){ healParty(roll(1,2)); log('巡林人指给你们一处安全的溪边营地，你们歇了歇脚。', 'good'); }},
+  ],
+
+  hills: [
+    {n:'废弃矿坑', d:'半塌的矿洞口支着腐朽的木架，坑道深处传来滴水声。',
+     run(){ const cp = roll(3,20); state.gold += cp; log(`你们在矿车残骸里翻出 ${cp} 枚铜币。`, 'good'); }},
+    {n:'山猫的巢穴', d:'岩缝里探出几双黄眼睛，母狼正护着崽子朝你们低吼。',
+     run(){ startCombat([{type:'wolf', count:roll(1,2)+1}], '狼群扑了出来！'); }},
+    {n:'立石圈', d:'山脊上立着七块风化的巨石，圈心石台上刻着看不懂的符文。',
+     run(){ healParty(roll(1,3)); log('你们在石圈里歇息，伤口莫名地不那么疼了。', 'good'); }},
+    {n:'落石', d:'山坡上滚下一串碎石，队伍慌忙躲闪。',
+     run(){ const c = pickAlive();
+       if(c){ const dmg = roll(1,4); c.hp -= dmg; log(`${c.name} 被落石砸中，受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); } }},
+    {n:'丘陵匪帮', d:'几个蒙面人从岩石后现身，手里晃着生锈的砍刀。',
+     run(){ startCombat([{type:'bandit', count:roll(1,3)}], '匪徒们围了上来！'); }},
+    {n:'山间温泉', d:'岩壁下有一汪冒着热气的水潭，水面泛着淡淡的硫磺味。',
+     run(){ healParty(roll(2,4)); log('你们泡了个热水澡，浑身舒坦。', 'good'); }},
+  ],
+
+  mountain: [
+    {n:'鹰巢', d:'崖壁上挂着巨大的巢，巢里散落着反光的物件。',
+     run(){ const cp = roll(4,20)+50; state.gold += cp; log(`你们从鹰巢里摸出 ${cp} 枚铜币和几件小玩意。`, 'good'); }},
+    {n:'雪崩', d:'头顶传来闷雷般的轰鸣，整面山坡的积雪正在下滑。',
+     run(){ state.party.filter(c => c.alive).forEach(c => {
+       const dmg = roll(1,4); c.hp -= dmg; log(`${c.name} 受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); }); }},
+    {n:'山洞里的食人魔', d:'山洞深处传来沉重的脚步声，一个巨大的身影正拖着木棒走出来。',
+     run(){ startCombat([{type:'ogre', count:1}], '食人魔咆哮着冲了出来！'); }},
+    {n:'古神龛', d:'避风的山坳里立着一座石龛，龛前的供台上还留着干枯的花。',
+     run(){ healParty(roll(2,4)); log('你们在神龛前祈祷，感到一阵温暖。', 'good'); }},
+    {n:'落石陷阱', d:'狭窄的山道上堆着松动的碎石，踩上去就往下滑。',
+     run(){ const c = pickAlive();
+       if(c){ const dmg = roll(2,4); c.hp -= dmg; log(`${c.name} 滚下山坡，受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); } }},
+  ],
+
+  swamp: [
+    {n:'瘴气', d:'脚下的黑水里冒出气泡，一股甜腻的腐臭扑面而来。',
+     run(){ state.party.filter(c => c.alive).forEach(c => {
+       const dmg = roll(1,3); c.hp -= dmg; log(`${c.name} 吸入瘴气，受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); }); }},
+    {n:'沼泽僵尸', d:'淤泥里站起几具泡得发白的尸体，眼窝里爬满水蛭。',
+     run(){ startCombat([{type:'zombie', count:roll(1,2)}], '僵尸朝你们蹒跚而来！'); }},
+    {n:'血月祭坛', d:'黑曜石祭坛立在干硬的泥岛上，几个黑袍人正围着它诵唱。',
+     run(){ startCombat([{type:'cultist', count:roll(1,3)}], '邪教徒发现了你们！'); }},
+    {n:'鬼火', d:'夜里，一串惨绿的火苗贴着水面游荡，火下隐约有反光的东西。',
+     run(){ const cp = roll(3,20); state.gold += cp; log(`你们循着鬼火摸过去，捞起 ${cp} 枚泡得发绿的铜币。`, 'good'); }},
+    {n:'食人花丛', d:'一丛艳丽的巨花在水边张开，花心里滴着黏稠的液体。',
+     run(){ const c = pickAlive();
+       if(c){ const dmg = roll(1,4); c.hp -= dmg; log(`${c.name} 被花苞咬住，受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); } }},
+  ],
+
+  coast: [
+    {n:'搁浅的渔船', d:'一条龙骨断裂的渔船半埋在沙里，船舱里留着半箱没人要的渔获。',
+     run(){ state.rations += roll(1,4); log('你们收了半箱咸鱼。', 'good'); }},
+    {n:'滩涂上的鼠群', d:'退潮后的滩涂上，一群巨鼠正拖走半具海豹的尸体。',
+     run(){ startCombat([{type:'rat', count:roll(1,3)+1}], '巨鼠朝你们扑来！'); }},
+    {n:'礁滩上的古银币', d:'大潮退下去，露出平日淹在水下的礁滩。队长在礁石缝里捡到几枚古银币。',
+     run(){ const cp = roll(2,20)+20; state.gold += cp; log(`你们捡到价值 ${cp} cp 的古银币。`, 'good'); }},
+    {n:'拾贝的渔妇', d:'一个赤脚的渔妇在滩上拾蛤，篮子里混着几颗带孔的玻璃珠。',
+     run(){ state.rations += roll(1,3); log('渔妇塞给你们一小兜蛤肉。', 'good'); }},
+  ],
+};
+
+function triggerEvent(t){
+  const table = EVENTS[t] || EVENTS.plains;
+  const ev = pick(table);
+  log(`【${ev.n}】${ev.d}`, 'warn');
+  ev.run();
+  if(state.mode !== 'combat') render();
+}
+
+/* ---------------- 辅助 ---------------- */
+function pickAlive(){
+  const a = state.party.filter(c => c.alive);
+  return a.length ? pick(a) : null;
+}
+function healParty(n){
+  state.party.forEach(c => {
+    if(c.alive) c.hp = Math.min(c.maxHp, c.hp + n);
+  });
+}
+function checkDeath(c){
+  if(c.hp <= 0){
+    c.hp = 0;
+    c.alive = false;
+    log(`💀 ${c.name} 倒下了，再也没有站起来。`, 'death');
+  }
+}
+function gainXP(n){
+  state.party.forEach(c => {
+    if(!c.alive) return;
+    c.xp += n;
+    if(c.xp >= 10 && c.level === 0){
+      c.level = 1;
+      const bonus = die(8);
+      c.maxHp += bonus;
+      c.hp = c.maxHp;
+      log(`🎉 ${c.name} 在生死之间活了下来，晋升为 1 级冒险者！（生命 +${bonus}）`, 'good');
+    }
+  });
+}
+
+/* ---------------- 战斗 ---------------- */
+function startCombat(defs, intro){
+  const monsters = [];
+  defs.forEach(def => {
+    const t = MONSTERS[def.type];
+    const n = typeof def.count === 'number' ? def.count : dice(def.count);
+    for(let i = 0; i < n; i++){
+      const hp = Math.max(1, dice(t.hp));
+      monsters.push({
+        key: def.type,
+        name: t.name,
+        ac: t.ac,
+        hp, maxHp: hp,
+        atk: t.atk,
+        dmg: t.dmg,
+        init: t.init || 0,
+        xp: t.xp
+      });
+    }
+  });
+  state.combat = {monsters, round: 0};
+  state.mode = 'combat';
+  log(intro, 'warn');
+  log(`遭遇：${monsters.length} 只 ${monsters[0].name}！（AC ${monsters[0].ac}）`, 'warn');
+  render();
+}
+
+function partyAttacks(){
+  const cmb = state.combat;
+  state.party.forEach(c => {
+    if(!c.alive) return;
+    const targets = cmb.monsters.filter(m => m.hp > 0);
+    if(!targets.length) return;
+    const t = pick(targets);
+
+    const raw = die(20);
+    const atkBonus = c.level + statMod(c.stats.str);
+    const total = raw + atkBonus;
+
+    if(raw === 1){
+      log(`${c.name} 挥空了，差点把自己绊倒。`, 'dim');
+      return;
+    }
+    if(raw === 20 || total >= t.ac){
+      let dmg = Math.max(1, dice(c.dmg) + statMod(c.stats.str));
+      if(raw === 20){
+        dmg *= 2;
+        log(`⚡ ${c.name} 掷出暴击！`, 'good');
+      }
+      t.hp -= dmg;
+      log(`${c.name} 命中 ${t.name}，造成 ${dmg} 点伤害。${t.hp > 0 ? `（剩 ${t.hp}）` : '（击倒！）'}`,
+          t.hp > 0 ? 'good' : 'good');
+      if(t.hp <= 0) log(`　${t.name} 倒下了。`, 'dim');
+    } else {
+      log(`${c.name} 攻击 ${t.name}，未命中（${total} vs AC ${t.ac}）。`, 'dim');
+    }
+  });
+}
+
+function monsterAttacks(){
+  const cmb = state.combat;
+  cmb.monsters.forEach(m => {
+    if(m.hp <= 0) return;
+    const targets = state.party.filter(c => c.alive);
+    if(!targets.length) return;
+    const c = pick(targets);
+
+    const raw = die(20);
+    const total = raw + m.atk;
+    const ac = 10 + statMod(c.stats.agi) + (c.level > 0 ? 1 : 0);
+
+    if(raw === 20 || total >= ac){
+      let dmg = Math.max(1, dice(m.dmg));
+      if(raw === 20){
+        dmg *= 2;
+        log(`💥 ${m.name} 打出暴击！`, 'bad');
+      }
+      c.hp -= dmg;
+      log(`${m.name} 击中 ${c.name}，造成 ${dmg} 点伤害。`, 'bad');
+      checkDeath(c);
+    } else {
+      log(`${m.name} 攻击 ${c.name}，未命中（${total} vs AC ${ac}）。`, 'dim');
+    }
+  });
+}
+
+function combatRound(){
+  if(state.mode !== 'combat') return;
+  const cmb = state.combat;
+  const aliveP = state.party.filter(c => c.alive);
+  const aliveM = cmb.monsters.filter(m => m.hp > 0);
+  if(!aliveP.length || !aliveM.length){ endCombat(!!aliveP.length); return; }
+
+  cmb.round++;
+  log(`── 第 ${cmb.round} 轮 ──`, 'round');
+
+  const partyInit = die(20) + Math.max(...aliveP.map(c => statMod(c.stats.agi)));
+  const monInit = die(20) + Math.max(...aliveM.map(m => m.init));
+  log(`先攻：队伍 ${partyInit} vs 怪物 ${monInit}`, 'dim');
+
+  if(partyInit >= monInit){
+    partyAttacks();
+    if(!checkCombatEnd()) monsterAttacks();
+  } else {
+    monsterAttacks();
+    if(!checkCombatEnd()) partyAttacks();
+  }
+  checkCombatEnd();
+  render();
+}
+
+function checkCombatEnd(){
+  const aliveM = state.combat.monsters.filter(m => m.hp > 0);
+  const aliveP = state.party.filter(c => c.alive);
+  if(!aliveM.length){ endCombat(true); return true; }
+  if(!aliveP.length){ endCombat(false); return true; }
+  return false;
+}
+
+function endCombat(win){
+  const cmb = state.combat;
+  if(!cmb){ state.mode = 'explore'; return; }
+
+  if(win){
+    const strongest = Math.max(...cmb.monsters.map(m => m.xp || 1));
+    const xp = Math.min(4, Math.max(1, strongest));
+    const loot = cmb.monsters.length * (die(10) + 5);
+    state.gold += loot;
+    log(`战斗胜利！全队获得 ${xp} 点经验值，从尸体上搜出 ${loot} 枚铜币。`, 'good');
+    gainXP(xp);
+    state.combat = null;
+    state.mode = 'explore';
+  } else {
+    log('全队覆灭。低语荒野又多了几具无名尸骨，雾吞没了最后一声呼吸。', 'death');
+    state.combat = null;
+    state.mode = 'gameover';
+  }
+  render();
+}
+
+function flee(){
+  if(state.mode !== 'combat') return;
+  const aliveP = state.party.filter(c => c.alive);
+  if(!aliveP.length){ endCombat(false); return; }
+  const r = die(20) + Math.max(...aliveP.map(c => statMod(c.stats.agi)));
+  log(`逃跑检定：${r}（需 ≥12）`, 'dim');
+  if(r >= 12){
+    log('你们成功地脱离了战斗，连滚带爬地逃进荒野。', 'good');
+    state.combat = null;
+    state.mode = 'explore';
+    render();
+  } else {
+    log('逃跑失败！怪物趁乱发起攻击。', 'bad');
+    monsterAttacks();
+    if(!checkCombatEnd()) render();
+  }
+}
+
+/* ---------------- 过夜 ---------------- */
+function restDay(){
+  if(state.mode !== 'explore') return;
+  state.day++;
+  state.ap = state.maxAp;
+
+  // 天气
+  const w = die(20);
+  state.weather = (w <= 3) ? '恶劣' : (w === 20 ? '暴风雨酝酿' : (die(6) >= 5 ? '大雾' : '晴朗'));
+
+  // 口粮
+  state.rations -= 2;
+  if(state.rations < 0){
+    state.rations = 0;
+    log('口粮耗尽！队伍饿着肚子入睡。', 'warn');
+    state.party.filter(c => c.alive).forEach(c => {
+      const dmg = die(3); c.hp -= dmg;
+      log(`${c.name} 因饥饿受到 ${dmg} 点伤害。`, 'bad');
+      checkDeath(c);
+    });
+  }
+
+  // 恢复
+  state.party.forEach(c => {
+    if(c.alive && c.hp < c.maxHp) c.hp = Math.min(c.maxHp, c.hp + 1);
+  });
+
+  log(`第 ${state.day} 天拂晓。天气：${state.weather}。队伍休息了一夜。`, 'town');
+
+  if(state.party.filter(c => c.alive).length === 0){
+    log('没有人醒来。', 'death');
+    state.mode = 'gameover';
+  }
+  render();
+}
+
+/* ---------------- 启动 ---------------- */
+window.addEventListener('DOMContentLoaded', () => {
+  state.map = genMap();
+  render();
+  renderLog();
+  log('《低语荒野》——基于 DCC RPG 的单人随机冒险。', 'title');
+  log('点击下方按钮，创建四名 0 级乡民，开始你的漏斗。', 'dim');
+});
+</script>
+</body>
+</html>
