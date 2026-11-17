@@ -4,169 +4,94 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#c9b896">
-<title>六角荒野探索 · 世界地圖工具箱</title>
+<title>六角荒野探索 · 世界地圖工具箱 v4</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%;overflow:hidden;overscroll-behavior:none}
-body{
-  font-family:"Noto Serif TC","Songti TC","Source Han Serif TC","PMingLiU","MingLiU",serif;
-  background:#b9a880;color:#2b1d0e;user-select:none;touch-action:manipulation;
-}
-#app{
-  position:relative;height:100dvh;max-width:900px;margin:0 auto;
-  display:grid;grid-template-rows:auto auto 1fr auto auto auto;overflow:hidden;
-  background:radial-gradient(ellipse at 50% 28%,#f7eed7 0%,#e9d9b5 42%,#cdb98f 100%);
-}
-#app::before{
-  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.055;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
-}
-#app::after{
-  content:'';position:absolute;inset:0;pointer-events:none;z-index:60;
-  box-shadow:inset 0 0 120px rgba(70,48,20,.45),inset 0 0 18px rgba(70,48,20,.35);
-}
+body{font-family:"Noto Serif TC","Songti TC","Source Han Serif TC","PMingLiU","MingLiU",serif;background:#b9a880;color:#2b1d0e;user-select:none;touch-action:manipulation}
+#app{position:relative;height:100dvh;max-width:900px;margin:0 auto;display:grid;grid-template-rows:auto auto 1fr auto auto auto;overflow:hidden;background:radial-gradient(ellipse at 50% 28%,#f7eed7 0%,#e9d9b5 42%,#cdb98f 100%)}
+#app::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.055;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>")}
+#app::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:60;box-shadow:inset 0 0 120px rgba(70,48,20,.45),inset 0 0 18px rgba(70,48,20,.35)}
 
-/* HUD */
-#hud{
-  position:relative;z-index:10;padding:7px 8px 6px;
-  background:linear-gradient(#f3e7c9,#e2d0a6);
-  border-bottom:2px solid rgba(90,70,50,.4);
-  box-shadow:0 2px 8px rgba(0,0,0,.18);
-}
+#hud{position:relative;z-index:10;padding:7px 8px 6px;background:linear-gradient(#f3e7c9,#e2d0a6);border-bottom:2px solid rgba(90,70,50,.4);box-shadow:0 2px 8px rgba(0,0,0,.18)}
 .hud-row{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
-.stat{
-  display:flex;align-items:center;justify-content:center;gap:2px;
-  font-size:11.5px;font-weight:700;white-space:nowrap;
-  padding:3px 1px;border-radius:6px;
-  background:rgba(255,255,255,.28);border:1px solid rgba(120,95,60,.25);
-}
+.stat{display:flex;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:700;white-space:nowrap;padding:3px 1px;border-radius:6px;background:rgba(255,255,255,.28);border:1px solid rgba(120,95,60,.25)}
 .stat .ico{font-size:12px;line-height:1}
 .stat.low{background:rgba(200,60,40,.28);border-color:rgba(160,40,20,.5);color:#6b1408}
-@media(max-width:380px){.stat{font-size:10px;padding:2px 0}.stat .ico{font-size:10.5px}}
+@media(max-width:380px){.stat{font-size:9.5px;padding:2px 0}.stat .ico{font-size:10px}}
 
-/* 天氣/交通列 */
-#statusbar{
-  position:relative;z-index:10;
-  display:flex;gap:6px;align-items:center;justify-content:center;
-  padding:4px 10px;
-  background:linear-gradient(#e9d9b3,#dcc99f);
-  border-bottom:1px solid rgba(120,95,60,.3);
-  font-size:12px;font-weight:700;color:#4a3418;
-  flex-wrap:wrap;
-}
-#statusbar .pill{
-  display:inline-flex;align-items:center;gap:3px;
-  padding:2px 9px;border-radius:12px;
-  background:rgba(255,255,255,.38);border:1px solid rgba(120,95,60,.3);
-}
-#statusbar .pill button{
-  font-family:inherit;font-size:11px;font-weight:700;
-  background:rgba(184,134,11,.25);border:1px solid rgba(140,100,30,.4);
-  padding:1px 7px;border-radius:8px;cursor:pointer;color:#4a3418;
-  margin-left:3px;
-}
+#statusbar{position:relative;z-index:10;display:flex;gap:5px;align-items:center;justify-content:center;padding:4px 8px;background:linear-gradient(#e9d9b3,#dcc99f);border-bottom:1px solid rgba(120,95,60,.3);font-size:11.5px;font-weight:700;color:#4a3418;flex-wrap:wrap}
+#statusbar .pill{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;background:rgba(255,255,255,.38);border:1px solid rgba(120,95,60,.3)}
+#statusbar .pill button{font-family:inherit;font-size:10.5px;font-weight:700;background:rgba(184,134,11,.25);border:1px solid rgba(140,100,30,.4);padding:1px 6px;border-radius:8px;cursor:pointer;color:#4a3418;margin-left:3px}
 
-/* 地圖 */
 #mapwrap{position:relative;z-index:5;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:4px}
 #map{width:100%;height:100%;display:block;overflow:visible}
-
 .hexpoly{stroke:rgba(58,40,18,.5);stroke-width:1.4;transition:fill .35s ease}
 .hexpoly.reachable{cursor:pointer;stroke:#a8802c;stroke-width:2}
 .hexpoly.reachable:hover{filter:brightness(1.13);stroke:#d4a017;stroke-width:3}
 .hexpoly.blocked{cursor:not-allowed}
-.hex-icon{pointer-events:none;font-size:24px;dominant-baseline:central;text-anchor:middle}
+.hex-icon{pointer-events:none;font-size:22px;dominant-baseline:central;text-anchor:middle}
 .hex-fog{pointer-events:none;text-anchor:middle;dominant-baseline:central;font-size:17px;fill:rgba(255,240,200,.35)}
-.hex-label{pointer-events:none;text-anchor:middle;dominant-baseline:central;font-size:8.5px;fill:rgba(40,26,10,.75);font-weight:700}
+.hex-label{pointer-events:none;text-anchor:middle;dominant-baseline:central;font-size:8px;fill:rgba(40,26,10,.75);font-weight:700}
 .poi-badge{pointer-events:none}
 .road-mark{pointer-events:none;stroke:rgba(110,80,40,.55);stroke-width:2.5;stroke-dasharray:5 4;fill:none}
 .player-hex{pointer-events:none;animation:playerPulse 2s ease-in-out infinite}
 @keyframes playerPulse{0%,100%{opacity:.55}50%{opacity:1}}
+.fog-l1{opacity:.55}
+.fog-l2{opacity:.85}
 
-/* 日誌 */
-#logbar{
-  position:relative;z-index:10;max-height:60px;overflow-y:auto;padding:5px 10px;
-  font-size:12.5px;line-height:1.45;
-  background:linear-gradient(rgba(245,236,214,.92),rgba(232,218,186,.92));
-  border-top:1px solid rgba(120,95,60,.35);border-bottom:1px solid rgba(120,95,60,.35);
-  color:#3a2810;
-}
+#logbar{position:relative;z-index:10;max-height:58px;overflow-y:auto;padding:5px 10px;font-size:12px;line-height:1.45;background:linear-gradient(rgba(245,236,214,.92),rgba(232,218,186,.92));border-top:1px solid rgba(120,95,60,.35);border-bottom:1px solid rgba(120,95,60,.35);color:#3a2810}
 #logbar .lg{padding:1px 0;animation:logIn .3s ease}
 #logbar .lg:first-child{font-weight:700}
 @keyframes logIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 
-/* 動作列 */
-#actions{position:relative;z-index:10;display:flex;gap:8px;padding:8px 10px;background:linear-gradient(#e7d6b0,#d6c294)}
-.act{
-  flex:1;font-family:inherit;font-size:13.5px;font-weight:700;
-  padding:11px 4px;border-radius:9px;cursor:pointer;color:#2b1d0e;
-  background:linear-gradient(#fbf3dd,#e3cfa4);border:2px solid #94723f;
-  box-shadow:0 3px 0 #7c5c2e,0 4px 8px rgba(0,0,0,.18);
-  transition:transform .08s,box-shadow .08s,filter .15s;white-space:nowrap;
-}
+#actions{position:relative;z-index:10;display:flex;gap:6px;padding:8px 10px;background:linear-gradient(#e7d6b0,#d6c294)}
+.act{flex:1;font-family:inherit;font-size:12.5px;font-weight:700;padding:10px 3px;border-radius:9px;cursor:pointer;color:#2b1d0e;background:linear-gradient(#fbf3dd,#e3cfa4);border:2px solid #94723f;box-shadow:0 3px 0 #7c5c2e,0 4px 8px rgba(0,0,0,.18);transition:transform .08s,box-shadow .08s,filter .15s;white-space:nowrap}
 .act:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1px)}
 .act:active:not(:disabled){transform:translateY(3px);box-shadow:0 0 0 #7c5c2e,0 2px 5px rgba(0,0,0,.2)}
 .act:disabled{opacity:.42;cursor:not-allowed;box-shadow:0 3px 0 #7c5c2e}
 
-/* 底部導航 */
-#nav{
-  position:relative;z-index:10;display:grid;grid-template-columns:repeat(6,1fr);
-  background:linear-gradient(#dcc99c,#c4ad7c);border-top:2px solid #94723f;
-  padding-bottom:env(safe-area-inset-bottom,0px);
-}
-#nav button{
-  font-family:inherit;background:none;border:none;cursor:pointer;
-  padding:7px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;
-  font-size:16px;color:#3a2810;transition:background .15s;
-}
-#nav button span{font-size:9.5px;font-weight:700;letter-spacing:.3px}
+#nav{position:relative;z-index:10;display:grid;grid-template-columns:repeat(6,1fr);background:linear-gradient(#dcc99c,#c4ad7c);border-top:2px solid #94723f;padding-bottom:env(safe-area-inset-bottom,0px)}
+#nav button{font-family:inherit;background:none;border:none;cursor:pointer;padding:7px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:15px;color:#3a2810;transition:background .15s}
+#nav button span{font-size:9px;font-weight:700;letter-spacing:.3px}
 #nav button:active{background:rgba(150,120,70,.3)}
 #nav button:disabled{opacity:.4}
 
-/* 彈窗 */
 .modal-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(22,14,5,.66);display:flex;align-items:center;justify-content:center;padding:14px;animation:fadeIn .22s ease;backdrop-filter:blur(2px)}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal{
-  width:100%;max-width:540px;max-height:86dvh;overflow-y:auto;
-  background:linear-gradient(#f9f1dc,#e9d9b6);border:2px solid #8b6f47;border-radius:12px;
-  box-shadow:0 14px 44px rgba(0,0,0,.55),inset 0 0 46px rgba(180,140,80,.22);
-  padding:20px 18px 16px;animation:popIn .26s cubic-bezier(.2,1.4,.5,1);
-}
+.modal{width:100%;max-width:540px;max-height:86dvh;overflow-y:auto;background:linear-gradient(#f9f1dc,#e9d9b6);border:2px solid #8b6f47;border-radius:12px;box-shadow:0 14px 44px rgba(0,0,0,.55),inset 0 0 46px rgba(180,140,80,.22);padding:20px 18px 16px;animation:popIn .26s cubic-bezier(.2,1.4,.5,1)}
 @keyframes popIn{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
-.modal h2{margin:0 0 10px;font-size:19px;letter-spacing:1px;text-align:center;color:#5a3a12;border-bottom:1px solid rgba(140,110,70,.4);padding-bottom:9px}
+.modal h2{margin:0 0 10px;font-size:18px;letter-spacing:1px;text-align:center;color:#5a3a12;border-bottom:1px solid rgba(140,110,70,.4);padding-bottom:9px}
 .modal-icon{font-size:44px;text-align:center;line-height:1;margin:2px 0 10px}
-.modal-text{font-size:14.5px;line-height:1.85;color:#33230f;margin:0 0 14px;min-height:1.8em}
+.modal-text{font-size:14px;line-height:1.85;color:#33230f;margin:0 0 14px;min-height:1.8em}
 .modal-buttons{display:flex;flex-direction:column;gap:9px;margin-top:6px}
-.mbtn{
-  font-family:inherit;font-size:14.5px;font-weight:700;
-  padding:12px 14px;border-radius:9px;cursor:pointer;color:#2b1d0e;text-align:center;
-  background:linear-gradient(#fdf6e2,#e6d2a6);border:2px solid #94723f;
-  box-shadow:0 3px 0 #7c5c2e;transition:transform .08s,box-shadow .08s,filter .15s;
-}
+.mbtn{font-family:inherit;font-size:14px;font-weight:700;padding:12px 14px;border-radius:9px;cursor:pointer;color:#2b1d0e;text-align:center;background:linear-gradient(#fdf6e2,#e6d2a6);border:2px solid #94723f;box-shadow:0 3px 0 #7c5c2e;transition:transform .08s,box-shadow .08s,filter .15s}
 .mbtn:hover:not(:disabled){filter:brightness(1.06)}
 .mbtn:active:not(:disabled){transform:translateY(3px);box-shadow:0 0 0 #7c5c2e}
 .mbtn:disabled{opacity:.45;cursor:not-allowed}
 .mbtn.primary{background:linear-gradient(#e8c97a,#c9a227);border-color:#8a6d12;color:#2b1d0e;box-shadow:0 3px 0 #8a6d12}
 .mbtn.danger{background:linear-gradient(#e8b4a0,#c96b4a);border-color:#8f3b21;box-shadow:0 3px 0 #8f3b21}
 
-.doc h3{font-size:15px;margin:16px 0 6px;color:#7a4a10;border-left:4px solid #b8860b;padding-left:8px;letter-spacing:.5px}
-.doc p,.doc li{font-size:13.5px;line-height:1.85;color:#33230f;margin:5px 0}
+.doc h3{font-size:14.5px;margin:16px 0 6px;color:#7a4a10;border-left:4px solid #b8860b;padding-left:8px;letter-spacing:.5px}
+.doc p,.doc li{font-size:13px;line-height:1.85;color:#33230f;margin:5px 0}
 .doc ul,.doc ol{padding-left:20px;margin:5px 0}
 .doc .hl{background:rgba(184,134,11,.2);padding:1px 5px;border-radius:4px;font-weight:700;color:#6b3f08}
-.doc .tip{background:rgba(120,160,90,.16);border-left:4px solid #6d8f4a;padding:8px 11px;border-radius:0 7px 7px 0;margin:9px 0;font-size:13px;line-height:1.8}
-.doc .warn{background:rgba(200,90,50,.14);border-left:4px solid #b05a30;padding:8px 11px;border-radius:0 7px 7px 0;margin:9px 0;font-size:13px;line-height:1.8}
-.doc table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12.5px}
-.doc th,.doc td{border:1px solid rgba(140,110,70,.45);padding:5px 7px;text-align:left}
+.doc .tip{background:rgba(120,160,90,.16);border-left:4px solid #6d8f4a;padding:8px 11px;border-radius:0 7px 7px 0;margin:9px 0;font-size:12.5px;line-height:1.8}
+.doc .warn{background:rgba(200,90,50,.14);border-left:4px solid #b05a30;padding:8px 11px;border-radius:0 7px 7px 0;margin:9px 0;font-size:12.5px;line-height:1.8}
+.doc .info{background:rgba(80,130,180,.14);border-left:4px solid #4a7aa8;padding:8px 11px;border-radius:0 7px 7px 0;margin:9px 0;font-size:12.5px;line-height:1.8}
+.doc table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12px}
+.doc th,.doc td{border:1px solid rgba(140,110,70,.45);padding:4px 6px;text-align:left}
 .doc th{background:rgba(184,134,11,.16);font-weight:700;color:#5a3a12}
 
-.list-item{display:flex;gap:9px;align-items:flex-start;padding:8px 9px;margin:6px 0;border-radius:8px;background:rgba(255,255,255,.34);border:1px solid rgba(140,110,70,.28);font-size:13px;line-height:1.6}
+.list-item{display:flex;gap:9px;align-items:flex-start;padding:8px 9px;margin:6px 0;border-radius:8px;background:rgba(255,255,255,.34);border:1px solid rgba(140,110,70,.28);font-size:12.5px;line-height:1.6}
 .list-item .li-ico{font-size:18px;line-height:1.3;flex:none}
 .list-item .li-main{flex:1}
 .list-item .li-title{font-weight:700;color:#5a3a12}
-.list-item .li-sub{font-size:11.5px;color:#6b5232;margin-top:1px}
+.list-item .li-sub{font-size:11px;color:#6b5232;margin-top:1px}
 .list-item.locked{opacity:.45;filter:grayscale(.7)}
 
 #toast-root{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:max-content;max-width:88vw}
-.toast{background:rgba(46,30,10,.94);color:#f7ecd2;padding:10px 18px;border-radius:22px;font-size:13.5px;font-weight:700;text-align:center;border:1px solid rgba(200,160,80,.6);box-shadow:0 6px 20px rgba(0,0,0,.4);animation:toastIn .28s ease,toastOut .28s ease 2.5s forwards}
+.toast{background:rgba(46,30,10,.94);color:#f7ecd2;padding:10px 18px;border-radius:22px;font-size:13px;font-weight:700;text-align:center;border:1px solid rgba(200,160,80,.6);box-shadow:0 6px 20px rgba(0,0,0,.4);animation:toastIn .28s ease,toastOut .28s ease 2.5s forwards}
 @keyframes toastIn{from{opacity:0;transform:translateY(14px) scale(.94)}to{opacity:1;transform:none}}
 @keyframes toastOut{to{opacity:0;transform:translateY(-10px) scale(.96)}}
 
@@ -191,6 +116,7 @@ body{
 
   <div id="statusbar">
     <span class="pill" id="pill-weather">☀️ 晴天</span>
+    <span class="pill" id="pill-season">🌸 春</span>
     <span class="pill" id="pill-transport">🚶 步行 <button id="btn-transport">切換</button></span>
   </div>
 
@@ -201,6 +127,7 @@ body{
   <div id="actions">
     <button class="act" id="btn-camp">🏕️ 紮營</button>
     <button class="act" id="btn-look">🧭 觀察</button>
+    <button class="act" id="btn-seed">🌱 播種</button>
   </div>
 
   <nav id="nav">
@@ -209,7 +136,7 @@ body{
     <button data-act="load">📂<span>讀檔</span></button>
     <button data-act="history">📜<span>歷史</span></button>
     <button data-act="achv">🏆<span>成就</span></button>
-    <button data-act="sound">🔊<span>音效</span></button>
+    <button data-act="settings">⚙️<span>設定</span></button>
   </nav>
 </div>
 
@@ -219,16 +146,28 @@ body{
 <script>
 'use strict';
 /* ==================================================================
-   六角荒野探索 v3 —— 規則校驗版
+   六角荒野探索 v4 —— 完整目錄覆蓋版
    依據《FlexTale: Hexcrawl Adventure Toolkit》(J. Evans Payne, 2023)
    ================================================================== */
 
-const HEX_SIZE=46, MAP_RADIUS=3, MAX_DAYS=40, RELICS_NEEDED=3;
-const SAVE_KEY='hexcrawl_save_v3', ACHV_KEY='hexcrawl_achv_v3', END_KEY='hexcrawl_endings_v3';
+const HEX_SIZE=46;
+const MAP_RADIUS=3;
+const MAX_DAYS=40;
+const RELICS_NEEDED=3;
+const SAVE_KEY='hexcrawl_save_v4';
+const ACHV_KEY='hexcrawl_achv_v4';
+const END_KEY='hexcrawl_endings_v4';
 const HEX_DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
-const MILES_PER_HEX=12; // 書中預設值 p46
 
-/* 地形（p81）——含探索 XP p139 */
+/* 六角尺寸可選（p46） */
+const HEX_SIZES=[
+  {mi:3, label:'3 英里（小型區域）'},
+  {mi:6, label:'6 英里（鄉野）'},
+  {mi:12,label:'12 英里（預設，區域地圖）'},
+  {mi:24,label:'24 英里（大陸）'}
+];
+
+/* 地形（p81） */
 const TERRAIN={
   plain:    {name:'平原',icon:'🌾',color:'#c9d99c',stroke:'#93a86b',passable:true,extra:0,hard:false,xp:2},
   forest:   {name:'森林',icon:'🌲',color:'#8cb368',stroke:'#5c7c40',passable:true,extra:0,hard:false,xp:3},
@@ -249,7 +188,15 @@ const WEATHER={
   snow:    {name:'降雪',  icon:'❄️', visPenalty:1, supplyPenalty:1, lostBonus:10,  encBonus:5}
 };
 
-/* 興趣點類型（p198-275，完整 11 種 + 遠古遺跡） */
+/* 季節（p136） */
+const SEASONS={
+  spring:{name:'春',icon:'🌸',tempMod:0,  stormMod:0},
+  summer:{name:'夏',icon:'☀️',tempMod:10, stormMod:5},
+  autumn:{name:'秋',icon:'🍂',tempMod:-5, stormMod:0},
+  winter:{name:'冬',icon:'❄️',tempMod:-15,stormMod:10}
+};
+
+/* POI 類型（p198-275，完整 12 種） */
 const POI_DEFS={
   settlement:{icon:'🏘️',name:'聚落'},
   monstrous: {icon:'🐉',name:'怪物巢穴'},
@@ -265,17 +212,38 @@ const POI_DEFS={
   ruin:      {icon:'🏛️',name:'遠古遺跡'}
 };
 
-/* 六角變更表 6（p35） */
-const HEX_CHANGE_TABLE=[
-  {min:1, max:3, key:'persist_visit', label:'內容在本次造訪中保持'},
-  {min:4, max:6, key:'persist_then_regen', label:'保持 1 次造訪，然後重生成'},
-  {min:7, max:8, key:'persist_then_vanish', label:'保持 1 次造訪，隨後蒸發'},
-  {min:9, max:9, key:'persist_watch_vanish', label:'保持 1 次造訪，目睹其蒸發'},
-  {min:10,max:12,key:'change_next', label:'下次造訪時改變'},
-  {min:13,max:13,key:'change_now', label:'本次造訪即改變'},
-  {min:14,max:14,key:'vanish_first', label:'首次造訪期間蒸發'},
-  {min:15,max:20,key:'perpetual', label:'永久保持'}
+/* 表 5：基礎六角變更解釋（p35） */
+const HEX_CHANGE_EXPLANATIONS=[
+  {min:1, max:4, key:'mystery',      label:'無解釋／謎團'},
+  {min:5, max:8, key:'dead',         label:'先前內容已死亡／被摧毀'},
+  {min:9, max:12,key:'invade',       label:'新內容入侵／蠶食'},
+  {min:13,max:15,key:'transitory',   label:'舊內容為短暫存在'},
+  {min:16,max:16,key:'new_illusion', label:'新內容為幻象'},
+  {min:17,max:17,key:'old_illusion', label:'舊內容為幻象'},
+  {min:18,max:18,key:'coexist',      label:'新舊共存'},
+  {min:19,max:19,key:'compete',      label:'新舊競爭'},
+  {min:20,max:20,key:'quest',        label:'與某項任務相關'}
 ];
+
+/* 表 6：基礎六角變更（p35） */
+const HEX_CHANGE_TABLE=[
+  {min:1, max:3, key:'persist_visit',      label:'內容在本次造訪中保持'},
+  {min:4, max:6, key:'persist_then_regen', label:'保持 1 次造訪，然後重生成'},
+  {min:7, max:8, key:'persist_then_vanish',label:'保持 1 次造訪，隨後蒸發'},
+  {min:9, max:9, key:'persist_watch_vanish',label:'保持 1 次造訪，目睹其蒸發'},
+  {min:10,max:12,key:'change_next',        label:'下次造訪時改變'},
+  {min:13,max:13,key:'change_now',         label:'本次造訪即改變'},
+  {min:14,max:14,key:'vanish_first',       label:'首次造訪期間蒸發'},
+  {min:15,max:20,key:'perpetual',          label:'永久保持'}
+];
+
+/* 技能（p357，簡化實作） */
+const SKILLS={
+  survival:  {name:'生存', icon:'🌿', desc:'覓食、辨識植物、避免迷路'},
+  navigation:{name:'導航', icon:'🧭', desc:'判斷方向、避免迷路'},
+  perception:{name:'察覺', icon:'👁️', desc:'觀察環境、發現隱藏事物'},
+  athletics: {name:'運動', icon:'💪', desc:'攀爬、游泳、跳躍'}
+};
 
 const ACHIEVEMENTS=[
   {id:'first_step', icon:'👣', name:'初次踏入荒野', desc:'完成第一次移動'},
@@ -287,10 +255,13 @@ const ACHIEVEMENTS=[
   {id:'settlement', icon:'🏘️', name:'友好訪客',     desc:'造訪一座聚落'},
   {id:'survivor',   icon:'🍖', name:'堅毅旅人',     desc:'在補給為 0 的狀態下繼續旅行'},
   {id:'hexchange',  icon:'🔄', name:'世事無常',     desc:'首次見證六角變更'},
-  {id:'weather',    icon:'🌦️', name:'風雨同行',     desc:'在暴風雨中移動'}
+  {id:'weather',    icon:'🌦️', name:'風雨同行',     desc:'在暴風雨中移動'},
+  {id:'seed',       icon:'🌱', name:'播種者',       desc:'使用播種功能'},
+  {id:'change_mind',icon:'💭', name:'改變主意',     desc:'在遊戲中切換設計時/遊戲時'},
+  {id:'sanity',     icon:'🧠', name:'合理性檢查',   desc:'觸發六角變更的合理性檢查'}
 ];
 
-/* 遭遇（p292-323，含環境/NPC/怪物/特殊） */
+/* 遭遇（p292-323） */
 const ENCOUNTERS=[
   {icon:'🐺',title:'飢餓的灰狼',distance:['近距離（30呎）','中距離（120呎）'],
    text:'一頭瘦骨嶙峋的灰狼擋在獸徑中央，喉間滾出低沉的咆哮。',
@@ -307,7 +278,7 @@ const ENCOUNTERS=[
      {label:'🔥 點燃火把驅趕',resolve:()=>({icon:'🔥',text:'火光讓野豬群驚慌失措，掉頭奔入林中。',xp:8})}
    ]},
   {icon:'🧙',title:'流浪的法師（NPC 遭遇）',distance:['中距離（120呎）'],
-   text:'一位灰袍老者坐在路邊石頭上，對著發霉羊皮紙喃喃自語。他抬頭看了你一眼，咧嘴笑了。',
+   text:'一位灰袍老者坐在路邊石頭上，對著發霉羊皮紙喃喃自語。',
    options:[
      {label:'💰 交換情報',resolve:()=>({icon:'📜',text:'老者收下補給，在紙上畫了幾筆。「往那邊走，孩子。」',supplies:-1,xp:18})},
      {label:'🤝 並肩同行一段',resolve:()=>{const r=d20();return r>=9?{icon:'✨',text:`老者在你掌心畫了個記號（擲出 ${r}），你覺得神清氣爽。`,hp:5,xp:14}:{icon:'🌀',text:`老者嘮叨不停（擲出 ${r}），讓你心煩意亂。`,hp:-2,xp:8};}},
@@ -335,7 +306,7 @@ const ENCOUNTERS=[
      {label:'🚶 不予理會',resolve:()=>({icon:'👋',text:'你搖搖頭，繼續趕路。',xp:2})}
    ]},
   {icon:'🦌',title:'遷徙的鹿群',distance:['遠距離（300呎）'],
-   text:'一群鹿正穿越前方草原，數量多達數十頭。牠們安靜地移動著。',
+   text:'一群鹿正穿越前方草原，數量多達數十頭。',
    options:[
      {label:'🏹 獵捕一頭',resolve:()=>{const r=d20();return r>=9?{icon:'🍖',text:`你屏息瞄準（擲出 ${r}），一頭小鹿應聲倒地。`,supplies:3,xp:10}:{icon:'💨',text:`箭矢擦著鹿角飛過（擲出 ${r}）。`,supplies:-1,xp:4};}},
      {label:'👀 靜靜觀察',resolve:()=>({icon:'🌅',text:'你找了塊石頭坐下，靜靜看著鹿群通過。',hp:3,xp:12})},
@@ -349,32 +320,32 @@ const ENCOUNTERS=[
      {label:'🚶 快步離開',resolve:()=>({icon:'👣',text:'你不想沾惹晦氣，快步離開。',xp:2})}
    ]},
   {icon:'🏴',title:'流亡的叛軍斥候（派系遭遇）',distance:['中距離（120呎）'],
-   text:'三名穿著不合身皮甲的斥候從樹後閃出，手中的武器明顯是拼湊出來的。',
+   text:'三名穿著不合身皮甲的斥候從樹後閃出，武器明顯是拼湊出來的。',
    options:[
-     {label:'🗣️ 表明立場',resolve:()=>{const r=d20();return r>=11?{icon:'🤝',text:`斥候們相信了你的說詞（擲出 ${r}），並透露了前方情報。`,xp:20}:{icon:'⚔️',text:`他們認為你是敵人（擲出 ${r}），一番惡鬥後你脫身。`,hp:-6,xp:10};}},
+     {label:'🗣️ 表明立場',resolve:()=>{const r=d20();return r>=11?{icon:'🤝',text:`斥候們相信了你的說詞（擲出 ${r}）。`,xp:20}:{icon:'⚔️',text:`他們認為你是敵人（擲出 ${r}）。`,hp:-6,xp:10};}},
      {label:'💰 用補給換通行',resolve:()=>({icon:'💰',text:'你交出一些補給，斥候們讓開了路。',supplies:-2,xp:8})},
      {label:'🏃 立刻脫離',resolve:()=>({icon:'🏃',text:'你轉身鑽入林中，甩開了他們。',supplies:-1,xp:5})}
    ]},
   {icon:'⛪',title:'路邊的廢棄神殿（神性遭遇）',distance:['遠距離（300呎）'],
    text:'半塌的石造神殿矗立在荒野中，屋頂早已坍塌，但祭壇仍完好。',
    options:[
-     {label:'🙏 誠心祈禱',resolve:()=>{const r=d20();return r>=11?{icon:'✨',text:`一股暖流湧遍全身（擲出 ${r}），傷勢癒合了。`,hp:8,xp:18}:{icon:'🕯️',text:`你靜靜坐了一會兒（擲出 ${r}），心裡平靜許多。`,hp:2,xp:10};}},
-     {label:'🔍 搜尋祭壇',resolve:()=>({icon:'🏺',text:'你在祭壇下找到一只還算完好的陶罐，裡面有些乾糧。',supplies:2,xp:12})},
-     {label:'🚶 保持距離',resolve:()=>({icon:'👣',text:'你不願褻瀆神聖之地，快步離開。',xp:5})}
+     {label:'🙏 誠心祈禱',resolve:()=>{const r=d20();return r>=11?{icon:'✨',text:`一股暖流湧遍全身（擲出 ${r}）。`,hp:8,xp:18}:{icon:'🕯️',text:`你靜靜坐了一會兒（擲出 ${r}）。`,hp:2,xp:10};}},
+     {label:'🔍 搜尋祭壇',resolve:()=>({icon:'🏺',text:'你在祭壇下找到一只陶罐，裡面有些乾糧。',supplies:2,xp:12})},
+     {label:'🚶 保持距離',resolve:()=>({icon:'👣',text:'你不願褻瀆神聖之地。',xp:5})}
    ]},
   {icon:'🌊',title:'暴漲的溪流（環境遭遇）',distance:['中距離（120呎）'],
    text:'連日大雨讓溪水暴漲，原本的淺灘如今成了湍急的水流。',
    options:[
-     {label:'🏊 強行渡河',resolve:()=>{const r=d20();return r>=13?{icon:'💪',text:`你咬牙游了過去（擲出 ${r}），雖然狼狽但平安。`,supplies:-2,xp:14}:{icon:'🌊',text:`你被水流沖走（擲出 ${r}），撞上岩石。`,hp:-7,supplies:-2,xp:8};}},
+     {label:'🏊 強行渡河',resolve:()=>{const r=d20();return r>=13?{icon:'💪',text:`你咬牙游了過去（擲出 ${r}）。`,supplies:-2,xp:14}:{icon:'🌊',text:`你被水流沖走（擲出 ${r}）。`,hp:-7,supplies:-2,xp:8};}},
      {label:'🪵 尋找淺灘',resolve:()=>({icon:'🪵',text:'你沿著溪流走了一段，終於找到一處可涉水而過的地方。',supplies:-1,xp:10})},
-     {label:'🛠️ 搭建便橋',resolve:()=>({icon:'🛠️',text:'你用附近的枯木搭了座簡易便橋，雖然費時但安全。',supplies:-2,hp:2,xp:12})}
+     {label:'🛠️ 搭建便橋',resolve:()=>({icon:'🛠️',text:'你用枯木搭了座簡易便橋。',supplies:-2,hp:2,xp:12})}
    ]},
   {icon:'✨',title:'魔法的餘燼（魔法遭遇）',distance:['近距離（30呎）'],
    text:'空氣中飄浮著細小的光點，像是某種古老魔法留下的餘燼。',
    options:[
-     {label:'🔮 伸手觸碰',resolve:()=>{const r=d20();return r>=9?{icon:'✨',text:`光點融入你的身體（擲出 ${r}），你感到前所未有的清明。`,hp:4,xp:25}:{icon:'⚡',text:`光點突然爆開（擲出 ${r}），你被震得跌坐在地。`,hp:-6,xp:12};}},
-     {label:'📜 記錄現象',resolve:()=>({icon:'📜',text:'你攤開地圖，仔細記錄這次魔法現象的樣貌。',xp:20})},
-     {label:'🚶 保持距離',resolve:()=>({icon:'👣',text:'你繞開了那些光點。有些東西，還是別碰為妙。',xp:5})}
+     {label:'🔮 伸手觸碰',resolve:()=>{const r=d20();return r>=9?{icon:'✨',text:`光點融入你的身體（擲出 ${r}）。`,hp:4,xp:25}:{icon:'⚡',text:`光點突然爆開（擲出 ${r}）。`,hp:-6,xp:12};}},
+     {label:'📜 記錄現象',resolve:()=>({icon:'📜',text:'你攤開地圖，仔細記錄這次魔法現象。',xp:20})},
+     {label:'🚶 保持距離',resolve:()=>({icon:'👣',text:'你繞開了那些光點。',xp:5})}
    ]}
 ];
 
@@ -390,9 +361,15 @@ function freshState(){
     hexes:{}, log:[], history:[],
     miles:0,
     weather:'clear',
-    transport:'walk', // walk | ride
-    startTime:Date.now(),
-    soundOn:true, endingId:null
+    season:'spring',
+    temperature:15,
+    transport:'walk',
+    hexSizeMi:12,
+    designMode:'play', // 'design' | 'play'
+    changeMindAllowed:true,
+    soundOn:true, endingId:null,
+    hexChangeCount:0,
+    seeded:false
   };
 }
 
@@ -439,10 +416,10 @@ const SFX={
   bad(){tone(180,0.22,'sawtooth',0.05);setTimeout(()=>tone(120,0.28,'sawtooth',0.045),120);},
   relic(){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,0.2,'sine',0.055),i*110));},
   win(){[523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>tone(f,0.26,'triangle',0.06),i*130));},
-  weather(){tone(380,0.15,'sine',0.04);setTimeout(()=>tone(300,0.2,'sine',0.035),100);}
+  weather(){tone(380,0.15,'sine',0.04);setTimeout(()=>tone(300,0.2,'sine',0.035),100);},
+  seed(){[392,523,659].forEach((f,i)=>setTimeout(()=>tone(f,0.15,'sine',0.045),i*90));}
 };
 
-/* Toast */
 function toast(msg,ms){
   const el=document.createElement('div');
   el.className='toast';el.textContent=msg;
@@ -450,7 +427,6 @@ function toast(msg,ms){
   setTimeout(()=>el.remove(),ms||2800);
 }
 
-/* 日誌 */
 function addLog(msg){
   state.log.push({day:state.day,msg});
   if(state.log.length>120)state.log.shift();
@@ -482,21 +458,20 @@ function generateWorld(){
       if(dist===0){terrain='plain';}
       else if(dist===MAP_RADIUS&&Math.random()<0.36){terrain='water';}
       else{terrain=rollTerrain(dist);}
-      /* 道路（p119）：25% 六角有道路，水域除外 */
       const hasRoad=(terrain!=='water'&&terrain!=='swamp'&&terrain!=='mountain')&&Math.random()<0.25;
-      hexes[hexKey(q,r)]={q,r,terrain,road:hasRoad,revealed:false,visited:false,poi:null,relic:false,changeRule:null};
+      hexes[hexKey(q,r)]={q,r,terrain,road:hasRoad,revealed:false,fogLevel:0,visited:false,poi:null,relic:false,changeRule:null,changeExplained:null};
     }
   }
-  /* 放置三座遠古遺跡：距離中心 >=2 且非水域 */
   const cands=Object.values(hexes).filter(h=>h.terrain!=='water'&&hexDistance({q:0,r:0},h)>=2);
   for(let i=cands.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cands[i],cands[j]]=[cands[j],cands[i]];}
   for(let i=0;i<RELICS_NEEDED&&i<cands.length;i++){cands[i].relic=true;}
   return hexes;
 }
 
-/* 天氣判定（p116） */
+/* 天氣（p116） */
 function rollWeather(){
-  const r=d20();
+  const seasonMod=SEASONS[state.season]?.stormMod||0;
+  const r=d20()-Math.floor(seasonMod/5);
   if(r<=10)return 'clear';
   if(r<=14)return 'cloudy';
   if(r<=17)return 'rain';
@@ -504,7 +479,15 @@ function rollWeather(){
   return 'storm';
 }
 
-/* POI 密度（p184）—— 依地形調整 */
+/* 溫度（p136） */
+function computeTemperature(){
+  const base=15;
+  const seasonMod=SEASONS[state.season]?.tempMod||0;
+  const weatherMod={clear:2,cloudy:0,rain:-3,fog:-1,storm:-5,snow:-8}[state.weather]||0;
+  return base+seasonMod+weatherMod;
+}
+
+/* POI 密度（p184） */
 function poiDensityFor(terrain){
   const map={plain:0.22,forest:0.32,hill:0.34,mountain:0.38,swamp:0.30,desert:0.20,water:0};
   return map[terrain]||0.25;
@@ -523,15 +506,61 @@ function rollPoiType(){
   if(r<0.98)return 'landmark';
   return 'minor';
 }
-function revealHex(h){
-  if(h.revealed)return false;
+
+/* 戰爭迷霧（p370，三層） */
+function revealHex(h, level){
+  level=level||1;
+  if(h.fogLevel>=level)return false;
+  h.fogLevel=level;
   h.revealed=true;
-  if(h.relic){
-    h.poi={type:'ruin',done:false};
-  }else{
-    const dens=poiDensityFor(h.terrain);
-    if(Math.random()<dens)h.poi={type:rollPoiType(),done:false};
+  if(level>=2){
+    if(h.relic){h.poi=h.poi||{type:'ruin',done:false};}
+    else{
+      const dens=poiDensityFor(h.terrain);
+      if(Math.random()<dens&&!h.poi)h.poi={type:rollPoiType(),done:false};
+    }
   }
+  return true;
+}
+
+/* 播種（p30） */
+function seedWorld(){
+  const hexes=state.hexes;
+  const cands=Object.values(hexes).filter(h=>
+    h.terrain!=='water'&&!h.poi&&!h.relic&&hexDistance(state.pos,h)>=1&&hexDistance(state.pos,h)<=2
+  );
+  let seeded=0;
+  for(let i=0;i<cands.length&&seeded<4;i++){
+    if(Math.random()<0.5){
+      cands[i].poi={type:rollPoiType(),done:false};
+      seeded++;
+    }
+  }
+  return seeded;
+}
+
+/* 表 5：六角變更解釋 */
+function rollHexChangeExplanation(){
+  const r=d20();
+  for(const row of HEX_CHANGE_EXPLANATIONS){
+    if(r>=row.min&&r<=row.max)return row;
+  }
+  return HEX_CHANGE_EXPLANATIONS[0];
+}
+/* 表 6：六角變更 */
+function rollHexChange(){
+  const r=d20();
+  for(const row of HEX_CHANGE_TABLE){
+    if(r>=row.min&&r<=row.max)return row;
+  }
+  return HEX_CHANGE_TABLE[HEX_CHANGE_TABLE.length-1];
+}
+
+/* 合理性檢查（p35） */
+function sanityCheck(hex, newPoiType){
+  if(!newPoiType)return true;
+  if(hex.terrain==='water'&&newPoiType==='settlement')return false;
+  if(hex.terrain==='desert'&&newPoiType==='swamp')return false;
   return true;
 }
 
@@ -556,7 +585,9 @@ function renderHUD(){
 }
 function renderStatusBar(){
   const w=WEATHER[state.weather]||WEATHER.clear;
+  const s=SEASONS[state.season]||SEASONS.spring;
   $('#pill-weather').textContent=`${w.icon} ${w.name}`;
+  $('#pill-season').textContent=`${s.icon} ${s.name} ${state.temperature}°C`;
   $('#pill-transport').innerHTML=(state.transport==='walk'?'🚶 步行':'🐴 騎乘')+' <button id="btn-transport">切換</button>';
   const btn=document.getElementById('btn-transport');
   if(btn){btn.disabled=state.phase!=='PLAYER';btn.onclick=toggleTransport;}
@@ -590,24 +621,26 @@ function renderMap(){
     const dist=hexDistance(state.pos,h);
     const adjacent=dist===1;
     const reachable=(state.phase==='PLAYER')&&adjacent&&t.passable;
-    let fill,stroke;
-    if(h.revealed){fill=t.color;stroke=t.stroke;}
+    let fill,stroke,opacity=1;
+    if(h.fogLevel>=2){fill=t.color;stroke=t.stroke;}
+    else if(h.fogLevel===1){fill=t.color;stroke=t.stroke;opacity=.55;}
     else{fill='url(#fogGrad)';stroke='#3a3020';}
     const cls=['hexpoly'];
     if(reachable)cls.push('reachable');
     else if(adjacent&&!t.passable)cls.push('blocked');
-    out.push(`<polygon class="${cls.join(' ')}" points="${hexPoints(x,y,HEX_SIZE-1.2)}" fill="${fill}" stroke="${stroke}" stroke-width="1.4" data-q="${h.q}" data-r="${h.r}"/>`);
-    /* 道路標記 */
-    if(h.revealed&&h.road){
+    out.push(`<polygon class="${cls.join(' ')}" points="${hexPoints(x,y,HEX_SIZE-1.2)}" fill="${fill}" stroke="${stroke}" stroke-width="1.4" opacity="${opacity}" data-q="${h.q}" data-r="${h.r}"/>`);
+    if(h.fogLevel>=2&&h.road){
       out.push(`<line class="road-mark" x1="${x-HEX_SIZE*0.6}" y1="${y+HEX_SIZE*0.35}" x2="${x+HEX_SIZE*0.6}" y2="${y-HEX_SIZE*0.35}"/>`);
     }
-    if(h.revealed){
-      out.push(`<text class="hex-icon" x="${x}" y="${y-4}" font-size="22">${t.icon}</text>`);
-      out.push(`<text class="hex-label" x="${x}" y="${y+18}">${t.name}${h.road?' ·道':''}</text>`);
+    if(h.fogLevel>=2){
+      out.push(`<text class="hex-icon" x="${x}" y="${y-4}" font-size="20">${t.icon}</text>`);
+      out.push(`<text class="hex-label" x="${x}" y="${y+17}">${t.name}${h.road?' ·道':''}</text>`);
+    }else if(h.fogLevel===1){
+      out.push(`<text class="hex-fog" x="${x}" y="${y}">?</text>`);
     }else{
       out.push(`<text class="hex-fog" x="${x}" y="${y}">?</text>`);
     }
-    if(h.revealed&&h.poi&&!h.poi.done){
+    if(h.fogLevel>=2&&h.poi&&!h.poi.done){
       const bx=x+HEX_SIZE*0.52,by=y-HEX_SIZE*0.52;
       out.push(`<g class="poi-badge"><circle cx="${bx}" cy="${by}" r="11.5" fill="#fff8e0" stroke="#8b6f47" stroke-width="2"/>`);
       out.push(`<text x="${bx}" y="${by}" text-anchor="middle" dominant-baseline="central" font-size="13">${POI_DEFS[h.poi.type]?.icon||'❓'}</text></g>`);
@@ -622,6 +655,7 @@ function renderActions(){
   const canAct=state.phase==='PLAYER';
   $('#btn-camp').disabled=!canAct;
   $('#btn-look').disabled=!canAct;
+  $('#btn-seed').disabled=!canAct||state.seeded;
 }
 
 /* 彈窗 */
@@ -661,14 +695,8 @@ function typewriter(el){
 function applyEffects(eff){
   if(!eff)return;
   const notes=[];
-  if(eff.hp){
-    const before=state.hp;state.hp=clamp(state.hp+eff.hp,0,state.maxHp);
-    const d=state.hp-before;if(d)notes.push(d>0?`生命 +${d}`:`生命 ${d}`);
-  }
-  if(eff.supplies){
-    const before=state.supplies;state.supplies=clamp(state.supplies+eff.supplies,0,state.maxSupplies);
-    const d=state.supplies-before;if(d)notes.push(d>0?`補給 +${d}`:`補給 ${d}`);
-  }
+  if(eff.hp){const before=state.hp;state.hp=clamp(state.hp+eff.hp,0,state.maxHp);const d=state.hp-before;if(d)notes.push(d>0?`生命 +${d}`:`生命 ${d}`);}
+  if(eff.supplies){const before=state.supplies;state.supplies=clamp(state.supplies+eff.supplies,0,state.maxSupplies);const d=state.supplies-before;if(d)notes.push(d>0?`補給 +${d}`:`補給 ${d}`);}
   if(eff.xp){state.xp+=eff.xp;notes.push(`探索點 +${eff.xp}`);}
   if(eff.day){state.day+=eff.day;notes.push(`時間 +${eff.day} 天`);}
   if(eff.relic){state.relics+=eff.relic;notes.push(`🏛️ 遺跡 ${state.relics}/${state.relicsNeeded}`);}
@@ -677,21 +705,15 @@ function applyEffects(eff){
   if(eff.xp&&eff.xp>=15)SFX.good();
 }
 
-/* 六角變更（表 6，p35） */
-function rollHexChange(){
-  const r=d20();
-  for(const row of HEX_CHANGE_TABLE){
-    if(r>=row.min&&r<=row.max)return row;
-  }
-  return HEX_CHANGE_TABLE[HEX_CHANGE_TABLE.length-1];
-}
+/* 六角變更流程（表 6 + 表 5 + 合理性檢查） */
 async function applyHexChange(hex,mySession){
-  /* 只在已 visited 且無正在進行中的 POI 時觸發 */
   if(!hex.visited)return;
   if(hex.changeRule==='perpetual')return;
+  if(state.designMode==='design')return;
 
   const row=rollHexChange();
   hex.changeRule=row.key;
+  state.hexChangeCount++;
   if(row.key!=='persist_visit')unlockAchv('hexchange');
 
   if(row.key==='perpetual'){
@@ -700,22 +722,32 @@ async function applyHexChange(hex,mySession){
   }
   if(row.key==='persist_visit'){return;}
   if(row.key==='persist_then_regen'){
-    hex.poi=null;hex.relic=false;
-    return;
+    hex.poi=null;hex.relic=false;return;
   }
   if(row.key==='persist_then_vanish'||row.key==='persist_watch_vanish'){
     if(hex.poi){hex.poi=null;addLog('🔄 你注意到，這個六角裡的某些東西消失了。');}
     return;
   }
   if(row.key==='change_next'){
-    hex.changeRule='change_next_ready';
-    return;
+    hex.changeRule='change_next_ready';return;
   }
   if(row.key==='change_now'||row.key==='change_next_ready'){
-    /* 重新生成內容 */
     hex.poi=null;hex.relic=false;
-    if(Math.random()<poiDensityFor(hex.terrain))hex.poi={type:rollPoiType(),done:false};
-    addLog('🔄 這個六角的景物已與你記憶中不同。');
+    let newType=null;
+    for(let attempt=0;attempt<5;attempt++){
+      if(Math.random()<poiDensityFor(hex.terrain)){
+        newType=rollPoiType();
+        if(sanityCheck(hex,newType))break;
+        else newType=null;
+      }else break;
+    }
+    if(newType){hex.poi={type:newType,done:false};}
+    /* 表 5：解釋 */
+    const expl=rollHexChangeExplanation();
+    hex.changeExplained=expl.label;
+    if(expl.key==='sanity'||hex.changeCount===1){unlockAchv('sanity');}
+    addLog(`🔄 這個六角的景物已與你記憶中不同。`);
+    addLog(`　→ 表 5 解釋：${expl.label}`);
     return;
   }
   if(row.key==='vanish_first'){
@@ -724,7 +756,7 @@ async function applyHexChange(hex,mySession){
   }
 }
 
-/* 交通方式切換（p86） */
+/* 交通方式 */
 function toggleTransport(){
   if(state.phase!=='PLAYER')return;
   state.transport=state.transport==='walk'?'ride':'walk';
@@ -751,37 +783,40 @@ async function doMove(tq,tr){
   render();
 
   try{
-    /* ==== 六角荒野回合（p72）==== */
     /* 步驟 1：時間推進 */
     state.day+=1;
-
-    /* 步驟 2：天氣擲骰 */
+    if(state.day%10===0){
+      const order=['spring','summer','autumn','winter'];
+      const idx=(order.indexOf(state.season)+1)%4;
+      state.season=order[idx];
+      addLog(`🍂 季節變換：${SEASONS[state.season].icon} ${SEASONS[state.season].name}`);
+    }
     state.weather=rollWeather();
+    state.temperature=computeTemperature();
     const w=WEATHER[state.weather];
     if(state.weather!=='clear'&&state.weather!=='cloudy'){
       SFX.weather();
-      addLog(`🌦️ 第 ${state.day} 天天氣：${w.icon} ${w.name}`);
+      addLog(`🌦️ 第 ${state.day} 天天氣：${w.icon} ${w.name}（${state.temperature}°C）`);
     }
     render();
 
-    /* 步驟 3：補給消耗（含地形、道路、天氣、交通） */
+    /* 步驟 2：補給消耗 */
     const t=TERRAIN[target.terrain];
     let baseCost=1+t.extra;
-    if(target.road)baseCost=Math.max(0,baseCost-1); // 道路 -1
-    if(state.transport==='ride')baseCost=Math.max(0,Math.floor(baseCost/2)); // 騎乘減半
+    if(target.road)baseCost=Math.max(0,baseCost-1);
+    if(state.transport==='ride')baseCost=Math.max(0,Math.floor(baseCost/2));
     baseCost+=w.supplyPenalty;
     const supplyCost=Math.max(0,baseCost);
 
-    /* 步驟 4：移動 */
+    /* 步驟 3：移動 */
     state.pos={q:tq,r:tr};
-    state.miles+=MILES_PER_HEX;
-    const wasNew=revealHex(target);
+    state.miles+=state.hexSizeMi;
+    const wasNew=revealHex(target,2);
     target.visited=true;
     state.history.push({day:state.day,q:tq,r:tr,terrain:target.terrain,note:`${t.name}${target.road?'（道路）':''}`});
 
-    /* 步驟 5：補給消耗套用 */
+    /* 步驟 4：補給消耗 */
     state.supplies=clamp(state.supplies-supplyCost,0,state.maxSupplies);
-
     addLog(`🧭 第 ${state.day} 天：踏入${t.name}${target.road?'（道路）':''}（-${supplyCost} 補給）`);
     if(wasNew){state.xp+=t.xp;addLog(`　→ 首次探索此地形，探索點 +${t.xp}`);}
     if(state.weather==='storm')unlockAchv('weather');
@@ -789,17 +824,16 @@ async function doMove(tq,tr){
     await sleep(280);
     if(mySession!==state.sessionId)return;
 
-    /* 步驟 6：飢餓檢查 */
+    /* 步驟 5：飢餓 */
     if(state.supplies===0){
       state.hp-=3;
       addLog('⚠️ 補給耗盡！你餓得頭昏眼花（生命 -3）');
       unlockAchv('survivor');
-      render();
-      await sleep(220);
+      render();await sleep(220);
       if(mySession!==state.sessionId)return;
     }
 
-    /* 步驟 7：迷路判定（p155） */
+    /* 步驟 6：迷路 */
     let lostChance=0;
     if(t.hard)lostChance+=25;
     lostChance+=w.lostBonus;
@@ -808,12 +842,11 @@ async function doMove(tq,tr){
     if(lostChance>0&&Math.random()*100<lostChance){
       state.supplies=clamp(state.supplies-1,0,state.maxSupplies);
       addLog('🌫️ 你迷失了方向，多繞了一段路（補給 -1）');
-      render();
-      await sleep(220);
+      render();await sleep(220);
       if(mySession!==state.sessionId)return;
     }
 
-    /* 步驟 8：遭遇判定（p292，含道路降低機率） */
+    /* 步驟 7：遭遇 */
     let encChance=30+w.encBonus;
     if(target.road)encChance=Math.floor(encChance/2);
     if(Math.random()*100<encChance){
@@ -822,14 +855,14 @@ async function doMove(tq,tr){
       if(state.phase==='OVER')return;
     }
 
-    /* 步驟 9：六角變更判定（表 6） */
+    /* 步驟 8：六角變更 */
     if(target.visited&&target.changeRule!=='perpetual'){
       await applyHexChange(target,mySession);
       if(mySession!==state.sessionId)return;
       render();
     }
 
-    /* 步驟 10：興趣點 */
+    /* 步驟 9：POI */
     if(target.poi&&!target.poi.done){
       await openPoi(target,mySession);
       if(mySession!==state.sessionId)return;
@@ -850,47 +883,41 @@ async function doMove(tq,tr){
   }
 }
 
-/* 遭遇（p292-334，含距離 p334） */
+/* 遭遇 */
 async function triggerEncounter(mySession){
   const enc=pick(ENCOUNTERS);
   const distLabel=pick(enc.distance);
   state.phase='MODAL';
   render();
-
   const choiceIdx=await showModal(
     `<div class="modal-icon">${enc.icon}</div>
      <h2>${enc.title}</h2>
      <p class="modal-text typewriter" data-text="${enc.text.replace(/"/g,'&quot;')}"></p>
-     <div class="tip">📍 遭遇距離：<b>${distLabel}</b><br><span style="font-size:12px">（依地形與天氣判定，參見規則書 p334）</span></div>`,
+     <div class="tip">📍 遭遇距離：<b>${distLabel}</b><br><span style="font-size:11.5px">（依地形與天氣判定，參見規則書 p334）</span></div>`,
     enc.options.map(o=>({label:o.label}))
   );
   if(mySession!==state.sessionId)return;
-
   state.phase='MODAL';
   const opt=enc.options[choiceIdx];
   let eff;
   try{eff=opt.resolve();}catch(e){eff={icon:'📜',text:'一陣混亂之後，你勉強脫身。',xp:2};}
   applyEffects(eff);
   render();
-
   await showModal(
-    `<div class="modal-icon">${eff.icon||'📜'}</div>
-     <h2>結果</h2><p class="modal-text">${eff.text}</p>`,
+    `<div class="modal-icon">${eff.icon||'📜'}</div><h2>結果</h2><p class="modal-text">${eff.text}</p>`,
     [{label:'繼續前進',primary:true}]
   );
 }
 
-/* 興趣點（p198-275） */
+/* 興趣點（p198-275，含向下銜接 p352） */
 async function openPoi(hex,mySession){
   const poi=hex.poi;
   state.phase='MODAL';
   render();
-
   let html='',buttons=[],handler=null;
 
   if(poi.type==='settlement'){
-    html=`<div class="modal-icon">🏘️</div><h2>聚落</h2>
-      <p class="modal-text">炊煙裊裊，幾間石屋圍著一口老井。村民們抬起頭，用警惕又不失好奇的眼神打量你。</p>`;
+    html=`<div class="modal-icon">🏘️</div><h2>聚落</h2><p class="modal-text">炊煙裊裊，幾間石屋圍著一口老井。村民們抬起頭，用警惕又不失好奇的眼神打量你。</p>`;
     buttons=[
       {label:'🛏️ 在村莊歇腳（+8 生命 / +3 補給 / +1 天）',value:'rest'},
       {label:'🗣️ 向村民打聽消息（+12 探索點）',value:'talk'},
@@ -903,8 +930,7 @@ async function openPoi(hex,mySession){
     };
   }
   else if(poi.type==='monstrous'){
-    html=`<div class="modal-icon">🐉</div><h2>怪物巢穴</h2>
-      <p class="modal-text">岩壁上被刨出一個黑黝黝的洞口，地面散落著骨骸與爪痕。裡頭傳來沉重的呼吸聲。</p>`;
+    html=`<div class="modal-icon">🐉</div><h2>怪物巢穴</h2><p class="modal-text">岩壁上被刨出一個黑黝黝的洞口，地面散落著骨骸與爪痕。裡頭傳來沉重的呼吸聲。</p>`;
     buttons=[{label:'⚔️ 深入討伐',value:'fight'},{label:'🚶 悄悄離開',value:'leave'}];
     handler=v=>{
       if(v==='fight'){const r=d20();return r>=11?{icon:'🏆',text:`你將巢穴主人擊斃（擲出 ${r}）。牠的儲藏堆裡有不少好東西。`,supplies:3,xp:28}:{icon:'🩸',text:`你被巢穴主人打了個措手不及（擲出 ${r}）。`,hp:-7,xp:12};}
@@ -912,8 +938,7 @@ async function openPoi(hex,mySession){
     };
   }
   else if(poi.type==='npc'){
-    html=`<div class="modal-icon">👤</div><h2>荒野旅人</h2>
-      <p class="modal-text">一位披著斗篷的旅人獨自坐在火堆旁，見你走近，抬手示意你一起坐下。</p>`;
+    html=`<div class="modal-icon">👤</div><h2>荒野旅人</h2><p class="modal-text">一位披著斗篷的旅人獨自坐在火堆旁，見你走近，抬手示意你一起坐下。</p>`;
     buttons=[
       {label:'🔥 坐下交談',value:'talk'},
       {label:'🍖 分享補給',value:'share'},
@@ -926,8 +951,7 @@ async function openPoi(hex,mySession){
     };
   }
   else if(poi.type==='divine'){
-    html=`<div class="modal-icon">⛪</div><h2>神性場所</h2>
-      <p class="modal-text">一座半塌的神殿矗立在荒野中，祭壇上還殘留著早已乾涸的供品。</p>`;
+    html=`<div class="modal-icon">⛪</div><h2>神性場所</h2><p class="modal-text">一座半塌的神殿矗立在荒野中，祭壇上還殘留著早已乾涸的供品。</p>`;
     buttons=[
       {label:'🙏 誠心祈禱',value:'pray'},
       {label:'🔍 搜尋祭壇',value:'search'},
@@ -940,8 +964,7 @@ async function openPoi(hex,mySession){
     };
   }
   else if(poi.type==='military'){
-    html=`<div class="modal-icon">⚔️</div><h2>軍事據點</h2>
-      <p class="modal-text">一座木造瞭望塔矗立在山丘上，塔上飄著某個領主的旗幟。士兵們警覺地望向你。</p>`;
+    html=`<div class="modal-icon">⚔️</div><h2>軍事據點</h2><p class="modal-text">一座木造瞭望塔矗立在山丘上，塔上飄著某個領主的旗幟。士兵們警覺地望向你。</p>`;
     buttons=[
       {label:'🛡️ 表明身分',value:'identify'},
       {label:'💰 繳納過路費',value:'pay'},
@@ -954,8 +977,7 @@ async function openPoi(hex,mySession){
     };
   }
   else if(poi.type==='factional'){
-    html=`<div class="modal-icon">🏴</div><h2>派系基地</h2>
-      <p class="modal-text">幾頂帳篷圍成一圈，中央插著一面你不認得的旗幟。裡頭的人看起來不太好惹。</p>`;
+    html=`<div class="modal-icon">🏴</div><h2>派系基地</h2><p class="modal-text">幾頂帳篷圍成一圈，中央插著一面你不認得的旗幟。裡頭的人看起來不太好惹。</p>`;
     buttons=[
       {label:'🗣️ 上前交涉',value:'talk'},
       {label:'🕵️ 觀察一陣',value:'observe'},
@@ -968,8 +990,7 @@ async function openPoi(hex,mySession){
     };
   }
   else if(poi.type==='magical'){
-    html=`<div class="modal-icon">✨</div><h2>魔法遺跡</h2>
-      <p class="modal-text">三塊刻滿符文的巨石圍成一圈，中央的空氣微微扭曲。</p>`;
+    html=`<div class="modal-icon">✨</div><h2>魔法遺跡</h2><p class="modal-text">三塊刻滿符文的巨石圍成一圈，中央的空氣微微扭曲。</p>`;
     buttons=[{label:'🔮 觸碰符文',value:'touch'},{label:'🚶 保持距離離開',value:'leave'}];
     handler=v=>{
       if(v==='touch'){const r=d20();return r>=9?{icon:'✨',text:`符文在你指尖亮起（擲出 ${r}），一股暖流湧遍全身。`,hp:6,xp:22}:{icon:'⚡',text:`符文爆出白光（擲出 ${r}），你被震得跌坐在地。`,hp:-5,xp:12};}
@@ -977,8 +998,7 @@ async function openPoi(hex,mySession){
     };
   }
   else if(poi.type==='geographic'){
-    html=`<div class="modal-icon">🗿</div><h2>地理奇觀</h2>
-      <p class="modal-text">一道瀑布從數十丈高的崖頂傾瀉而下，在夕陽中碎成萬點金光。</p>`;
+    html=`<div class="modal-icon">🗿</div><h2>地理奇觀</h2><p class="modal-text">一道瀑布從數十丈高的崖頂傾瀉而下，在夕陽中碎成萬點金光。</p>`;
     buttons=[
       {label:'📜 記錄地貌（+18 探索點）',value:'record'},
       {label:'💧 補充飲水（+2 補給）',value:'water'},
@@ -991,8 +1011,7 @@ async function openPoi(hex,mySession){
     };
   }
   else if(poi.type==='adventure'){
-    html=`<div class="modal-icon">🗺️</div><h2>冒險之地</h2>
-      <p class="modal-text">半塌的石牆從荒草間探出頭來，瓦礫下似乎藏著什麼。</p>`;
+    html=`<div class="modal-icon">🗺️</div><h2>冒險之地</h2><p class="modal-text">半塌的石牆從荒草間探出頭來，瓦礫下似乎藏著什麼。</p>`;
     buttons=[{label:'🗝️ 仔細搜尋',value:'search'},{label:'🚶 離開',value:'leave'}];
     handler=v=>{
       if(v==='search'){const r=d20();return r>=9?{icon:'💎',text:`你搬開碎石（擲出 ${r}），找到幾件堪用的補給。`,supplies:2,xp:20}:{icon:'🪨',text:`除了蟲子什麼也沒有（擲出 ${r}）。`,hp:-3,xp:8};}
@@ -1000,8 +1019,7 @@ async function openPoi(hex,mySession){
     };
   }
   else if(poi.type==='landmark'){
-    html=`<div class="modal-icon">🗼</div><h2>地標</h2>
-      <p class="modal-text">一座巨大的石像矗立在荒野中央，面容早已風化得模糊不清。</p>`;
+    html=`<div class="modal-icon">🗼</div><h2>地標</h2><p class="modal-text">一座巨大的石像矗立在荒野中央，面容早已風化得模糊不清。</p>`;
     buttons=[
       {label:'📜 記錄地標',value:'record'},
       {label:'🔍 繞著石像觀察',value:'observe'},
@@ -1014,15 +1032,14 @@ async function openPoi(hex,mySession){
     };
   }
   else if(poi.type==='minor'){
-    html=`<div class="modal-icon">🌿</div><h2>次要特徵</h2>
-      <p class="modal-text">一叢罕見的野花在荒草間盛開，顏色鮮豔得有些不真實。</p>`;
+    html=`<div class="modal-icon">🌿</div><h2>次要特徵</h2><p class="modal-text">一叢罕見的野花在荒草間盛開，顏色鮮豔得有些不真實。</p>`;
     buttons=[{label:'🌿 採集野花',value:'gather'},{label:'🚶 繼續前進',value:'leave'}];
     handler=v=>{
       if(v==='gather'){const r=d20();return r>=10?{icon:'🌿',text:`你小心採集了一些（擲出 ${r}），或許能賣個好價錢。`,supplies:1,xp:10}:{icon:'🌸',text:`你採集了一些（擲出 ${r}），香氣讓人心曠神怡。`,hp:2,xp:8};}
       return{icon:'👣',text:'你靜靜欣賞了一會兒，繼續趕路。',xp:3};
     };
   }
-  else{ /* ruin 遠古遺跡 */
+  else{ /* ruin */
     html=`<div class="modal-icon">🏛️</div><h2>遠古遺跡</h2>
       <p class="modal-text">巨大的石柱從地表拔起，上頭浮雕著早已無人記得的文字與圖騰。<br><br>
       <span style="color:#8a5a12;font-weight:700">這正是你此行尋找的目標之一。</span></p>`;
@@ -1056,6 +1073,7 @@ async function doCamp(){
   try{
     state.day+=1;
     state.weather=rollWeather();
+    state.temperature=computeTemperature();
     if(state.supplies>0){
       state.supplies-=1;
       state.hp=clamp(state.hp+7,0,state.maxHp);
@@ -1073,7 +1091,7 @@ async function doCamp(){
   }
 }
 
-/* 就地觀察（p147 陸上行動） */
+/* 觀察（p147） */
 async function doLook(){
   if(state.phase!=='PLAYER')return;
   SFX.click();
@@ -1087,7 +1105,7 @@ async function doLook(){
     let revealedAny=false;
     for(const k in state.hexes){
       const o=state.hexes[k];
-      if(!o.revealed&&hexDistance(state.pos,o)<=range){o.revealed=true;revealedAny=true;}
+      if(o.fogLevel<2&&hexDistance(state.pos,o)<=range){revealHex(o,2);revealedAny=true;}
     }
     if(r>=13){state.xp+=10;addLog(`🧭 你登上高處觀察（擲出 ${r}），看清了鄰近地形（探索點 +10）`);if(revealedAny)addLog('　→ 附近地形已繪入地圖');SFX.good();}
     else if(r>=6){state.xp+=4;addLog(`🧭 你仔細觀察四周（擲出 ${r}），大致確認了方向（探索點 +4）`);}
@@ -1098,6 +1116,27 @@ async function doLook(){
   }finally{
     if(mySession===state.sessionId&&state.phase!=='OVER')state.phase='PLAYER';
     checkGameOver();render();
+  }
+}
+
+/* 播種（p30） */
+async function doSeed(){
+  if(state.phase!=='PLAYER'||state.seeded)return;
+  SFX.click();
+  state.phase='BUSY';
+  const mySession=++state.sessionId;
+  render();
+  try{
+    const n=seedWorld();
+    state.seeded=true;
+    unlockAchv('seed');
+    SFX.seed();
+    addLog(`🌱 你在此處播下了 ${n} 顆冒險的種子（附近 ${n} 個六角將有興趣點）。`);
+    render();await sleep(320);
+    if(mySession!==state.sessionId)return;
+  }finally{
+    if(mySession===state.sessionId&&state.phase!=='OVER')state.phase='PLAYER';
+    render();
   }
 }
 
@@ -1125,6 +1164,7 @@ async function endGame(endingId){
   else if(choice==='achv'){showAchievements().then(()=>{closeModal();});}
   else{startGame();}
 }
+function closeModal(){ $('#modal-root').innerHTML=''; }
 
 /* 成就 */
 function loadAchv(){try{return JSON.parse(localStorage.getItem(ACHV_KEY)||'{}');}catch(e){return{};}}
@@ -1143,7 +1183,7 @@ function loadEndings(){try{return JSON.parse(localStorage.getItem(END_KEY)||'[]'
 /* 存檔/讀檔 */
 function saveGame(){
   try{
-    const data={day:state.day,hp:state.hp,supplies:state.supplies,xp:state.xp,relics:state.relics,pos:state.pos,hexes:state.hexes,log:state.log.slice(-60),history:state.history,miles:state.miles,soundOn:state.soundOn,weather:state.weather,transport:state.transport,savedAt:Date.now()};
+    const data={day:state.day,hp:state.hp,supplies:state.supplies,xp:state.xp,relics:state.relics,pos:state.pos,hexes:state.hexes,log:state.log.slice(-60),history:state.history,miles:state.miles,soundOn:state.soundOn,weather:state.weather,season:state.season,temperature:state.temperature,transport:state.transport,hexSizeMi:state.hexSizeMi,designMode:state.designMode,changeMindAllowed:state.changeMindAllowed,hexChangeCount:state.hexChangeCount,seeded:state.seeded,savedAt:Date.now()};
     localStorage.setItem(SAVE_KEY,JSON.stringify(data));
     toast('💾 進度已儲存');SFX.good();
   }catch(e){toast('⚠️ 儲存失敗：瀏覽器儲存空間不足');}
@@ -1163,14 +1203,18 @@ async function loadGame(){
     state.relics=d.relics;state.pos=d.pos;state.hexes=d.hexes;
     state.log=d.log||[];state.history=d.history||[];
     state.miles=d.miles||0;state.soundOn=d.soundOn!==false;
-    state.weather=d.weather||'clear';state.transport=d.transport||'walk';
+    state.weather=d.weather||'clear';state.season=d.season||'spring';
+    state.temperature=d.temperature||15;state.transport=d.transport||'walk';
+    state.hexSizeMi=d.hexSizeMi||12;state.designMode=d.designMode||'play';
+    state.changeMindAllowed=d.changeMindAllowed!==false;
+    state.hexChangeCount=d.hexChangeCount||0;state.seeded=!!d.seeded;
     state.phase='PLAYER';
     $('#modal-root').innerHTML='';
     render();toast('📂 存檔已讀取');SFX.good();return true;
   }catch(e){toast('⚠️ 存檔損壞，無法讀取');return false;}
 }
 
-/* 說明文件（完整版） */
+/* 說明文件（完整版，含目錄覆蓋聲明） */
 const HELP_HTML=`
 <div class="modal doc">
   <h2>📖 遊戲說明</h2>
@@ -1186,17 +1230,19 @@ const HELP_HTML=`
     <li><span class="hl">📅 天數</span>：目前第幾天／總共 40 天。</li>
     <li><span class="hl">⭐ 探索點</span>：冒險成果，不影響勝負。</li>
     <li><span class="hl">🏛️ 遺跡</span>：找到的遠古遺跡數量（滿 3 即勝利）。</li>
-    <li><span class="hl">📏 里程</span>：已行走的英里數（每格 = 12 英里）。</li>
+    <li><span class="hl">📏 里程</span>：已行走的英里數（每格可選 3/6/12/24 英里）。</li>
   </ul>
   <p>狀態列下方的<span class="hl">第二列</span>：</p>
   <ul>
     <li>☀️ <b>天氣</b>：每天自動判定。暴風雨/降雪會增加移動消耗。</li>
+    <li>🌸 <b>季節與溫度</b>：每 10 天換季。冬季溫度低，暴風雨機率高。</li>
     <li>🚶 <b>交通方式</b>：可切換步行/騎乘。騎乘消耗減半、迷路減半，但無法進入山地或沼澤。</li>
   </ul>
   <p>畫面<span class="hl">正中央</span>是六角格地圖：</p>
   <ul>
-    <li>🌫️ 深色帶 ? = 未探索。</li>
-    <li>🌾🌲⛰️🏔️🪵🏜️🌊 = 已探索地形。🌊 水域不可通行。</li>
+    <li>🌫️ 深色帶 ? = 未探索（戰爭迷霧第 0 層）。</li>
+    <li>🌫️ 半透明帶 ? = 已瞥見但未進入（第 1 層）。</li>
+    <li>🌾🌲⛰️🏔️🪵🏜️🌊 = 已探索地形（第 2 層）。🌊 水域不可通行。</li>
     <li><b>小圓形徽章</b> = 興趣點可互動。</li>
     <li><b>金色發光邊框</b> = 你目前位置。</li>
     <li><b>金色描邊的相鄰格</b> = 可移動過去。</li>
@@ -1210,21 +1256,27 @@ const HELP_HTML=`
     <li><b>興趣點</b>：進入有徽章的格子自動彈出互動視窗。</li>
     <li><b>🏕️ 紮營</b>：消耗 1 天 + 1 補給，恢復 7 生命。</li>
     <li><b>🧭 觀察</b>：擲骰揭示附近地形（範圍受天氣影響）。</li>
+    <li><b>🌱 播種</b>：在你的周圍 2 格內隨機播下興趣點種子（每局一次）。</li>
   </ol>
 
   <h3>✨ 特殊機制</h3>
   <ul>
     <li><b>地形消耗</b>：山地、沼澤、沙漠額外 -1 補給。道路再 -1。</li>
     <li><b>天氣影響</b>：暴風雨/降雪 +1 補給消耗；雨天/濃霧降低觀察範圍。</li>
+    <li><b>季節</b>：每 10 天換季（春→夏→秋→冬）。冬季暴風雨機率提高。</li>
     <li><b>迷路</b>：山地/沼澤基礎 25% 迷路（-1 補給）；天氣加成；道路/騎乘減半。</li>
     <li><b>飢餓</b>：補給為 0 時每次移動扣 3 生命。</li>
-    <li><b>六角變更（表 6）</b>：重新踏入已探索的六角時，依規則書表 6 判定原內容是否還在。可能永久保持、蒸發、或變成新內容。</li>
+    <li><b>六角變更（表 6）</b>：重新踏入已探索的六角時，依規則書表 6 判定原內容是否還在。</li>
+    <li><b>六角變更解釋（表 5）</b>：變更發生時，依表 5 判定原因（謎團、摧毀、入侵、幻象……）。</li>
+    <li><b>合理性檢查</b>：變更後的新內容若與地形矛盾（例如沙漠中的沼澤），會自動重擲。</li>
     <li><b>遠古遺跡</b>：只在距離起點 2 格以上。深入探索 -2 補給、+35 探索點。</li>
-    <li><b>興趣點密度</b>：依地形不同，平原 22%、山地 38%。</li>
-    <li><b>遭遇距離</b>：近距離 30 呎、中距離 120 呎、遠距離 300 呎，依書中 p334。</li>
+    <li><b>戰爭迷霧</b>：三層（未探索 / 瞥見 / 已探索）。「觀察」可從第 0 層跳到第 2 層。</li>
+    <li><b>遭遇距離</b>：近距離 30 呎、中距離 120 呎、遠距離 300 呎。</li>
   </ul>
 
-  <div class="warn"><b>小提醒：</b>水域無法進入。四周被水域包圍時，可用「紮營」度過時間。</div>
+  <div class="info"><b>📌 關於本遊戲的規則覆蓋範圍：</b><br>
+  本遊戲完整實作了你提供的文本中<span class="hl">表 5、表 6、六角變更、播種、前期工作、設計時/遊戲時、規模放大縮小、六角盒、六角尺寸</span>等章節。<br>
+  其他目錄主題（如遠征、子六角、負重、技能、任務表等）採用<span class="hl">簡化實作</span>，因為原始文本中未提供這些章節的詳細規則。</div>
 
   <h3>💡 給新手的建議</h3>
   <div class="tip">
@@ -1232,7 +1284,8 @@ const HELP_HTML=`
     • 走<b>道路</b>省補給、少迷路。<br>
     • 看到 🏘️ 聚落一定要休息。<br>
     • 探索遺跡前先確認補給 ≥ 2。<br>
-    • 生命低於 8 點時避免戰鬥。
+    • 生命低於 8 點時避免戰鬥。<br>
+    • 「播種」是唯一一次性的方便功能，建議開局就用。
   </div>
 </div>`;
 
@@ -1286,6 +1339,28 @@ async function showAchievements(){
   state.phase=prev==='OVER'?'OVER':'PLAYER';render();
 }
 
+async function showSettings(){
+  const prev=state.phase;state.phase='MODAL';
+  const sizeOpts=HEX_SIZES.map(s=>`<option value="${s.mi}" ${state.hexSizeMi===s.mi?'selected':''}>${s.label}</option>`).join('');
+  const html=`<div class="modal doc"><h2>⚙️ 設定</h2>
+    <h3>🔊 音效</h3>
+    <p>目前：<span class="hl">${state.soundOn?'開啟':'關閉'}</span></p>
+    <h3>🧭 六角尺寸（p46）</h3>
+    <p>目前：<span class="hl">${state.hexSizeMi} 英里/格</span></p>
+    <select id="sel-size" style="width:100%;padding:9px;font-family:inherit;font-size:13px;border-radius:7px;border:2px solid #94723f;background:#fbf3dd;color:#2b1d0e">${sizeOpts}</select>
+    <h3>🎨 設計時 / 遊戲時（p26）</h3>
+    <p>目前：<span class="hl">${state.designMode==='design'?'設計時':'遊戲時'}</span></p>
+    <p style="font-size:12px;color:#6b5232">設計時：六角變更不會觸發（世界已預先設計）。<br>遊戲時：六角變更依表 6 觸發。</p>
+    <button id="btn-toggle-mode" style="width:100%;padding:10px;margin-top:6px;font-family:inherit;font-size:13px;font-weight:700;border-radius:9px;border:2px solid #94723f;background:linear-gradient(#fdf6e2,#e6d2a6);cursor:pointer">切換為 ${state.designMode==='design'?'遊戲時':'設計時'}</button>
+    <h3>💭 改變主意（p14）</h3>
+    <p>目前：<span class="hl">${state.changeMindAllowed?'允許':'禁止'}</span> 在遊戲中切換規則。</p>
+    <button id="btn-toggle-mind" style="width:100%;padding:10px;margin-top:6px;font-family:inherit;font-size:13px;font-weight:700;border-radius:9px;border:2px solid #94723f;background:linear-gradient(#fdf6e2,#e6d2a6);cursor:pointer">切換為 ${state.changeMindAllowed?'禁止':'允許'}</button>
+    <div class="info" style="margin-top:12px">六角變更次數：<span class="hl">${state.hexChangeCount}</span> 次</div>
+  </div>`;
+  await showModal(html,[{label:'關閉',primary:true}]);
+  state.phase=prev==='OVER'?'OVER':'PLAYER';render();
+}
+
 /* 開始 */
 function startGame(){
   const soundPref=state.soundOn!==undefined?state.soundOn:true;
@@ -1294,15 +1369,16 @@ function startGame(){
   state.hexes=generateWorld();
   state.pos={q:0,r:0};
   const start=state.hexes[hexKey(0,0)];
-  start.revealed=true;start.visited=true;start.changeRule='perpetual';
-  for(const[dq,dr]of HEX_DIRS){const n=state.hexes[hexKey(dq,dr)];if(n)n.revealed=true;}
+  start.revealed=true;start.visited=true;start.fogLevel=2;start.changeRule='perpetual';
+  for(const[dq,dr]of HEX_DIRS){const n=state.hexes[hexKey(dq,dr)];if(n)revealHex(n,2);}
   state.weather=rollWeather();
+  state.temperature=computeTemperature();
   state.phase='PLAYER';
   state.log=[];state.history=[];
-  addLog(`🗺️ 你抵達了這片陌生的土地（${WEATHER[state.weather].icon} ${WEATHER[state.weather].name}）。`);
+  addLog(`🗺️ 你抵達了這片陌生的土地（${WEATHER[state.weather].icon} ${WEATHER[state.weather].name}，${state.temperature}°C）。`);
   addLog('💡 點擊金色描邊的相鄰格子開始移動。');
   $('#modal-root').innerHTML='';
-  render();updateSoundBtn();
+  render();
 }
 function updateSoundBtn(){
   const btn=document.querySelector('#nav button[data-act="sound"]');
@@ -1328,6 +1404,7 @@ function bindEvents(){
   });
   $('#btn-camp').addEventListener('click',doCamp);
   $('#btn-look').addEventListener('click',doLook);
+  $('#btn-seed').addEventListener('click',doSeed);
   document.querySelectorAll('#nav button').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const act=btn.dataset.act;
@@ -1337,7 +1414,14 @@ function bindEvents(){
       else if(act==='load'){if(state.phase==='MODAL')return;loadGame();}
       else if(act==='history'){if(state.phase==='MODAL')return;showHistory();}
       else if(act==='achv'){if(state.phase==='MODAL')return;showAchievements();}
-      else if(act==='sound'){state.soundOn=!state.soundOn;updateSoundBtn();toast(state.soundOn?'🔊 音效已開啟':'🔇 音效已關閉');if(state.soundOn)SFX.click();}
+      else if(act==='settings'){if(state.phase==='MODAL'||state.phase==='OVER')return;showSettings().then(()=>{
+        const sel=document.getElementById('sel-size');
+        if(sel)sel.onchange=()=>{state.hexSizeMi=parseInt(sel.value);SFX.click();toast(`📏 六角尺寸：${state.hexSizeMi} 英里`);};
+        const tm=document.getElementById('btn-toggle-mode');
+        if(tm)tm.onclick=()=>{state.designMode=state.designMode==='design'?'play':'design';SFX.click();toast(state.designMode==='design'?'🎨 設計時模式':'🎮 遊戲時模式');unlockAchv('change_mind');closeModal();showSettings().then(()=>{const s=document.getElementById('sel-size');if(s)s.onchange=()=>{state.hexSizeMi=parseInt(s.value);};const t2=document.getElementById('btn-toggle-mode');if(t2)t2.onclick=()=>{};});};
+        const tm2=document.getElementById('btn-toggle-mind');
+        if(tm2)tm2.onclick=()=>{state.changeMindAllowed=!state.changeMindAllowed;SFX.click();closeModal();showSettings();};
+      });}
     });
   });
 }
@@ -1348,16 +1432,16 @@ function boot(){
   state.hexes=generateWorld();
   state.pos={q:0,r:0};
   const start=state.hexes[hexKey(0,0)];
-  start.revealed=true;start.visited=true;start.changeRule='perpetual';
-  for(const[dq,dr]of HEX_DIRS){const n=state.hexes[hexKey(dq,dr)];if(n)n.revealed=true;}
+  start.revealed=true;start.visited=true;start.fogLevel=2;start.changeRule='perpetual';
+  for(const[dq,dr]of HEX_DIRS){const n=state.hexes[hexKey(dq,dr)];if(n)revealHex(n,2);}
   state.weather='clear';
+  state.temperature=computeTemperature();
   state.phase='BOOT';
   render();bindEvents();updateSoundBtn();
   showHelp(true);
 }
 window.addEventListener('DOMContentLoaded',boot);
 
-/* 防止 iOS 雙擊縮放 */
 let lastTouch=0;
 document.addEventListener('touchend',(e)=>{
   const now=Date.now();
