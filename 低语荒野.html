@@ -3,129 +3,94 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>低语荒野 · 单人随机冒险</title>
+<title>低语荒野 · DCC 单人随机冒险</title>
 <style>
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0;min-height:100%}
-  body{
-    background:radial-gradient(circle at 50% -10%,#241d3a,#0b0910 65%);
-    color:#ddd8c8;
-    font-family:"Noto Serif SC","Songti SC","STSong",Georgia,serif;
-    font-size:14px;line-height:1.6;
-  }
-  #app{max-width:1220px;margin:0 auto;padding:12px;display:flex;flex-direction:column;gap:10px}
-  /* ---------- 顶栏 ---------- */
-  #topbar{display:flex;justify-content:space-between;align-items:center;
-    border-bottom:1px solid #37304f;padding-bottom:10px;flex-wrap:wrap;gap:10px}
-  .logo{display:flex;align-items:center;gap:9px;font-size:21px;letter-spacing:5px;color:#c9a227;text-shadow:0 0 18px rgba(201,162,39,.35)}
-  .logo svg{filter:drop-shadow(0 0 6px rgba(201,162,39,.5))}
-  .hud{display:flex;gap:6px 16px;font-size:13px;color:#9891b3;flex-wrap:wrap;align-items:center}
-  .hud b{color:#e6dfc9;font-weight:600}
-  /* ---------- 布局 ---------- */
-  #board{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:10px}
-  @media(max-width:900px){#board{grid-template-columns:1fr}}
-  .panel{background:linear-gradient(180deg,#181426,#131020);border:1px solid #2e2942;
-    border-radius:10px;padding:10px;box-shadow:0 4px 22px rgba(0,0,0,.45)}
-  /* ---------- 地图 ---------- */
-  #mapWrap svg{width:100%;height:auto;display:block;border-radius:6px}
-  .hex{transition:filter .12s, stroke .12s;cursor:default}
-  .hex.reach{cursor:pointer}
-  .hex.reach:hover{filter:brightness(1.45) drop-shadow(0 0 6px #c9a227)}
-  .hex.here{stroke:#ffe28a;stroke-width:3}
-  .maplabel{font-size:9px;fill:#fff6d8;text-anchor:middle;pointer-events:none;
-    paint-order:stroke;stroke:#11101c;stroke-width:2.6px;stroke-linejoin:round}
-  .maplabel.town{fill:#ffd964;font-weight:700}
-  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:#8b84a6;margin-top:8px}
-  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
-  /* ---------- 队伍 ---------- */
-  .char{background:#1d1830;border:1px solid #2f2a46;border-radius:8px;padding:8px 9px;margin-bottom:8px}
-  .char.dead{opacity:.42;filter:grayscale(1);border-color:#5a2430}
-  .char-head{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
-  .cname{color:#ffe9a8;font-size:15px;letter-spacing:1px}
-  .cocc{font-size:11px;color:#8f88ab}
-  .hpbar{height:6px;background:#2a2438;border-radius:3px;overflow:hidden;margin:5px 0 4px}
-  .hpbar>div{height:100%;background:linear-gradient(90deg,#7a2d3a,#c14b58);transition:width .3s}
-  .char.dead .hpbar>div{background:#3a2a2a}
-  .row{display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px;color:#a49dbe}
-  .row b{color:#ded6ee;font-weight:600}
-  .omen{color:#8c82a8;font-size:10.5px;font-style:italic}
-  /* ---------- 行动条 ---------- */
-  #actionBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  button{
-    font-family:inherit;font-size:13.5px;cursor:pointer;color:#f0e8d0;
-    background:linear-gradient(180deg,#2f2749,#221c36);
-    border:1px solid #4b3f6e;border-radius:7px;padding:8px 16px;
-    transition:.15s;letter-spacing:1px;
-  }
-  button:hover{background:linear-gradient(180deg,#3e3360,#2b2344);border-color:#8a6fc4;
-    box-shadow:0 0 12px rgba(138,111,196,.45)}
-  button:active{transform:translateY(1px)}
-  button.primary{background:linear-gradient(180deg,#6b5220,#4a3712);border-color:#c9a227;color:#ffe9a8}
-  button.primary:hover{box-shadow:0 0 16px rgba(201,162,39,.6)}
-  button.danger{background:linear-gradient(180deg,#5a2230,#3a1420);border-color:#a3405a}
-  .hint{font-size:12px;color:#7f789a;margin-left:4px}
-  /* ---------- 日志 ---------- */
-  #logPanel{height:260px;overflow-y:auto;padding:10px 12px}
-  #logPanel::-webkit-scrollbar{width:8px}
-  #logPanel::-webkit-scrollbar-thumb{background:#3a3455;border-radius:4px}
-  #log p{margin:0 0 3px;font-size:13px}
-  .c-dim{color:#7d7699}
-  .c-good{color:#8fd18f}
-  .c-bad{color:#e08a8a}
-  .c-death{color:#ff5f6d;font-weight:700;letter-spacing:1px}
-  .c-warn{color:#e8c463}
-  .c-round{color:#8a7fc4;border-top:1px dashed #322b4a;padding-top:4px;margin-top:6px}
-  .c-town{color:#7cc6e8}
-  .c-title{color:#c9a227;font-size:15px;letter-spacing:2px}
-  /* ---------- 开始画面 ---------- */
-  #startScreen{text-align:center;padding:40px 20px}
-  #startScreen h2{color:#c9a227;font-size:26px;letter-spacing:8px;margin:0 0 14px}
-  #startScreen p{color:#a49dbe;max-width:620px;margin:0 auto 10px;font-size:13.5px}
-  .combatBox{margin-top:8px}
-  .mon{display:inline-flex;align-items:center;gap:6px;background:#241c2e;border:1px solid #4a2a35;
-    border-radius:6px;padding:4px 10px;margin:3px;font-size:12px;color:#e0a8a8}
-  .mon.wounded{color:#b98}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 50% -10%,#241d3a,#0b0910 65%);color:#ddd8c8;font-family:"Noto Serif SC","Songti SC",Georgia,serif;font-size:13.5px;line-height:1.55}
+#app{max-width:1280px;margin:0 auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+#topbar{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #37304f;padding-bottom:8px;flex-wrap:wrap;gap:8px}
+.logo{display:flex;align-items:center;gap:8px;font-size:20px;letter-spacing:4px;color:#c9a227;text-shadow:0 0 18px rgba(201,162,39,.35)}
+.hud{display:flex;gap:6px 14px;font-size:12.5px;color:#9891b3;flex-wrap:wrap}
+.hud b{color:#e6dfc9}
+#board{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:8px}
+@media(max-width:950px){#board{grid-template-columns:1fr}}
+.panel{background:linear-gradient(180deg,#181426,#131020);border:1px solid #2e2942;border-radius:9px;padding:9px;box-shadow:0 4px 22px rgba(0,0,0,.45)}
+#mapWrap svg{width:100%;height:auto;display:block;border-radius:5px}
+.hex{transition:filter .12s,stroke .12s}
+.hex.reach{cursor:pointer}
+.hex.reach:hover{filter:brightness(1.5) drop-shadow(0 0 6px #c9a227)}
+.hex.here{stroke:#ffe28a;stroke-width:2.5}
+.maplabel{font-size:7.5px;fill:#fff6d8;text-anchor:middle;pointer-events:none;paint-order:stroke;stroke:#11101c;stroke-width:2px;stroke-linejoin:round}
+.maplabel.town{fill:#ffd964;font-weight:700;font-size:8px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;color:#8b84a6;margin-top:6px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;vertical-align:-1px}
+.char{background:#1d1830;border:1px solid #2f2a46;border-radius:7px;padding:7px 8px;margin-bottom:6px}
+.char.dead{opacity:.4;filter:grayscale(1);border-color:#5a2430}
+.char-head{display:flex;justify-content:space-between;align-items:baseline;gap:5px}
+.cname{color:#ffe9a8;font-size:14px;letter-spacing:1px}
+.cocc{font-size:10.5px;color:#8f88ab}
+.hpbar{height:5px;background:#2a2438;border-radius:3px;overflow:hidden;margin:4px 0 3px}
+.hpbar>div{height:100%;background:linear-gradient(90deg,#7a2d3a,#c14b58);transition:width .3s}
+.char.dead .hpbar>div{background:#3a2a2a}
+.row{display:flex;gap:8px;flex-wrap:wrap;font-size:10.5px;color:#a49dbe}
+.row b{color:#ded6ee}
+.omen{color:#8c82a8;font-size:10px;font-style:italic}
+#actionBar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+button{font-family:inherit;font-size:13px;cursor:pointer;color:#f0e8d0;background:linear-gradient(180deg,#2f2749,#221c36);border:1px solid #4b3f6e;border-radius:6px;padding:7px 14px;transition:.15s;letter-spacing:1px}
+button:hover{background:linear-gradient(180deg,#3e3360,#2b2344);border-color:#8a6fc4;box-shadow:0 0 12px rgba(138,111,196,.45)}
+button:active{transform:translateY(1px)}
+button.primary{background:linear-gradient(180deg,#6b5220,#4a3712);border-color:#c9a227;color:#ffe9a8}
+button.danger{background:linear-gradient(180deg,#5a2230,#3a1420);border-color:#a3405a}
+button.small{padding:4px 9px;font-size:11.5px}
+.hint{font-size:11.5px;color:#7f789a;margin-left:4px}
+#logPanel{height:270px;overflow-y:auto;padding:8px 10px}
+#logPanel::-webkit-scrollbar{width:7px}
+#logPanel::-webkit-scrollbar-thumb{background:#3a3455;border-radius:4px}
+#log p{margin:0 0 2px;font-size:12.5px}
+.c-dim{color:#7d7699}.c-good{color:#8fd18f}.c-bad{color:#e08a8a}.c-death{color:#ff5f6d;font-weight:700}
+.c-warn{color:#e8c463}.c-round{color:#8a7fc4;border-top:1px dashed #322b4a;padding-top:3px;margin-top:5px}
+.c-town{color:#7cc6e8}.c-title{color:#c9a227;font-size:14px;letter-spacing:2px}
+#modal{position:fixed;inset:0;background:rgba(5,4,10,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+#modal.show{display:flex}
+#modalBox{background:linear-gradient(180deg,#1e1830,#151020);border:1px solid #5a4a86;border-radius:11px;max-width:560px;width:100%;max-height:86vh;overflow-y:auto;padding:18px;box-shadow:0 0 40px rgba(138,111,196,.3)}
+#modalBox h3{color:#c9a227;margin:0 0 10px;letter-spacing:2px;font-size:17px}
+#modalBox p{color:#c5bedb;font-size:13px;margin:0 0 8px}
+#modalBox .opt{display:block;width:100%;text-align:left;margin:5px 0;padding:9px 13px}
+#modalBox .opt:hover{border-color:#c9a227}
+#startScreen{text-align:center;padding:30px 16px}
+#startScreen h2{color:#c9a227;font-size:24px;letter-spacing:6px;margin:0 0 12px}
+#startScreen p{color:#a49dbe;max-width:660px;margin:0 auto 8px;font-size:13px}
+.mon{display:inline-flex;align-items:center;gap:5px;background:#241c2e;border:1px solid #4a2a35;border-radius:5px;padding:3px 9px;margin:2px;font-size:11.5px;color:#e0a8a8}
+.tag{display:inline-block;background:#2a2340;border:1px solid #4a3f6a;border-radius:4px;padding:1px 6px;font-size:10.5px;margin:0 2px;color:#b8b0d4}
 </style>
 </head>
 <body>
 <div id="app">
   <header id="topbar">
     <div class="logo">
-      <svg width="26" height="26" viewBox="0 0 100 100">
-        <polygon points="50,5 93,28 93,72 50,95 7,72 7,28" fill="none" stroke="#c9a227" stroke-width="6"/>
-        <circle cx="50" cy="50" r="13" fill="#c9a227"/>
-      </svg>
+      <svg width="24" height="24" viewBox="0 0 100 100"><polygon points="50,5 93,28 93,72 50,95 7,72 7,28" fill="none" stroke="#c9a227" stroke-width="6"/><circle cx="50" cy="50" r="13" fill="#c9a227"/></svg>
       <span>低语荒野</span>
     </div>
     <div class="hud" id="hud"></div>
   </header>
-
   <div id="board">
     <div class="panel" id="mapPanel">
       <div id="mapWrap"></div>
-      <div class="legend">
-        <span><i style="background:#6f8f4f"></i>平原</span>
-        <span><i style="background:#5a8a9c"></i>沿海</span>
-        <span><i style="background:#38602f"></i>森林</span>
-        <span><i style="background:#8a7a4a"></i>丘陵</span>
-        <span><i style="background:#6a6a72"></i>山脉</span>
-        <span><i style="background:#4a5535"></i>沼泽</span>
-        <span><i style="background:#22456b"></i>海洋</span>
-      </div>
+      <div class="legend" id="legend"></div>
     </div>
     <div class="panel" id="partyPanel"></div>
   </div>
-
   <div id="actionBar"></div>
   <div class="panel" id="logPanel"><div id="log"></div></div>
 </div>
+<div id="modal"><div id="modalBox"></div></div>
 
 <script>
 /* ============================================================
-   低语荒野 · 单人随机冒险
+   低语荒野 · 基于 DCC RPG 的完整单人随机冒险
    ============================================================ */
 
-/* ---------------- 骰子与工具 ---------------- */
+/* ---------------- 骰子 ---------------- */
 const die = n => 1 + Math.floor(Math.random() * n);
 function roll(n, s){ let t = 0; for(let i = 0; i < n; i++) t += die(s); return t; }
 function pick(a){ return a[Math.floor(Math.random() * a.length)]; }
@@ -138,734 +103,974 @@ function dice(str){
   return t;
 }
 function statMod(v){
-  if(v <= 3) return -3;
-  if(v <= 5) return -2;
-  if(v <= 8) return -1;
-  if(v <= 12) return 0;
-  if(v <= 15) return 1;
-  if(v <= 17) return 2;
-  return 3;
+  if(v <= 3) return -3; if(v <= 5) return -2; if(v <= 8) return -1;
+  if(v <= 12) return 0; if(v <= 15) return 1; if(v <= 17) return 2; return 3;
 }
 
-/* ---------------- 数据表 ---------------- */
-const NAMES = ['阿贵','石头','小满','狗剩','铁蛋','二丫','大壮','阿福','三顺','来福','春生','秋收','小翠','老蔫','拴柱','满仓','栓子','黑豆','泥鳅','阿土','胖虎','豆芽','二狗','火根','禾苗','麦穗','谷雨','惊蛰','长庚','阿七'];
+/* ============================================================
+   数据表
+   ============================================================ */
 
-const OCCUPATIONS = [
-  {name:'农夫', weapon:'干草叉', dmg:'1d6', goods:'母鸡'},
-  {name:'铁匠', weapon:'铁锤', dmg:'1d4', goods:'钢钳'},
-  {name:'猎人', weapon:'短弓', dmg:'1d6', goods:'鹿皮'},
-  {name:'伐木工', weapon:'手斧', dmg:'1d6', goods:'一捆木柴'},
-  {name:'矿工', weapon:'铁镐', dmg:'1d6', goods:'提灯'},
-  {name:'佣兵', weapon:'长剑', dmg:'1d8', goods:'兽皮甲'},
-  {name:'盗贼', weapon:'匕首', dmg:'1d4', goods:'精良工具'},
-  {name:'吟游诗人', weapon:'匕首', dmg:'1d4', goods:'尤克里里'},
-  {name:'法师学徒', weapon:'匕首', dmg:'1d4', goods:'黑色魔法书'},
-  {name:'屠夫', weapon:'剁刀', dmg:'1d6', goods:'半扇牛肉'},
-  {name:'鞋匠', weapon:'锥子', dmg:'1d4', goods:'鞋拔'},
-  {name:'磨坊主', weapon:'棍棒', dmg:'1d4', goods:'面粉 1 磅'},
-  {name:'牧人', weapon:'法杖', dmg:'1d4', goods:'牧羊犬'},
-  {name:'士兵', weapon:'长矛', dmg:'1d8', goods:'盾牌'},
-  {name:'侍从', weapon:'长剑', dmg:'1d8', goods:'钢盔'},
-  {name:'算命师', weapon:'匕首', dmg:'1d4', goods:'塔罗牌'},
-  {name:'赌徒', weapon:'棍棒', dmg:'1d4', goods:'骰子'},
-  {name:'草药师', weapon:'棍棒', dmg:'1d4', goods:'草药 1 磅'},
-  {name:'制绳匠', weapon:'小刀', dmg:'1d4', goods:'绳索 100 英尺'},
-  {name:'车匠', weapon:'棍棒', dmg:'1d4', goods:'手推车'},
-  {name:'行会乞丐', weapon:'投石索', dmg:'1d4', goods:'拐杖'},
-  {name:'走私者', weapon:'投石索', dmg:'1d4', goods:'防水袋'},
-  {name:'掘墓人', weapon:'铁锹', dmg:'1d4', goods:'泥刀'},
-  {name:'亡命徒', weapon:'短剑', dmg:'1d6', goods:'皮甲'},
+/* 0 级职业表 d100（完整） */
+const OCC_TABLE = [
+  [1,1,'炼金术士','法杖','1d4','油 1 瓶','人类'],
+  [2,2,'驯兽师','棍棒','1d4','矮种马','人类'],
+  [3,3,'甲匠','锤','1d4','铁盔','人类'],
+  [4,4,'占星师','匕首','1d4','单筒望远镜','人类'],
+  [5,5,'理发师','剃刀','1d4','剪刀','人类'],
+  [6,6,'教区执事','法杖','1d4','圣徽','人类'],
+  [7,7,'养蜂人','法杖','1d4','一罐蜂蜜','人类'],
+  [8,8,'铁匠','锤','1d4','钢钳','人类'],
+  [9,9,'屠夫','剁刀','1d6','半扇牛肉','人类'],
+  [10,10,'商队护卫','短剑','1d6','亚麻布 1 码','人类'],
+  [11,11,'奶酪匠','短棒','1d4','臭奶酪','人类'],
+  [12,12,'鞋匠','锥子','1d4','鞋拔','人类'],
+  [13,13,'骗子','匕首','1d4','上等斗篷','人类'],
+  [14,14,'桶匠','铁撬','1d4','木桶','人类'],
+  [15,15,'果贩','刀','1d4','水果','人类'],
+  [16,16,'扒手','匕首','1d4','小箱子','人类'],
+  [17,17,'挖渠工','铁锹','1d4','细土 1 磅','人类'],
+  [18,18,'矮人药剂师','短棒','1d4','钢制小瓶','矮人'],
+  [19,20,'矮人铁匠','锤','1d4','秘银 1 盎司','矮人'],
+  [21,21,'矮人制箱匠','凿子','1d4','木材 10 磅','矮人'],
+  [22,22,'矮人牧人','法杖','1d4','母猪','矮人'],
+  [23,24,'矮人矿工','镐','1d6','提灯','矮人'],
+  [25,25,'矮人菇农','铁锹','1d4','麻袋','矮人'],
+  [26,26,'矮人捕鼠人','棍棒','1d4','网','矮人'],
+  [27,28,'矮人石匠','锤','1d4','上等石料 10 磅','矮人'],
+  [29,29,'精灵工匠','法杖','1d4','黏土 1 磅','精灵'],
+  [30,30,'精灵律师','羽笔','1d4','书','精灵'],
+  [31,31,'精灵蜡烛匠','剪刀','1d4','蜡烛 20 支','精灵'],
+  [32,32,'精灵驯鹰人','匕首','1d4','猎鹰','精灵'],
+  [33,34,'精灵林务官','法杖','1d4','草药 1 磅','精灵'],
+  [35,35,'精灵吹玻璃匠','锤','1d4','玻璃珠','精灵'],
+  [36,36,'精灵领航员','弓','1d6','单筒望远镜','精灵'],
+  [37,38,'精灵贤者','匕首','1d4','羊皮纸与羽笔','精灵'],
+  [39,47,'农夫','干草叉','1d6','母鸡','人类'],
+  [48,48,'算命师','匕首','1d4','塔罗牌','人类'],
+  [49,49,'赌徒','棍棒','1d4','骰子','人类'],
+  [50,50,'掏粪工','泥刀','1d4','一袋夜土','人类'],
+  [51,52,'掘墓人','铁锹','1d4','泥刀','人类'],
+  [53,54,'行会乞丐','投石索','1d4','拐杖','人类'],
+  [55,55,'半身人鸡贩','手斧','1d6','鸡肉 5 磅','半身人'],
+  [56,57,'半身人染工','法杖','1d4','布料 3 码','半身人'],
+  [58,58,'半身人手套匠','锥子','1d4','手套 4 副','半身人'],
+  [59,59,'半身人吉普赛人','投石索','1d4','巫偶','半身人'],
+  [60,60,'半身人服饰商','剪刀','1d4','上等套装 3 套','半身人'],
+  [61,61,'半身人水手','刀','1d4','帆布 2 码','半身人'],
+  [62,62,'半身人放贷人','短剑','1d6','5gp 10sp 200cp','半身人'],
+  [63,63,'半身人商贩','短剑','1d6','20sp','半身人'],
+  [64,64,'半身人流浪汉','棍棒','1d4','讨饭碗','半身人'],
+  [65,65,'治疗者','棍棒','1d4','圣水 1 瓶','人类'],
+  [66,66,'草药师','棍棒','1d4','草药 1 磅','人类'],
+  [67,67,'牧人','法杖','1d4','牧羊犬','人类'],
+  [68,69,'猎人','短弓','1d6','鹿皮','人类'],
+  [70,70,'契约仆役','法杖','1d4','挂坠盒','人类'],
+  [71,71,'弄臣','飞镖','1d4','丝绸衣服','人类'],
+  [72,72,'珠宝匠','匕首','1d4','价值 20gp 宝石','人类'],
+  [73,73,'锁匠','匕首','1d4','精良工具','人类'],
+  [74,74,'托钵僧','棍棒','1d4','奶酪蘸酱','人类'],
+  [75,75,'雇佣兵','长剑','1d8','兽皮甲','人类'],
+  [76,76,'商人','匕首','1d4','4gp 14sp 27cp','人类'],
+  [77,77,'磨坊主','棍棒','1d4','面粉 1 磅','人类'],
+  [78,78,'吟游诗人','匕首','1d4','尤克里里','人类'],
+  [79,79,'贵族','长剑','1d8','价值 10gp 金戒指','人类'],
+  [80,80,'孤儿','棍棒','1d4','布娃娃','人类'],
+  [81,81,'马夫','法杖','1d4','马笼头','人类'],
+  [82,82,'亡命徒','短剑','1d6','皮甲','人类'],
+  [83,83,'制绳匠','刀','1d4','绳索 100 英尺','人类'],
+  [84,84,'抄写员','飞镖','1d4','羊皮纸 10 张','人类'],
+  [85,85,'萨满','钉头锤','1d6','草药 1 磅','人类'],
+  [86,86,'奴隶','棍棒','1d4','模样古怪石头','人类'],
+  [87,87,'走私者','投石索','1d4','防水袋','人类'],
+  [88,88,'士兵','矛','1d8','盾牌','人类'],
+  [89,90,'侍从','长剑','1d8','钢盔','人类'],
+  [91,91,'税吏','长剑','1d8','100cp','人类'],
+  [92,93,'捕兽者','投石索','1d4','獾皮','人类'],
+  [94,94,'街头顽童','木棍','1d4','讨饭碗','人类'],
+  [95,95,'车匠','棍棒','1d4','手推车','人类'],
+  [96,96,'织工','匕首','1d4','上等衣服','人类'],
+  [97,97,'法师学徒','匕首','1d4','黑色魔法书','人类'],
+  [98,100,'伐木工','手斧','1d6','一捆木柴','人类'],
 ];
 
+/* 幸运预兆 d30 */
 const OMENS = [
-  '严冬 · 所有攻击掷骰','公牛 · 近战攻击掷骰','吉日 · 远程攻击掷骰','狼群养大 · 徒手攻击',
-  '马上受孕 · 骑乘攻击','生于战场 · 伤害掷骰','熊之道 · 近战伤害','鹰眼 · 远程伤害',
-  '群猎者 · 起始武器攻击与伤害','织机下出生 · 技能检定','狐狸的狡黠 · 发现陷阱','四叶草 · 发现暗门',
-  '第七子 · 法术检定','狂怒风暴 · 法术伤害','正义之心 · 驱散邪祟','瘟疫幸存者 · 魔法治疗',
-  '幸运吉兆 · 豁免检定','守护天使 · 逃离陷阱','蜘蛛咬伤幸存者 · 抗毒','遭雷击 · 反射豁免',
-  '熬过饥荒 · 强韧豁免','抵住诱惑 · 意志豁免','吉屋 · 护甲等级','眼镜蛇之速 · 先攻',
-  '丰收 · 生命值','战士之臂 · 暴击表','凶宅 · 腐化','破碎之星 · 大失败',
-  '鸟鸣 · 语言数量','野孩子 · 速度'
+  ['严冬','所有攻击掷骰'],['公牛','近战攻击掷骰'],['吉日','远程攻击掷骰'],['狼群养大','徒手攻击掷骰'],
+  ['马上受孕','骑乘攻击掷骰'],['生于战场','伤害掷骰'],['熊之道','近战伤害掷骰'],['鹰眼','远程伤害掷骰'],
+  ['群猎者','0 级起始武器攻击与伤害'],['织机下出生','技能检定'],['狐狸的狡黠','发现/解除陷阱'],['四叶草','发现暗门'],
+  ['第七子','法术检定'],['狂怒风暴','法术伤害'],['正义之心','驱散邪祟检定'],['瘟疫幸存者','魔法治疗'],
+  ['幸运吉兆','豁免检定'],['守护天使','逃离陷阱豁免'],['蜘蛛咬伤幸存者','抗毒豁免'],['遭雷击','反射豁免'],
+  ['熬过饥荒','强韧豁免'],['抵住诱惑','意志豁免'],['吉屋','护甲等级'],['眼镜蛇之速','先攻'],
+  ['丰收','生命值'],['战士之臂','暴击表'],['凶宅','腐化掷骰'],['破碎之星','大失败'],
+  ['鸟鸣','语言数量'],['野孩子','速度']
 ];
 
-const EQUIPMENT = ['背包','蜡烛','铁链','粉笔','铁撬','火石与火镰','抓钩','小锤','圣徽','圣水',
-  '提灯','手镜','油瓶','木杆','口粮','绳索','大麻袋','盗贼工具','火把','水囊'];
+/* 0 级随机装备 d24 */
+const GEAR = ['背包(2gp)','蜡烛(1cp)','铁链10英尺(30gp)','粉笔1支(1cp)','空箱(2gp)','铁撬(2gp)','空瓶(3cp)',
+  '火石与火镰(15cp)','抓钩(1gp)','小锤(5sp)','圣徽(25gp)','圣水1瓶(25gp)','铁钉每枚(1sp)','提灯(10gp)',
+  '手镜(10gp)','油1瓶(2sp)','木杆10英尺(15cp)','口粮每日(5cp)','绳索50英尺(25cp)','大麻袋(12cp)',
+  '小麻袋(8cp)','盗贼工具(25gp)','火把每支(1cp)','水囊(5sp)'];
 
-const MONSTERS = {
-  kobold:  {name:'狗头人', ac:10, hp:'1d4',   atk:0, dmg:'1d3',   init:0,  xp:1},
-  goblin:  {name:'地精',   ac:12, hp:'1d6',   atk:-1,dmg:'1d4',   init:0,  xp:1},
-  rat:     {name:'巨鼠',   ac:13, hp:'1d6',   atk:2, dmg:'1d4',   init:1,  xp:1},
-  wolf:    {name:'狼',     ac:12, hp:'1d6',   atk:2, dmg:'1d4',   init:1,  xp:1},
-  snake:   {name:'毒蛇',   ac:11, hp:'1d8',   atk:2, dmg:'1d4',   init:1,  xp:1},
-  skeleton:{name:'骷髅',   ac:9,  hp:'1d6',   atk:0, dmg:'1d3',   init:0,  xp:1},
-  zombie:  {name:'僵尸',   ac:9,  hp:'2d6',   atk:3, dmg:'1d4',   init:-1, xp:2},
-  orc:     {name:'兽人',   ac:14, hp:'1d8',   atk:1, dmg:'1d6',   init:0,  xp:2},
-  bandit:  {name:'匪徒',   ac:15, hp:'1d8',   atk:2, dmg:'1d8',   init:0,  xp:2},
-  spider:  {name:'巨蜘蛛', ac:13, hp:'1d8',   atk:2, dmg:'1d4',   init:2,  xp:2},
-  harpy:   {name:'鹰身女妖',ac:12,hp:'2d6',   atk:2, dmg:'1d4',   init:1,  xp:2},
-  cultist: {name:'邪教徒', ac:11, hp:'1d6',   atk:0, dmg:'1d4',   init:0,  xp:1},
-  ghoul:   {name:'食尸鬼', ac:12, hp:'2d6',   atk:3, dmg:'1d4',   init:1,  xp:3},
-  wight:   {name:'尸妖',   ac:14, hp:'3d6',   atk:4, dmg:'1d6',   init:1,  xp:3},
-  ogre:    {name:'食人魔', ac:16, hp:'4d8',   atk:5, dmg:'1d6+6', init:-1, xp:3},
+/* 怪物图鉴（完整） */
+const MON = {
+  goblin:{n:'地精',ac:12,hd:'1d6-1',atk:-1,dmg:'1d3/1d4',mv:20,threat:1,xp:1,ir:60},
+  kobold:{n:'狗头人',ac:10,hd:'1d4',atk:0,dmg:'1d3',mv:20,threat:1,xp:1,ir:60},
+  orc:{n:'兽人',ac:14,hd:'1d8+1',atk:1,dmg:'1d4/1d6',mv:30,threat:2,xp:2},
+  wolf:{n:'狼',ac:12,hd:'1d6',atk:2,dmg:'1d4',mv:40,threat:2,xp:1},
+  direwolf:{n:'恐狼',ac:14,hd:'2d6',atk:6,dmg:'1d6+2',mv:40,threat:3,xp:3},
+  boar:{n:'野猪',ac:11,hd:'2d8',atk:2,dmg:'1d6',mv:40,threat:2,xp:2},
+  rat:{n:'巨鼠',ac:13,hd:'1d6+2',atk:2,dmg:'1d4+1',mv:30,threat:2,xp:1,poison:'DC7强韧否则+1d6'},
+  swarm:{n:'鼠群',ac:9,hd:'4d8',atk:1,dmg:'1',mv:40,threat:2,xp:2,swarm:true},
+  zombie:{n:'僵尸',ac:9,hd:'3d6',atk:3,dmg:'1d4',mv:20,threat:2,xp:2,undead:true},
+  skeleton:{n:'骷髅',ac:9,hd:'1d6',atk:0,dmg:'1d3',mv:30,threat:1,xp:1,undead:true},
+  ghoul:{n:'食尸鬼',ac:12,hd:'2d6',atk:3,dmg:'1d4',mv:30,threat:3,xp:3,undead:true,paralyze:'DC14意志否则麻痹1d6h'},
+  wight:{n:'尸妖',ac:14,hd:'3d6',atk:4,dmg:'1d6',mv:30,threat:3,xp:3,undead:true,drain:'吸取1力量'},
+  ogre:{n:'食人魔',ac:16,hd:'4d8+4',atk:5,dmg:'1d6+6',mv:20,threat:3,xp:3},
+  troll:{n:'巨魔',ac:19,hd:'8d8+6',atk:10,dmg:'2d8+6',mv:40,threat:4,xp:4,regen:'每轮+1d8,火焰杀死'},
+  spider:{n:'巨蜘蛛',ac:13,hd:'1d8+1',atk:2,dmg:'1d4',mv:30,threat:2,xp:2,poison:'DC8强韧否则+1d4'},
+  owlbear:{n:'枭熊',ac:17,hd:'3d8',atk:6,dmg:'1d6+2',mv:20,threat:3,xp:3,mr:25},
+  bandit:{n:'匪徒',ac:15,hd:'1d8',atk:2,dmg:'1d8+1',mv:20,threat:2,xp:2},
+  banditLeader:{n:'匪徒头目',ac:17,hd:'3d8',atk:6,dmg:'1d8+3',mv:20,threat:3,xp:3},
+  banditArcher:{n:'匪徒射手',ac:14,hd:'1d8',atk:2,dmg:'1d6',mv:20,threat:2,xp:2,ranged:true},
+  cultist:{n:'邪教徒',ac:11,hd:'1d6',atk:0,dmg:'1d4',mv:30,threat:2,xp:2},
+  bat:{n:'蝙蝠群',ac:8,hd:'2d6',atk:2,dmg:'1',mv:40,threat:1,xp:1,swarm:true},
+  snake:{n:'毒蛇',ac:11,hd:'1d8',atk:2,dmg:'1d4',mv:20,threat:2,xp:1,poison:'DC8强韧否则+1d4'},
+  harpy:{n:'鹰身女妖',ac:12,hd:'2d6',atk:2,dmg:'1d4',mv:30,threat:2,xp:2,song:'DC12意志否则被引诱'},
 };
 
-const TERRAIN = {
-  plains:  {name:'平原', color:'#6f8f4f', ap:2},
-  coast:   {name:'沿海', color:'#5a8a9c', ap:2},
-  forest:  {name:'森林', color:'#38602f', ap:3},
-  hills:   {name:'丘陵', color:'#8a7a4a', ap:3},
-  mountain:{name:'山脉', color:'#6a6a72', ap:4},
-  swamp:   {name:'沼泽', color:'#4a5535', ap:4},
-  ocean:   {name:'海洋', color:'#22456b', ap:99},
+/* 遭遇数量 */
+const MON_COUNT = {
+  goblin:'1d4+1',kobold:'1d4+2',orc:'1d3',wolf:'1d3+1',direwolf:1,boar:'1d2',rat:'1d3+1',swarm:1,
+  zombie:'1d3',skeleton:'1d4',ghoul:'1d2',wight:1,ogre:1,troll:1,spider:'1d2',owlbear:1,
+  bandit:'1d3+1',banditLeader:1,banditArcher:'1d3',cultist:'1d3',bat:1,snake:'1d3',harpy:'1d2'
 };
 
-const COLS = 12, ROWS = 9;
+/* 升档 */
+const UPGRADE = {goblin:'orc',kobold:'orc',wolf:'direwolf',skeleton:'wight',zombie:'ghoul',rat:'swarm',bandit:'banditLeader',bat:'harpy'};
 
-/* ---------------- 游戏状态 ---------------- */
-const state = {
-  mode: 'title',           // title | explore | combat | gameover
-  day: 1,
-  ap: 6,
-  maxAp: 6,
-  weather: '晴朗',
-  gold: 0,
-  rations: 10,
-  party: [],
-  map: [],
-  pos: {r:4, c:5},
-  combat: null,
-  logs: [],
+/* 地形 */
+const TER = {
+  plains:{n:'平原',c:'#6f8f4f',ap:2,enc:'1d4==1'},
+  coast:{n:'沿海',c:'#5a8a9c',ap:2,enc:'1d4==1'},
+  forest:{n:'森林',c:'#38602f',ap:3,enc:'1d6<=2'},
+  hills:{n:'丘陵',c:'#8a7a4a',ap:3,enc:'1d6<=2'},
+  mountain:{n:'山脉',c:'#6a6a72',ap:6,enc:'1d4<=2'},
+  swamp:{n:'沼泽',c:'#4a5535',ap:6,enc:'1d4<=2'},
+  desert:{n:'沙漠',c:'#c2a45a',ap:3,enc:'1d6<=2'},
+  jungle:{n:'丛林',c:'#2e5a24',ap:6,enc:'1d4<=2'},
+  ocean:{n:'海洋',c:'#22456b',ap:99,enc:'0'},
 };
 
-/* ---------------- 日志 ---------------- */
-function log(msg, cls){
-  state.logs.push({msg, cls: cls || ''});
-  if(state.logs.length > 220) state.logs.shift();
+/* 暴击表 I–V */
+const CRIT_I = [
+  '武器脱手震飞,+1d6伤害,被缴械','趁隙一击,+1d3伤害','戳中眼睛,+1d4伤害','额头致晕,+1d3,敌人下轮先攻最后',
+  '击中膝盖,+1d4,速度-10直到治愈','结结实实打中躯干,+1d6','卸下敌人武器,获免费攻击','砸碎手,+2d3,断两指',
+  '致麻一击,敌人下轮无法攻击','敌人绊倒,本轮俯卧','贯穿刺击,+2d4','击中裆部,DC15强韧否则干呕两轮',
+  '砸碎脚踝,速度减半','擦过太阳穴,目盲1d3轮','刺中持械手,武器飞1d10+5英尺','避开反击,正常伤害+再攻击+1d6',
+  '击中咽喉,2轮无法说话/施法/攻击','敌人撞进攻击,+2d6','奇迹一击,DC20强韧否则昏倒','砸凹头骨,+2d6,无盔者永久-1d4智力'
+];
+const CRIT_II = [
+  '未命中!迟疑错失','避开要害,+2d3','削掉耳朵,+1d6,留疤','干净击中背部,+2d6','击中胸口踉跄,免费攻击',
+  '刺穿肾脏,+3d3,震慑1轮','敌人懵,速度与行动减半','擦过要害,+3d4','脸上血线,目盲1d4轮','敌人扑倒,再攻击',
+  '大师一击,+2d6','割断喉管','残暴一击,DC10+等级强韧否则痛昏','迅捷连击,1d4轮攻击-4','击中头,DC10+等级强韧否则昏倒',
+  '打倒,+2d6并俯卧','打爆眼珠,永久失明1d3轮无法行动','刺穿肺,+2d6,下回合仅一行动','击中后脑,+1d8,DC10+等级强韧否则昏倒',
+  '割断大动脉,+1d10,DC10+等级强韧否则昏倒','喉头割开,+2d6,DC13+等级强韧否则1d4轮死','刺穿脊柱,+3d6,DC15+等级强韧否则瘫痪',
+  '胸腔贯穿,+2d6,DC13+等级强韧否则1d4轮死','穿耳入脑,DC15+等级强韧否则死;成功+2d6','刺穿心脏,+3d6,DC20+等级强韧否则死'
+];
+const CRIT_III = [
+  '分不清敌友:敌人+1d12,最近盟友+1d4','野蛮攻击,+1d6','扫离地面,下轮俯卧','敌人撞进,+1d8','砸跪,再攻击',
+  '砸碎鼻,+1d6,失嗅1d4h','凶残击中躯干,+1d8,多肋断','击中手,武器飞1d20+5英尺','颅骨弹开,失聪1d6天,+1d6','股骨碎裂,+2d6,速度-10',
+  '击碎敌人武器','砸中腹内出血,1d5h内死(除非魔法治疗)','击中颅骨,DC10+等级强韧否则昏','打断下颌,+1d8','砸中躯干,+2d8',
+  '肩关节脱臼,+1d8,盾不再提供AC','持械手烂肉,未来攻击-4','狂怒连击,再攻击','碎骨入前脑,+1d8,-1d4智/个','毁灭胸口,+2d8',
+  '击中胸口,震慑1d3轮,+1d8','股骨碎倒地,速度减半,+2d8,再攻击','持械臂斩断,武器失去','头颅凹坑,+2d8,永久-1d4智/个','击中咽喉,+2d8,喘气1d4轮',
+  '碎肋骨入肺,失去50%HP,呕血','面部摧毁双眼,+2d8,永久失明','碾压胸腔,+3d8,DC15+等级强韧否则昏','摧毁脊柱,+3d8,DC15+等级强韧否则瘫痪'
+];
+const CRIT_IV = [
+  '分不清敌友:敌人+2d8,盟友+1d4','大力神一击,+2d12','持械手剩腕桩,+1d12','扫倒,+1d12,对俯卧再攻击','鼻软骨入脑,+1d12,-1d6智',
+  '击碎敌人武器;无武器者+2d12','砸碎胸骨,DC15+等级强韧否则昏','狂猛攻势,+2d12,放弃下次攻击','震荡一击,+1d8,再攻击','咽喉穿透,+2d12,1d4周无法说话',
+  '砸凹太阳穴,DC15+等级强韧否则目盲1d4轮','面部烂肉,+2d12','战斗怒火,+1d12','锤击躯干,+2d12','击中脊柱,敌人AC-4',
+  '可怖一击,俯卧恐惧1d4轮','砸碎盾,+2d12;无盾震慑1d4轮','膝盖炸成红雾,速度0,再攻击','前额叶切除,+1d12,DC15+等级强韧否则失忆,震慑1d4轮','武器砸进敌人自己的脸,自身武器三倍伤害,惊惧丢武器',
+  '碾碎脊髓,+3d12,DC15+等级强韧否则永久瘫痪','内脏捣成果冻,1d8轮内死','剖腹肠流,1d6轮休克死','心脏爆裂,+3d12,DC15+等级强韧否则当场死','头骨砸烂,+3d12,DC20+等级强韧否则1d3轮内死'
+];
+const CRIT_V = [
+  '分不清敌友:敌人+3d8,盟友+1d4','击碎敌人武器;无武器+3d12','抛飞1d10英尺,相邻敌人误击','击中颅骨毁耳,+1d12,永久失聪','击中腹,DC20+等级强韧否则胃破干呕两轮',
+  '敌人丢武器求饶,+1d12,再攻击','削头皮,等同目盲','敌人武器缠住,AC-6,再攻击','眼前一片红,+1d12','眼前一片红,+1d12',
+  '武器砸进敌人自己的脸,四倍伤害,惊惧丢武器','劈开盾,+2d12;无盾DC20+等级强韧否则痛昏','脊柱压短6英寸,敌人AC-4','剖腹肠流,当场休克死','摧毁面部,立刻目盲失聪',
+  '削去颅顶,3d3轮内死','斩断持盾臂,+2d12','神一般一击,+3d12;目标死可移动10英尺再攻击','斩断腿,+2d12,移动0,1d4轮哀号','震慑1d4+1轮,永久-1d12智,对动弹不得者再攻击',
+  '斩断持械臂,+2d12,缴械','肠子打空,失去50%HP','碾碎咽喉,1d4轮内溺死','致残重击脊柱,+4d12,永久瘫痪','一击斩首!继续攻击10英尺内敌人直到失手'
+];
+
+/* 大失败表（按护甲骰 d4/d8/d12/d16 映射到 0-16） */
+const FUMBLE = [
+  '胡乱挥空,奇迹般无伤','拙劣一击,成笑柄但无伤','绊了一下,DC10反射否则俯卧一轮','武器脱手,下次攻击-2',
+  '武器损坏,10分钟可修','绊倒浪费行动,下轮起身','武器缠进护甲,下轮解开,护甲-1(10分钟重调)','武器脱手,下个行动必须拾回或换武器',
+  '砸坚固物,凡俗武器被毁(魔法免疫)','踉跄暴露,下个攻击你的敌人+2','护甲关节卡死!1d3轮不能移动/攻击(无甲免疫)','狂乱挥击失衡,下次攻击-4',
+  '不慎挥向随机盟友,同颗攻击骰对其掷','重重绊倒,1d3伤害并俯卧','像乌龟翻背,俯卧战斗一轮','弄伤自己,受正常伤害',
+  '意外击中自己,正常伤害+1;仰面倒地,DC16敏捷起身'
+];
+
+/* 法术（核心） */
+const SPELLS = {
+  magicMissile:{n:'魔法飞弹',lv:1,tbl:[[12,'1发1d4+1'],[14,'2发'],[18,'3发'],[20,'4发'],[24,'5发'],[28,'6发'],[30,'7发']],lose:true},
+  burningHands:{n:'燃烧之手',lv:1,tbl:[[12,'1d3'],[14,'1d4'],[18,'1d6'],[20,'1d8单'],[24,'1d6全体'],[28,'1d8全体'],[30,'1d10全体着火']],lose:true},
+  charmPerson:{n:'魅惑人类',lv:1,tbl:[[12,'迟疑1轮'],[14,'1敌1轮不动'],[18,'2轮不攻击'],[20,'1敌倒戈2轮'],[24,'2敌倒戈2轮'],[28,'全体呆立1轮'],[30,'全体拜倒3轮']],lose:true},
+  sleep:{n:'睡眠',lv:1,tbl:[[12,'1敌入睡DC10'],[14,'1敌DC12'],[18,'2敌DC12'],[20,'3敌DC14'],[24,'弱小敌DC12'],[28,'全体DC16'],[30,'全体DC20']],lose:true},
+  shield:{n:'魔法护盾',lv:1,tbl:[[12,'自身AC+2 1d4轮'],[14,'AC+3 1d6轮'],[18,'AC+4 1d6轮'],[20,'自身+1队友AC+4 1d8轮'],[24,'全队AC+3 1d8轮'],[28,'全队AC+4 1d10轮'],[30,'全队AC+4整场']],lose:true},
+  cantrip:{n:'戏法',lv:1,tbl:[[12,'小把戏成功'],[20,'1敌下轮攻击-2'],[24,'2敌下轮-2'],[28,'全敌下轮-1'],[30,'兼得']],lose:false},
+  spiderClimb:{n:'蛛行',lv:2,tbl:[[12,'自身10分钟'],[14,'全队10分钟'],[18,'全队30分钟'],[20,'全队1h'],[24,'全队2h'],[28,'全队半天'],[30,'全队一天']],lose:true},
+  chillTouch:{n:'寒冷之触',lv:2,tbl:[[12,'1d4'],[14,'1d6'],[18,'1d8'],[20,'1d8+迟缓1轮'],[24,'全敌1d6'],[28,'全敌1d8+迟缓'],[30,'全敌1d10+冻结1轮']],lose:true},
+  fireball:{n:'火球',lv:3,tbl:[[12,'1敌2d6'],[14,'3d6'],[18,'4d6'],[20,'全敌2d6'],[24,'3d6'],[28,'4d6+着火'],[30,'5d6+着火']],lose:true},
+};
+const CLERIC_SPELLS = {
+  bless:{n:'祝福',lv:1,tbl:[[12,'全队攻击+1'],[14,'+1伤害'],[18,'攻击+2'],[20,'+2AC+1'],[24,'+3'],[28,'+3AC+2'],[30,'+4AC+2伤害+2']],lose:true},
+  command:{n:'命令之言',lv:1,tbl:[[12,'1敌迟疑DC10'],[14,'2轮DC12'],[18,'2敌DC12'],[20,'弱敌1轮DC10'],[24,'全体1轮DC14'],[28,'全体跪2轮DC16'],[30,'全体震慑3轮DC20']],lose:true},
+  food:{n:'诸神之粮',lv:1,tbl:[[12,'1份'],[14,'1d4份'],[18,'1d6份+全队1HP'],[20,'2d6份'],[24,'3d6份+1HP'],[28,'4d6份'],[30,'5d6份+2HP']],lose:true},
+  sanctuary:{n:'神圣庇护所',lv:1,tbl:[[12,'全队AC+1'],[14,'AC+2'],[18,'AC+2敌攻-1'],[20,'AC+3'],[24,'AC+3不死畏缩'],[28,'AC+4'],[30,'AC+4全敌攻-2']],lose:true},
+  holyFlame:{n:'圣焰',lv:2,tbl:[[12,'1敌1d4'],[14,'1d6'],[18,'1d8(不死+1d8)'],[20,'全敌1d6'],[24,'1d8(不死+1d8)'],[28,'1d10'],[30,'2d8(不死+1d8)']],lose:true},
+  healingLight:{n:'治愈之光',lv:2,tbl:[[12,'治1d4'],[14,'1d6'],[18,'1d8'],[20,'全队1d6'],[24,'全队1d8'],[28,'全队2d6'],[30,'全队回满']],lose:true},
+};
+
+/* ============================================================
+   事件表（DSL: g金币 f口粮 h治疗 d伤害 x经验 cb战斗 r声望 m标记 ap行动 w天气）
+   ============================================================ */
+const EVENTS = {
+plains:[
+['烧焦的农舍','田埂尽头有座烧塌一半的农舍，灶台下埋着一只裂口的陶罐。','g:3d20'],
+['半截界碑','路旁半截界碑刻着褪色的王国税印，碑座下压着一只皮钱袋。','g:2d20+20'],
+['路边的野坟','草原上有座新坟，木牌写着："求你把我也埋了，鞋归你。"','opt:挖开看看|g:4d20;cb:snake:1d3|绕道而行|x:1'],
+['翻倒的粮车','运粮货车斜翻路边，车轴插着三支黑羽箭，麦粒混着血迹。','g:1d20;f:1d3'],
+['立石圈里的铁匣','草原立石圈中央有座祭坛，石缝里有个锈锁铁匣，一掰就断。','g:2d30+150'],
+['牧场的狼群','羊圈外几匹瘦狼正撕扯死羊，你们走近时狼群齐齐抬头。','cb:wolf:1d3+1'],
+['拦路的税','三个酒气汉子从路沟跳出，为首的把豁口砍刀往肩上一扛。','cb:bandit:1d2'],
+['草浪里的黄眼睛','草丛里躺着半具牛尸，草浪里几双黄眼睛打量你们。','cb:orc:1d2'],
+['独眼老野猪','队长踩进草窝，一头独眼老野猪嗷地蹿起。','d:1d3;f:-1'],
+['被雨水冲开的坟丘','连日大雨冲开无名坟丘，几具白骨爬出，下颌咔咔响。','cb:skeleton:1d4'],
+['数羊的老人','老牧羊人数到三十七就重来，坚称羊群里混进"披羊皮的东西"。','rnd'],
+['卖圣水的行脚僧','光脚托钵僧晃着玻璃瓶："三十文一瓶，驱邪洗罪治脚气。"','rnd'],
+['掉队的王国斥候','断腿骑兵趴在草里，攥着染血信筒，求送回铁冠城。','rnd'],
+['草丛里的铁夹','"咔"一声，队长小腿被捕兽夹咬住。','d:1d3'],
+['平地的风暴','天边涌起铁青色云墙，风里带冰碴，草原无处躲。','w:暴风雨'],
+['鼓胀的死牛','草洼里倒着几头鼓胀死牛，苍蝇成群，恶臭扑鼻。','rnd'],
+['野莓盛开的草甸','坡上野莓正熟，蜜蜂乱飞，队伍停下采摘。','h:1d3;f:1d2'],
+['溪畔的野草药','浅溪边碎石地长着成片车轴草与野茴香。','f:1d2;h:1d2'],
+['税吏的车队','铁冠王国税吏车队碾过大道，鹰钩鼻在你们身上扫了一圈。','rnd'],
+['圆环的巡林人','披树皮甲的巡林人从草浪现身，警告不许点明火。','rnd'],
+['熄了火的商队营地','路边商队营地没人，帐篷上血手印指向西边。','x:2'],
+['草原上的行军声','夜里远处传来整齐脚步声，天亮循迹，脚印绕石祭坛三圈消失。','x:1'],
+['风吹草浪','大风刮过无路草原，草浪翻涌。','h:1d3'],
+['满月下的白鹿','营地边走过纯白雄鹿，鹿角挂藤花。','h:1d3;m:白鹿'],
+['村里的猫','路过的村子只有猫，齐刷刷盯着外乡人。','g:1d20'],
+['草海里的巨兽','长草深处巨兽人立：熊身鸟头，草汁顺弯喙滴。','cb:owlbear:1'],
+['草原野火','火线贴草皮烧，灰烟里传来孩子哭喊。','rnd'],
+['带刺的陷阱坑','队长踩空，草皮下齐腰深陷阱，坑底削尖木桩。','d:1d3'],
+['暮色里的鬼影','荒原上半透明人形招手，脚下草一根不动。','cb:wight:1'],
+['孤树上的旅人','歪脖子树上吊着风干旅人，树根行囊被野兔拱开。','opt:安葬|g:2d10;x:1|只拿行囊|g:3d10;m:平原吊尸'],
+['拔腿就跑的货郎','货郎兜售神油，等他走远队长钱袋空了。','rnd'],
+['麦田里的怪圈','麦田倒伏成完美圆，圆心麦秆编成小梯子直直竖着。','opt:爬梯|x:1|拆梯烧|m:麦田怪圈'],
+['迁徙的野牛群','野牛群碾过，一头牛崽落单哞哞叫。','opt:送回牛群|r:圆环:1|宰了分肉|f:2;d:1d3'],
+['背风坡的药草','背风坡下草绿得可疑，几丛肥厚药草挤在野花间。','f:1d2;h:1d2'],
+['黑石滚过的焦痕','草原上一道笔直焦痕，两旁草朝外倒伏。','g:2d30+150'],
+],
+forest:[
+['倒下的巨树','雷劈倒的巨树横在林间，树洞塞着半只发霉皮箱。','g:2d20'],
+['林中的低语','灌木丛窸窣，几个绿皮小家伙从树后探头。','cb:kobold:1d4+1'],
+['蘑菇圈','林间空地一圈雪白蘑菇，圈心草叶凝着露水。','h:1d4;f:1d2'],
+['猎人的陷阱','"咔嚓"一声，队长脚踝被藤蔓活套勒住吊上半空。','d:1d3'],
+['树梢的蛛影','头顶枝叶垂下银亮丝，几只毛茸茸长腿下探。','cb:spider:1d2'],
+['圆环的巡林人','披树皮甲的巡林人从树后现身，警告你们别伤林子。','h:1d2'],
+['林间溪流','清澈溪水从石缝涌出，水底沉着几枚旧钱。','g:1d20'],
+['野猪窝','灌木丛里传来呼噜声，一头野猪正护着崽子。','cb:boar:1'],
+['树上的蜂巢','高枝上挂着巨大蜂巢，蜂蜜顺着树皮淌。','f:1d3;d:1d2'],
+['猎人的营地','废弃营地，篝火灰还温着，帐篷里留着半袋干粮。','f:1d3'],
+['藤蔓桥','粗藤横跨深涧，踩上去晃晃悠悠。','d:1d3'],
+['林间空地','阳光从树冠缝隙洒下，空地中央立着块刻满符文的老石。','x:1'],
+['鸟群的警告','林鸟突然惊飞，树影里有什么在移动。','cb:goblin:1d3'],
+['采集者的棚屋','半塌棚屋里堆着草药和兽皮，主人不见踪影。','f:1d2;h:1d2'],
+['腐木里的宝藏','倒木中空，腐木里嵌着几枚铜钱和一块彩色玻璃。','g:1d20'],
+['林间的雾','浓雾漫过树根，几步外看不见人，雾里有脚步声。','h:1d2'],
+['老树精的沉默','一棵树皮像脸的老树，树洞里塞着干花和铜板。','g:1d20'],
+['溪边的鹿','一头鹿在溪边饮水，抬头看你们一眼，不慌不忙走了。','h:1d2'],
+['圆环的祭坛','苔藓覆盖的石祭坛，中央放着新鲜浆果。','r:圆环:1;h:1d2'],
+['伐木工的营地','伐木工营地空无一人，斧头还插在树桩上。','g:1d20'],
+],
+hills:[
+['废弃矿坑','半塌矿洞口支着腐朽木架，坑道深处传来滴水声。','g:3d20'],
+['山猫的巢穴','岩缝里探出几双黄眼睛，母狼护着崽子低吼。','cb:wolf:1d2+1'],
+['立石圈','山脊上立着七块风化巨石，圈心石台刻着符文。','h:1d3'],
+['落石','山坡滚下一串碎石，队伍慌忙躲闪。','d:1d4'],
+['丘陵匪帮','几个蒙面人从岩石后现身，晃着生锈砍刀。','cb:bandit:1d3'],
+['山间温泉','岩壁下一汪热水潭，水面泛着硫磺味。','h:2d4'],
+['牧羊人的石屋','石屋里炉火未熄，桌上留着面包和奶酪。','f:1d2;h:1d2'],
+['风化的石碑','山脊上石碑刻着古文字，能认出几个地名。','x:1'],
+['野山羊群','岩坡上一群野山羊，见人便往高处蹦。','f:1d2'],
+['矿工的工具','废弃矿车旁散落着铁镐和绳索。','g:1d20'],
+['山鹰的巢','崖壁鹰巢里散落着反光的物件。','g:2d20'],
+['采石场','半塌采石场里堆着切割好的石料。','g:1d20'],
+['丘陵的雾','浓雾顺坡漫下，远处传来铃声。','h:1d2'],
+['石像','山坡上一尊无头石像，基座刻着守护符文。','x:1'],
+['山泉','石缝涌出的山泉，水清见底。','h:1d3;f:1d2'],
+['野蜂巢','石缝里野蜂筑巢，蜂蜜金黄。','f:1d2;d:1d2'],
+['丘陵遗迹','半埋的石墙和柱础，像是古老建筑。','g:1d20;x:1'],
+['狼嚎','远处传来狼嚎，此起彼伏。','cb:wolf:1d2'],
+['牧人的路线图','石屋墙上刻着牧道和泉眼位置。','x:1'],
+['野营的旅人','一伙旅人围着篝火，邀你们分食。','h:1d2;f:1d2'],
+],
+mountain:[
+['鹰巢','崖壁上挂着巨大巢，巢里散落反光物件。','g:4d20+50'],
+['雪崩','头顶闷雷般轰鸣，整面山坡积雪下滑。','d:1d4'],
+['山洞里的食人魔','山洞深处沉重脚步，巨大身影拖着木棒走出。','cb:ogre:1'],
+['古神龛','避风山坳立着石龛，供台留着干枯的花。','h:2d4'],
+['落石陷阱','狭窄山道堆着松动碎石。','d:2d4'],
+['雪线营地','废弃登山营地，帐篷里留着毛毯和干粮。','f:1d2;h:1d3'],
+['冰封的洞口','洞口结满冰棱，里面透出微光。','g:2d20'],
+['山鹰','一只巨鹰在头顶盘旋，爪下抓着什么。','g:1d20'],
+['积雪的佛像','雪坡上露出半尊石像，面目模糊。','x:1'],
+['矿脉露头','岩壁上闪着金属光泽。','g:2d20'],
+['山间的风','风声像低语，反复念着听不懂的词。','h:1d2'],
+['冰缝','一道深不见底的冰缝横在面前。','d:1d4'],
+['避难石屋','石屋里有人留下的柴火和口粮。','f:1d2;h:1d2'],
+['雪豹','雪地里一只雪豹静静看着你们。','cb:wolf:1'],
+['山顶的旗','山顶插着一面褪色旗帜，旗杆下埋着铁盒。','g:2d20'],
+['古栈道','崖壁上凿出的古栈道，木板朽了大半。','d:1d3'],
+['温泉','山间温泉冒着热气。','h:2d4'],
+['风化的祭坛','山顶祭坛刻满星图。','x:1'],
+['落单的朝圣者','一个朝圣者倒在雪里，怀里抱着圣徽。','r:血月:1;h:1d2'],
+['雪洞','天然雪洞可避风。','h:1d3'],
+],
+swamp:[
+['瘴气','脚下黑水冒泡，甜腻腐臭扑面。','d:1d3'],
+['沼泽僵尸','淤泥里站起几具泡白尸体。','cb:zombie:1d2'],
+['血月祭坛','黑曜石祭坛立在干硬泥岛，几个黑袍人围着诵唱。','cb:cultist:1d3'],
+['鬼火','夜里一串惨绿火苗贴水面游荡。','g:3d20'],
+['食人花丛','一丛艳丽巨花在水边张开，花心滴着黏液。','d:1d4'],
+['蛙鸣','沼泽里蛙声震耳，水面下有什么在动。','cb:snake:1d3'],
+['干硬泥岛','泥岛上可扎营，周围相对安全。','h:1d3'],
+['沉船残骸','半沉的小船里留着木箱。','g:1d20'],
+['沼泽草药','水边石上长着耐湿药草。','f:1d2;h:1d2'],
+['迷雾','浓雾贴水面漫来，方向难辨。','h:1d2'],
+['鳄鱼','水面露出两排牙齿。','cb:boar:1'],
+['渔人小屋','高脚小屋里有渔网和干鱼。','f:1d2'],
+['血月符号','泥地上画着血月符号，中央放着祭品。','r:血月:1'],
+['幽灵灯','一盏孤灯在雾里飘，靠近就灭。','x:1'],
+['腐木桥','跨过深沟的腐木桥，走上去嘎吱响。','d:1d3'],
+['沼泽萤火','成片萤火虫在水面起舞。','h:1d2'],
+['沉没的祭坛','水下半露的祭坛，刻着古神纹。','g:2d20'],
+['泥沼','一脚踩进齐膝泥沼。','d:1d3'],
+['草药师','一个采药人在沼泽边晾晒药草。','h:1d3;f:1d2'],
+['血月低语','风里传来低语，念着听不懂的祷词。','x:1'],
+],
+coast:[
+['搁浅的渔船','龙骨断裂的渔船半埋沙里，船舱留着半箱渔获。','f:1d4'],
+['滩涂上的鼠群','退潮滩涂上一群巨鼠拖走半具海豹尸。','cb:rat:1d3+1'],
+['礁滩上的古银币','大潮退去露出礁滩，石缝里几枚古银币。','g:2d20+20'],
+['拾贝的渔妇','赤脚渔妇拾蛤，篮子里混着带孔玻璃珠。','f:1d3'],
+['海藻缠着的铜箱','浅湾漂着半只系铜链的箱子，刻着银环秤徽。','g:2d30+150'],
+['崖顶的歌声','崖顶飘来歌声，几个灰翼身影俯冲下来。','cb:harpy:1d2'],
+['走私者的黑帆','黑帆小舟贴礁岸滑来，汉子跳进浅水："把包放下。"','cb:bandit:1d3'],
+['顺着潮水上岸','涨潮海水把几具泡胀尸首送上沙滩，一具撑臂站起。','cb:zombie:1d3'],
+['鱼骨祭仪','三个黑袍人围着插满鱼骨的沙堆念诵。','cb:cultist:1d3'],
+['独眼灯塔看守','废弃灯塔门口坐着独眼老头，用海鸟骨做风铃。','rnd'],
+['搁浅的商会货船','银环商会货船搁浅沙洲，船底破洞。','rnd'],
+['涨潮的浅滩','潮水漫过脚踝，退路被深沟拦住。','d:1d4;f:-1'],
+['海上滚来的雾','白雾贴海面滚上岸，雾里有钟声。','w:大雾'],
+['胀爆的死鲸','死鲸肚皮胀得发亮，路过时轰地炸开。','d:1d3'],
+['退潮的菜园','大退潮露出滩涂：蛤蜊、海菜、石下蟹。','f:1d3;h:1d2'],
+['崖缝里的海草药','海崖缝里长着耐盐药草。','f:1d2;h:1d2'],
+['商会的巡逻快帆','银环快帆贴岸巡弋，瞭望手喊话问可疑船只。','rnd'],
+['海岸税站','半塌王国税站，两个老兵把守，要搜身。','rnd'],
+['雾夜的红帆','无月夜里，船首雕血月的高舷帆船贴雾线驶过。','x:2;r:血月:1'],
+['灯塔的黑影','崖上废弃灯塔的黑影，海风里只有浪和盐味。','h:1d3'],
+['瓶中信','绿玻璃瓶浪尖打转，纸条只剩"别相信海"。','opt:带回渔村|f:1d3;x:1|扔回海里|m:瓶中信'],
+['半埋的沉船货箱','沙滩露出半只木箱，铜扣刻着银环秤徽。','g:2d20'],
+['礁上的塞壬','黑礁上三个灰翼身影唱歌，两个同伴眼神发直朝海走。','cb:harpy:1d2'],
+['渔民的网','老渔夫拖网，网里缠着挂铜链的铁盒。','opt:帮忙|g:2d10;d:1d3|走开|x:1'],
+],
+desert:[
+['沙埋商队','沙丘下露出半截驼车，轮辐缠着褪色银环旗。','g:2d20'],
+['盐湖贝冢','干涸盐湖中央隆起古老贝冢，湖床盐壳下露出戴金饰干尸。','g:300'],
+['沙中石匣','半埋石龛，石匣盖缝渗出黑色粘液。','opt:撬开|g:3d10+120;d:1d2|长杆挑|g:3d10|绕道|x:1'],
+['绿洲甘泉','棕榈环抱小水潭，潭底沉着几枚老钱币。','g:1d10;h:1d3'],
+['陨铁碎片','沙地嵌着拳头大乌黑陨铁，四周沙砾熔成玻璃壳。','g:1d20'],
+['沙下嘶鸣','脚下沙地游过波纹，鳞片在烈日下泛绿光。','cb:snake:1d3'],
+['沙匪','蒙面沙匪从沙丘背阴窜出，弯刀凝着干血。','cb:bandit:1d3+1'],
+['行尸','沙暴过后几具烂甲尸体从流沙站起。','cb:zombie:1d3'],
+['古墓骷髅','无名古墓封石裂开，白骨手臂探出。','cb:skeleton:1d4'],
+['食尸鬼','驼队骸骨堆里蹲着灰白人形，用指甲剔牙。','cb:ghoul:1d2'],
+['老掘金人','瞎眼老掘金人守在洞口，愿用秘密换口粮。','rnd'],
+['流沙','队长踩进看似坚实的沙面，沙子没过膝盖。','d:1d2;f:-1'],
+['沙暴','天边腾起黄黑沙墙，转瞬吞没半个天空。','d:1d2;w:暴风雨'],
+['甜井','废弃绿洲石砌老井，井水泛甜香，井边趴着骸骨。','rnd'],
+['河床生机','干涸古河床底部淤泥存湿气，裂缝间长药草。','f:1d2;h:1d2'],
+['绿洲野枣','沙丘间野枣林，树下散落鸟兽足迹。','f:1d2'],
+['王国巡逻队','三骑铁冠巡逻骑兵拦住去路，厉声盘问。','rnd'],
+['商会的寻水队','银环驼队在沙暴痕迹里打转，领队水囊见底。','rnd'],
+['沙海行军','风沙深处传来整齐迟缓脚步声，披甲行尸扛残破旌旗穿过。','x:2'],
+['巨兽骸骨','巨大兽骸横亘沙海，肋骨拱向天空。','h:1d3'],
+['海市蜃楼','地平线浮起漆黑尖塔之城，眨眼又消散。','x:1'],
+['蝎尾滩','沙地上一串蝎子足迹，尽头是片碎石滩。','g:1d20'],
+['驼队遗骸','沙丘背风处几具骆驼骸骨，鞍袋里还留着东西。','g:1d20;f:1d2'],
+['古井','石砌古井，井壁刻着水纹，井水清冽。','h:1d3'],
+['沙漠玫瑰','沙地里嵌着石膏结晶，形如玫瑰。','g:1d20'],
+['风蚀岩','风蚀岩柱林立，像一片石林。','x:1'],
+],
+};
+
+/* 城市服务 */
+const SERVICES = {
+  '铁冠城':{shop:'武器铺/护甲铺/杂货/神庙/旅店/酒馆/任务板',rep:'铁冠王国'},
+  '银环港':{shop:'武器铺/杂货/市场/神庙/旅店/酒馆/任务板',rep:'银环商会'},
+  '青苔谷':{shop:'杂货/草药/神庙/旅店/任务板',rep:'荒野圆环'},
+  '黑巷镇':{shop:'武器铺/黑市/旅店/酒馆/任务板',rep:'暗影行会'},
+  '血月塔':{shop:'黑市/神庙/旅店/任务板',rep:'血月教团'},
+  '火炉村':{shop:'杂货/旅店/酒馆',rep:null},
+};
+
+/* 采集表 */
+const FORAGE = {
+  plains:['草药','野果','麦穗'],coast:['海菜','蛤蜊','盐'],
+  forest:['草药','蘑菇','浆果'],hills:['草药','矿石','野果'],
+  mountain:['草药','矿石','雪水'],swamp:['草药','毒囊','水蛭'],
+  desert:['仙人掌果','盐','矿石'],
+};
+
+/* ============================================================
+   状态
+   ============================================================ */
+const S = {
+  mode:'title', day:1, ap:6, maxAp:6, weather:'晴朗', season:'春',
+  gold:0, rations:10,
+  party:[], map:[], pos:{r:10,c:11},
+  combat:null, logs:[],
+  rep:{'铁冠王国':0,'银环商会':0,'荒野圆环':0,'暗影行会':0,'血月教团':0},
+  marks:[], longEv:{},
+  pendingOpt:null,
+};
+
+const COLS=22, ROWS=14;
+
+/* ============================================================
+   日志
+   ============================================================ */
+function log(msg,cls){
+  S.logs.push({msg,cls:cls||''});
+  if(S.logs.length>260) S.logs.shift();
   renderLog();
 }
 function renderLog(){
-  const el = document.getElementById('log');
-  el.innerHTML = state.logs.map(l => `<p class="c-${l.cls || 'dim'}">${l.msg}</p>`).join('');
-  const p = document.getElementById('logPanel');
-  p.scrollTop = p.scrollHeight;
+  const el=document.getElementById('log');
+  el.innerHTML=S.logs.map(l=>`<p class="c-${l.cls||'dim'}">${l.msg}</p>`).join('');
+  const p=document.getElementById('logPanel'); p.scrollTop=p.scrollHeight;
 }
 
-/* ---------------- 角色生成 ---------------- */
-function createCharacter(){
-  const stats = {
-    str: roll(3,6), agi: roll(3,6), sta: roll(3,6),
-    per: roll(3,6), int: roll(3,6), lck: roll(3,6)
-  };
-  const occ = pick(OCCUPATIONS);
-  const hp = Math.max(1, die(4) + statMod(stats.sta));
+/* ============================================================
+   角色创建（完整）
+   ============================================================ */
+function rollOcc(){
+  const d=die(100);
+  for(const row of OCC_TABLE){
+    if(d>=row[0]&&d<=row[1]) return row;
+  }
+  return OCC_TABLE[0];
+}
+function createChar(){
+  const st={str:roll(3,6),agi:roll(3,6),sta:roll(3,6),per:roll(3,6),int:roll(3,6),lck:roll(3,6)};
+  const occ=rollOcc();
+  const om=OMENS[die(30)-1];
+  const hp=Math.max(1,die(4)+statMod(st.sta));
   return {
-    name: pick(NAMES),
-    occ: occ.name,
-    weapon: occ.weapon,
-    dmg: occ.dmg,
-    goods: occ.goods,
-    equip: pick(EQUIPMENT),
-    omen: pick(OMENS),
-    alignment: pick(['守序','中立','混乱']),
-    stats,
-    hp, maxHp: hp,
-    level: 0,
-    xp: 0,
-    alive: true,
-    cp: roll(5,12)
+    name:pick(NAMES), occ:occ[2], race:occ[6], weapon:occ[3], dmg:occ[4], goods:occ[5],
+    equip:GEAR[die(24)-1], omen:om[0], omenUse:om[1],
+    alignment:pick(['守序','中立','混乱']),
+    stats:st, hp, maxHp:hp, level:0, xp:0, alive:true,
+    cp:roll(5,12), armor:0, shield:0, cls:null,
+    acBonus:statMod(st.agi), luckBase:st.lck,
   };
 }
+const NAMES=['阿贵','石头','小满','狗剩','铁蛋','二丫','大壮','阿福','三顺','来福','春生','秋收','小翠','老蔫','拴柱','满仓','栓子','黑豆','泥鳅','阿土','胖虎','豆芽','二狗','火根','禾苗','麦穗','谷雨','惊蛰','长庚','阿七'];
 
-/* ---------------- 地图生成 ---------------- */
+/* ============================================================
+   地图生成（22×14）
+   ============================================================ */
 function genMap(){
-  const map = [];
-  for(let r = 0; r < ROWS; r++){
-    const row = [];
-    for(let c = 0; c < COLS; c++){
-      let t;
-      if(c >= COLS - 2) t = 'ocean';
-      else if(c === COLS - 3) t = 'coast';
-      else {
-        const q = Math.random();
-        if(q < 0.08) t = 'mountain';
-        else if(q < 0.22) t = 'hills';
-        else if(q < 0.38) t = 'forest';
-        else if(q < 0.45) t = 'swamp';
-        else t = 'plains';
+  const map=[];
+  for(let r=0;r<ROWS;r++){
+    const row=[];
+    for(let c=0;c<COLS;c++){
+      let t='plains';
+      if(c>=COLS-2) t='ocean';
+      else if(c===COLS-3) t='coast';
+      else if(r<=3){ // 北寒冷
+        const q=die(6); t=q===6?'mountain':q===5?'hills':'plains';
+      } else if(r<=8){ // 中温和
+        const q=die(6); t=q===6?'mountain':q===5?'hills':q===4?'forest':q===1?'swamp':'plains';
+      } else { // 南炎热
+        const q=die(6); t=q===6?'mountain':q===5?'hills':q===4?'jungle':q===3?'swamp':q===2?'desert':'plains';
       }
-      row.push({t, loc: null});
+      if(r>=ROWS-2) t='ocean';
+      row.push({t,loc:null,poi:null});
     }
     map.push(row);
   }
-  map[4][5] = {t:'plains',  loc:'火炉村'};
-  map[3][7] = {t:'plains',  loc:'铁冠城'};
-  map[6][8] = {t:'coast',   loc:'银环港'};
-  map[2][3] = {t:'forest',  loc:'青苔谷'};
-  map[6][2] = {t:'hills',   loc:'黑巷镇'};
-  map[7][5] = {t:'swamp',   loc:'血月塔'};
+  // 放置城市
+  const cities=[
+    ['火炉村',10,11,'plains'],['铁冠城',7,15,'plains'],['银环港',11,16,'coast'],
+    ['青苔谷',5,7,'forest'],['黑巷镇',11,5,'hills'],['血月塔',12,11,'swamp'],
+  ];
+  cities.forEach(([n,r,c,t])=>{ if(map[r]&&map[r][c]){map[r][c]={t,loc:n,poi:null};} });
+  // 6 中立村落
+  for(let i=0;i<6;i++){
+    const r=roll(2,ROWS-2)-1,c=roll(2,COLS-2)-1;
+    if(map[r]&&map[r][c]&&!map[r][c].loc){ map[r][c].loc='村落'+(i+1); }
+  }
+  // 12 POI
+  const poiTypes=['废墟','地牢','老妪小屋','立石圈','巨洞','荒废高塔','古神龛','废弃矿坑','镜湖','古战场','独石碑','地牢'];
+  for(let i=0;i<12;i++){
+    const r=roll(1,ROWS-2)-1,c=roll(1,COLS-2)-1;
+    if(map[r]&&map[r][c]&&!map[r][c].loc&&!map[r][c].poi){ map[r][c].poi=poiTypes[i]; }
+  }
   return map;
 }
 
-/* ---------------- 六角几何 ---------------- */
-function hexPoints(cx, cy, size){
-  const pts = [];
-  for(let i = 0; i < 6; i++){
-    const a = Math.PI / 180 * (60 * i - 90);
-    pts.push((cx + size * Math.cos(a)).toFixed(1) + ',' + (cy + size * Math.sin(a)).toFixed(1));
-  }
-  return pts.join(' ');
+/* ============================================================
+   六角几何
+   ============================================================ */
+function hexPts(cx,cy,size){
+  const p=[];
+  for(let i=0;i<6;i++){ const a=Math.PI/180*(60*i-90); p.push((cx+size*Math.cos(a)).toFixed(1)+','+(cy+size*Math.sin(a)).toFixed(1)); }
+  return p.join(' ');
 }
-function neighborDirs(r){
-  return (r % 2 === 0)
-    ? [[0,1],[0,-1],[-1,0],[-1,-1],[1,0],[1,-1]]
-    : [[0,1],[0,-1],[-1,0],[-1,1],[1,0],[1,1]];
+function nbrs(r){
+  return (r%2===0)?[[0,1],[0,-1],[-1,0],[-1,-1],[1,0],[1,-1]]:[[0,1],[0,-1],[-1,0],[-1,1],[1,0],[1,1]];
 }
-function isAdjacent(a, b){
-  return neighborDirs(a.r).some(([dr, dc]) => a.r + dr === b.r && a.c + dc === b.c);
-}
+function isAdj(a,b){ return nbrs(a.r).some(([dr,dc])=>a.r+dr===b.r&&a.c+dc===b.c); }
 
-/* ---------------- 渲染：地图 ---------------- */
+/* ============================================================
+   渲染：地图
+   ============================================================ */
 function renderMap(){
-  const size = 24;
-  const w = Math.sqrt(3) * size;
-  const h = 1.5 * size;
-  const pad = 10;
-  const svgW = pad * 2 + w * (COLS + 0.5);
-  const svgH = pad * 2 + size * 2 + h * (ROWS - 1);
-
-  let s = `<svg viewBox="0 0 ${svgW.toFixed(0)} ${svgH.toFixed(0)}" xmlns="http://www.w3.org/2000/svg">`;
-  s += `<rect width="100%" height="100%" fill="#0f0d18" rx="6"/>`;
-
-  for(let r = 0; r < ROWS; r++){
-    for(let c = 0; c < COLS; c++){
-      const cell = state.map[r][c];
-      const cx = pad + w / 2 + w * (c + 0.5 * (r % 2));
-      const cy = pad + size + h * r;
-      const here = state.pos.r === r && state.pos.c === c;
-      const reach = state.mode === 'explore' && isAdjacent(state.pos, {r,c}) && cell.t !== 'ocean';
-      const cls = 'hex' + (here ? ' here' : '') + (reach ? ' reach' : '');
-      s += `<polygon class="${cls}" data-r="${r}" data-c="${c}" points="${hexPoints(cx, cy, size)}"
-              fill="${TERRAIN[cell.t].color}" stroke="#15121f" stroke-width="1.6"/>`;
-      if(cell.loc){
-        s += `<text class="maplabel town" x="${cx}" y="${cy + 3}">${cell.loc}</text>`;
-      }
-      if(here){
-        s += `<circle cx="${cx}" cy="${cy - (cell.loc ? 9 : 0)}" r="4.5" fill="#ffe28a" stroke="#3a2f0a" stroke-width="1.5"/>`;
-      }
-    }
+  const size=11, w=Math.sqrt(3)*size, h=1.5*size, pad=6;
+  const svgW=pad*2+w*(COLS+0.5), svgH=pad*2+size*2+h*(ROWS-1);
+  let s=`<svg viewBox="0 0 ${svgW.toFixed(0)} ${svgH.toFixed(0)}" xmlns="http://www.w3.org/2000/svg">`;
+  s+=`<rect width="100%" height="100%" fill="#0f0d18" rx="5"/>`;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const cell=S.map[r][c];
+    const cx=pad+w/2+w*(c+0.5*(r%2)), cy=pad+size+h*r;
+    const here=S.pos.r===r&&S.pos.c===c;
+    const reach=S.mode==='explore'&&isAdj(S.pos,{r,c})&&cell.t!=='ocean';
+    const cls='hex'+(here?' here':'')+(reach?' reach':'');
+    s+=`<polygon class="${cls}" data-r="${r}" data-c="${c}" points="${hexPts(cx,cy,size)}" fill="${TER[cell.t].c}" stroke="#15121f" stroke-width="1.2"/>`;
+    if(cell.loc) s+=`<text class="maplabel town" x="${cx}" y="${cy+2.5}">${cell.loc}</text>`;
+    else if(cell.poi) s+=`<text class="maplabel" x="${cx}" y="${cy+2.5}">${cell.poi}</text>`;
+    if(here) s+=`<circle cx="${cx}" cy="${cy-(cell.loc||cell.poi?6:0)}" r="3.5" fill="#ffe28a" stroke="#3a2f0a" stroke-width="1"/>`;
   }
-  s += `</svg>`;
-  document.getElementById('mapWrap').innerHTML = s;
-
-  document.querySelectorAll('.hex.reach').forEach(el => {
-    el.addEventListener('click', () => {
-      tryMove(+el.dataset.r, +el.dataset.c);
-    });
-  });
+  s+='</svg>';
+  document.getElementById('mapWrap').innerHTML=s;
+  document.querySelectorAll('.hex.reach').forEach(el=>el.addEventListener('click',()=>tryMove(+el.dataset.r,+el.dataset.c)));
+  const lg=document.getElementById('legend');
+  lg.innerHTML=Object.entries(TER).filter(([k])=>k!=='ocean'||true).map(([k,v])=>`<span><i style="background:${v.c}"></i>${v.n}</span>`).join('');
 }
 
-/* ---------------- 渲染：队伍 ---------------- */
+/* ============================================================
+   渲染：队伍
+   ============================================================ */
 function renderParty(){
-  const el = document.getElementById('partyPanel');
-  if(!state.party.length){
-    el.innerHTML = `<div class="hint" style="padding:20px 4px;text-align:center">尚未创建队伍</div>`;
-    return;
-  }
-  el.innerHTML = state.party.map(c => {
-    const ac = 10 + statMod(c.stats.agi) + (c.level > 0 ? 1 : 0);
-    return `<div class="char ${c.alive ? '' : 'dead'}">
-      <div class="char-head">
-        <span class="cname">${c.alive ? '' : '💀 '}${c.name}</span>
-        <span class="cocc">${c.occ} · ${c.level === 0 ? '0级' : c.level + '级'}</span>
-      </div>
-      <div class="hpbar"><div style="width:${Math.max(0, c.hp / c.maxHp * 100)}%"></div></div>
-      <div class="row">
-        <span>HP <b>${Math.max(0, c.hp)}</b>/${c.maxHp}</span>
-        <span>AC <b>${ac}</b></span>
-        <span>XP <b>${c.xp}</b></span>
-      </div>
-      <div class="row">
-        <span>力<b>${c.stats.str}</b></span>
-        <span>敏<b>${c.stats.agi}</b></span>
-        <span>耐<b>${c.stats.sta}</b></span>
-        <span>个<b>${c.stats.per}</b></span>
-        <span>智<b>${c.stats.int}</b></span>
-        <span>幸<b>${c.stats.lck}</b></span>
-      </div>
-      <div class="row"><span>${c.weapon}（${c.dmg}）· ${c.alignment} · ${c.goods}</span></div>
-      <div class="row omen">预兆：${c.omen}</div>
+  const el=document.getElementById('partyPanel');
+  if(!S.party.length){ el.innerHTML=`<div class="hint" style="padding:20px 4px;text-align:center">尚未创建队伍</div>`; return; }
+  el.innerHTML=S.party.map(c=>{
+    const ac=10+c.acBonus+(c.level>0?1:0)+(c.armor||0)+(c.shield||0);
+    return `<div class="char ${c.alive?'':'dead'}">
+      <div class="char-head"><span class="cname">${c.alive?'':'💀 '}${c.name}</span>
+      <span class="cocc">${c.occ} · ${c.level===0?'0级':c.level+'级'}${c.cls?' · '+c.cls:''}</span></div>
+      <div class="hpbar"><div style="width:${Math.max(0,c.hp/c.maxHp*100)}%"></div></div>
+      <div class="row"><span>HP <b>${Math.max(0,c.hp)}</b>/${c.maxHp}</span><span>AC <b>${ac}</b></span><span>XP <b>${c.xp}</b></span></div>
+      <div class="row"><span>力<b>${c.stats.str}</b></span><span>敏<b>${c.stats.agi}</b></span><span>耐<b>${c.stats.sta}</b></span><span>个<b>${c.stats.per}</b></span><span>智<b>${c.stats.int}</b></span><span>幸<b>${c.stats.lck}</b></span></div>
+      <div class="row"><span>${c.weapon}（${c.dmg}）· ${c.alignment}</span></div>
+      <div class="omen">预兆：${c.omen} · 适用：${c.omenUse}</div>
     </div>`;
   }).join('');
 }
 
-/* ---------------- 渲染：顶栏 ---------------- */
+/* ============================================================
+   渲染：HUD 与行动条
+   ============================================================ */
 function renderHud(){
-  const el = document.getElementById('hud');
-  if(state.mode === 'title'){ el.innerHTML = ''; return; }
-  const alive = state.party.filter(c => c.alive).length;
-  el.innerHTML = `
-    <span>第 <b>${state.day}</b> 天</span>
-    <span>AP <b>${state.ap}</b>/${state.maxAp}</span>
-    <span>天气 <b>${state.weather}</b></span>
-    <span>金币 <b>${state.gold}</b> cp</span>
-    <span>口粮 <b>${state.rations}</b></span>
-    <span>存活 <b>${alive}</b>/${state.party.length}</span>`;
+  const el=document.getElementById('hud');
+  if(S.mode==='title'){ el.innerHTML=''; return; }
+  const alive=S.party.filter(c=>c.alive).length;
+  el.innerHTML=`<span>第 <b>${S.day}</b> 天</span><span>${S.season}</span><span>AP <b>${S.ap}</b>/${S.maxAp}</span>
+    <span>天气 <b>${S.weather}</b></span><span>金币 <b>${S.gold}</b>cp</span><span>口粮 <b>${S.rations}</b></span>
+    <span>存活 <b>${alive}</b>/${S.party.length}</span>
+    <span>标记 <b>${S.marks.length}</b></span>`;
 }
-
-/* ---------------- 渲染：行动条 ---------------- */
 function renderActions(){
-  const bar = document.getElementById('actionBar');
-  if(state.mode === 'title'){
-    bar.innerHTML = `<button class="primary" onclick="startGame()">⚔ 创建四名乡民，踏入荒野</button>`;
+  const bar=document.getElementById('actionBar');
+  if(S.mode==='title'){
+    bar.innerHTML=`<button class="primary" onclick="startGame()">⚔ 创建四名乡民，踏入荒野</button>`;
     return;
   }
-  if(state.mode === 'gameover'){
-    bar.innerHTML = `<button class="primary" onclick="restartGame()">🔄 新的一批乡民踏上旅途</button>
-      <span class="hint">旧的尸骨会留在荒野里，但低语从不停止。</span>`;
+  if(S.mode==='gameover'){
+    bar.innerHTML=`<button class="primary" onclick="startGame()">🔄 新的一批乡民踏上旅途</button>
+      <span class="hint">旧的尸骨留在荒野，低语从不停止。</span>`;
     return;
   }
-  if(state.mode === 'combat'){
-    bar.innerHTML = `
-      <button class="primary" onclick="combatRound()">⚔ 进入下一轮</button>
+  if(S.mode==='combat'){
+    bar.innerHTML=`<button class="primary" onclick="combatRound()">⚔ 进入下一轮</button>
       <button class="danger" onclick="flee()">🏃 逃跑</button>
-      <span class="hint">第 ${state.combat.round} 轮</span>`;
+      <span class="hint">第 ${S.combat.round} 轮</span>`;
     return;
   }
-  // explore
-  bar.innerHTML = `
-    <button onclick="restDay()">🌙 扎营过夜（恢复 AP 与生命）</button>
-    <span class="hint">点击相邻六角格移动（AP ${state.ap}）</span>`;
+  bar.innerHTML=`<button onclick="restDay()">🌙 扎营过夜</button>
+    <button onclick="openCamp()">⛺ 营地/采集</button>
+    <button onclick="openRep()">🏛 声望</button>
+    <span class="hint">点击相邻六角格移动 · AP ${S.ap}</span>`;
 }
 
-/* ---------------- 总渲染 ---------------- */
-function render(){
-  renderHud();
-  renderMap();
-  renderParty();
-  renderActions();
-}
+/* ============================================================
+   总渲染
+   ============================================================ */
+function render(){ renderHud(); renderMap(); renderParty(); renderActions(); }
 
-/* ---------------- 开始游戏 ---------------- */
+/* ============================================================
+   开始游戏
+   ============================================================ */
 function startGame(){
-  state.party = [];
-  for(let i = 0; i < 4; i++) state.party.push(createCharacter());
-  state.gold = state.party.reduce((s, c) => s + c.cp, 0);
-  state.map = genMap();
-  state.pos = {r:4, c:5};
-  state.mode = 'explore';
-  state.logs = [];
-  log('火炉村的清晨，雾气还没散。四个乡民背着微薄的行囊，走进了不欢迎凡人的荒野。', 'title');
-  state.party.forEach(c => {
-    log(`${c.name}（${c.occ}）：力量${c.stats.str} 敏捷${c.stats.agi} 耐力${c.stats.sta} 个性${c.stats.per} 智力${c.stats.int} 幸运${c.stats.lck} · HP ${c.maxHp} · 武器 ${c.weapon}（${c.dmg}）· 货物 ${c.goods}`, 'dim');
-  });
-  log(`全队资金合计 ${state.gold} cp。`, 'good');
-  log('你站在火炉村中央。四周的六角格在雾里若隐若现。', 'dim');
+  S.party=[]; for(let i=0;i<4;i++) S.party.push(createChar());
+  S.gold=S.party.reduce((a,c)=>a+c.cp,0);
+  S.map=genMap(); S.pos={r:10,c:11};
+  S.mode='explore'; S.logs=[]; S.day=1; S.ap=6; S.rations=10;
+  S.rep={'铁冠王国':0,'银环商会':0,'荒野圆环':0,'暗影行会':0,'血月教团':0};
+  S.marks=[]; S.longEv={};
+  log('火炉村的清晨，雾气未散。四个乡民背着微薄行囊，走进不欢迎凡人的荒野。','title');
+  S.party.forEach(c=>log(`${c.name}（${c.occ}·${c.race}）力${c.stats.str} 敏${c.stats.agi} 耐${c.stats.sta} 个${c.stats.per} 智${c.stats.int} 幸${c.stats.lck} · HP${c.maxHp} · ${c.weapon}(${c.dmg}) · 货物：${c.goods}`,'dim'));
+  log(`全队资金合计 ${S.gold} cp。队伍站在火炉村中央。`,'good');
   render();
 }
 
-function restartGame(){
-  state.mode = 'title';
-  state.party = [];
-  state.combat = null;
-  state.day = 1;
-  state.ap = 6;
-  state.rations = 10;
-  state.gold = 0;
-  state.logs = [];
-  renderLog();
-  startGame();
+/* ============================================================
+   移动
+   ============================================================ */
+function tryMove(r,c){
+  if(S.mode!=='explore') return;
+  const cell=S.map[r][c];
+  if(cell.t==='ocean'){ log('海洋无法徒步穿越。','dim'); return; }
+  if(!isAdj(S.pos,{r,c})){ log('只能移动到相邻六角格。','dim'); return; }
+  const cost=TER[cell.t].ap;
+  if(S.ap<cost){ log(`AP 不足（需 ${cost}），请扎营休息。`,'warn'); return; }
+  S.ap-=cost; S.pos={r,c};
+  log(`队伍进入 ${TER[cell.t].n}${cell.loc?'（'+cell.loc+'）':''}。消耗 ${cost} AP。`,'dim');
+  if(die(20)===1&&!cell.loc){ log('迷路了！多耗 1 AP。','warn'); S.ap=Math.max(0,S.ap-1); }
+  arrive(r,c);
 }
-
-/* ---------------- 移动 ---------------- */
-function tryMove(r, c){
-  if(state.mode !== 'explore') return;
-  const cell = state.map[r][c];
-  if(cell.t === 'ocean'){ log('海洋无法徒步穿越。', 'dim'); return; }
-  if(!isAdjacent(state.pos, {r,c})){ log('只能移动到相邻的六角格。', 'dim'); return; }
-  const cost = TERRAIN[cell.t].ap;
-  if(state.ap < cost){ log('行动点不足以进入该地形，需要扎营休息。', 'warn'); return; }
-
-  state.ap -= cost;
-  state.pos = {r, c};
-  log(`队伍进入了 ${TERRAIN[cell.t].name}${cell.loc ? '（' + cell.loc + '）' : ''}。消耗 ${cost} AP。`, 'dim');
-
-  // 迷路判定（非道路）
-  if(die(20) === 1){
-    log('你们在这片地形里迷了路，多花了些脚程。', 'warn');
-    state.ap = Math.max(0, state.ap - 1);
-  }
-
-  arrive(r, c);
+function arrive(r,c){
+  const cell=S.map[r][c];
+  if(cell.loc){ enterTown(cell.loc); return; }
+  if(cell.poi){ explorePOI(cell.poi); return; }
+  if(checkEnc(cell.t)) triggerEvent(cell.t);
+  else render();
 }
-
-function arrive(r, c){
-  const cell = state.map[r][c];
-
-  // 城镇
-  if(cell.loc){
-    log(`你们抵达了 ${cell.loc}。`, 'town');
-    state.rations += roll(1, 3);
-    healParty(roll(1, 2));
-    log('队伍在镇上补给、歇脚，恢复了少量生命，也补充了口粮。', 'good');
-    render();
-    return;
-  }
-
-  // 遭遇判定
-  if(checkEncounter(cell.t)){
-    triggerEvent(cell.t);
-  } else {
-    render();
-  }
-}
-
-function checkEncounter(t){
-  if(t === 'plains' || t === 'coast') return die(4) === 1;
-  if(t === 'forest' || t === 'hills') return die(6) <= 2;
-  if(t === 'swamp' || t === 'mountain') return die(4) <= 2;
+function checkEnc(t){
+  const e=TER[t].enc;
+  if(e==='1d4==1') return die(4)===1;
+  if(e==='1d6<=2') return die(6)<=2;
+  if(e==='1d4<=2') return die(4)<=2;
   return false;
 }
 
-/* ---------------- 事件表 ---------------- */
-const EVENTS = {
-  plains: [
-    {n:'烧焦的农舍', d:'田埂尽头有座烧塌一半的农舍，灶台下埋着一只裂口的陶罐。',
-     run(){ const cp = roll(3,20); state.gold += cp; log(`你们撬开陶罐，获得 ${cp} 枚铜币。`, 'good'); }},
-    {n:'路边的野坟', d:'草原上有座新坟，木牌写着：“给过路人——求你把我也埋了，鞋归你。”',
-     run(){ startCombat([{type:'snake', count:roll(1,3)}], '你们挖开坟墓，盘在棺边的毒蛇被惊动了！'); }},
-    {n:'牧场的狼群', d:'羊圈外的草地上，几匹瘦狼正撕扯一头死羊。你们走近时，狼群齐齐抬起头。',
-     run(){ startCombat([{type:'wolf', count:roll(1,3)}], '狼群朝你们龇出了獠牙。'); }},
-    {n:'拦路的“税”', d:'三个浑身酒气的汉子从路沟里跳出来，为首的把豁口砍刀往肩上一扛。',
-     run(){ startCombat([{type:'bandit', count:roll(1,2)}], '“此路是我开！”匪徒们扑了上来。'); }},
-    {n:'野莓盛开的草甸', d:'坡上的野莓正熟，蜜蜂乱飞。队伍停下采摘。',
-     run(){ const h = roll(1,3); healParty(h); state.rations += roll(1,2);
-       log(`你们摘了满兜野莓，恢复 ${h} 点生命，还多出一些口粮。`, 'good'); }},
-    {n:'孤树上的旅人', d:'草原上唯一的歪脖子树上吊着一具风干的旅人尸体。树根下的行囊被野兔拱开。',
-     run(){ const cp = roll(2,10); state.gold += cp;
-       log(`你们安葬了旅人，他钱袋里的 ${cp} 枚铜钱算是谢礼。`, 'good'); }},
-    {n:'独眼老野猪', d:'队长一脚踩进草窝，一头独眼老野猪嗷地蹿起，獠牙上挂着一块碎布。',
-     run(){ const c = pickAlive();
-       if(c){ const dmg = die(3); c.hp -= dmg; log(`${c.name} 被野猪顶伤，受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); }
-       state.rations = Math.max(0, state.rations - 1); }},
-    {n:'风吹草浪', d:'大风刮过无路无标的草原，草浪翻涌。',
-     run(){ healParty(roll(1,3)); log('你们在草浪里静坐片刻，疲惫稍减。', 'good'); }},
-  ],
+/* ============================================================
+   城镇
+   ============================================================ */
+function enterTown(name){
+  const svc=SERVICES[name]||SERVICES['火炉村'];
+  log(`你们抵达 ${name}。`,'town');
+  const heal=roll(1,3); healParty(heal); S.rations+=roll(1,2);
+  log(`在镇上歇脚，队伍恢复 ${heal} 点生命，补充了一些口粮。`,'good');
+  let html=`<h3>${name}</h3><p>${svc.shop}</p>`;
+  html+=`<p>当前口粮 ${S.rations}，金币 ${S.gold}cp。</p>`;
+  html+=`<button class="opt" onclick="buyRations()">购买口粮（5cp/份，买 5 份）</button>`;
+  html+=`<button class="opt" onclick="healAll()">在神庙治疗全队（20cp）</button>`;
+  if(svc.rep) html+=`<button class="opt" onclick="townQuest('${svc.rep}')">查看 ${svc.rep} 任务板</button>`;
+  html+=`<button class="opt" onclick="closeModal()">离开</button>`;
+  openModal(html);
+  render();
+}
+function buyRations(){ if(S.gold>=25){ S.gold-=25; S.rations+=5; log('买了 5 份口粮。','good'); } else log('金币不足。','warn'); closeModal(); render(); }
+function healAll(){ if(S.gold>=20){ S.gold-=20; healParty(99); log('全队恢复满生命。','good'); } else log('金币不足。','warn'); closeModal(); render(); }
+function townQuest(rep){
+  const qs=['护送商队','清剿匪巢','寻找失踪者','采集药草','调查废墟','押送囚犯','护送朝圣者','寻找矿脉','驱散亡灵','送信'];
+  const q=pick(qs);
+  log(`从 ${rep} 任务板接取：${q}。`,'good');
+  S.rep[rep]=Math.min(10,(S.rep[rep]||0)+1);
+  S.gold+=roll(2,20);
+  log(`完成委托，获得报酬 ${roll(2,20)} cp，${rep} 声望 +1。`,'good');
+  closeModal(); render();
+}
 
-  forest: [
-    {n:'倒下的巨树', d:'一棵被雷劈倒的巨树横在林间，树洞里塞着半只发霉的皮箱。',
-     run(){ const cp = roll(2,20); state.gold += cp; log(`皮箱里有 ${cp} 枚铜币。`, 'good'); }},
-    {n:'林中的低语', d:'灌木丛里传来窸窣的脚步声和尖细的低语。几个绿皮小家伙正从树后探头。',
-     run(){ startCombat([{type:'kobold', count:roll(1,4)+1}], '狗头人尖叫着冲了出来！'); }},
-    {n:'蘑菇圈', d:'林间空地上长着一圈雪白的蘑菇，圈心的草叶上凝着露水。',
-     run(){ healParty(roll(1,4)); state.rations += roll(1,2);
-       log('你们采了些蘑菇充饥，恢复了一些体力，也补充了口粮。', 'good'); }},
-    {n:'猎人的陷阱', d:'“咔嚓”一声，队长的脚踝被藤蔓编的活套勒住，人整个被吊上了半空。',
-     run(){ const c = pickAlive();
-       if(c){ const dmg = roll(1,3); c.hp -= dmg; log(`${c.name} 被吊起摔下，受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); } }},
-    {n:'树梢的蛛影', d:'头顶的枝叶间垂下一根银亮的丝，几只毛茸茸的长腿正缓缓下探。',
-     run(){ startCombat([{type:'spider', count:roll(1,2)}], '巨蜘蛛从树上扑了下来！'); }},
-    {n:'圆环的巡林人', d:'一个披着树皮甲的巡林人从树后现身，手里搭着未上弦的弓。',
-     run(){ healParty(roll(1,2)); log('巡林人指给你们一处安全的溪边营地，你们歇了歇脚。', 'good'); }},
-  ],
+/* ============================================================
+   POI
+   ============================================================ */
+function explorePOI(type){
+  const r=die(6);
+  if(r<=2){ log(`【${type}】你们在外围查看一番，没有深入。`,'dim'); render(); return; }
+  log(`【${type}】你们进入了这座${type}。`,'warn');
+  const roll=die(100);
+  if(roll<=30){ const cp=roll(2,20); S.gold+=cp; log(`搜刮到 ${cp} cp。`,'good'); }
+  else if(roll<=55){ startCombat([{type:pick(['skeleton','goblin','rat']),count:roll(1,3)}],'黑暗中有什么扑了出来！'); return; }
+  else if(roll<=75){ healParty(roll(1,3)); log('你们找到一处安全的角落歇息。','good'); }
+  else if(roll<=90){ const cp=roll(4,20)+30; S.gold+=cp; log(`找到一只旧钱箱，获得 ${cp} cp。`,'good'); gainXP(1); }
+  else { log('你们发现一块刻满符文的石板，似有深意。','warn'); gainXP(2); }
+  render();
+}
 
-  hills: [
-    {n:'废弃矿坑', d:'半塌的矿洞口支着腐朽的木架，坑道深处传来滴水声。',
-     run(){ const cp = roll(3,20); state.gold += cp; log(`你们在矿车残骸里翻出 ${cp} 枚铜币。`, 'good'); }},
-    {n:'山猫的巢穴', d:'岩缝里探出几双黄眼睛，母狼正护着崽子朝你们低吼。',
-     run(){ startCombat([{type:'wolf', count:roll(1,2)+1}], '狼群扑了出来！'); }},
-    {n:'立石圈', d:'山脊上立着七块风化的巨石，圈心石台上刻着看不懂的符文。',
-     run(){ healParty(roll(1,3)); log('你们在石圈里歇息，伤口莫名地不那么疼了。', 'good'); }},
-    {n:'落石', d:'山坡上滚下一串碎石，队伍慌忙躲闪。',
-     run(){ const c = pickAlive();
-       if(c){ const dmg = roll(1,4); c.hp -= dmg; log(`${c.name} 被落石砸中，受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); } }},
-    {n:'丘陵匪帮', d:'几个蒙面人从岩石后现身，手里晃着生锈的砍刀。',
-     run(){ startCombat([{type:'bandit', count:roll(1,3)}], '匪徒们围了上来！'); }},
-    {n:'山间温泉', d:'岩壁下有一汪冒着热气的水潭，水面泛着淡淡的硫磺味。',
-     run(){ healParty(roll(2,4)); log('你们泡了个热水澡，浑身舒坦。', 'good'); }},
-  ],
-
-  mountain: [
-    {n:'鹰巢', d:'崖壁上挂着巨大的巢，巢里散落着反光的物件。',
-     run(){ const cp = roll(4,20)+50; state.gold += cp; log(`你们从鹰巢里摸出 ${cp} 枚铜币和几件小玩意。`, 'good'); }},
-    {n:'雪崩', d:'头顶传来闷雷般的轰鸣，整面山坡的积雪正在下滑。',
-     run(){ state.party.filter(c => c.alive).forEach(c => {
-       const dmg = roll(1,4); c.hp -= dmg; log(`${c.name} 受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); }); }},
-    {n:'山洞里的食人魔', d:'山洞深处传来沉重的脚步声，一个巨大的身影正拖着木棒走出来。',
-     run(){ startCombat([{type:'ogre', count:1}], '食人魔咆哮着冲了出来！'); }},
-    {n:'古神龛', d:'避风的山坳里立着一座石龛，龛前的供台上还留着干枯的花。',
-     run(){ healParty(roll(2,4)); log('你们在神龛前祈祷，感到一阵温暖。', 'good'); }},
-    {n:'落石陷阱', d:'狭窄的山道上堆着松动的碎石，踩上去就往下滑。',
-     run(){ const c = pickAlive();
-       if(c){ const dmg = roll(2,4); c.hp -= dmg; log(`${c.name} 滚下山坡，受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); } }},
-  ],
-
-  swamp: [
-    {n:'瘴气', d:'脚下的黑水里冒出气泡，一股甜腻的腐臭扑面而来。',
-     run(){ state.party.filter(c => c.alive).forEach(c => {
-       const dmg = roll(1,3); c.hp -= dmg; log(`${c.name} 吸入瘴气，受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); }); }},
-    {n:'沼泽僵尸', d:'淤泥里站起几具泡得发白的尸体，眼窝里爬满水蛭。',
-     run(){ startCombat([{type:'zombie', count:roll(1,2)}], '僵尸朝你们蹒跚而来！'); }},
-    {n:'血月祭坛', d:'黑曜石祭坛立在干硬的泥岛上，几个黑袍人正围着它诵唱。',
-     run(){ startCombat([{type:'cultist', count:roll(1,3)}], '邪教徒发现了你们！'); }},
-    {n:'鬼火', d:'夜里，一串惨绿的火苗贴着水面游荡，火下隐约有反光的东西。',
-     run(){ const cp = roll(3,20); state.gold += cp; log(`你们循着鬼火摸过去，捞起 ${cp} 枚泡得发绿的铜币。`, 'good'); }},
-    {n:'食人花丛', d:'一丛艳丽的巨花在水边张开，花心里滴着黏稠的液体。',
-     run(){ const c = pickAlive();
-       if(c){ const dmg = roll(1,4); c.hp -= dmg; log(`${c.name} 被花苞咬住，受到 ${dmg} 点伤害。`, 'bad'); checkDeath(c); } }},
-  ],
-
-  coast: [
-    {n:'搁浅的渔船', d:'一条龙骨断裂的渔船半埋在沙里，船舱里留着半箱没人要的渔获。',
-     run(){ state.rations += roll(1,4); log('你们收了半箱咸鱼。', 'good'); }},
-    {n:'滩涂上的鼠群', d:'退潮后的滩涂上，一群巨鼠正拖走半具海豹的尸体。',
-     run(){ startCombat([{type:'rat', count:roll(1,3)+1}], '巨鼠朝你们扑来！'); }},
-    {n:'礁滩上的古银币', d:'大潮退下去，露出平日淹在水下的礁滩。队长在礁石缝里捡到几枚古银币。',
-     run(){ const cp = roll(2,20)+20; state.gold += cp; log(`你们捡到价值 ${cp} cp 的古银币。`, 'good'); }},
-    {n:'拾贝的渔妇', d:'一个赤脚的渔妇在滩上拾蛤，篮子里混着几颗带孔的玻璃珠。',
-     run(){ state.rations += roll(1,3); log('渔妇塞给你们一小兜蛤肉。', 'good'); }},
-  ],
-};
-
+/* ============================================================
+   事件
+   ============================================================ */
 function triggerEvent(t){
-  const table = EVENTS[t] || EVENTS.plains;
-  const ev = pick(table);
-  log(`【${ev.n}】${ev.d}`, 'warn');
-  ev.run();
-  if(state.mode !== 'combat') render();
+  const table=EVENTS[t]||EVENTS.plains;
+  const ev=pick(table);
+  log(`【${ev[0]}】${ev[1]}`,'warn');
+  if(ev[2]==='rnd'){ runRandomEvent(); return; }
+  if(ev[2].startsWith('opt:')){ showOptions(ev[2].slice(4)); return; }
+  applyEffect(ev[2]);
+  if(S.mode!=='combat') render();
 }
-
-/* ---------------- 辅助 ---------------- */
-function pickAlive(){
-  const a = state.party.filter(c => c.alive);
-  return a.length ? pick(a) : null;
+function runRandomEvent(){
+  const r=die(6);
+  if(r<=3){ const d=die(3); const c=pickAlive(); if(c){c.hp-=d; log(`${c.name} 受到 ${d} 点伤害。`,'bad'); checkDeath(c);} }
+  else { const g=roll(1,20); S.gold+=g; log(`意外收获 ${g} cp。`,'good'); }
+  if(S.mode!=='combat') render();
 }
-function healParty(n){
-  state.party.forEach(c => {
-    if(c.alive) c.hp = Math.min(c.maxHp, c.hp + n);
-  });
-}
-function checkDeath(c){
-  if(c.hp <= 0){
-    c.hp = 0;
-    c.alive = false;
-    log(`💀 ${c.name} 倒下了，再也没有站起来。`, 'death');
+function showOptions(str){
+  const parts=str.split('|');
+  let html=`<h3>选择</h3>`;
+  for(let i=0;i<parts.length;i+=2){
+    html+=`<button class="opt" onclick="chooseOpt(${i})">${parts[i]}</button>`;
   }
+  S.pendingOpt=parts;
+  openModal(html);
 }
-function gainXP(n){
-  state.party.forEach(c => {
-    if(!c.alive) return;
-    c.xp += n;
-    if(c.xp >= 10 && c.level === 0){
-      c.level = 1;
-      const bonus = die(8);
-      c.maxHp += bonus;
-      c.hp = c.maxHp;
-      log(`🎉 ${c.name} 在生死之间活了下来，晋升为 1 级冒险者！（生命 +${bonus}）`, 'good');
+function chooseOpt(i){
+  const eff=S.pendingOpt[i+1];
+  closeModal();
+  applyEffect(eff);
+  if(S.mode!=='combat') render();
+}
+function applyEffect(eff){
+  if(!eff) return;
+  eff.split(';').forEach(part=>{
+    const [k,...rest]=part.split(':'); const v=rest.join(':');
+    switch(k){
+      case 'g': {const g=dice(v);S.gold+=g;log(`获得 ${g} cp。`,'good');break;}
+      case 'f': {const f=v.startsWith('-')?dice(v):dice(v);S.rations+=f;log(`口粮 ${f>0?'+':''}${f}。`,f>0?'good':'bad');break;}
+      case 'h': {const h=dice(v);healParty(h);log(`全队恢复 ${h} 点生命。`,'good');break;}
+      case 'd': {const d=dice(v);const c=pickAlive();if(c){c.hp-=d;log(`${c.name} 受到 ${d} 点伤害。`,'bad');checkDeath(c);}break;}
+      case 'x': {const x=+v;gainXP(x);log(`全队获得 ${x} 点经验值。`,'good');break;}
+      case 'cb': {const [mt,cnt]=v.split(':');startCombat([{type:mt,count:cnt||1}],'战斗爆发！');break;}
+      case 'r': {const [f,n]=v.split(':');S.rep[f]=(S.rep[f]||0)+(+n);log(`${f} 声望 ${n>0?'+':''}${n}。`,n>0?'good':'bad');break;}
+      case 'm': {if(!S.marks.includes(v)){S.marks.push(v);log(`记录标记【${v}】。`,'warn');}break;}
+      case 'ap': {S.ap=Math.max(0,S.ap+parseInt(v));log(`消耗 ${-parseInt(v)} AP。`,'dim');break;}
+      case 'w': {S.weather=v;log(`天气变为 ${v}。`,'warn');break;}
     }
   });
 }
 
-/* ---------------- 战斗 ---------------- */
-function startCombat(defs, intro){
-  const monsters = [];
-  defs.forEach(def => {
-    const t = MONSTERS[def.type];
-    const n = typeof def.count === 'number' ? def.count : dice(def.count);
-    for(let i = 0; i < n; i++){
-      const hp = Math.max(1, dice(t.hp));
-      monsters.push({
-        key: def.type,
-        name: t.name,
-        ac: t.ac,
-        hp, maxHp: hp,
-        atk: t.atk,
-        dmg: t.dmg,
-        init: t.init || 0,
-        xp: t.xp
-      });
+/* ============================================================
+   战斗
+   ============================================================ */
+function startCombat(defs,intro){
+  const monsters=[];
+  defs.forEach(def=>{
+    const t=MON[def.type]; if(!t) return;
+    const n=typeof def.count==='number'?def.count:dice(def.count);
+    for(let i=0;i<n;i++){
+      const hp=Math.max(1,dice(t.hd));
+      monsters.push({key:def.type,name:t.n,ac:t.ac,hp,maxHp:hp,atk:t.atk,dmg:t.dmg,init:0,xp:t.xp,threat:t.threat,special:t});
     }
   });
-  state.combat = {monsters, round: 0};
-  state.mode = 'combat';
-  log(intro, 'warn');
-  log(`遭遇：${monsters.length} 只 ${monsters[0].name}！（AC ${monsters[0].ac}）`, 'warn');
+  S.combat={monsters,round:0}; S.mode='combat';
+  log(intro,'warn');
+  log(`遭遇：${monsters.length} 只 ${monsters[0].name}（AC ${monsters[0].ac}）！`,'warn');
   render();
 }
-
 function partyAttacks(){
-  const cmb = state.combat;
-  state.party.forEach(c => {
+  const cmb=S.combat;
+  S.party.forEach(c=>{
     if(!c.alive) return;
-    const targets = cmb.monsters.filter(m => m.hp > 0);
+    const targets=cmb.monsters.filter(m=>m.hp>0);
     if(!targets.length) return;
-    const t = pick(targets);
-
-    const raw = die(20);
-    const atkBonus = c.level + statMod(c.stats.str);
-    const total = raw + atkBonus;
-
-    if(raw === 1){
-      log(`${c.name} 挥空了，差点把自己绊倒。`, 'dim');
-      return;
-    }
-    if(raw === 20 || total >= t.ac){
-      let dmg = Math.max(1, dice(c.dmg) + statMod(c.stats.str));
-      if(raw === 20){
-        dmg *= 2;
-        log(`⚡ ${c.name} 掷出暴击！`, 'good');
-      }
-      t.hp -= dmg;
-      log(`${c.name} 命中 ${t.name}，造成 ${dmg} 点伤害。${t.hp > 0 ? `（剩 ${t.hp}）` : '（击倒！）'}`,
-          t.hp > 0 ? 'good' : 'good');
-      if(t.hp <= 0) log(`　${t.name} 倒下了。`, 'dim');
-    } else {
-      log(`${c.name} 攻击 ${t.name}，未命中（${total} vs AC ${t.ac}）。`, 'dim');
-    }
+    const t=pick(targets);
+    const raw=die(20);
+    const bonus=c.level+statMod(c.stats.str);
+    const total=raw+bonus;
+    if(raw===1){ log(`${c.name} 大失败！${FUMBLE[die(4)-1]}`,'bad'); return; }
+    if(raw===20||total>=t.ac){
+      let dmg=Math.max(1,dice(c.dmg)+statMod(c.stats.str));
+      if(raw===20){ dmg*=2; log(`⚡ ${c.name} 暴击！`,'good'); }
+      t.hp-=dmg;
+      log(`${c.name} 命中 ${t.name}，造成 ${dmg} 伤害。${t.hp<=0?'击倒！':`剩 ${t.hp}。`}`,t.hp<=0?'good':'good');
+    } else log(`${c.name} 攻击 ${t.name} 未命中（${total} vs AC ${t.ac}）。`,'dim');
   });
 }
-
 function monsterAttacks(){
-  const cmb = state.combat;
-  cmb.monsters.forEach(m => {
-    if(m.hp <= 0) return;
-    const targets = state.party.filter(c => c.alive);
+  const cmb=S.combat;
+  cmb.monsters.forEach(m=>{
+    if(m.hp<=0) return;
+    const targets=S.party.filter(c=>c.alive);
     if(!targets.length) return;
-    const c = pick(targets);
-
-    const raw = die(20);
-    const total = raw + m.atk;
-    const ac = 10 + statMod(c.stats.agi) + (c.level > 0 ? 1 : 0);
-
-    if(raw === 20 || total >= ac){
-      let dmg = Math.max(1, dice(m.dmg));
-      if(raw === 20){
-        dmg *= 2;
-        log(`💥 ${m.name} 打出暴击！`, 'bad');
-      }
-      c.hp -= dmg;
-      log(`${m.name} 击中 ${c.name}，造成 ${dmg} 点伤害。`, 'bad');
+    const c=pick(targets);
+    const raw=die(20);
+    const total=raw+m.atk;
+    const ac=10+c.acBonus+(c.level>0?1:0)+(c.armor||0)+(c.shield||0);
+    if(raw===20||total>=ac){
+      let dmg=Math.max(1,dice(m.dmg));
+      if(raw===20){ dmg*=2; log(`💥 ${m.name} 暴击！`,'bad'); }
+      c.hp-=dmg;
+      log(`${m.name} 击中 ${c.name}，造成 ${dmg} 伤害。`,'bad');
       checkDeath(c);
-    } else {
-      log(`${m.name} 攻击 ${c.name}，未命中（${total} vs AC ${ac}）。`, 'dim');
-    }
+    } else log(`${m.name} 攻击 ${c.name} 未命中（${total} vs AC ${ac}）。`,'dim');
   });
 }
-
 function combatRound(){
-  if(state.mode !== 'combat') return;
-  const cmb = state.combat;
-  const aliveP = state.party.filter(c => c.alive);
-  const aliveM = cmb.monsters.filter(m => m.hp > 0);
-  if(!aliveP.length || !aliveM.length){ endCombat(!!aliveP.length); return; }
-
+  if(S.mode!=='combat') return;
+  const cmb=S.combat;
+  const aliveP=S.party.filter(c=>c.alive);
+  const aliveM=cmb.monsters.filter(m=>m.hp>0);
+  if(!aliveP.length||!aliveM.length){ endCombat(!!aliveP.length); return; }
   cmb.round++;
-  log(`── 第 ${cmb.round} 轮 ──`, 'round');
-
-  const partyInit = die(20) + Math.max(...aliveP.map(c => statMod(c.stats.agi)));
-  const monInit = die(20) + Math.max(...aliveM.map(m => m.init));
-  log(`先攻：队伍 ${partyInit} vs 怪物 ${monInit}`, 'dim');
-
-  if(partyInit >= monInit){
-    partyAttacks();
-    if(!checkCombatEnd()) monsterAttacks();
-  } else {
-    monsterAttacks();
-    if(!checkCombatEnd()) partyAttacks();
-  }
-  checkCombatEnd();
-  render();
+  log(`── 第 ${cmb.round} 轮 ──`,'round');
+  const pInit=die(20)+Math.max(...aliveP.map(c=>statMod(c.stats.agi)));
+  const mInit=die(20)+Math.max(...aliveM.map(m=>m.init));
+  log(`先攻：队伍 ${pInit} vs 怪物 ${mInit}`,'dim');
+  if(pInit>=mInit){ partyAttacks(); if(!checkEnd()) monsterAttacks(); }
+  else { monsterAttacks(); if(!checkEnd()) partyAttacks(); }
+  checkEnd(); render();
 }
-
-function checkCombatEnd(){
-  const aliveM = state.combat.monsters.filter(m => m.hp > 0);
-  const aliveP = state.party.filter(c => c.alive);
+function checkEnd(){
+  const aliveM=S.combat?S.combat.monsters.filter(m=>m.hp>0):[];
+  const aliveP=S.party.filter(c=>c.alive);
   if(!aliveM.length){ endCombat(true); return true; }
   if(!aliveP.length){ endCombat(false); return true; }
   return false;
 }
-
 function endCombat(win){
-  const cmb = state.combat;
-  if(!cmb){ state.mode = 'explore'; return; }
-
+  const cmb=S.combat;
+  if(!cmb){ S.mode='explore'; return; }
   if(win){
-    const strongest = Math.max(...cmb.monsters.map(m => m.xp || 1));
-    const xp = Math.min(4, Math.max(1, strongest));
-    const loot = cmb.monsters.length * (die(10) + 5);
-    state.gold += loot;
-    log(`战斗胜利！全队获得 ${xp} 点经验值，从尸体上搜出 ${loot} 枚铜币。`, 'good');
+    const strongest=Math.max(...cmb.monsters.map(m=>m.xp||1));
+    const xp=Math.min(4,Math.max(1,strongest));
+    const loot=cmb.monsters.length*(die(10)+5);
+    S.gold+=loot;
+    log(`战斗胜利！全队获得 ${xp} 点经验值，搜出 ${loot} cp。`,'good');
     gainXP(xp);
-    state.combat = null;
-    state.mode = 'explore';
-  } else {
-    log('全队覆灭。低语荒野又多了几具无名尸骨，雾吞没了最后一声呼吸。', 'death');
-    state.combat = null;
-    state.mode = 'gameover';
-  }
-  render();
-}
-
-function flee(){
-  if(state.mode !== 'combat') return;
-  const aliveP = state.party.filter(c => c.alive);
-  if(!aliveP.length){ endCombat(false); return; }
-  const r = die(20) + Math.max(...aliveP.map(c => statMod(c.stats.agi)));
-  log(`逃跑检定：${r}（需 ≥12）`, 'dim');
-  if(r >= 12){
-    log('你们成功地脱离了战斗，连滚带爬地逃进荒野。', 'good');
-    state.combat = null;
-    state.mode = 'explore';
-    render();
-  } else {
-    log('逃跑失败！怪物趁乱发起攻击。', 'bad');
-    monsterAttacks();
-    if(!checkCombatEnd()) render();
-  }
-}
-
-/* ---------------- 过夜 ---------------- */
-function restDay(){
-  if(state.mode !== 'explore') return;
-  state.day++;
-  state.ap = state.maxAp;
-
-  // 天气
-  const w = die(20);
-  state.weather = (w <= 3) ? '恶劣' : (w === 20 ? '暴风雨酝酿' : (die(6) >= 5 ? '大雾' : '晴朗'));
-
-  // 口粮
-  state.rations -= 2;
-  if(state.rations < 0){
-    state.rations = 0;
-    log('口粮耗尽！队伍饿着肚子入睡。', 'warn');
-    state.party.filter(c => c.alive).forEach(c => {
-      const dmg = die(3); c.hp -= dmg;
-      log(`${c.name} 因饥饿受到 ${dmg} 点伤害。`, 'bad');
-      checkDeath(c);
+    // 回收尸体
+    S.party.forEach(c=>{
+      if(!c.alive&&c.level>0){
+        const r=die(20);
+        if(r<=c.stats.lck){
+          c.alive=true; c.hp=1;
+          log(`🩹 ${c.name} 只是被打昏，被摇醒，恢复 1 点生命（接下来一小时所有掷骰 -4）。`,'good');
+        }
+      }
     });
-  }
-
-  // 恢复
-  state.party.forEach(c => {
-    if(c.alive && c.hp < c.maxHp) c.hp = Math.min(c.maxHp, c.hp + 1);
-  });
-
-  log(`第 ${state.day} 天拂晓。天气：${state.weather}。队伍休息了一夜。`, 'town');
-
-  if(state.party.filter(c => c.alive).length === 0){
-    log('没有人醒来。', 'death');
-    state.mode = 'gameover';
+    S.combat=null; S.mode='explore';
+  } else {
+    log('全队覆灭。低语荒野又多了几具无名尸骨。','death');
+    S.combat=null; S.mode='gameover';
   }
   render();
 }
+function flee(){
+  if(S.mode!=='combat') return;
+  const alive=S.party.filter(c=>c.alive);
+  if(!alive.length){ endCombat(false); return; }
+  const r=die(20)+Math.max(...alive.map(c=>statMod(c.stats.agi)));
+  log(`逃跑检定：${r}（需 ≥12）`,'dim');
+  if(r>=12){ log('成功脱离战斗。','good'); S.combat=null; S.mode='explore'; render(); }
+  else { log('逃跑失败！','bad'); monsterAttacks(); if(!checkEnd()) render(); }
+}
 
-/* ---------------- 启动 ---------------- */
-window.addEventListener('DOMContentLoaded', () => {
-  state.map = genMap();
+/* ============================================================
+   辅助
+   ============================================================ */
+function pickAlive(){ const a=S.party.filter(c=>c.alive); return a.length?pick(a):null; }
+function healParty(n){ S.party.forEach(c=>{ if(c.alive) c.hp=Math.min(c.maxHp,c.hp+n); }); }
+function checkDeath(c){ if(c.hp<=0){ c.hp=0; c.alive=false; log(`💀 ${c.name} 倒下了。`,'death'); } }
+function gainXP(n){
+  S.party.forEach(c=>{
+    if(!c.alive) return;
+    c.xp+=n;
+    if(c.xp>=10&&c.level===0){
+      c.level=1;
+      const bonus=die(8); c.maxHp+=bonus; c.hp=c.maxHp;
+      log(`🎉 ${c.name} 活了下来，晋升 1 级！（生命 +${bonus}）`,'good');
+    }
+  });
+}
+
+/* ============================================================
+   过夜 / 营地
+   ============================================================ */
+function restDay(){
+  if(S.mode!=='explore') return;
+  S.day++; S.ap=S.maxAp;
+  const w=die(20);
+  S.weather=(w<=3)?'恶劣':(w===20?'暴风雨酝酿':(die(6)>=5?'大雾':'晴朗'));
+  S.rations-=2;
+  if(S.rations<0){
+    S.rations=0;
+    log('口粮耗尽！队伍饿着肚子入睡。','warn');
+    S.party.filter(c=>c.alive).forEach(c=>{ const d=die(3); c.hp-=d; log(`${c.name} 因饥饿受到 ${d} 伤害。`,'bad'); checkDeath(c); });
+  }
+  S.party.forEach(c=>{ if(c.alive&&c.hp<c.maxHp) c.hp=Math.min(c.maxHp,c.hp+1); });
+  log(`第 ${S.day} 天拂晓。天气：${S.weather}。队伍休息一夜。`,'town');
+  if(!S.party.filter(c=>c.alive).length){ log('没有人醒来。','death'); S.mode='gameover'; }
   render();
-  renderLog();
-  log('《低语荒野》——基于 DCC RPG 的单人随机冒险。', 'title');
-  log('点击下方按钮，创建四名 0 级乡民，开始你的漏斗。', 'dim');
+}
+function openCamp(){
+  let html=`<h3>营地 · 采集</h3><p>在野外可以采集资源，也可以休整。</p>`;
+  html+=`<button class="opt" onclick="forage()">采集（消耗 1 AP）</button>`;
+  html+=`<button class="opt" onclick="closeModal()">关闭</button>`;
+  openModal(html);
+}
+function forage(){
+  if(S.ap<1){ log('AP 不足。','warn'); closeModal(); return; }
+  S.ap-=1;
+  const t=S.map[S.pos.r][S.pos.c].t;
+  const items=FORAGE[t]||FORAGE.plains;
+  const it=pick(items);
+  const n=roll(1,2);
+  if(it==='草药'||it==='蘑菇'||it==='海菜'||it==='浆果'||it==='野果'||it==='仙人掌果'){
+    S.rations+=n; log(`采集到 ${it} ×${n}（视为口粮）。`,'good');
+  } else { S.gold+=n*5; log(`采集到 ${it}，换得 ${n*5} cp。`,'good'); }
+  closeModal(); render();
+}
+
+/* ============================================================
+   声望
+   ============================================================ */
+function openRep(){
+  let html=`<h3>势力声望</h3>`;
+  Object.entries(S.rep).forEach(([k,v])=>{
+    const tier=v>=5?'极高':v<=-5?'极低':'普通';
+    html+=`<p>${k}：<b>${v>0?'+':''}${v}</b>（${tier}）</p>`;
+  });
+  html+=`<button class="opt" onclick="closeModal()">关闭</button>`;
+  openModal(html);
+}
+
+/* ============================================================
+   模态框
+   ============================================================ */
+function openModal(html){ document.getElementById('modalBox').innerHTML=html; document.getElementById('modal').classList.add('show'); }
+function closeModal(){ document.getElementById('modal').classList.remove('show'); }
+
+/* ============================================================
+   启动
+   ============================================================ */
+window.addEventListener('DOMContentLoaded',()=>{
+  S.map=genMap(); render(); renderLog();
+  log('《低语荒野》· 基于 DCC RPG 的完整单人随机冒险','title');
+  log('点击下方按钮，创建四名 0 级乡民，开始漏斗。','dim');
 });
 </script>
 </body>
