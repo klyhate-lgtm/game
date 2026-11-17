@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>低语荒野 · DCC 完整规则版 v7</title>
+<title>低语荒野 · DCC 完整规则版 v8</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#241d3a,#0b0910 65%);color:#ddd8c8;font-family:"Noto Serif SC",Georgia,serif;font-size:12.5px;line-height:1.45}
 #app{max-width:1300px;margin:0 auto;padding:6px;display:flex;flex-direction:column;gap:5px}
@@ -63,7 +63,20 @@ function dice(str){if(typeof str==='number')return str;const m=String(str).match
 function statMod(v){if(v<=3)return-3;if(v<=5)return-2;if(v<=8)return-1;if(v<=12)return 0;if(v<=15)return 1;if(v<=17)return 2;return 3}
 const NAMES=['阿贵','石头','小满','狗剩','铁蛋','二丫','大壮','阿福','三顺','来福','春生','秋收','小翠','老蔫','拴柱','满仓','栓子','黑豆','泥鳅','阿土','胖虎','豆芽','二狗','火根','禾苗','麦穗','谷雨','惊蛰','长庚','阿七'];
 
-/* ============ 七职业 1-5 级 ============ */
+/* ============ 豁免检定 ============ */
+function save(c,type,dc){
+  const bonus=type==='fort'?statMod(c.stats.sta):type==='ref'?statMod(c.stats.agi):statMod(c.stats.per);
+  const lvlBonus=c.level>0?1:0;
+  const raw=die(20);
+  const total=raw+bonus+lvlBonus;
+  log(`　${c.name} ${type==='fort'?'强韧':type==='ref'?'反射':'意志'}豁免：${raw}+${bonus+lvlBonus}=${total} vs DC ${dc}`,total>=dc?'good':'bad');
+  return total>=dc;
+}
+
+/* ============ 疾病/毒素 DC 表 ============ */
+const POISON_DC={rat:{dc:7,dmg:'1d6'},spider:{dc:8,dmg:'1d4'},snake:{dc:8,dmg:'1d4'},ghoul:{dc:14,dmg:'麻痹1d6h'}};
+
+/* ============ 七职业 ============ */
 const CLASS_DATA={
   '战士':{hd:12,table:[{lv:1,atk:'+d3',crit:'1d12/III',threat:'19-20',act:'1d20',ref:1,fort:1,will:0,title:'侍从'},{lv:2,atk:'+d4',crit:'1d14/III',threat:'19-20',act:'1d20',ref:1,fort:1,will:0,title:'勇士'},{lv:3,atk:'+d5',crit:'1d16/IV',threat:'19-20',act:'1d20',ref:1,fort:2,will:1,title:'骑士'},{lv:4,atk:'+d6',crit:'1d20/IV',threat:'19-20',act:'1d20',ref:2,fort:2,will:1,title:'骑士武士'},{lv:5,atk:'+d7',crit:'1d24/V',threat:'18-20',act:'1d20+1d14',ref:2,fort:3,will:1,title:'圣武士'}]},
   '盗贼':{hd:6,table:[{lv:1,atk:'+0',crit:'1d10/II',lucky:'d3',ref:1,fort:1,will:0,title:'亡命骑士'},{lv:2,atk:'+1',crit:'1d12/II',lucky:'d4',ref:1,fort:1,will:0,title:'学徒'},{lv:3,atk:'+2',crit:'1d14/II',lucky:'d5',ref:2,fort:1,will:1,title:'游痞'},{lv:4,atk:'+2',crit:'1d16/II',lucky:'d6',ref:2,fort:2,will:1,title:'头目'},{lv:5,atk:'+3',crit:'1d20/II',lucky:'d7',ref:3,fort:2,will:1,title:'老大'}]},
@@ -89,16 +102,40 @@ const GEAR=['背包(2gp)','蜡烛(1cp)','铁链10英尺(30gp)','粉笔1支(1cp)'
 const WEAPONS=[{n:'战斧',dmg:'1d10',p:7,two:true},{n:'包铁短棍',dmg:'1d3/2d6',p:3},{n:'吹箭筒',dmg:'1d3/1d5',p:6},{n:'棍棒',dmg:'1d4',p:0.3},{n:'弩',dmg:'1d6',p:30,two:true},{n:'匕首',dmg:'1d4/1d10',p:3},{n:'飞镖',dmg:'1d4',p:0.5},{n:'连枷',dmg:'1d6',p:6},{n:'绞索',dmg:'1/3d4',p:2},{n:'手斧',dmg:'1d6',p:4},{n:'标枪',dmg:'1d6',p:1},{n:'骑枪',dmg:'1d12',p:25},{n:'长弓',dmg:'1d6',p:40,two:true},{n:'长剑',dmg:'1d8',p:10},{n:'钉头锤',dmg:'1d6',p:5},{n:'长柄武器',dmg:'1d10',p:7,two:true},{n:'短弓',dmg:'1d6',p:25,two:true},{n:'短剑',dmg:'1d6',p:7},{n:'投石索',dmg:'1d4',p:2},{n:'矛',dmg:'1d8',p:3},{n:'法杖',dmg:'1d4',p:0.5},{n:'双手剑',dmg:'1d10',p:15,two:true},{n:'战锤',dmg:'1d8',p:5}];
 const ARMORS=[{n:'无甲',ac:0,p:0},{n:'絮甲',ac:1,p:5},{n:'皮甲',ac:2,p:20},{n:'镶钉皮甲',ac:3,p:45},{n:'兽皮甲',ac:3,p:30},{n:'鳞甲',ac:4,p:80},{n:'锁子甲',ac:5,p:150},{n:'带甲',ac:6,p:250},{n:'半身板甲',ac:7,p:550},{n:'全身板甲',ac:8,p:1200},{n:'盾牌',ac:1,p:10}];
 const SUPPLIES=[{n:'口粮 1 份',p:0.05},{n:'火把 1 支',p:0.01},{n:'蜡烛 1 支',p:0.01},{n:'油瓶 1 个',p:0.2},{n:'绳索 50 英尺',p:0.25},{n:'背包',p:2},{n:'水囊',p:0.5},{n:'火石与火镰',p:0.15},{n:'提灯',p:10},{n:'盗贼工具',p:25},{n:'圣水 1 瓶',p:25},{n:'治疗药水',p:50}];
-/* 服务逐项定价（第十七章） */
+const MOUNTS=[{n:'驴或骡',p:8},{n:'普通马',p:75},{n:'战马',p:200},{n:'矮种马',p:30}];
 const SERVICES_PRICE=[['旅店每晚',1],['寄养马匹每日',0.5],['酒馆打听消息',0.5],['渡船过河',5],['神庙治疗',0.2],['雇佣护卫每日',2],['租用马匹每日',1],['市场摊位费',0.1]];
 
-/* ============ 怪物 ============ */
-const MON={goblin:{n:'地精',ac:12,hd:'1d6-1',atk:-1,dmg:'1d3/1d4',threat:1,xp:1},kobold:{n:'狗头人',ac:10,hd:'1d4',atk:0,dmg:'1d3',threat:1,xp:1},orc:{n:'兽人',ac:14,hd:'1d8+1',atk:1,dmg:'1d4/1d6',threat:2,xp:2},wolf:{n:'狼',ac:12,hd:'1d6',atk:2,dmg:'1d4',threat:2,xp:1},direwolf:{n:'恐狼',ac:14,hd:'2d6',atk:6,dmg:'1d6+2',threat:3,xp:3},boar:{n:'野猪',ac:11,hd:'2d8',atk:2,dmg:'1d6',threat:2,xp:2},rat:{n:'巨鼠',ac:13,hd:'1d6+2',atk:2,dmg:'1d4+1',threat:2,xp:1,poison:'DC7强韧否则+1d6'},swarm:{n:'鼠群',ac:9,hd:'4d8',atk:1,dmg:'1',threat:2,xp:2,swarm:true},zombie:{n:'僵尸',ac:9,hd:'3d6',atk:3,dmg:'1d4',threat:2,xp:2,undead:true},skeleton:{n:'骷髅',ac:9,hd:'1d6',atk:0,dmg:'1d3',threat:1,xp:1,undead:true,pierceHalf:true},ghoul:{n:'食尸鬼',ac:12,hd:'2d6',atk:3,dmg:'1d4',threat:3,xp:3,undead:true,paralyze:'DC14意志否则麻痹1d6h'},wight:{n:'尸妖',ac:14,hd:'3d6',atk:4,dmg:'1d6',threat:3,xp:3,undead:true,drain:'吸取1力量'},ogre:{n:'食人魔',ac:16,hd:'4d8+4',atk:5,dmg:'1d6+6',threat:3,xp:3,grab:true},troll:{n:'巨魔',ac:19,hd:'8d8+6',atk:10,dmg:'2d8+6',threat:4,xp:4,regen:'每轮+1d8,火焰杀死',immuneCrit:true},spider:{n:'巨蜘蛛',ac:13,hd:'1d8+1',atk:2,dmg:'1d4',threat:2,xp:2,poison:'DC8强韧否则+1d4'},owlbear:{n:'枭熊',ac:17,hd:'3d8',atk:6,dmg:'1d6+2',threat:3,xp:3,mr:25,doubleAtk:true},bandit:{n:'匪徒',ac:15,hd:'1d8',atk:2,dmg:'1d8+1',threat:2,xp:2},banditLeader:{n:'匪徒头目',ac:17,hd:'3d8',atk:6,dmg:'1d8+3',threat:3,xp:3},banditArcher:{n:'匪徒射手',ac:14,hd:'1d8',atk:2,dmg:'1d6',threat:2,xp:2,ranged:true},cultist:{n:'邪教徒',ac:11,hd:'1d6',atk:0,dmg:'1d4',threat:2,xp:2},bat:{n:'蝙蝠群',ac:8,hd:'2d6',atk:2,dmg:'1',threat:1,xp:1,swarm:true},snake:{n:'毒蛇',ac:11,hd:'1d8',atk:2,dmg:'1d4',threat:2,xp:1,poison:'DC8强韧否则+1d4'},harpy:{n:'鹰身女妖',ac:12,hd:'2d6',atk:2,dmg:'1d4',threat:2,xp:2,song:'DC12意志否则被引诱'}};
+/* ============ 怪物（完整特殊能力） ============ */
+const MON={
+  goblin:{n:'地精',ac:12,hd:'1d6-1',atk:-1,dmg:'1d3/1d4',threat:1,xp:1,ir:60,lightSens:true},
+  kobold:{n:'狗头人',ac:10,hd:'1d4',atk:0,dmg:'1d3',threat:1,xp:1,ir:60},
+  orc:{n:'兽人',ac:14,hd:'1d8+1',atk:1,dmg:'1d4/1d6',threat:2,xp:2,leader:'4d8+4'},
+  wolf:{n:'狼',ac:12,hd:'1d6',atk:2,dmg:'1d4',threat:2,xp:1,pack:true},
+  direwolf:{n:'恐狼',ac:14,hd:'2d6',atk:6,dmg:'1d6+2',threat:3,xp:3,leadsWolf:true},
+  boar:{n:'野猪',ac:11,hd:'2d8',atk:2,dmg:'1d6',threat:2,xp:2,fierce:true},
+  rat:{n:'巨鼠',ac:13,hd:'1d6+2',atk:2,dmg:'1d4+1',threat:2,xp:1,poison:'rat'},
+  swarm:{n:'鼠群',ac:9,hd:'4d8',atk:1,dmg:'1',threat:2,xp:2,swarm:true,poison:'swarm'},
+  zombie:{n:'僵尸',ac:9,hd:'3d6',atk:3,dmg:'1d4',threat:2,xp:2,undead:true,dispellable:true},
+  skeleton:{n:'骷髅',ac:9,hd:'1d6',atk:0,dmg:'1d3',threat:1,xp:1,undead:true,pierceHalf:true,dispellable:true},
+  ghoul:{n:'食尸鬼',ac:12,hd:'2d6',atk:3,dmg:'1d4',threat:3,xp:3,undead:true,paralyze:'ghoul',silent:true,dispellable:true},
+  wight:{n:'尸妖',ac:14,hd:'3d6',atk:4,dmg:'1d6',threat:3,xp:3,undead:true,drain:true,dispellable:true},
+  ogre:{n:'食人魔',ac:16,hd:'4d8+4',atk:5,dmg:'1d6+6',threat:3,xp:3,grab:true},
+  troll:{n:'巨魔',ac:19,hd:'8d8+6',atk:10,dmg:'2d8+6',threat:4,xp:4,regen:'1d8',fireKill:true,immuneCrit:true,nausea:true},
+  spider:{n:'巨蜘蛛',ac:13,hd:'1d8+1',atk:2,dmg:'1d4',threat:2,xp:2,poison:'spider'},
+  owlbear:{n:'枭熊',ac:17,hd:'3d8',atk:6,dmg:'1d6+2',threat:3,xp:3,mr:25,doubleAtk:true},
+  bandit:{n:'匪徒',ac:15,hd:'1d8',atk:2,dmg:'1d8+1',threat:2,xp:2,leader:'2d8/+4',boss:'3d8/+6'},
+  banditLeader:{n:'匪徒头目',ac:17,hd:'3d8',atk:6,dmg:'1d8+3',threat:3,xp:3},
+  banditArcher:{n:'匪徒射手',ac:14,hd:'1d8',atk:2,dmg:'1d6',threat:2,xp:2,ranged:true},
+  cultist:{n:'邪教徒',ac:11,hd:'1d6',atk:0,dmg:'1d4',threat:2,xp:2,spell15:true},
+  bat:{n:'蝙蝠群',ac:8,hd:'2d6',atk:2,dmg:'1',threat:1,xp:1,swarm:true},
+  snake:{n:'毒蛇',ac:11,hd:'1d8',atk:2,dmg:'1d4',threat:2,xp:1,poison:'snake'},
+  harpy:{n:'鹰身女妖',ac:12,hd:'2d6',atk:2,dmg:'1d4',threat:2,xp:2,song:true},
+};
 const MON_COUNT={goblin:'1d4+1',kobold:'1d4+2',orc:'1d3',wolf:'1d3+1',direwolf:1,boar:'1d2',rat:'1d3+1',swarm:1,zombie:'1d3',skeleton:'1d4',ghoul:'1d2',wight:1,ogre:1,troll:1,spider:'1d2',owlbear:1,bandit:'1d3+1',banditLeader:1,banditArcher:'1d3',cultist:'1d3',bat:1,snake:'1d3',harpy:'1d2'};
 const UPGRADE={goblin:'orc',kobold:'orc',wolf:'direwolf',skeleton:'wight',zombie:'ghoul',rat:'swarm',bandit:'banditLeader',bat:'harpy'};
 const TER={plains:{n:'平原',c:'#6f8f4f',ap:2,enc:'1d4==1'},coast:{n:'沿海',c:'#5a8a9c',ap:2,enc:'1d4==1'},forest:{n:'森林',c:'#38602f',ap:3,enc:'1d6<=2'},hills:{n:'丘陵',c:'#8a7a4a',ap:3,enc:'1d6<=2'},mountain:{n:'山脉',c:'#6a6a72',ap:6,enc:'1d4<=2'},swamp:{n:'沼泽',c:'#4a5535',ap:6,enc:'1d4<=2'},desert:{n:'沙漠',c:'#c2a45a',ap:3,enc:'1d6<=2'},jungle:{n:'丛林',c:'#2e5a24',ap:6,enc:'1d4<=2'},ocean:{n:'海洋',c:'#22456b',ap:99,enc:'0'}};
 
-/* ============ 暴击表 I–V ============ */
+/* ============ 暴击/大失败 ============ */
 const CRIT_I=['武器脱手震飞,+1d6伤害,被缴械','趁隙一击,+1d3伤害','戳中眼睛,+1d4伤害','额头致晕,+1d3,敌人下轮先攻最后','击中膝盖,+1d4,速度-10直到治愈','结结实实打中躯干,+1d6','卸下敌人武器,获免费攻击','砸碎手,+2d3,断两指','致麻一击,敌人下轮无法攻击','敌人绊倒,本轮俯卧','贯穿刺击,+2d4','击中裆部,DC15强韧否则干呕两轮','砸碎脚踝,速度减半','擦过太阳穴,目盲1d3轮','刺中持械手,武器飞1d10+5英尺','避开反击,正常伤害+再攻击+1d6','击中咽喉,2轮无法说话/施法/攻击','敌人撞进攻击,+2d6','奇迹一击,DC20强韧否则昏倒','砸凹头骨,+2d6,无盔者永久-1d4智力'];
 const CRIT_II=['未命中!迟疑错失','避开要害,+2d3','削掉耳朵,+1d6,留疤','干净击中背部,+2d6','击中胸口踉跄,免费攻击','刺穿肾脏,+3d3,震慑1轮','敌人懵,速度与行动减半','擦过要害,+3d4','脸上血线,目盲1d4轮','敌人扑倒,再攻击','大师一击,+2d6','割断喉管','残暴一击,DC10+等级强韧否则痛昏','迅捷连击,1d4轮攻击-4','击中头,DC10+等级强韧否则昏倒','打倒,+2d6并俯卧','打爆眼珠,永久失明1d3轮无法行动','刺穿肺,+2d6,下回合仅一行动','击中后脑,+1d8,DC10+等级强韧否则昏倒','割断大动脉,+1d10,DC10+等级强韧否则昏倒','喉头割开,+2d6,DC13+等级强韧否则1d4轮死','刺穿脊柱,+3d6,DC15+等级强韧否则瘫痪','胸腔贯穿,+2d6,DC13+等级强韧否则1d4轮死','穿耳入脑,DC15+等级强韧否则死;成功+2d6','刺穿心脏,+3d6,DC20+等级强韧否则死'];
 const CRIT_III=['分不清敌友:敌人+1d12,最近盟友+1d4','野蛮攻击,+1d6','扫离地面,下轮俯卧','敌人撞进,+1d8','砸跪,再攻击','砸碎鼻,+1d6,失嗅1d4h','凶残击中躯干,+1d8,多肋断','击中手,武器飞1d20+5英尺','颅骨弹开,失聪1d6天,+1d6','股骨碎裂,+2d6,速度-10','击碎敌人武器','砸中腹内出血,1d5h内死(除非魔法治疗)','击中颅骨,DC10+等级强韧否则昏','打断下颌,+1d8','砸中躯干,+2d8','肩关节脱臼,+1d8,盾不再提供AC','持械手烂肉,未来攻击-4','狂怒连击,再攻击','碎骨入前脑,+1d8,-1d4智/个','毁灭胸口,+2d8','击中胸口,震慑1d3轮,+1d8','股骨碎倒地,速度减半,+2d8,再攻击','持械臂斩断,武器失去','头颅凹坑,+2d8,永久-1d4智/个','击中咽喉,+2d8,喘气1d4轮','碎肋骨入肺,失去50%HP,呕血','面部摧毁双眼,+2d8,永久失明','碾压胸腔,+3d8,DC15+等级强韧否则昏','摧毁脊柱,+3d8,DC15+等级强韧否则瘫痪'];
@@ -106,20 +143,18 @@ const CRIT_IV=['分不清敌友:敌人+2d8,盟友+1d4','大力神一击,+2d12','
 const CRIT_V=['分不清敌友:敌人+3d8,盟友+1d4','击碎敌人武器;无武器+3d12','抛飞1d10英尺,相邻敌人误击','击中颅骨毁耳,+1d12,永久失聪','击中腹,DC20+等级强韧否则胃破干呕两轮','敌人丢武器求饶,+1d12,再攻击','削头皮,等同目盲','敌人武器缠住,AC-6,再攻击','眼前一片红,+1d12','眼前一片红,+1d12','武器砸进敌人自己的脸,四倍伤害,惊惧丢武器','劈开盾,+2d12;无盾DC20+等级强韧否则痛昏','脊柱压短6英寸,敌人AC-4','剖腹肠流,当场休克死','摧毁面部,立刻目盲失聪','削去颅顶,3d3轮内死','斩断持盾臂,+2d12','神一般一击,+3d12;目标死可移动10英尺再攻击','斩断腿,+2d12,移动0,1d4轮哀号','震慑1d4+1轮,永久-1d12智,对动弹不得者再攻击','斩断持械臂,+2d12,缴械','肠子打空,失去50%HP','碾碎咽喉,1d4轮内溺死','致残重击脊柱,+4d12,永久瘫痪','一击斩首!继续攻击10英尺内敌人直到失手'];
 const FUMBLE={d4:['胡乱挥空','拙劣一击','绊倒,DC10反射否则俯卧一轮','武器脱手,下次攻击-2'],d8:['胡乱挥空','拙劣一击','绊倒','武器脱手','武器损坏','绊倒浪费行动','武器缠护甲','武器脱手'],d12:['胡乱挥空','拙劣一击','绊倒','武器脱手','武器损坏','绊倒','武器缠护甲','武器脱手','武器被毁','暴露,敌人攻击+2','护甲关节卡死1d3轮','失衡-4'],d16:['胡乱挥空','拙劣一击','绊倒','武器脱手','武器损坏','绊倒','武器缠护甲','武器脱手','武器被毁','暴露,敌人+2','护甲卡死','失衡-4','挥向随机盟友','重重绊倒,1d3伤害俯卧','乌龟翻背,俯卧一轮','弄伤自己','意外击中自己,正常伤害+1,DC16敏捷起身']};
 
-/* ============ 腐化/失手/失宠/奇异魔法 100 条 ============ */
+/* ============ 腐化/失手/失宠/奇异魔法 ============ */
 const CORRUPT_MINOR=['脓疱,个性-1','皮肤融化,奇痒','腿长1d6英寸','眼睛变化(1d4)','疼痛病变','耳朵突变(1d5)','寒颤','面貌毁损','头发异变(1d4)','昏倒1d6小时'];
 const CORRUPT_MAJOR=['热病:每月力量-1','背上长出自己面容','痨病:耐力-1','臃肿:敏捷-1','噼啪作响散发法术能量','身高变化1d20-10英寸','恶魔印记','皮肤非世间色','额头长角','舌头分叉'];
 const SPELL_MISHAP=['盟友变动物','不同法术生效','下雨了(1d6)','以最近生物为中心爆炸','变形!','意外腐化!','烟花彩光','灰烬之云!'];
 const DISFAVOR=['必须赎罪10分钟','祈祷1小时,-1','招募新信徒否则次日-1','法术检定-1','谦卑考验','按手礼-1','染病','失宠法术-4','法术-2','失去1级法术','冥想永久-2','当天不能获XP','失去两个1级法术','永久-4','失宠区间不重置','按手礼禁用1d4天','失去1d4+1法术','无法驱散1d4天','不忠者印记','按手礼每天每目标一次'];
-const WEIRD_MAGIC={
-'01':'代价高昂:每次施放随机队友受1d4','02':'极难施放:降两档','03':'难以施放:降一档','04':'十指倒数:每施放消融一手指,-1敏捷/两指','05':'血魔法:需献祭生命值≥等级活物','06':'位面裂隙:1%召来等级+5恐怖之物','07':'千古沉眠:DC5+等级强韧否则沉睡','08':'法术烙印:每次留下符文','09':'低语回响:10英尺内听到低语','10':'虹彩:颜色随机,极为显眼','11':'静默:该法术无声','12':'雷鸣:施放时发出巨响','13':'冰霜:施放后周围结霜','14':'藤蔓:施放后脚下长出藤蔓','15':'流血:施放后自身受1伤害','16':'疲惫:施放后下轮攻击-1','17':'恍惚:施放后下轮无法防御','18':'寒颤:施放后发抖','19':'发热:施放后体温升高','20':'发冷:施放后体温下降','21':'金光:施放时发出金光','22':'黑雾:施放时冒黑雾','23':'花香:施放时散发花香','24':'腐臭:施放时散发腐臭','25':'幻听:施放后听到低语','26':'幻视:施放后看到幻象','27':'幻触:施放后感觉被触碰','28':'风起:施放时起风','29':'雨落:施放时下小雨','30':'雪飘:施放时飘雪','31':'虫鸣:施放时虫鸣大作','32':'鸟叫:施放时鸟叫','33':'狼嚎:施放时远处狼嚎','34':'钟声:施放时远处钟声','35':'鼓声:施放时远处鼓声','36':'哭泣:施放时听到哭声','37':'笑声:施放时听到笑声','38':'歌声:施放时听到歌声','39':'脚步声:施放时听到脚步声','40':'门响:施放时听到门响','41':'无变化','42':'无变化','43':'无变化','44':'无变化','45':'无变化','46':'无变化','47':'无变化','48':'无变化','49':'无变化','50':'无变化','51':'无变化','52':'无变化','53':'无变化','54':'无变化','55':'无变化','56':'无变化','57':'无变化','58':'无变化','59':'无变化','60':'无变化','61':'无变化','62':'无变化','63':'无变化','64':'无变化','65':'无变化','66':'无变化','67':'无变化','68':'无变化','69':'无变化','70':'无变化','71':'无变化','72':'无变化','73':'无变化','74':'无变化','75':'无变化','76':'无变化','77':'无变化','78':'无变化','79':'无变化','80':'无变化','81':'无变化','82':'无变化','83':'无变化','84':'无变化','85':'无变化','86':'无变化','87':'无变化','88':'无变化','89':'无变化','90':'无变化','91':'无变化','92':'无变化','93':'无变化','94':'无变化','95':'魔力充盈:检定升一档','96':'强力施法者:检定升一档','97':'天生禀赋:检定升一档','98':'天生禀赋:检定升两档','99':'再掷两次','00':'再掷两次(4d20)'};
+const WEIRD_MAGIC={'01':'代价高昂:每次施放随机队友受1d4','02':'极难施放:降两档','03':'难以施放:降一档','04':'十指倒数','05':'血魔法','06':'位面裂隙','07':'千古沉眠','08':'法术烙印','09':'低语回响','10':'虹彩','11':'静默','12':'雷鸣','13':'冰霜','14':'藤蔓','15':'流血','16':'疲惫','17':'恍惚','18':'寒颤','19':'发热','20':'发冷','21':'金光','22':'黑雾','23':'花香','24':'腐臭','25':'幻听','26':'幻视','27':'幻触','28':'风起','29':'雨落','30':'雪飘','31':'虫鸣','32':'鸟叫','33':'狼嚎','34':'钟声','35':'鼓声','36':'哭泣','37':'笑声','38':'歌声','39':'脚步声','40':'门响','41-94':'无变化','95':'魔力充盈:升一档','96':'强力施法者:升一档','97':'天生禀赋:升一档','98':'天生禀赋:升两档','99':'再掷两次','00':'再掷两次(4d20)'};
 
 /* ============ 法术 ============ */
 const SPELLS={magicMissile:{n:'魔法飞弹',lv:1,cls:'wizard',tbl:[[12,'1发1d4+1'],[14,'2发'],[18,'3发'],[20,'4发'],[24,'5发'],[28,'6发'],[30,'7发']]},burningHands:{n:'燃烧之手',lv:1,cls:'wizard',tbl:[[12,'1d3'],[14,'1d4'],[18,'1d6'],[20,'1d8单'],[24,'1d6全体'],[28,'1d8全体'],[30,'1d10全体着火']]},charmPerson:{n:'魅惑人类',lv:1,cls:'wizard',tbl:[[12,'迟疑1轮'],[14,'1敌1轮不动'],[18,'2轮不攻击'],[20,'1敌倒戈2轮'],[24,'2敌倒戈2轮'],[28,'全体呆立1轮'],[30,'全体拜倒3轮']]},sleep:{n:'睡眠',lv:1,cls:'wizard',tbl:[[12,'1敌DC10'],[14,'1敌DC12'],[18,'2敌DC12'],[20,'3敌DC14'],[24,'弱小敌DC12'],[28,'全体DC16'],[30,'全体DC20']]},shield:{n:'魔法护盾',lv:1,cls:'wizard',tbl:[[12,'自身AC+2'],[14,'AC+3'],[18,'AC+4'],[20,'自身+1队友AC+4'],[24,'全队AC+3'],[28,'全队AC+4'],[30,'全队AC+4整场']]},cantrip:{n:'戏法',lv:1,cls:'wizard',tbl:[[12,'小把戏'],[20,'1敌下轮-2'],[24,'2敌下轮-2'],[28,'全敌下轮-1'],[30,'兼得']]},spiderClimb:{n:'蛛行',lv:2,cls:'wizard',tbl:[[12,'自身10分钟'],[14,'全队10分钟'],[18,'全队30分钟'],[20,'全队1h'],[24,'全队2h'],[28,'全队半天'],[30,'全队一天']]},chillTouch:{n:'寒冷之触',lv:2,cls:'wizard',tbl:[[12,'1d4'],[14,'1d6'],[18,'1d8'],[20,'1d8+迟缓'],[24,'全敌1d6'],[28,'全敌1d8+迟缓'],[30,'全敌1d10+冻结']]},fireball:{n:'火球',lv:3,cls:'wizard',tbl:[[12,'1敌2d6'],[14,'3d6'],[18,'4d6'],[20,'全敌2d6'],[24,'3d6'],[28,'4d6+着火'],[30,'5d6+着火']]},bless:{n:'祝福',lv:1,cls:'cleric',tbl:[[12,'全队攻击+1'],[14,'+1伤害'],[18,'攻击+2'],[20,'+2AC+1'],[24,'+3'],[28,'+3AC+2'],[30,'+4AC+2伤害+2']]},command:{n:'命令之言',lv:1,cls:'cleric',tbl:[[12,'1敌DC10'],[14,'2轮DC12'],[18,'2敌DC12'],[20,'弱敌DC10'],[24,'全体DC14'],[28,'全体跪2轮DC16'],[30,'全体震慑3轮DC20']]},food:{n:'诸神之粮',lv:1,cls:'cleric',tbl:[[12,'1份'],[14,'1d4份'],[18,'1d6份+1HP'],[20,'2d6份'],[24,'3d6份+1HP'],[28,'4d6份'],[30,'5d6份+2HP']]},sanctuary:{n:'神圣庇护所',lv:1,cls:'cleric',tbl:[[12,'全队AC+1'],[14,'AC+2'],[18,'AC+2敌攻-1'],[20,'AC+3'],[24,'AC+3不死畏缩'],[28,'AC+4'],[30,'AC+4全敌攻-2']]},holyFlame:{n:'圣焰',lv:2,cls:'cleric',tbl:[[12,'1敌1d4'],[14,'1d6'],[18,'1d8(不死+1d8)'],[20,'全敌1d6'],[24,'1d8(不死+1d8)'],[28,'1d10'],[30,'2d8(不死+1d8)']]},healingLight:{n:'治愈之光',lv:2,cls:'cleric',tbl:[[12,'治1d4'],[14,'1d6'],[18,'1d8'],[20,'全队1d6'],[24,'全队1d8'],[28,'全队2d6'],[30,'全队回满']]}};
 
-/* ============ 野外事件（每地形 30+ 条） ============ */
-const EVENTS={
-plains:[['烧焦的农舍','烧塌一半的农舍，灶台下埋着裂口陶罐。','g:3d20'],['半截界碑','半截界碑压着皮钱袋。','g:2d20+20'],['路边的野坟','新坟木牌："求你把我也埋了，鞋归你。"','opt:挖开|g:4d20;cb:snake:1d3|绕道|x:1'],['翻倒的粮车','粮车斜翻，车轴插黑羽箭。','g:1d20;f:1d3'],['立石圈里的铁匣','祭坛石缝有锈锁铁匣。','g:2d30+150'],['牧场的狼群','瘦狼撕扯死羊。','cb:wolf:1d3+1'],['拦路的税','三个酒气汉子跳出。','cb:bandit:1d2'],['草浪里的黄眼睛','牛尸旁草浪里黄眼睛。','cb:orc:1d2'],['独眼老野猪','独眼野猪嗷地蹿起。','d:1d3;f:-1'],['被雨水冲开的坟丘','白骨从坟丘爬出。','cb:skeleton:1d4'],['数羊的老人','老人坚称羊群混进"披羊皮的东西"。','rnd'],['卖圣水的行脚僧','托钵僧兜售圣水。','rnd'],['掉队的王国斥候','断腿骑兵攥着染血信筒。','rnd'],['草丛里的铁夹','捕兽夹咬住队长小腿。','d:1d3'],['平地的风暴','铁青色云墙。','w:暴风雨'],['鼓胀的死牛','恶臭扑鼻。','rnd'],['野莓盛开的草甸','野莓正熟。','h:1d3;f:1d2'],['溪畔的野草药','车轴草与野茴香。','f:1d2;h:1d2'],['税吏的车队','税吏鹰钩鼻扫了一圈。','rnd'],['圆环的巡林人','警告不许点明火。','rnd'],['熄了火的商队营地','帐篷上血手印指向西边。','x:2'],['草原上的行军声','远处整齐脚步声。','x:1'],['风吹草浪','草浪翻涌。','h:1d3'],['满月下的白鹿','纯白雄鹿鹿角挂藤花。','h:1d3;m:白鹿'],['村里的猫','只有猫，齐刷刷盯着外乡人。','g:1d20'],['草海里的巨兽','熊身鸟头巨兽。','cb:owlbear:1'],['草原野火','灰烟里传来孩子哭喊。','rnd'],['带刺的陷阱坑','坑底削尖木桩。','d:1d3'],['暮色里的鬼影','半透明人形招手。','cb:wight:1'],['孤树上的旅人','歪脖子树上吊着风干旅人。','opt:安葬|g:2d10;x:1|只拿行囊|g:3d10;m:平原吊尸'],['拔腿就跑的货郎','神油货郎。','rnd'],['麦田里的怪圈','麦田倒伏成完美圆。','opt:爬梯|x:1|拆梯烧|m:麦田怪圈'],['迁徙的野牛群','牛崽落单。','opt:送回|r:荒野圆环:1|宰了|f:2;d:1d3'],['背风坡的药草','肥厚药草。','f:1d2;h:1d2'],['黑石滚过的焦痕','笔直焦痕。','g:2d30+150'],['野马群','一群野马从远处跑过。','r:荒野圆环:1;h:1d2']],
+/* ============ 野外事件（压缩保留核心，标记回响） ============ */
+const EVENTS={plains:[['烧焦的农舍','烧塌一半的农舍，灶台下埋着裂口陶罐。','g:3d20'],['半截界碑','半截界碑压着皮钱袋。','g:2d20+20'],['路边的野坟','新坟木牌："求你把我也埋了，鞋归你。"','opt:挖开|g:4d20;cb:snake:1d3|绕道|x:1'],['翻倒的粮车','粮车斜翻，车轴插黑羽箭。','g:1d20;f:1d3'],['立石圈里的铁匣','祭坛石缝有锈锁铁匣。','g:2d30+150'],['牧场的狼群','瘦狼撕扯死羊。','cb:wolf:1d3+1'],['拦路的税','三个酒气汉子跳出。','cb:bandit:1d2'],['草浪里的黄眼睛','牛尸旁草浪里黄眼睛。','cb:orc:1d2'],['独眼老野猪','独眼野猪嗷地蹿起。','d:1d3;f:-1'],['被雨水冲开的坟丘','白骨从坟丘爬出。','cb:skeleton:1d4'],['数羊的老人','老人坚称羊群混进"披羊皮的东西"。','rnd'],['卖圣水的行脚僧','托钵僧兜售圣水。','rnd'],['掉队的王国斥候','断腿骑兵攥着染血信筒。','rnd'],['草丛里的铁夹','捕兽夹咬住队长小腿。','d:1d3'],['平地的风暴','铁青色云墙。','w:暴风雨'],['鼓胀的死牛','恶臭扑鼻。','rnd'],['野莓盛开的草甸','野莓正熟。','h:1d3;f:1d2'],['溪畔的野草药','车轴草与野茴香。','f:1d2;h:1d2'],['税吏的车队','税吏鹰钩鼻扫了一圈。','rnd'],['圆环的巡林人','警告不许点明火。','rnd'],['熄了火的商队营地','帐篷上血手印指向西边。','x:2'],['草原上的行军声','远处整齐脚步声。','x:1'],['风吹草浪','草浪翻涌。','h:1d3'],['满月下的白鹿','纯白雄鹿鹿角挂藤花。','h:1d3;m:白鹿'],['村里的猫','只有猫，齐刷刷盯着外乡人。','g:1d20'],['草海里的巨兽','熊身鸟头巨兽。','cb:owlbear:1'],['草原野火','灰烟里传来孩子哭喊。','rnd'],['带刺的陷阱坑','坑底削尖木桩。','d:1d3'],['暮色里的鬼影','半透明人形招手。','cb:wight:1'],['孤树上的旅人','歪脖子树上吊着风干旅人。','opt:安葬|g:2d10;x:1|只拿行囊|g:3d10;m:平原吊尸'],['拔腿就跑的货郎','神油货郎。','rnd'],['麦田里的怪圈','麦田倒伏成完美圆。','opt:爬梯|x:1|拆梯烧|m:麦田怪圈'],['迁徙的野牛群','牛崽落单。','opt:送回|r:荒野圆环:1|宰了|f:2;d:1d3'],['背风坡的药草','肥厚药草。','f:1d2;h:1d2'],['黑石滚过的焦痕','笔直焦痕。','g:2d30+150'],['野马群','一群野马从远处跑过。','r:荒野圆环:1;h:1d2']],
 forest:[['倒下的巨树','树洞塞着发霉皮箱。','g:2d20'],['林中的低语','绿皮小家伙探头。','cb:kobold:1d4+1'],['蘑菇圈','雪白蘑菇圈。','h:1d4;f:1d2'],['猎人的陷阱','藤蔓活套勒住脚踝。','d:1d3'],['树梢的蛛影','银亮丝垂下。','cb:spider:1d2'],['圆环的巡林人','警告别伤林子。','h:1d2'],['林间溪流','溪水从石缝涌出。','g:1d20'],['野猪窝','呼噜声。','cb:boar:1'],['树上的蜂巢','巨大蜂巢。','f:1d3;d:1d2'],['猎人的营地','篝火灰还温着。','f:1d3'],['藤蔓桥','粗藤横跨深涧。','d:1d3'],['林间空地','阳光洒下。','x:1'],['鸟群的警告','林鸟惊飞。','cb:goblin:1d3'],['采集者的棚屋','主人不见。','f:1d2;h:1d2'],['腐木里的宝藏','铜钱和彩色玻璃。','g:1d20'],['林间的雾','浓雾漫过树根。','h:1d2'],['老树精的沉默','树洞塞着干花和铜板。','g:1d20'],['溪边的鹿','鹿在溪边饮水。','h:1d2'],['圆环的祭坛','苔藓覆盖。','r:荒野圆环:1;h:1d2'],['伐木工的营地','空无一人。','g:1d20'],['精灵的树屋','绳梯半垂。','g:1d20;x:1'],['林间沼泽','黑水洼。','d:1d3'],['废弃的神龛','供台上放着干果。','h:1d2'],['狼嚎','狼嚎回荡。','cb:wolf:1d2'],['野莓丛','红艳的野莓。','f:1d2;h:1d2'],['树上的刻痕','树皮刻着圆环记号。','r:荒野圆环:1'],['迷路的旅人','旅人在林中打转。','h:1d2;f:1d2'],['林中古井','井水清澈。','h:1d3'],['老树洞','树洞里藏着兽皮。','g:1d20'],['树冠鸟巢','鸟巢里有闪光物。','g:1d20'],['荆棘丛','穿过荆棘受伤。','d:1d3'],['熊的爪痕','树干上有熊爪痕。','x:1']],
 hills:[['废弃矿坑','腐朽木架。','g:3d20'],['山猫的巢穴','母狼护崽。','cb:wolf:1d2+1'],['立石圈','七块风化巨石。','h:1d3'],['落石','碎石滚下。','d:1d4'],['丘陵匪帮','蒙面人现身。','cb:bandit:1d3'],['山间温泉','热水潭。','h:2d4'],['牧羊人的石屋','炉火未熄。','f:1d2;h:1d2'],['风化的石碑','古文字。','x:1'],['野山羊群','岩坡上。','f:1d2'],['矿工的工具','铁镐和绳索。','g:1d20'],['山鹰的巢','反光物件。','g:2d20'],['采石场','堆着石料。','g:1d20'],['丘陵的雾','浓雾顺坡。','h:1d2'],['石像','无头石像。','x:1'],['山泉','石缝涌出。','h:1d3;f:1d2'],['野蜂巢','石缝里。','f:1d2;d:1d2'],['丘陵遗迹','石墙和柱础。','g:1d20;x:1'],['狼嚎','远处狼嚎。','cb:wolf:1d2'],['牧人的路线图','墙上刻着路线。','x:1'],['野营的旅人','围着篝火。','h:1d2;f:1d2'],['废弃的哨塔','半塌哨塔。','g:1d20'],['山道上的商队','艰难翻越山口。','r:银环商会:1;g:1d20'],['矿脉','金属光泽。','g:2d20'],['石圈','小石圈里放着祭品。','h:1d2;g:1d20'],['山道岔口','岔路难辨。','d:1d2'],['古坟','坟前有石碑。','g:1d20;x:1'],['废弃农舍','农舍无人。','g:1d20'],['鹰啸','鹰啸声回荡。','x:1'],['山间小溪','清澈溪水。','h:1d2'],['野果丛','野果满枝。','f:1d2']],
 mountain:[['鹰巢','巨大巢。','g:4d20+50'],['雪崩','积雪下滑。','d:1d4'],['山洞里的食人魔','巨大身影。','cb:ogre:1'],['古神龛','避风山坳。','h:2d4'],['落石陷阱','松动碎石。','d:2d4'],['雪线营地','废弃营地。','f:1d2;h:1d3'],['冰封的洞口','冰棱。','g:2d20'],['山鹰','巨鹰盘旋。','g:1d20'],['积雪的佛像','半尊石像。','x:1'],['矿脉露头','金属光泽。','g:2d20'],['山间的风','风声像低语。','h:1d2'],['冰缝','深不见底。','d:1d4'],['避难石屋','柴火和口粮。','f:1d2;h:1d2'],['雪豹','静静看着。','cb:wolf:1'],['山顶的旗','褪色旗帜。','g:2d20'],['古栈道','木板朽了大半。','d:1d3'],['温泉','冒着热气。','h:2d4'],['风化的祭坛','刻满星图。','x:1'],['落单的朝圣者','倒在雪里。','r:血月教团:1;h:1d2'],['雪洞','可避风。','h:1d3'],['冰湖','湖面下有光。','g:1d20'],['暴风雪','风雪骤起。','w:暴风雨;d:1d3'],['雪莲','雪缝里开着雪莲。','f:1d2;h:1d2'],['岩画','岩壁上的古画。','x:1'],['冻僵的旅人','旅人冻僵。','h:1d2;g:1d20'],['山巅','视野开阔。','x:1'],['巨石','巨石挡路。','d:1d2'],['雪鸡','雪鸡从雪里钻出。','f:1d2'],['冰柱','冰柱滴水。','h:1d2'],['古墓','冰封的古墓。','g:2d20;x:1']],
@@ -138,16 +173,20 @@ function checkEcho(ev){
   return false;
 }
 
-/* ============ 城市三档事件（每档 10 条） ============ */
+/* ============ 酒馆/旅店事件 ============ */
+const TAVERN_EVENTS=[['醉汉闹事','一个醉汉掀翻了桌子。','cb:bandit:1'],['老佣兵','一个独眼老佣兵讲了半宿荒野故事。','x:1'],['密探','角落里有个人一直盯着你们。','ap:-1'],['赌局','有人邀你们赌一局。','g:-1d10'],['吟游诗人','诗人唱起古老的歌谣。','h:1d2'],['商队招募','商队在招护卫。','g:1d20'],['酒馆女侍','女侍悄悄递来一张纸条。','x:1'],['小偷','钱袋被摸走几枚。','g:-1d10']];
+const INN_EVENTS=[['好梦','一夜好眠。','h:2d4'],['夜袭','半夜有人撬窗。','cb:bandit:1'],['闹鬼','房间里有怪声。','d:1d2'],['同房旅人','旅人分享消息。','x:1'],['马匹失窃','马厩里有动静。','g:-1d20'],['老板娘','老板娘端来热汤。','h:1d4;f:1']];
+
+/* ============ 城市三档事件 ============ */
 const CITY_EVENTS={high:[['盛情款待','当地人认出你们是朋友。','h:2d4;f:2;g:2d20'],['免费住宿','旅店老板不收钱。','h:2d4;g:1d20'],['秘密情报','线人透露消息。','x:1;g:2d20'],['特供商品','压箱底好货。','g:2d30'],['荣誉市民','长老赠徽章。','x:1;r:铁冠王国:1'],['商队邀请','商队邀请你们同行。','r:银环商会:1;g:2d20'],['圆环感谢','德鲁伊送来草药。','h:2d4;f:2;r:荒野圆环:1'],['行会馈赠','行会送来一份礼物。','g:3d20;r:暗影行会:1'],['血月密信','血月信徒送来密信。','x:2;r:血月教团:1'],['城中盛宴','全城为你们设宴。','h:3d4;f:3;g:3d20']],
 normal:[['集市喧嚣','人声鼎沸。','g:1d20'],['酒馆传闻','低声讲荒野故事。','x:1'],['小偷','钱袋被摸走一小半。','g:-1d20'],['招募','招保镖。','g:2d20'],['乞丐','伸手讨钱。','g:-5'],['巡逻队盘查','例行盘查。','ap:-1'],['旅店老板','旅店老板闲聊。','x:1'],['行商','行商兜售商品。','g:1d20'],['小贩','小贩推销杂物。','g:-1d10'],['醉汉','醉汉拦住去路。','ap:-1']],
 low:[['城门紧闭','守卫拒不放行。','ap:-1'],['物价飞涨','物价上涨50%。','g:-2d20'],['敌意','吐口水。','d:1d3'],['伏击','小巷窜出黑影。','cb:bandit:1d2'],['告密','向守卫举报。','ap:-2;g:-1d20'],['驱逐','赶出城。','ap:-3'],['告示','告示牌上贴着你们的画像。','r:-1'],['刁难','守卫故意刁难。','ap:-2'],['黑市','黑市交易。','g:-1d20'],['暴民','暴民围上来。','cb:bandit:1d3']]};
 
-/* ============ 势力极高/极低声望专属 ============ */
+/* ============ 势力声望专属 ============ */
 const FACTION_HIGH={'铁冠王国':'免费住宿、装备九折、骑士护卫、可进入禁地','银环商会':'特供商店、全城九折、可接高阶任务、免费住宿','荒野圆环':'免费草药、德鲁伊庇护、可进入圣林','暗影行会':'黑市折扣、可雇佣刺客、销赃加成','血月教团':'黑市折扣、可参加血月仪式、献祭加成'};
 const FACTION_LOW={'铁冠王国':'城门关闭、物价+50%、骑士攻击','银环商会':'商店拒绝交易、物价+50%、商会护卫攻击','荒野圆环':'巡林人敌视、无法进入森林区域','暗影行会':'黑市拒绝、刺客追杀','血月教团':'邪教徒攻击、祭坛诅咒'};
 
-/* ============ 长事件链 A-N（14 条完整） ============ */
+/* ============ 长事件链 A-N ============ */
 const LONG_EVENTS={
   A:{name:'黑石之兆',steps:[{t:'【A1 黑石焦痕】草原上出现笔直焦痕，源头是半埋的黑石碑。摸上去温热，像有心跳。',opts:[['触摸黑石','x:1;m:黑石苏醒'],['记录位置离开','g:1d20']]},{t:'【A2 黑石低语】夜里梦见黑石说话。醒来时一人手上多了道灼痕。',opts:[['继续追踪','x:1;d:1d3'],['折返','g:1d20']]},{t:'【A3 黑石苏醒】黑石裂开，黑雾凝成的队伍朝血月塔行军。',opts:[['尾随雾军','x:2;m:黑石行军'],['回报铁冠王国','r:铁冠王国:2;g:2d20']]},{t:'【A4 黑石终局】黑雾在血月塔前消散，黑石碑上浮现只有你们能读懂的字。',opts:[['封印黑石','x:3;m:黑石封印'],['利用黑石','g:4d20;m:黑石腐化']]}]},
   B:{name:'血月圣物',steps:[{t:'【B1 红帆】雾夜，血月教团红帆船驶过，甲板上抬着刻满符文的箱子。',opts:[['跟踪红帆','x:1'],['避开','h:1d2']]},{t:'【B2 圣物踪迹】沿海发现被冲上岸的祭品残骸，有血月印记。',opts:[['检查残骸','g:2d20;r:血月教团:-1'],['掩埋','h:1d3']]},{t:'【B3 血月祭坛】祭坛中央凹槽是空的。',opts:[['破坏祭坛','cb:cultist:1d3;r:血月教团:-2'],['潜伏观察','x:2']]},{t:'【B4 圣物归属】圣物是刻满眼球的银匣，传来低语。',opts:[['摧毁','x:3;r:血月教团:-3'],['归还','g:4d20;r:血月教团:2']]}]},
@@ -171,14 +210,10 @@ const FORAGE={plains:{common:['草药','野果','麦穗','野莓'],rare:['四叶
 const DAWN_EVENTS=[['晨雾','大雾笼罩营地。','w:大雾'],['鸟鸣','鸟叫声中醒来。','h:1'],['露水','露水打湿行囊。','g:1d10'],['远方的号角','远处传来号角声。','x:1'],['野马','野马从营地边跑过。','r:荒野圆环:1'],['盗贼','营地边陷阱被触发。','g:-1d10'],['晨雨','细雨绵绵。','h:1'],['鸡鸣','远处传来鸡鸣。','f:1'],['冷风','冷风刺骨。','d:1'],['炊烟','远处有炊烟。','f:1']];
 const WEEK_EVENTS=[['集市日','附近有集市。','g:2d20'],['巡逻队','势力巡逻队经过。','x:1'],['风雨','风雨交加。','w:暴风雨'],['商队','一支商队经过。','g:1d20;f:1'],['谣言','听到荒野谣言。','x:1'],['募兵','有人在募兵。','r:铁冠王国:1'],['旅人','流浪旅人带来消息。','x:1'],['野兽','附近有野兽出没。','d:1'],['丰收','附近村落丰收。','f:2'],['葬礼','远处有葬礼。','x:1']];
 const SEASON_EVENTS={'春':[['播种','农人播种。','f:2'],['春雨','春雨连绵。','h:1d3'],['花开','野花盛开。','h:1d2'],['融雪','积雪融化。','f:1'],['候鸟','候鸟北归。','x:1']],'夏':[['酷热','酷热难耐。','d:1'],['蝉鸣','蝉鸣震耳。','h:1'],['夏雨','夏雨骤至。','f:1'],['雷暴','雷暴频繁。','w:暴风雨'],['野果','野果成熟。','f:2']],'秋':[['丰收','丰收季节。','f:3'],['秋雾','秋雾弥漫。','w:大雾'],['落叶','落叶纷飞。','x:1'],['寒风','寒风渐起。','d:1'],['候鸟','候鸟南飞。','x:1']],'冬':[['降雪','大雪纷飞。','w:暴风雪'],['寒风','寒风刺骨。','d:1'],['炉火','炉火温暖。','h:2'],['冰封','河流冰封。','f:1'],['冬猎','冬猎季节。','f:2']]};
-const HIRELINGS=[{n:'乡勇',hp:4,ac:10,atk:0,dmg:'1d6',p:2},{n:'佣兵',hp:6,ac:12,atk:1,dmg:'1d8',p:5},{n:'猎户',hp:5,ac:11,atk:1,dmg:'1d6',p:3},{n:'学徒',hp:3,ac:9,atk:0,dmg:'1d4',p:1},{n:'老兵',hp:8,ac:14,atk:2,dmg:'1d8',p:8}];
-const ZOCCHI_ALT={d3:'d6:1-2=1,3-4=2,5-6=3',d5:'d10:1-2=1,3-4=2,5-6=3,7-8=4,9-10=5',d7:'d8:1-7=对应,8重掷',d14:'d20:1-14=对应,15-20重掷',d16:'d20:1-16=对应,17-20重掷',d24:'d30:1-24=对应,25-30重掷',d30:'d%:1-30=对应,31-100重掷'};
-
-/* ============ 攻击修正表 ============ */
-const ATK_MODS=[['中距远程',-2],['长距远程',-4],['高地',1],['被缠住',-3],['向近战中射击',-1],['掩蔽后',-2],['跪/坐/俯卧',2],['冲锋',2]];
+const HIRELINGS=[{n:'乡勇',hp:4,ac:10,atk:0,dmg:'1d6',p:2,xp:0},{n:'佣兵',hp:6,ac:12,atk:1,dmg:'1d8',p:5,xp:0},{n:'猎户',hp:5,ac:11,atk:1,dmg:'1d6',p:3,xp:0},{n:'学徒',hp:3,ac:9,atk:0,dmg:'1d4',p:1,xp:0},{n:'老兵',hp:8,ac:14,atk:2,dmg:'1d8',p:8,xp:0}];
 
 /* ============ 状态 ============ */
-const S={mode:'title',day:1,week:1,seasonDay:1,season:'春',weekday:1,ap:6,maxAp:6,weather:'晴朗',gold:0,rations:10,party:[],hirelings:[],map:[],pos:{r:10,c:11},combat:null,logs:[],rep:{'铁冠王国':0,'银环商会':0,'荒野圆环':0,'暗影行会':0,'血月教团':0},marks:[],longEv:{},base:null,pendingOpt:null,burnLuckPending:null,featMode:null,torch:0,charging:false,nonLethal:false,onFire:false,prone:false,boat:false};
+const S={mode:'title',day:1,week:1,seasonDay:1,season:'春',weekday:1,ap:6,maxAp:6,weather:'晴朗',gold:0,rations:10,party:[],hirelings:[],map:[],pos:{r:10,c:11},combat:null,logs:[],rep:{'铁冠王国':0,'银环商会':0,'荒野圆环':0,'暗影行会':0,'血月教团':0},marks:[],longEv:{},base:null,pendingOpt:null,burnLuckPending:null,featMode:null,torch:0,charging:false,nonLethal:false,onFire:false,prone:false,boat:false,mount:false};
 const COLS=22,ROWS=14;
 
 /* ============ 日志 ============ */
@@ -190,10 +225,10 @@ function rollOcc(){const d=die(100);for(const row of OCC_TABLE){if(d>=row[0]&&d<
 function createChar(){
   const st={str:roll(3,6),agi:roll(3,6),sta:roll(3,6),per:roll(3,6),int:roll(3,6),lck:roll(3,6)};
   const occ=rollOcc(),om=OMENS[die(30)-1],hp=Math.max(1,die(4)+statMod(st.sta));
-  return {name:pick(NAMES),occ:occ[2],race:occ[6],weapon:occ[3],dmg:occ[4],goods:occ[5],equip:GEAR[die(24)-1],omen:om[0],omenUse:om[1],alignment:pick(['守序','中立','混乱']),stats:st,hp,maxHp:hp,level:0,xp:0,alive:true,cp:roll(5,12),armor:0,shield:0,armorName:'无甲',cls:null,acBonus:statMod(st.agi),luckBase:st.lck,spells:[],spellSlots:{},disfavor:1,corruption:[],offHand:null,burnSpellBonus:0,featUsed:false};
+  return {name:pick(NAMES),occ:occ[2],race:occ[6],weapon:occ[3],dmg:occ[4],goods:occ[5],equip:GEAR[die(24)-1],omen:om[0],omenUse:om[1],alignment:pick(['守序','中立','混乱']),stats:st,baseStats:{...st},hp,maxHp:hp,level:0,xp:0,alive:true,cp:roll(5,12),armor:0,shield:0,armorName:'无甲',cls:null,acBonus:statMod(st.agi),luckBase:st.lck,spells:[],spellSlots:{},disfavor:1,corruption:[],offHand:null,burnSpellBonus:0,featUsed:false,languages:['通用语'],prone:false};
 }
 
-/* ============ 地图 ============ */
+/* ============ 地图（含道路） ============ */
 function genMap(){
   const map=[];
   for(let r=0;r<ROWS;r++){const row=[];
@@ -204,15 +239,26 @@ function genMap(){
       else if(r<=8){const q=die(6);t=q===6?'mountain':q===5?'hills':q===4?'forest':q===1?'swamp':'plains'}
       else{const q=die(6);t=q===6?'mountain':q===5?'hills':q===4?'jungle':q===3?'swamp':q===2?'desert':'plains'}
       if(r>=ROWS-2)t='ocean';
-      row.push({t,loc:null,poi:null,river:false});
+      row.push({t,loc:null,poi:null,river:false,road:false});
     }map.push(row);
   }
   const cities=[['火炉村',10,11,'plains'],['铁冠城',7,15,'plains'],['银环港',11,16,'coast'],['青苔谷',5,7,'forest'],['黑巷镇',11,5,'hills'],['血月塔',12,11,'swamp']];
-  cities.forEach(([n,r,c,t])=>{if(map[r]&&map[r][c])map[r][c]={t,loc:n,poi:null,river:false}});
+  cities.forEach(([n,r,c,t])=>{if(map[r]&&map[r][c])map[r][c]={t,loc:n,poi:null,river:false,road:false}});
+  // 道路连接城市
+  function drawRoad(r1,c1,r2,c2){
+    let r=r1,c=c1;let steps=0;
+    while((r!==r2||c!==c2)&&steps<30){
+      if(map[r]&&map[r][c])map[r][c].road=true;
+      if(r<r2)r++;else if(r>r2)r--;
+      if(c<c2)c++;else if(c>c2)c--;
+      steps++;
+    }
+    if(map[r2]&&map[r2][c2])map[r2][c2].road=true;
+  }
+  drawRoad(10,11,7,15);drawRoad(7,15,11,16);drawRoad(10,11,5,7);drawRoad(5,7,11,5);drawRoad(11,5,12,11);drawRoad(12,11,10,11);
   for(let i=0;i<6;i++){const r=roll(2,ROWS-2)-1,c=roll(2,COLS-2)-1;if(map[r]&&map[r][c]&&!map[r][c].loc)map[r][c].loc='村落'+(i+1)}
   const poiT=['废墟','地牢','老妪小屋','立石圈','巨洞','荒废高塔','古神龛','废弃矿坑','镜湖','古战场','独石碑','地牢'];
   for(let i=0;i<12;i++){const r=roll(1,ROWS-2)-1,c=roll(1,COLS-2)-1;if(map[r]&&map[r][c]&&!map[r][c].loc&&!map[r][c].poi)map[r][c].poi=poiT[i]}
-  // 河流
   for(let i=0;i<die(3);i++){let r=roll(1,ROWS-2)-1,c=roll(1,COLS-2)-1;for(let s=0;s<5;s++){if(map[r]&&map[r][c])map[r][c].river=true;r+=die(2);c+=die(3)-1;if(r>=ROWS||c>=COLS||c<0)break}}
   return map;
 }
@@ -231,6 +277,7 @@ function renderMap(){
     const reach=S.mode==='explore'&&isAdj(S.pos,{r,c})&&(cell.t!=='ocean'||S.boat);
     const cls='hex'+(here?' here':'')+(reach?' reach':'');
     s+=`<polygon class="${cls}" data-r="${r}" data-c="${c}" points="${hexPts(cx,cy,size)}" fill="${TER[cell.t].c}" stroke="#15121f" stroke-width="1.2"/>`;
+    if(cell.road)s+=`<line x1="${cx-6}" y1="${cy}" x2="${cx+6}" y2="${cy}" stroke="#c9a227" stroke-width="1.2" opacity="0.7"/>`;
     if(cell.river)s+=`<circle cx="${cx}" cy="${cy}" r="1.2" fill="#4a8ac4"/>`;
     if(cell.loc)s+=`<text class="maplabel town" x="${cx}" y="${cy+2.5}">${cell.loc}</text>`;
     else if(cell.poi)s+=`<text class="maplabel" x="${cx}" y="${cy+2.5}">${cell.poi}</text>`;
@@ -239,7 +286,7 @@ function renderMap(){
   s+='</svg>';
   document.getElementById('mapWrap').innerHTML=s;
   document.querySelectorAll('.hex.reach').forEach(el=>el.addEventListener('click',()=>tryMove(+el.dataset.r,+el.dataset.c)));
-  document.getElementById('legend').innerHTML=Object.entries(TER).map(([k,v])=>`<span><i style="background:${v.c}"></i>${v.n}</span>`).join('')+'<span><i style="background:#4a8ac4;border-radius:50%"></i>河流</span>';
+  document.getElementById('legend').innerHTML=Object.entries(TER).map(([k,v])=>`<span><i style="background:${v.c}"></i>${v.n}</span>`).join('')+'<span><i style="background:#4a8ac4;border-radius:50%"></i>河流</span><span><i style="background:#c9a227;height:2px"></i>道路</span>';
 }
 function renderParty(){
   const el=document.getElementById('partyPanel');
@@ -253,12 +300,12 @@ function renderParty(){
       <div class="hpbar"><div style="width:${Math.max(0,c.hp/c.maxHp*100)}%"></div></div>
       <div class="row"><span>HP <b>${Math.max(0,c.hp)}</b>/${c.maxHp}</span><span>AC <b>${ac}</b></span><span>攻击 <b>${atkStr}</b></span><span>XP <b>${c.xp}</b></span></div>
       <div class="row"><span>力<b>${c.stats.str}</b></span><span>敏<b>${c.stats.agi}</b></span><span>耐<b>${c.stats.sta}</b></span><span>个<b>${c.stats.per}</b></span><span>智<b>${c.stats.int}</b></span><span>幸<b>${c.stats.lck}</b></span></div>
-      <div class="row"><span>${c.weapon}（${c.dmg}）· ${c.alignment}${c.armorName!=='无甲'?' · '+c.armorName:''}</span></div>
+      <div class="row"><span>${c.weapon}（${c.dmg}）· ${c.alignment}${c.armorName!=='无甲'?' · '+c.armorName:''}${c.languages.length>1?' · '+c.languages.join('/'):''}</span></div>
       ${c.level>=1&&c.cls?`<div class="row"><span>豁免 反${row.ref}/强${row.fort}/意${row.will}</span>${c.cls==='牧师'?`<span>失宠1-${c.disfavor}</span>`:''}${c.corruption.length?`<span>腐化${c.corruption.length}</span>`:''}</div>`:''}
       <div class="omen">预兆：${c.omen} · ${c.omenUse}</div>
     </div>`;
   }).join('');
-  if(S.hirelings.length){html+=`<div style="margin-top:6px;border-top:1px dashed #3a3455;padding-top:4px"><div class="hint">随从</div>`;html+=S.hirelings.map(h=>`<div class="row" style="margin-top:1px"><span>${h.name} HP<b>${h.hp}</b>/${h.maxHp} AC<b>${h.ac}</b> ${h.dmg}</span></div>`).join('');html+=`</div>`}
+  if(S.hirelings.length){html+=`<div style="margin-top:6px;border-top:1px dashed #3a3455;padding-top:4px"><div class="hint">随从</div>`;html+=S.hirelings.map(h=>`<div class="row" style="margin-top:1px"><span>${h.name} HP<b>${h.hp}</b>/${h.maxHp} AC<b>${h.ac}</b> ${h.dmg} XP<b>${h.xp||0}</b></span></div>`).join('');html+=`</div>`}
   el.innerHTML=html;
 }
 function renderHud(){
@@ -303,7 +350,7 @@ function startGame(){
   S.gold=S.party.reduce((a,c)=>a+c.cp,0);
   S.map=genMap();S.pos={r:10,c:11};
   S.mode='explore';S.logs=[];S.day=1;S.week=1;S.seasonDay=1;S.season='春';S.weekday=1;
-  S.ap=6;S.rations=10;S.weather='晴朗';S.boat=false;
+  S.ap=6;S.rations=10;S.weather='晴朗';S.boat=false;S.mount=false;
   S.rep={'铁冠王国':0,'银环商会':0,'荒野圆环':0,'暗影行会':0,'血月教团':0};
   S.marks=[];S.longEv={};S.base=null;S.hirelings=[];
   log('火炉村的清晨，雾气未散。四个乡民背着微薄行囊，走进不欢迎凡人的荒野。','title');
@@ -320,21 +367,20 @@ function tryMove(r,c){
   if(!isAdj(S.pos,{r,c})){log('只能移动到相邻六角格。','dim');return}
   let cost=TER[cell.t].ap;
   if(cell.t==='ocean'&&S.boat)cost=4;
+  if(cell.road)cost=1;
   if(S.weather==='恶劣'||S.weather==='暴风雨')cost+=2;
   if(cell.river)cost+=1;
   if(S.charging)cost=Math.max(1,cost-1);
   if(S.ap<cost){log(`AP 不足（需 ${cost}），请扎营休息。`,'warn');return}
-  // 渡河
   if(cell.river&&!cell.bridge){
     const sv=die(20)+statMod(S.party[0]?.stats.str||0);
     if(sv<10){const d=die(6);const c2=pickAlive();if(c2){c2.hp-=d;log(`渡河失败，${c2.name} 被冲走 ${d} 伤害，回到原岸。`,'bad');checkDeath(c2)}return}
     log('成功渡河。','good');
   }
   S.ap-=cost;S.pos={r,c};
-  log(`队伍进入 ${TER[cell.t].n}${cell.loc?'（'+cell.loc+'）':''}。消耗 ${cost} AP。`,'dim');
-  // 迷路
+  log(`队伍进入 ${TER[cell.t].n}${cell.loc?'（'+cell.loc+'）':''}${cell.road?'（道路）':''}。消耗 ${cost} AP。`,'dim');
   const fog=S.weather==='大雾';
-  if((die(20)===1||(fog&&die(20)<=2))&&!cell.loc){
+  if((die(20)===1||(fog&&die(20)<=2))&&!cell.loc&&!cell.road){
     const dir=die(8);const dirs=[[-1,0],[-1,1],[0,1],[1,1],[1,0],[1,-1],[0,-1],[-1,-1]];
     const [dr,dc]=dirs[dir-1];
     const nr=Math.max(0,Math.min(ROWS-1,r+dr)),nc=Math.max(0,Math.min(COLS-1,c+dc));
@@ -361,16 +407,21 @@ const SERVICES={'铁冠城':{shop:'武器铺/护甲铺/杂货/神庙/旅店/酒�
 function enterTown(name){
   const svc=SERVICES[name]||SERVICES['火炉村'];
   log(`你们抵达 ${name}。`,'town');
+  const v=svc.rep?(S.rep[svc.rep]||0):0;
+  const tier=v>=5?'high':v<=-5?'low':'normal';
+  if(tier==='low'){
+    log(`【${svc.rep} 低声望】${FACTION_LOW[svc.rep]}。守卫拒绝与你们交易。`,'bad');
+    if(Math.random()<0.5){startCombat([{type:'bandit',count:roll(1,2)}],'守卫朝你们拔出了武器！');return}
+    render();return;
+  }
   const heal=roll(1,3);healParty(heal);S.rations+=roll(1,2);
   log(`在镇上歇脚，队伍恢复 ${heal} 点生命，补充了一些口粮。`,'good');
   if(svc.rep){
-    const v=S.rep[svc.rep]||0,tier=v>=5?'high':v<=-5?'low':'normal';
     if(tier==='high')log(`【${svc.rep} 高声望】${FACTION_HIGH[svc.rep]}`,'good');
-    if(tier==='low')log(`【${svc.rep} 低声望】${FACTION_LOW[svc.rep]}`,'bad');
     if(die(6)<=3){const ev=pick(CITY_EVENTS[tier]);log(`【${ev[0]}】${ev[1]}`,'event');applyEffect(ev[2]);if(S.mode==='combat')return}
   }
   let html=`<h3>${name}</h3><p>${svc.shop}</p><p>口粮 ${S.rations} · 金币 ${S.gold}cp</p>`;
-  html+=`<h4>服务（逐项定价）</h4>`;
+  html+=`<h4>服务</h4>`;
   SERVICES_PRICE.forEach(([s,p],i)=>{html+=`<button class="opt" onclick="buyService(${i})">${s} · ${p*100}cp</button>`});
   html+=`<button class="opt" onclick="buyRations()">买口粮 5 份（25cp）</button>`;
   html+=`<button class="opt" onclick="buyTorch()">买火把 5 支（5cp）</button>`;
@@ -381,36 +432,36 @@ function enterTown(name){
   openModal(html);render();
 }
 function buyService(i){const [s,p]=SERVICES_PRICE[i];const cost=Math.round(p*100);if(S.gold<cost){log('金币不足。','warn');return}S.gold-=cost;
-  if(s==='旅店每晚')healParty(roll(2,4));
+  if(s==='旅店每晚'){healParty(roll(2,4));const ev=pick(INN_EVENTS);log(`【${ev[0]}】${ev[1]}`,'event');applyEffect(ev[2])}
   if(s==='寄养马匹每日')S.mount=true;
-  if(s==='酒馆打听消息')gainXP(1);
+  if(s==='酒馆打听消息'){const ev=pick(TAVERN_EVENTS);log(`【${ev[0]}】${ev[1]}`,'event');applyEffect(ev[2])}
   if(s==='渡船过河')S.bridge=true;
   if(s==='神庙治疗')healParty(99);
-  if(s==='雇佣护卫每日')S.hirelings.push({name:'护卫',hp:5,maxHp:5,ac:12,atk:1,dmg:'1d6'});
+  if(s==='雇佣护卫每日')S.hirelings.push({name:'护卫',hp:5,maxHp:5,ac:12,atk:1,dmg:'1d6',xp:0});
   if(s==='租用马匹每日')S.mount=true;
   log(`支付 ${cost}cp：${s}。`,'good');closeModal();render()}
 function buyRations(){if(S.gold>=25){S.gold-=25;S.rations+=5;log('买了 5 份口粮。','good')}else log('金币不足。','warn');closeModal();render()}
 function buyTorch(){if(S.gold>=5){S.gold-=5;S.torch=(S.torch||0)+5;log('买了 5 支火把。','good')}else log('金币不足。','warn');closeModal();render()}
 function healAll(){if(S.gold>=20){S.gold-=20;healParty(99);log('全队恢复满生命。','good')}else log('金币不足。','warn');closeModal();render()}
-function lodge(){if(S.gold>=100){S.gold-=100;healParty(roll(2,4));log('旅店住一晚。','good')}else log('金币不足。','warn');closeModal();render()}
-function tavern(){if(S.gold>=50){S.gold-=50;if(die(6)<=3){log('酒馆里打听到消息。','event');gainXP(1)}else log('没什么有用的消息。','dim')}else log('金币不足。','warn');closeModal();render()}
 function townQuest(rep){const qs=FACTION_QUESTS[rep]||['跑腿'];const q=qs[die(10)-1];log(`从 ${rep} 任务板接取：${q}。`,'good');const bonus=die(20)+5;S.gold+=bonus;S.rep[rep]=Math.min(10,S.rep[rep]+1);log(`完成委托，获得 ${bonus} cp，${rep} 声望 +1。`,'good');closeModal();render()}
 
-/* ============ 商店 ============ */
+/* ============ 商店（含坐骑） ============ */
 function openShop(city){
   let html=`<h3>商店 · ${city||'营地'}</h3><p>金币 ${S.gold}cp · 口粮 ${S.rations}</p>`;
   html+=`<h4>武器</h4>`;WEAPONS.forEach((w,i)=>{html+=`<button class="opt" onclick="buyWeapon(${i})">${w.n}（${w.dmg}）· ${w.p}gp</button>`});
   html+=`<h4>护甲</h4>`;ARMORS.forEach((a,i)=>{html+=`<button class="opt" onclick="buyArmor(${i})">${a.n}（AC+${a.ac}）· ${a.p}gp</button>`});
+  html+=`<h4>坐骑</h4>`;MOUNTS.forEach((m,i)=>{html+=`<button class="opt" onclick="buyMount(${i})">${m.n} · ${m.p}gp</button>`});
   html+=`<h4>补给</h4>`;SUPPLIES.forEach((s,i)=>{html+=`<button class="opt" onclick="buySupply(${i})">${s.n} · ${s.p}gp</button>`});
   html+=`<button class="opt" onclick="closeModal()">离开</button>`;openModal(html);
 }
 function buyWeapon(i){const w=WEAPONS[i],cost=Math.round(w.p*100);if(S.gold<cost){log('金币不足。','warn');return}S.gold-=cost;const c=S.party.find(c=>c.alive);if(c){c.weapon=w.n;c.dmg=w.dmg;log(`${c.name} 装备 ${w.n}（${w.dmg}）。`,'good')}closeModal();openShop();render()}
 function buyArmor(i){const a=ARMORS[i],cost=Math.round(a.p*100);if(S.gold<cost){log('金币不足。','warn');return}S.gold-=cost;const c=S.party.find(c=>c.alive);if(c){if(a.n==='盾牌'){c.shield=Math.max(c.shield,1);log(`${c.name} 装备盾牌。`,'good')}else{c.armor=a.ac;c.armorName=a.n;log(`${c.name} 穿上 ${a.n}（AC+${a.ac}）。`,'good')}}closeModal();openShop();render()}
+function buyMount(i){const m=MOUNTS[i],cost=Math.round(m.p*100);if(S.gold<cost){log('金币不足。','warn');return}S.gold-=cost;S.mount=true;log(`购买了 ${m.n}。骑乘冲锋时伤害双倍。`,'good');closeModal();openShop();render()}
 function buySupply(i){const s=SUPPLIES[i],cost=Math.round(s.p*100);if(S.gold<cost){log('金币不足。','warn');return}S.gold-=cost;if(s.n.startsWith('口粮')){S.rations+=1;log('口粮+1。','good')}else if(s.n.startsWith('火把')){S.torch=(S.torch||0)+1;log('火把+1。','good')}else log(`购买 ${s.n}。`,'good');closeModal();openShop();render()}
 
-/* ============ 随从 ============ */
+/* ============ 随从（含经验成长） ============ */
 function openHireling(){let html=`<h3>雇佣随从</h3><p>金币 ${S.gold}cp · 随从 ${S.hirelings.length}/4</p>`;if(S.hirelings.length>=4){html+=`<p>随从已满。</p>`;html+=`<button class="opt" onclick="closeModal()">关闭</button>`;openModal(html);return}HIRELINGS.forEach((h,i)=>{html+=`<button class="opt" onclick="hire(${i})">${h.n}（HP${h.hp} AC${h.ac} ${h.dmg}）· ${h.p}gp</button>`});html+=`<button class="opt" onclick="closeModal()">关闭</button>`;openModal(html)}
-function hire(i){const h=HIRELINGS[i],cost=h.p*100;if(S.gold<cost){log('金币不足。','warn');return}S.gold-=cost;S.hirelings.push({name:h.n,hp:h.hp,maxHp:h.hp,ac:h.ac,atk:h.atk,dmg:h.dmg});log(`雇佣 ${h.n}。`,'good');closeModal();render()}
+function hire(i){const h=HIRELINGS[i],cost=h.p*100;if(S.gold<cost){log('金币不足。','warn');return}S.gold-=cost;S.hirelings.push({name:h.n,hp:h.hp,maxHp:h.hp,ac:h.ac,atk:h.atk,dmg:h.dmg,xp:0});log(`雇佣 ${h.n}。`,'good');closeModal();render()}
 
 /* ============ POI ============ */
 const POI_TABLES={废墟:[['坍塌大厅','石柱间散落铜钱。','g:2d20'],['地窖','旧木箱。','g:3d20'],['守卫的残影','半透明身影。','cb:wight:1'],['隐藏壁龛','墙缝里藏着银币。','g:2d20+20'],['坍塌地板','脚下塌陷。','d:1d4'],['旧祭坛','干涸血迹。','x:1'],['鼠群','鼠群涌出。','cb:rat:1d3'],['旧兵器架','生锈但还能用。','g:1d20'],['壁画','古老战役。','x:1'],['宝藏室','锁着的铁箱。','g:4d20+30']],地牢:[['潮湿牢房','骸骨和铜钱。','g:2d20'],['拷问室','铁链和锈钳。','x:1'],['骷髅守卫','骷髅站起。','cb:skeleton:1d3'],['隐藏牢门','DC15智力发现。','x:2'],['毒气室','DC10强韧否则受伤。','d:1d4'],['旧狱卒室','钥匙。','g:1d20'],['巨鼠巢','巨鼠护崽。','cb:rat:1d3'],['水牢','半淹牢房。','g:2d20'],['刑具架','有些还能用。','x:1'],['狱卒的宝藏','银币。','g:3d20+50']],老妪小屋:[['草药架','干草药。','h:1d4;f:1d2'],['炖锅','不明肉汤。','h:1d3'],['老妪','枯瘦老妪。','rnd'],['猫','黑猫盯着你们。','x:1'],['药瓶','架子上有药瓶。','h:1d6'],['诅咒娃娃','插满针。','d:1d3'],['旧书','古怪配方。','x:1'],['地下储藏','暗格。','g:2d20'],['灶火','温暖炉火。','h:1d3'],['赠礼','老妪递来药粉。','h:1d4;f:1d2']],立石圈:[['祭坛','祭品。','g:2d20'],['符文','刻满符文。','x:2'],['月影','月光下发光。','h:1d3'],['石缝','旧钱。','g:1d20'],['幽灵','绕圈身影。','cb:wight:1'],['野莓','野莓丛。','f:1d2'],['刻痕','星图。','x:1'],['暗格','石头可推动。','g:2d20+20'],['兽骨','圈心埋着兽骨。','d:1d3'],['露水','草叶露水。','h:1d3']],巨洞:[['洞口','滴水声。','x:1'],['蝙蝠群','蝙蝠惊起。','cb:bat:1'],['地下河','清澈地下河。','h:1d3'],['钟乳石','微光石笋。','g:1d20'],['巨鼠','从暗处窜出。','cb:rat:1d3'],['深坑','深不见底。','d:1d4'],['矿脉','金属光泽。','g:2d20'],['古老壁画','远古仪式。','x:2'],['地下湖','湖底反光。','g:3d20'],['洞穴熊','熊在睡觉。','cb:boar:1']],荒废高塔:[['塔底','碎石和铜钱。','g:2d20'],['螺旋楼梯','朽了大半。','d:1d3'],['塔顶','视野开阔。','x:1'],['旧书房','书架有书。','x:1;g:1d20'],['幽灵塔主','守着塔顶。','cb:wight:1'],['望远镜','还能用。','x:1'],['储藏室','箱子有旧物。','g:2d20'],['符文地板','踩上去有反应。','d:1d3'],['塔顶宝箱','锈锁铁箱。','g:3d20+30'],['风声','风从塔缝呼啸。','h:1d2']],古神龛:[['供台','干果。','h:1d3;f:1d2'],['神像','凝视前方。','x:1'],['祭品','旧祭品。','g:2d20'],['神谕','眼中闪光。','x:2'],['守龛兽','石像活了。','cb:skeleton:1'],['香炉','香灰。','x:1'],['暗格','基座暗格。','g:2d20+20'],['圣水','清水。','h:1d3'],['符文','看不懂的符文。','x:1'],['祝福','温暖感。','h:1d4']],废弃矿坑:[['矿车','矿石。','g:2d20'],['支撑架','嘎吱响。','d:1d3'],['矿道','滴水声。','x:1'],['矿工骸骨','骸骨和工具。','g:1d20'],['巨鼠','矿道巨鼠。','cb:rat:1d3'],['矿脉','金属光泽。','g:3d20'],['塌方','通道堵。','d:1d4'],['矿工日记','坑道走向。','x:1'],['旧工具','还能用。','g:1d20'],['矿主办公室','铁箱银币。','g:3d20+30']],镜湖:[['湖畔','清澈见底。','h:1d3'],['倒影','奇怪影像。','x:1'],['湖中岛','石台。','g:2d20'],['水鬼','湿淋淋的手。','cb:zombie:1'],['沉船','湖底残骸。','g:2d20+20'],['鱼群','围着你们。','f:1d3'],['湖心漩涡','漩涡闪光。','g:3d20'],['岸边草药','耐湿药草。','f:1d2;h:1d2'],['月影','湖面如镜。','h:1d4'],['湖神','浮现一张脸。','x:2']],古战场:[['战场遗迹','锈兵器。','g:2d20'],['骸骨','遍地白骨。','x:1'],['游魂','士兵游荡。','cb:wight:1'],['战旗','褪色旗帜。','x:1'],['旧营地','营地遗迹。','g:2d20'],['阵亡者墓','无名墓碑。','h:1d3'],['兵器堆','锈但能用。','g:1d20'],['战鼓','鼓面完好。','x:1'],['将军墓','墓前石像。','g:3d20+30'],['幽灵军团','幽灵士兵。','cb:skeleton:1d4']],独石碑:[['石碑','古文字。','x:2'],['碑文','地名。','x:1'],['碑座','暗格。','g:2d20'],['守碑兽','石兽活了。','cb:skeleton:1'],['藤蔓','覆盖碑面。','h:1d2'],['刻痕','星图。','x:1'],['祭品','干果。','h:1d2;f:1d2'],['暗格','碑侧暗格。','g:2d20+20'],['风蚀','风蚀碑面。','d:1d3'],['祝福','温暖感。','h:1d3']]};
@@ -457,7 +508,14 @@ function applyEffect(eff){
 /* ============ 战斗 ============ */
 function startCombat(defs,intro){
   const monsters=[];
-  defs.forEach(def=>{const t=MON[def.type];if(!t)return;const n=typeof def.count==='number'?def.count:dice(def.count);for(let i=0;i<n;i++){const hp=Math.max(1,dice(t.hd));monsters.push({key:def.type,name:t.n,ac:t.ac,hp,maxHp:hp,atk:t.atk,dmg:t.dmg,init:0,xp:t.xp,threat:t.threat,special:t})}});
+  defs.forEach(def=>{
+    const t=MON[def.type];if(!t)return;
+    const n=typeof def.count==='number'?def.count:dice(def.count);
+    for(let i=0;i<n;i++){
+      const hp=Math.max(1,dice(t.hd));
+      monsters.push({key:def.type,name:t.n,ac:t.ac,hp,maxHp:hp,atk:t.atk,dmg:t.dmg,init:0,xp:t.xp,threat:t.threat,special:t});
+    }
+  });
   const maxLv=Math.max(...S.party.filter(c=>c.alive).map(c=>c.level),0);
   const mThreat=Math.max(...monsters.map(m=>m.threat||1));
   if(mThreat-maxLv>=3){if(die(6)<=5){log('你们只发现了迹象，绕行而过。','dim');S.marks.push('惊鸿一瞥');return}else{log('你们遇到了一只虚弱的个体。','warn');monsters.forEach(m=>{m.hp=Math.max(1,Math.floor(m.hp/2));m.atk-=2})}}
@@ -473,15 +531,6 @@ function omenBonus(c,type){
   if(type==='save'&&u.includes('豁免'))return statMod(c.stats.lck);
   return 0;
 }
-/* 双武器骰链 */
-function dualWieldDice(c){
-  const agi=c.stats.agi;
-  if(agi<=8)return{dice:'1d20-3d',off:'1d20-4d',noCrit:true};
-  if(agi<=11)return{dice:'1d20-2d',off:'1d20-3d',noCrit:true};
-  if(agi<=15)return{dice:'1d20-1d',off:'1d20-2d',noCrit:true};
-  if(agi<=17)return{dice:'1d20-1d',off:'1d20-1d',noCrit:false};
-  return{dice:'1d20',off:'1d20-1d',noCrit:false};
-}
 function partyAttacks(){
   const cmb=S.combat;
   S.party.forEach(c=>{
@@ -492,17 +541,42 @@ function partyAttacks(){
     const omen=omenBonus(c,'attack');let bonus=atkBase+statMod(c.stats.str)+omen;let total=raw+bonus;
     if(S.burnLuckPending&&S.burnLuckPending.char===c){const n=S.burnLuckPending.pts;total+=n;c.stats.lck-=n;log(`${c.name} 焚烧 ${n} 点幸运，攻击 +${n}。`,'warn');S.burnLuckPending=null}
     if(S.charging){total+=2;log(`${c.name} 冲锋，攻击 +2。`,'good');S.charging=false}
-    if(c.prone){total+=2}
-    // 武勇事迹
-    if(S.featMode&&(c.cls==='战士'||c.cls==='矮人')){const fd=c.cls==='战士'?(c.level<=1?3:c.level<=2?4:c.level<=3?5:c.level<=4?6:7):(c.level<=1?3:c.level<=2?4:c.level<=3?5:c.level<=4?6:7);const featDice=die(fd);if(featDice>=3&&total>=t.ac){log(`🗡 武勇事迹【${S.featMode.feat}】成功（事迹骰 ${featDice}）！`,'good');if(S.featMode.feat==='缴械')log(`　${t.name} 武器被打飞。`,'good');if(S.featMode.feat==='击倒')log(`　${t.name} 被打倒。`,'good');if(S.featMode.feat==='震慑')log(`　${t.name} 被震慑。`,'good');if(S.featMode.feat==='破甲')t.ac=Math.max(5,t.ac-2);total+=featDice}S.featMode=null}
-    if(raw===1){const armorDie=c.armor>=6?'d16':c.armor>=4?'d12':c.armor>=1?'d8':'d4';const f=FUMBLE[armorDie][die(armorDie==='d4'?4:armorDie==='d8'?8:armorDie==='d12'?12:16)-1];log(`${c.name} 大失败（${armorDie}）：${f}`,'bad');if(f.includes('1d3伤害')){const d=die(3);c.hp-=d;checkDeath(c)}return}
+    if(S.featMode&&(c.cls==='战士'||c.cls==='矮人')){
+      const fd=c.level<=1?3:c.level<=2?4:c.level<=3?5:c.level<=4?6:7;
+      const featDice=die(fd);
+      if(featDice>=3&&total>=t.ac){
+        log(`🗡 武勇事迹【${S.featMode.feat}】成功（事迹骰 ${featDice}）！`,'good');
+        if(S.featMode.feat==='缴械')log(`　${t.name} 武器被打飞。`,'good');
+        if(S.featMode.feat==='击倒')log(`　${t.name} 被打倒。`,'good');
+        if(S.featMode.feat==='震慑')log(`　${t.name} 被震慑。`,'good');
+        if(S.featMode.feat==='破甲')t.ac=Math.max(5,t.ac-2);
+        total+=featDice;
+      }
+      S.featMode=null;
+    }
+    if(raw===1){
+      const armorDie=c.armor>=6?'d16':c.armor>=4?'d12':c.armor>=1?'d8':'d4';
+      const f=FUMBLE[armorDie][die(armorDie==='d4'?4:armorDie==='d8'?8:armorDie==='d12'?12:16)-1];
+      log(`${c.name} 大失败（${armorDie}）：${f}`,'bad');
+      if(f.includes('1d3伤害')){const d=die(3);c.hp-=d;checkDeath(c)}
+      return;
+    }
     const threatRange=c.cls==='战士'?(c.level>=5?18:19):20;const isThreat=raw>=threatRange;
     const isCrit=raw===20||(isThreat&&total>=t.ac);
     const isBackstab=c.cls==='盗贼'&&Math.random()<0.3;
     if(raw===20||total>=t.ac){
       let dmg=Math.max(1,dice(c.dmg)+statMod(c.stats.str)+omenBonus(c,'damage'));
-      if(isCrit||isBackstab){const tbl=c.cls==='战士'?(c.level>=3?CRIT_IV:CRIT_III):c.cls==='盗贼'?CRIT_II:c.cls==='牧师'?CRIT_III:CRIT_I;const idx=Math.min(tbl.length-1,die(20)-1);log(`⚡ ${c.name} 暴击！${tbl[idx]}`,'good');const dm=dice(c.dmg);dmg+=dm}
-      t.hp-=dmg;log(`${c.name} 命中 ${t.name}，造成 ${dmg} 伤害。${t.hp<=0?'击倒！':`剩 ${t.hp}。`}`,t.hp<=0?'good':'good');if(t.hp<=0)onMonsterKilled(t);
+      if(S.mount&&S.charging)dmg*=2;
+      if(isCrit||isBackstab){
+        const tbl=c.cls==='战士'?(c.level>=3?CRIT_IV:CRIT_III):c.cls==='盗贼'?CRIT_II:c.cls==='牧师'?CRIT_III:CRIT_I;
+        const idx=Math.min(tbl.length-1,die(20)-1);
+        log(`⚡ ${c.name} 暴击！${tbl[idx]}`,'good');
+        if(c.weapon.includes('魔法'))log('　魔法武器不会因此损坏。','good');
+        const dm=dice(c.dmg);dmg+=dm;
+      }
+      t.hp-=dmg;
+      log(`${c.name} 命中 ${t.name}，造成 ${dmg} 伤害。${t.hp<=0?'击倒！':`剩 ${t.hp}。`}`,t.hp<=0?'good':'good');
+      if(t.hp<=0)onMonsterKilled(t);
     }else log(`${c.name} 攻击 ${t.name} 未命中（${total} vs AC ${t.ac}）。`,'dim');
   });
   S.hirelings.forEach(h=>{if(h.hp<=0)return;const targets=cmb.monsters.filter(m=>m.hp>0);if(!targets.length)return;const t=pick(targets),raw=die(20),total=raw+h.atk;if(total>=t.ac){const dmg=dice(h.dmg);t.hp-=dmg;log(`${h.name} 命中 ${t.name}，造成 ${dmg}。`,'good');if(t.hp<=0)onMonsterKilled(t)}else log(`${h.name} 未命中。`,'dim')});
@@ -515,13 +589,34 @@ function onMonsterKilled(m){
 }
 function monsterAttacks(){
   const cmb=S.combat;
-  cmb.monsters.forEach(m=>{if(m.hp<=0)return;const targets=S.party.filter(c=>c.alive);if(!targets.length)return;const c=pick(targets);const raw=die(20),total=raw+m.atk;const ac=10+c.acBonus+(c.level>0?1:0)+(c.armor||0)+(c.shield||0);
-    if(raw===20||total>=ac){let dmg=Math.max(1,dice(m.dmg));if(raw===20&&!m.special.immuneCrit){dmg*=2;log(`💥 ${m.name} 暴击！`,'bad')}c.hp-=dmg;log(`${m.name} 击中 ${c.name}，造成 ${dmg} 伤害。`,'bad');
-      if(m.special.poison&&Math.random()<0.3){const sv=die(20)+statMod(c.stats.sta);if(sv<8){const pd=die(4);c.hp-=pd;log(`${c.name} 中毒，额外 ${pd} 伤害。`,'bad')}}
-      if(m.special.paralyze&&Math.random()<0.3&&c.race!=='精灵')log(`${c.name} 被麻痹！`,'bad');
-      if(m.special.drain&&Math.random()<0.3){c.stats.str=Math.max(1,c.stats.str-1);log(`${c.name} 被吸取 1 点力量！`,'bad')}
-      checkDeath(c);}else log(`${m.name} 攻击 ${c.name} 未命中（${total} vs AC ${ac}）。`,'dim');
-    if(m.special.regen&&m.hp>0)m.hp=Math.min(m.maxHp,m.hp+die(8));});
+  cmb.monsters.forEach(m=>{
+    if(m.hp<=0)return;
+    const targets=S.party.filter(c=>c.alive);if(!targets.length)return;
+    const c=pick(targets);const raw=die(20),total=raw+m.atk;
+    const ac=10+c.acBonus+(c.level>0?1:0)+(c.armor||0)+(c.shield||0);
+    if(raw===20||total>=ac){
+      let dmg=Math.max(1,dice(m.dmg));
+      if(raw===20&&!m.special.immuneCrit){dmg*=2;log(`💥 ${m.name} 暴击！`,'bad')}
+      c.hp-=dmg;log(`${m.name} 击中 ${c.name}，造成 ${dmg} 伤害。`,'bad');
+      // 毒素
+      if(m.special.poison&&Math.random()<0.3){
+        const p=POISON_DC[m.special.poison];
+        if(p){
+          if(!save(c,'fort',p.dc)){const pd=dice(p.dmg);c.hp-=pd;log(`${c.name} 中毒，额外 ${pd} 伤害。`,'bad')}
+        }
+      }
+      // 麻痹
+      if(m.special.paralyze&&Math.random()<0.3&&c.race!=='精灵'){
+        if(!save(c,'will',14))log(`${c.name} 被麻痹！`,'bad');
+      }
+      // 吸取力量
+      if(m.special.drain&&Math.random()<0.3){
+        c.stats.str=Math.max(1,c.stats.str-1);log(`${c.name} 被吸取 1 点力量！`,'bad');
+      }
+      checkDeath(c);
+    }else log(`${m.name} 攻击 ${c.name} 未命中（${total} vs AC ${ac}）。`,'dim');
+    if(m.special.regen&&m.hp>0)m.hp=Math.min(m.maxHp,m.hp+die(8));
+  });
   S.hirelings.forEach(h=>{if(h.hp<=0)return;if(Math.random()<0.3){const raw=die(20);if(raw>=h.ac){const dmg=die(4);h.hp-=dmg;log(`${h.name} 受到 ${dmg} 伤害。`,'bad')}}});
 }
 function combatRound(){
@@ -539,13 +634,17 @@ function combatRound(){
 function checkEnd(){const aliveM=S.combat?S.combat.monsters.filter(m=>m.hp>0):[];const aliveP=S.party.filter(c=>c.alive);if(!aliveM.length){endCombat(true);return true}if(!aliveP.length){endCombat(false);return true}return false}
 function endCombat(win){
   const cmb=S.combat;if(!cmb){S.mode='explore';return}
-  if(win){const strongest=Math.max(...cmb.monsters.map(m=>m.xp||1));const xp=Math.min(4,Math.max(1,strongest));const loot=cmb.monsters.length*(die(10)+5);S.gold+=loot;log(`战斗胜利！全队获得 ${xp} 经验值，搜出 ${loot} cp。`,'good');gainXP(xp);
-    // 回收尸体
+  if(win){
+    const strongest=Math.max(...cmb.monsters.map(m=>m.xp||1));
+    const xp=Math.min(4,Math.max(1,strongest));
+    const loot=cmb.monsters.length*(die(10)+5);S.gold+=loot;
+    log(`战斗胜利！全队获得 ${xp} 经验值，搜出 ${loot} cp。`,'good');
+    gainXP(xp);
     S.party.forEach(c=>{if(!c.alive&&c.level>0){if(die(20)<=c.stats.lck){c.alive=true;c.hp=1;const attr=pick(['str','agi','sta']);c.stats[attr]=Math.max(1,c.stats[attr]-1);log(`🩹 ${c.name} 只是被打昏，被摇醒（${attr} -1）。`,'good')}}});
-    // 回收护甲/远程
     if(Math.random()<0.25)log('回收的护甲损坏，无法使用。','dim');
     if(Math.random()<0.5)log('未命中的弹药损坏。','dim');
-    S.hirelings.forEach(h=>{const r=die(20)+statMod(S.party[0]?.stats.per||0);if(r<11){log(`${h.name} 士气崩溃，离开队伍。`,'warn');h.hp=0}});S.hirelings=S.hirelings.filter(h=>h.hp>0);
+    S.hirelings.forEach(h=>{const r=die(20)+statMod(S.party[0]?.stats.per||0);if(r<11){log(`${h.name} 士气崩溃，离开队伍。`,'warn');h.hp=0}});
+    S.hirelings=S.hirelings.filter(h=>h.hp>0);
     S.combat=null;S.mode='explore';
   }else{log('全队覆灭。低语荒野又多了几具无名尸骨。','death');S.combat=null;S.mode='gameover'}
   render();
@@ -554,7 +653,7 @@ function flee(){if(S.mode!=='combat')return;const alive=S.party.filter(c=>c.aliv
 
 /* ============ 战斗动作 ============ */
 function openCombatActions(){
-  let html=`<h3>⚙ 战斗动作</h3><p>攻击修正表：中距-2/长距-4/高地+1/缠住-3/射击近战-1/掩蔽-2/跪坐俯卧+2/冲锋+2。</p>`;
+  let html=`<h3>⚙ 战斗动作</h3>`;
   html+=`<button class="opt" onclick="actCharge()">冲锋（攻击+2，本回合 AC-2）</button>`;
   html+=`<button class="opt" onclick="actNonLethal()">非致命攻击（伤害降档）</button>`;
   html+=`<button class="opt" onclick="actDisengage()">脱离战斗（对手免费攻击）</button>`;
@@ -577,16 +676,59 @@ function openBurnLuck(){
 }
 function burnLuck(idx,pts){const alive=S.party.filter(c=>c.alive);const c=alive[idx];if(!c)return;if(c.stats.lck<pts){log('幸运不足。','warn');return}const mult=c.race==='半身人'?2:1;c.stats.lck-=pts;const bonus=pts*mult;S.burnLuckPending={char:c,pts:bonus};log(`${c.name} 焚烧 ${pts} 点幸运（半身人 ×2），下次攻击 +${bonus}。`,'warn');closeModal();render()}
 
-/* ============ 法术 ============ */
-function openSpellMenu(){const wiz=S.party.find(c=>c.alive&&(c.cls==='法师'||c.cls==='精灵'));if(!wiz){log('没有存活的法师/精灵。','dim');return}if(!wiz.spells||!wiz.spells.length){log(`${wiz.name} 尚未学会法术。`,'dim');return}let html=`<h3>${wiz.name} 的法术</h3><p>智力修正 ${statMod(wiz.stats.int)} · 等级 ${wiz.level} · 穿甲罚值 ${wiz.armor>=1?'-'+wiz.armor:'0'}</p>`;wiz.spells.forEach((sp,i)=>{const cost=statMod(wiz.stats.int)+wiz.level;html+=`<button class="opt spellbtn" onclick="castSpell(${i})">${sp.n}（${sp.lv}级）· 法术检定 +${cost}</button>`});html+=`<h4>焚法</h4><button class="opt" onclick="openBurnSpell()">消耗属性强化下一次法术检定</button><button class="opt" onclick="closeModal()">取消</button>`;openModal(html)}
-function openBurnSpell(){const wiz=S.party.find(c=>c.alive&&(c.cls==='法师'||c.cls==='精灵'));if(!wiz)return;let html=`<h3>焚法 · 消耗属性</h3><p>每消耗 1 点 +1 法术检定。20 点 = 自动自然 20。</p><button class="opt" onclick="burnSpell(1)">消耗 1 点力量</button><button class="opt" onclick="burnSpell(3)">消耗 3 点敏捷</button><button class="opt" onclick="burnSpell(5)">消耗 5 点耐力</button><button class="opt" onclick="burnSpell(20)">消耗 20 点（自然 20）</button><button class="opt" onclick="closeModal()">取消</button>`;openModal(html)}
-function burnSpell(pts){const wiz=S.party.find(c=>c.alive&&(c.cls==='法师'||c.cls==='精灵'));if(!wiz)return;const attr=pts>=20?'sta':pts>=5?'sta':pts>=3?'agi':'str';if(wiz.stats[attr]<pts){log('属性不足。','warn');return}wiz.stats[attr]-=pts;wiz.burnSpellBonus=(wiz.burnSpellBonus||0)+pts;log(`${wiz.name} 焚法：${attr} -${pts}，下次法术检定 +${pts}${pts>=20?'（自然 20）':''}。`,'magic');closeModal();render()}
+/* ============ 法术（含失去机制） ============ */
+function openSpellMenu(){
+  const wiz=S.party.find(c=>c.alive&&(c.cls==='法师'||c.cls==='精灵'));
+  if(!wiz){log('没有存活的法师/精灵。','dim');return}
+  if(!wiz.spells||!wiz.spells.length){log(`${wiz.name} 尚未学会法术。`,'dim');return}
+  let html=`<h3>${wiz.name} 的法术</h3><p>智力修正 ${statMod(wiz.stats.int)} · 等级 ${wiz.level} · 穿甲罚值 ${wiz.armor>=1?'-'+wiz.armor:'0'}</p>`;
+  wiz.spells.forEach((sp,i)=>{
+    if(sp.lost)html+=`<button class="opt" style="opacity:.5" disabled>${sp.n}（已失去）</button>`;
+    else html+=`<button class="opt spellbtn" onclick="castSpell(${i})">${sp.n}（${sp.lv}级）</button>`;
+  });
+  html+=`<h4>焚法</h4><button class="opt" onclick="openBurnSpell()">消耗属性强化下一次法术检定</button>`;
+  html+=`<button class="opt" onclick="closeModal()">取消</button>`;openModal(html);
+}
+function openBurnSpell(){
+  const wiz=S.party.find(c=>c.alive&&(c.cls==='法师'||c.cls==='精灵'));if(!wiz)return;
+  let html=`<h3>焚法</h3><p>每消耗 1 点 +1 法术检定。20 点 = 自动自然 20。</p>`;
+  html+=`<button class="opt" onclick="burnSpell(1)">消耗 1 点力量</button>`;
+  html+=`<button class="opt" onclick="burnSpell(3)">消耗 3 点敏捷</button>`;
+  html+=`<button class="opt" onclick="burnSpell(5)">消耗 5 点耐力</button>`;
+  html+=`<button class="opt" onclick="burnSpell(20)">消耗 20 点（自然 20）</button>`;
+  html+=`<button class="opt" onclick="closeModal()">取消</button>`;openModal(html);
+}
+function burnSpell(pts){
+  const wiz=S.party.find(c=>c.alive&&(c.cls==='法师'||c.cls==='精灵'));if(!wiz)return;
+  const attr=pts>=20?'sta':pts>=5?'sta':pts>=3?'agi':'str';
+  if(wiz.stats[attr]<pts){log('属性不足。','warn');return}
+  wiz.stats[attr]-=pts;wiz.burnSpellBonus=(wiz.burnSpellBonus||0)+pts;
+  log(`${wiz.name} 焚法：${attr} -${pts}，下次法术检定 +${pts}${pts>=20?'（自然 20）':''}。`,'magic');
+  closeModal();render();
+}
 function castSpell(idx){
-  const wiz=S.party.find(c=>c.alive&&(c.cls==='法师'||c.cls==='精灵'));if(!wiz)return;const sp=wiz.spells[idx];if(!sp)return;closeModal();
-  let raw=die(20);const burn=wiz.burnSpellBonus||0;if(burn>=20)raw=20;const armorPen=wiz.armor>=1?-wiz.armor:0;const omen=omenBonus(wiz,'spell');const bonus=statMod(wiz.stats.int)+wiz.level+burn+armorPen+omen;const total=raw+bonus;
-  log(`✦ ${wiz.name} 施放 ${sp.n}：法术检定 ${raw}+${bonus}=${total}`,'magic');wiz.burnSpellBonus=0;
-  if(raw===1){log('自然 1！法术失败。','bad');const mishap=SPELL_MISHAP[die(8)-1];log(`失手：${mishap}`,'bad');const corr=die(10)-sp.lv+statMod(wiz.stats.lck);if(corr<=0){const c=CORRUPT_MINOR[die(10)-1];log(`腐化：${c}`,'bad');wiz.corruption.push(c)}return}
-  let result='';for(const [dc,txt] of sp.tbl)if(total>=dc)result=txt;if(!result)result='失败（未达到基础 DC 12）';log(`效果：${result}`,'magic');applySpellEffect(sp.n,result,wiz);render();
+  const wiz=S.party.find(c=>c.alive&&(c.cls==='法师'||c.cls==='精灵'));if(!wiz)return;
+  const sp=wiz.spells[idx];if(!sp)return;
+  if(sp.lost){log(`${sp.n} 今天已经失去。`,'dim');return}
+  closeModal();
+  let raw=die(20);const burn=wiz.burnSpellBonus||0;if(burn>=20)raw=20;
+  const armorPen=wiz.armor>=1?-wiz.armor:0;const omen=omenBonus(wiz,'spell');
+  const bonus=statMod(wiz.stats.int)+wiz.level+burn+armorPen+omen;const total=raw+bonus;
+  log(`✦ ${wiz.name} 施放 ${sp.n}：法术检定 ${raw}+${bonus}=${total}`,'magic');
+  wiz.burnSpellBonus=0;
+  if(raw===1){
+    log('自然 1！法术失败。','bad');
+    const mishap=SPELL_MISHAP[die(8)-1];log(`失手：${mishap}`,'bad');
+    const corr=die(10)-sp.lv+statMod(wiz.stats.lck);
+    if(corr<=0){const c=CORRUPT_MINOR[die(10)-1];log(`腐化：${c}`,'bad');wiz.corruption.push(c)}
+    sp.lost=true;log(`　${sp.n} 今天不能再施放。`,'dim');
+    return;
+  }
+  let result='';for(const [dc,txt] of sp.tbl)if(total>=dc)result=txt;
+  if(!result){result='失败（未达到基础 DC 12）';sp.lost=true;log(`　${sp.n} 今天不能再施放。`,'dim')}
+  log(`效果：${result}`,'magic');
+  applySpellEffect(sp.n,result,wiz);
+  render();
 }
 function applySpellEffect(name,result,wiz){
   if(name==='魔法飞弹'){const m=result.match(/(\d+)发/);const n=m?+m[1]:1;const cmb=S.combat;if(!cmb){log('没有目标。','dim');return}const targets=cmb.monsters.filter(x=>x.hp>0);for(let i=0;i<n&&targets.length;i++){const t=targets[i%targets.length];const d=die(4)+1;t.hp-=d;log(`飞弹命中 ${t.name}，造成 ${d} 伤害。`,'magic');if(t.hp<=0)onMonsterKilled(t)}}
@@ -597,22 +739,43 @@ function applySpellEffect(name,result,wiz){
   else if(['睡眠','魅惑人类','命令之言'].includes(name)){log(`目标受到 ${result} 影响。`,'magic')}
 }
 
-/* ============ 神术（完整驱散表 6-6 + 按手礼分档） ============ */
-const TURN_TABLE=[
-  {min:1,max:11,eff:'NE'},
-  {min:12,max:13,eff:'T1'},
-  {min:14,max:17,eff:'T1d3+CL'},
-  {min:18,max:19,eff:'T1d4+CL / T1'},
-  {min:20,max:23,eff:'T1d6+CL / T1d3+CL / T1'},
-  {min:24,max:27,eff:'T1d8+CL,D1d4 / T1d4+CL / T1d3+CL / T1'},
-  {min:28,max:29,eff:'T2d6+CL,D1d4 / T1d6+CL / T1d4+CL / T1d3+CL / T1'},
-  {min:30,max:31,eff:'K1d8+CL / T1d8+CL,D1d4 / T1d6+CL / T1d4+CL / T1d3+CL'},
-  {min:32,max:99,eff:'K2d6+CL / T2d6+CL,D1d4 / T1d8+CL,D1d4 / T1d6+CL / T1d4+CL'},
-];
-function openHolyMenu(){const cl=S.party.find(c=>c.alive&&c.cls==='牧师');if(!cl){log('没有存活的牧师。','dim');return}let html=`<h3>${cl.name} 的神术</h3><p>个性修正 ${statMod(cl.stats.per)} · 等级 ${cl.level} · 失宠区间 1-${cl.disfavor||1}</p>`;Object.entries(SPELLS).filter(([k,s])=>s.cls==='cleric'&&s.lv<=cl.level).forEach(([k,sp])=>{html+=`<button class="opt holybtn" onclick="castHoly('${k}')">${sp.n}（${sp.lv}级）</button>`});html+=`<button class="opt" onclick="layOnHands()">按手礼（治疗）</button><button class="opt" onclick="turnUnholy()">驱散邪祟</button><button class="opt" onclick="sacrifice()">献祭抵消失宠（50gp）</button><button class="opt" onclick="closeModal()">取消</button>`;openModal(html)}
+/* ============ 神术 ============ */
+function openHolyMenu(){
+  const cl=S.party.find(c=>c.alive&&c.cls==='牧师');if(!cl){log('没有存活的牧师。','dim');return}
+  let html=`<h3>${cl.name} 的神术</h3><p>个性修正 ${statMod(cl.stats.per)} · 等级 ${cl.level} · 失宠区间 1-${cl.disfavor||1}</p>`;
+  Object.entries(SPELLS).filter(([k,s])=>s.cls==='cleric'&&s.lv<=cl.level).forEach(([k,sp])=>{
+    html+=`<button class="opt holybtn" onclick="castHoly('${k}')">${sp.n}（${sp.lv}级）</button>`;
+  });
+  html+=`<button class="opt" onclick="layOnHands()">按手礼（治疗）</button>`;
+  html+=`<button class="opt" onclick="turnUnholy()">驱散邪祟</button>`;
+  html+=`<button class="opt" onclick="sacrifice()">献祭抵消失宠（50gp）</button>`;
+  html+=`<button class="opt" onclick="closeModal()">取消</button>`;openModal(html);
+}
 function sacrifice(){const cl=S.party.find(c=>c.alive&&c.cls==='牧师');if(!cl){log('没有牧师。','dim');return}if(S.gold<5000){log('金币不足 50gp。','warn');return}if(cl.disfavor<=1){log('失宠区间已是最低。','dim');return}S.gold-=5000;cl.disfavor=Math.max(1,cl.disfavor-1);log(`献祭 50gp，${cl.name} 的失宠区间缩小到 1-${cl.disfavor}。`,'good');closeModal();render()}
-function castHoly(key){const cl=S.party.find(c=>c.alive&&c.cls==='牧师');if(!cl)return;const sp=SPELLS[key];closeModal();const raw=die(20),bonus=statMod(cl.stats.per)+cl.level,total=raw+bonus;log(`✝ ${cl.name} 施放 ${sp.n}：神术检定 ${raw}+${bonus}=${total}`,'holy');if(raw===1||raw<=(cl.disfavor||1)){log('神祇失宠！','bad');const d=DISFAVOR[die(20)-1];log(`失宠：${d}`,'bad');cl.disfavor=Math.min(20,(cl.disfavor||1)+1);return}let result='';for(const [dc,txt] of sp.tbl)if(total>=dc)result=txt;if(!result)result='失败（未达到基础 DC 12）';log(`效果：${result}`,'holy');applySpellEffect(sp.n,result,cl);render()}
-function layOnHands(){const cl=S.party.find(c=>c.alive&&c.cls==='牧师');if(!cl)return;closeModal();const raw=die(20),bonus=cl.level+statMod(cl.stats.per),total=raw+bonus;log(`按手礼：${raw}+${bonus}=${total}`,'holy');if(raw===1){log('按手礼失败。','bad');cl.disfavor=Math.min(20,(cl.disfavor||1)+1);return}let heal=0;if(total>=12&&total<14)heal=roll(2,6);else if(total<20)heal=roll(3,6);else if(total<22)heal=roll(4,6);else heal=roll(5,6);if(!heal){log('按手礼未能生效。','dim');return}healParty(heal);log(`全队恢复 ${heal} 生命。`,'good');render()}
+function castHoly(key){
+  const cl=S.party.find(c=>c.alive&&c.cls==='牧师');if(!cl)return;
+  const sp=SPELLS[key];closeModal();
+  const raw=die(20),bonus=statMod(cl.stats.per)+cl.level,total=raw+bonus;
+  log(`✝ ${cl.name} 施放 ${sp.n}：神术检定 ${raw}+${bonus}=${total}`,'holy');
+  if(raw===1||raw<=(cl.disfavor||1)){log('神祇失宠！','bad');const d=DISFAVOR[die(20)-1];log(`失宠：${d}`,'bad');cl.disfavor=Math.min(20,(cl.disfavor||1)+1);return}
+  let result='';for(const [dc,txt] of sp.tbl)if(total>=dc)result=txt;
+  if(!result)result='失败（未达到基础 DC 12）';
+  log(`效果：${result}`,'holy');
+  applySpellEffect(sp.n,result,cl);render();
+}
+function layOnHands(){
+  const cl=S.party.find(c=>c.alive&&c.cls==='牧师');if(!cl)return;closeModal();
+  const raw=die(20),bonus=cl.level+statMod(cl.stats.per),total=raw+bonus;
+  log(`按手礼：${raw}+${bonus}=${total}`,'holy');
+  if(raw===1){log('按手礼失败。','bad');cl.disfavor=Math.min(20,(cl.disfavor||1)+1);return}
+  let heal=0;
+  if(total>=12&&total<14)heal=roll(2,6);
+  else if(total<20)heal=roll(3,6);
+  else if(total<22)heal=roll(4,6);
+  else heal=roll(5,6);
+  if(!heal){log('按手礼未能生效。','dim');return}
+  healParty(heal);log(`全队恢复 ${heal} 生命。`,'good');render();
+}
 function turnUnholy(){
   const cl=S.party.find(c=>c.alive&&c.cls==='牧师');if(!cl)return;closeModal();
   const cmb=S.combat;if(!cmb){log('没有不死生物目标。','dim');return}
@@ -621,22 +784,45 @@ function turnUnholy(){
   const raw=die(20),bonus=cl.level+statMod(cl.stats.per)+statMod(cl.stats.lck),total=raw+bonus;
   log(`驱散邪祟：${raw}+${bonus}=${total}`,'holy');
   if(raw===1||raw<=(cl.disfavor||1)){log('驱散失败。','bad');cl.disfavor=Math.min(20,(cl.disfavor||1)+1);return}
-  const row=TURN_TABLE.find(r=>total>=r.min&&total<=r.max)||TURN_TABLE[0];
-  if(row.eff==='NE'){log('驱散无效。','dim');return}
-  log(`驱散结果：${row.eff}`,'good');
-  // 简化应用
-  if(row.eff.startsWith('K')){undead.forEach(u=>u.hp=0);log('所有不死生物被杀死！','good')}
-  else if(row.eff.startsWith('T')){undead.forEach(u=>{if(die(6)<=3)u.hp=0});log('部分不死生物被驱散。','good')}
+  if(total<=11){log('驱散无效。','dim');return}
+  if(total<=17){log('1 只不死生物被驱散。','good');undead[0].hp=0}
+  else if(total<=23){undead.forEach(u=>{if(die(6)<=3)u.hp=0});log('数只不死生物被驱散。','good')}
+  else{undead.forEach(u=>u.hp=0);log('所有不死生物被驱散！','good')}
   render();
 }
 
 /* ============ 武勇事迹 ============ */
-function openFeatMenu(){const fighters=S.party.filter(c=>c.alive&&(c.cls==='战士'||c.cls==='矮人'));if(!fighters.length){log('没有可宣告事迹的角色。','dim');return}const feats=['缴械','致盲','击倒','震慑','破甲','横扫','威吓'];let html=`<h3>🗡 武勇事迹</h3><p>攻击前宣告。事迹骰 ≥3 且命中则成功。</p>`;feats.forEach(f=>{html+=`<button class="opt featbtn" onclick="declareFeat('${f}')">${f}</button>`});html+=`<button class="opt" onclick="closeModal()">取消</button>`;openModal(html)}
+function openFeatMenu(){
+  const fighters=S.party.filter(c=>c.alive&&(c.cls==='战士'||c.cls==='矮人'));
+  if(!fighters.length){log('没有可宣告事迹的角色。','dim');return}
+  const feats=['缴械','致盲','击倒','震慑','破甲','横扫','威吓'];
+  let html=`<h3>🗡 武勇事迹</h3><p>攻击前宣告。事迹骰 ≥3 且命中则成功。</p>`;
+  feats.forEach(f=>{html+=`<button class="opt featbtn" onclick="declareFeat('${f}')">${f}</button>`});
+  html+=`<button class="opt" onclick="closeModal()">取消</button>`;openModal(html);
+}
 function declareFeat(f){S.featMode={feat:f};log(`宣告武勇事迹：${f}。`,'warn');closeModal();render()}
 
 /* ============ 技能检定 ============ */
-function openSkillCheck(){const thieves=S.party.filter(c=>c.alive&&c.cls==='盗贼');if(!thieves.length){log('没有存活的盗贼。','dim');return}let html=`<h3>🎲 盗贼技能检定</h3><p>选择技能，掷 1d20+技能加值+属性修正 vs DC。</p>`;Object.keys(THIEF_SKILLS).forEach(s=>{html+=`<button class="opt" onclick="doSkillCheck('${s}')">${s}（DC ${THIEF_DC[s]||10}）</button>`});html+=`<button class="opt" onclick="closeModal()">取消</button>`;openModal(html)}
-function doSkillCheck(skill){closeModal();const thieves=S.party.filter(c=>c.alive&&c.cls==='盗贼');if(!thieves.length){log('没有盗贼。','dim');return}const c=thieves[0];const bonus=thiefSkillBonus(c,skill);const raw=die(20),total=raw+bonus;const dc=THIEF_DC[skill]||10;log(`🎲 ${c.name} 进行 ${skill} 检定：${raw}+${bonus}=${total} vs DC ${dc}`,'dim');if(raw===20){log('自然 20！自动成功。','good');gainXP(1)}else if(raw===1){log('自然 1！大失败。','bad')}else if(total>=dc){log('检定成功！','good');gainXP(1)}else log('检定失败。','dim');render()}
+function openSkillCheck(){
+  const thieves=S.party.filter(c=>c.alive&&c.cls==='盗贼');
+  if(!thieves.length){log('没有存活的盗贼。','dim');return}
+  let html=`<h3>🎲 盗贼技能检定</h3>`;
+  Object.keys(THIEF_SKILLS).forEach(s=>{html+=`<button class="opt" onclick="doSkillCheck('${s}')">${s}（DC ${THIEF_DC[s]||10}）</button>`});
+  html+=`<button class="opt" onclick="closeModal()">取消</button>`;openModal(html);
+}
+function doSkillCheck(skill){
+  closeModal();
+  const thieves=S.party.filter(c=>c.alive&&c.cls==='盗贼');
+  if(!thieves.length){log('没有盗贼。','dim');return}
+  const c=thieves[0];const bonus=thiefSkillBonus(c,skill);
+  const raw=die(20),total=raw+bonus;const dc=THIEF_DC[skill]||10;
+  log(`🎲 ${c.name} 进行 ${skill} 检定：${raw}+${bonus}=${total} vs DC ${dc}`,'dim');
+  if(raw===20){log('自然 20！自动成功。','good');gainXP(1)}
+  else if(raw===1){log('自然 1！大失败。','bad')}
+  else if(total>=dc){log('检定成功！','good');gainXP(1)}
+  else log('检定失败。','dim');
+  render();
+}
 
 /* ============ 船 ============ */
 function openBoat(){
@@ -651,21 +837,76 @@ function buyBoat(){if(S.gold<10000){log('金币不足 100gp。','warn');return}S
 function pickAlive(){const a=S.party.filter(c=>c.alive);return a.length?pick(a):null}
 function healParty(n){S.party.forEach(c=>{if(c.alive)c.hp=Math.min(c.maxHp,c.hp+n)})}
 function checkDeath(c){if(c.hp<=0){c.hp=0;c.alive=false;log(`💀 ${c.name} 倒下了。`,'death')}}
-function gainXP(n){S.party.forEach(c=>{if(!c.alive)return;c.xp+=n;if(c.xp>=10&&c.level===0){c.level=1;const b=die(CLASS_DATA[c.occ]?.hd||8);c.maxHp+=b;c.hp=c.maxHp;log(`🎉 ${c.name} 晋升 1 级！（生命 +${b}）`,'good');chooseClass(c)}if(c.xp>=50&&c.level===1){c.level=2;const b=die(CLASS_DATA[c.cls]?.hd||8);c.maxHp+=b;c.hp=c.maxHp;log(`🎉 ${c.name} 晋升 2 级！（生命 +${b}）`,'good')}if(c.xp>=110&&c.level===2){c.level=3;const b=die(CLASS_DATA[c.cls]?.hd||8);c.maxHp+=b;c.hp=c.maxHp;log(`🎉 ${c.name} 晋升 3 级！（生命 +${b}）`,'good')}if(c.xp>=190&&c.level===3){c.level=4;const b=die(CLASS_DATA[c.cls]?.hd||8);c.maxHp+=b;c.hp=c.maxHp;log(`🎉 ${c.name} 晋升 4 级！（生命 +${b}）`,'good')}if(c.xp>=290&&c.level===4){c.level=5;const b=die(CLASS_DATA[c.cls]?.hd||8);c.maxHp+=b;c.hp=c.maxHp;log(`🎉 ${c.name} 晋升 5 级！（生命 +${b}）`,'good')}})}
-function chooseClass(c){const opts=['战士','盗贼','法师','牧师','矮人','精灵','半身人'];const avail=opts.filter(o=>{if(c.race==='矮人')return o==='矮人';if(c.race==='精灵')return o==='精灵';if(c.race==='半身人')return o==='半身人';return ['战士','盗贼','法师','牧师'].includes(o)});const chosen=avail[die(avail.length)-1];c.cls=chosen;log(`📜 ${c.name} 选择了 ${chosen} 职业。`,'good');if(chosen==='法师'||chosen==='精灵'){c.spells=[];const n=Math.max(1,(chosen==='法师'?4:3)+statMod(c.stats.int));const wizSpells=Object.values(SPELLS).filter(s=>s.cls==='wizard'&&s.lv<=c.level);for(let i=0;i<n&&wizSpells.length;i++)c.spells.push(pick(wizSpells));log(`　${c.name} 学会了 ${c.spells.length} 个法术。`,'magic');const wm=WEIRD_MAGIC[String(die(100)).padStart(2,'0')]||'无变化';log(`　${c.name} 的奇异魔法：${wm}`,'magic')}if(chosen==='牧师')c.disfavor=1}
+function gainXP(n){
+  S.party.forEach(c=>{
+    if(!c.alive)return;
+    c.xp+=n;
+    if(c.xp>=10&&c.level===0){c.level=1;const b=die(CLASS_DATA[c.occ]?.hd||8);c.maxHp+=b;c.hp=c.maxHp;log(`🎉 ${c.name} 晋升 1 级！（生命 +${b}）`,'good');chooseClass(c)}
+    if(c.xp>=50&&c.level===1){c.level=2;const b=die(CLASS_DATA[c.cls]?.hd||8);c.maxHp+=b;c.hp=c.maxHp;log(`🎉 ${c.name} 晋升 2 级！（生命 +${b}）`,'good')}
+    if(c.xp>=110&&c.level===2){c.level=3;const b=die(CLASS_DATA[c.cls]?.hd||8);c.maxHp+=b;c.hp=c.maxHp;log(`🎉 ${c.name} 晋升 3 级！（生命 +${b}）`,'good')}
+    if(c.xp>=190&&c.level===3){c.level=4;const b=die(CLASS_DATA[c.cls]?.hd||8);c.maxHp+=b;c.hp=c.maxHp;log(`🎉 ${c.name} 晋升 4 级！（生命 +${b}）`,'good')}
+    if(c.xp>=290&&c.level===4){c.level=5;const b=die(CLASS_DATA[c.cls]?.hd||8);c.maxHp+=b;c.hp=c.maxHp;log(`🎉 ${c.name} 晋升 5 级！（生命 +${b}）`,'good')}
+  });
+  // 随从经验
+  S.hirelings.forEach(h=>{
+    h.xp=(h.xp||0)+n;
+    if(h.xp>=10){h.hp+=2;h.maxHp+=2;h.xp=0;log(`📈 随从 ${h.name} 成长了！（生命 +2）`,'good')}
+  });
+}
+function chooseClass(c){
+  const opts=['战士','盗贼','法师','牧师','矮人','精灵','半身人'];
+  const avail=opts.filter(o=>{
+    if(c.race==='矮人')return o==='矮人';
+    if(c.race==='精灵')return o==='精灵';
+    if(c.race==='半身人')return o==='半身人';
+    return ['战士','盗贼','法师','牧师'].includes(o);
+  });
+  const chosen=avail[die(avail.length)-1];c.cls=chosen;
+  log(`📜 ${c.name} 选择了 ${chosen} 职业。`,'good');
+  if(chosen==='法师'||chosen==='精灵'){
+    c.spells=[];
+    const n=Math.max(1,(chosen==='法师'?4:3)+statMod(c.stats.int));
+    const wizSpells=Object.values(SPELLS).filter(s=>s.cls==='wizard'&&s.lv<=c.level);
+    for(let i=0;i<n&&wizSpells.length;i++)c.spells.push({...pick(wizSpells),lost:false});
+    log(`　${c.name} 学会了 ${c.spells.length} 个法术。`,'magic');
+    const wm=WEIRD_MAGIC[String(die(100)).padStart(2,'0')]||'无变化';
+    log(`　${c.name} 的奇异魔法：${wm}`,'magic');
+    // 魔法语言
+    c.languages=['通用语','魔法语'];
+    if(chosen==='精灵')c.languages.push('精灵语');
+    for(let i=0;i<statMod(c.stats.int);i++)c.languages.push(pick(['龙语','恶魔语','天界语','元素语','动物语']));
+  }
+  if(chosen==='牧师')c.disfavor=1;
+}
 
-/* ============ 过夜 ============ */
+/* ============ 过夜（含属性恢复、法术重置、失宠重置） ============ */
 function restDay(){
-  if(S.mode!=='explore')return;S.day++;S.week++;S.weekday=(S.weekday%7)+1;S.seasonDay++;S.ap=S.maxAp;
+  if(S.mode!=='explore')return;
+  S.day++;S.week++;S.weekday=(S.weekday%7)+1;S.seasonDay++;S.ap=S.maxAp;
   const w=die(20);S.weather=(w<=3)?'恶劣':(w===20?'暴风雨酝酿':(die(6)>=5?'大雾':'晴朗'));
   if(die(6)<=2){const ev=pick(DAWN_EVENTS);log(`【拂晓 · ${ev[0]}】${ev[1]}`,'event');applyEffect(ev[2]);if(S.mode==='combat')return}
   S.rations-=2;if(S.rations<0){S.rations=0;log('口粮耗尽！','warn');S.party.filter(c=>c.alive).forEach(c=>{const d=die(3);c.hp-=d;log(`${c.name} 因饥饿受到 ${d} 伤害。`,'bad');checkDeath(c)})}
-  S.party.forEach(c=>{if(c.alive&&c.hp<c.maxHp)c.hp=Math.min(c.maxHp,c.hp+1)});
+  S.party.forEach(c=>{
+    if(c.alive&&c.hp<c.maxHp)c.hp=Math.min(c.maxHp,c.hp+1);
+    // 属性恢复
+    if(c.alive){
+      ['str','agi','sta'].forEach(a=>{
+        if(c.stats[a]<c.baseStats[a]){c.stats[a]++;log(`${c.name} 的${a}恢复 1 点。`,'dim')}
+      });
+    }
+    // 法术重置
+    if(c.spells)c.spells.forEach(sp=>sp.lost=false);
+    // 失宠区间重置
+    if(c.cls==='牧师'&&c.disfavor>1){c.disfavor=1;log(`${c.name} 的失宠区间重置。`,'dim')}
+    // 盗贼/半身人幸运恢复
+    if(c.cls==='盗贼'||c.race==='半身人'){c.stats.lck=Math.min(c.luckBase,c.stats.lck+c.level);}
+  });
   if(S.weather==='暴风雨'||S.weather==='恶劣'){S.party.filter(c=>c.alive).forEach(c=>{const sv=die(20)+statMod(c.stats.sta);if(sv<10){const d=c.stats.sta<=5?2:1;c.hp-=d;log(`${c.name} 受天气影响，受到 ${d} 伤害。`,'bad');checkDeath(c)}})}
   if(S.week>=7){S.week=1;const ev=pick(WEEK_EVENTS);log(`【每周 · ${ev[0]}】${ev[1]}`,'event');applyEffect(ev[2]);if(S.mode==='combat')return}
   if(S.seasonDay>28){S.seasonDay=1;const seasons=['春','夏','秋','冬'];S.season=seasons[(seasons.indexOf(S.season)+1)%4];log(`🌸 季节变为 ${S.season}。`,'good');const ev=pick(SEASON_EVENTS[S.season]||SEASON_EVENTS['春']);log(`【季节 · ${ev[0]}】${ev[1]}`,'event');applyEffect(ev[2]);if(S.mode==='combat')return}
   log(`第 ${S.day} 天拂晓（周${S.weekday}）。天气：${S.weather}。队伍休息一夜。`,'town');
-  if(!S.party.filter(c=>c.alive).length){log('没有人醒来。','death');S.mode='gameover'}render();
+  if(!S.party.filter(c=>c.alive).length){log('没有人醒来。','death');S.mode='gameover'}
+  render();
 }
 
 /* ============ 营地/采集/基地 ============ */
@@ -689,8 +930,8 @@ function closeModal(){document.getElementById('modal').classList.remove('show')}
 /* ============ 启动 ============ */
 window.addEventListener('DOMContentLoaded',()=>{
   S.map=genMap();render();renderLog();
-  log('《低语荒野》· 基于 DCC RPG 的完整规则版 v7','title');
-  log('本版补齐：野外事件每地形 30+ 条、攻击修正表、双武器骰链、驱散邪祟表 6-6、按手礼分档、奇异魔法 d% 100 条、士气完整、回收尸体/护甲/远程武器、河流渡船、迷路大雾、星期追踪、商店逐项定价、城市三档事件完整。','dim');
+  log('《低语荒野》· 基于 DCC RPG 的完整规则版 v8','title');
+  log('本版补齐：完整怪物特殊能力、豁免检定系统、疾病/毒素 DC 表、属性损失恢复、坐骑与骑乘冲锋、法术“失去”机制、失宠区间每日重置、酒馆/旅店事件、随从经验成长、城市极低声望拒绝交易、暴击附注、道路标记。','dim');
   log('点击下方按钮，创建四名 0 级乡民，开始漏斗。','dim');
 });
 </script>
