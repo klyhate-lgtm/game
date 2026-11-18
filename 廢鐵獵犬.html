@@ -1559,4 +1559,878 @@ function applyDisaster(dis,dr){
 function battleClickCell(x,y){
   const b=state.battle;
   if(!b||b.awaiting!=='playerAction') return;
-  const u=b.units.find(u=>u.uid===b.activeUid
+  const u=b.units.find(u=>u.uid===b.activeUid);
+  if(!u||!u.alive) return;
+  if(u.acted){ toast('此單位本回合已行動完畢'); return; }
+  const dist=Math.max(Math.abs(u.x-x),Math.abs(u.y-y));
+  if(dist>u.moveLeft){ toast('移動力不足'); return; }
+  const occupied=b.units.find(o=>o.alive&&o.x===x&&o.y===y);
+  if(occupied){ toast('該格已有單位'); return; }
+  // 脫離近戰檢查
+  const adjacentEnemies=b.units.filter(o=>o.alive&&o.side!=='player'&&Math.max(Math.abs(o.x-u.x),Math.abs(o.y-u.y))<=1);
+  if(adjacentEnemies.length>0&&u.kind!=='mech'){
+    // 機甲以外的單位脫離近戰會遭自由攻擊
+    let hit=false;
+    adjacentEnemies.forEach(e=>{
+      const r=rollDice(0,0);
+      let total=r.sum+e.stats.MATT;
+      const tn=11+u.stats.DEF;
+      let res=total-tn; if(res>=0&&r.triple) res++;
+      if(res>=0){
+        let dmg=res+e.stats.DB;
+        if(u.armorDice>0){ let best=0; for(let i=0;i<u.armorDice;i++) best=Math.max(best,rnd(3)); dmg=Math.max(0,dmg-best); }
+        u.dc-=dmg; hit=true;
+        battleLog(`⚔️ ${e.name} 自由攻擊 ${u.name}，造成 ${dmg} 傷害。`);
+        if(u.dc<=0) killUnit(u);
+      }
+    });
+    if(hit) sfxHit();
+  }
+  // 衝鋒記錄
+  const wasMelee = b.units.some(o=>o.alive&&o.side!=='player'&&Math.max(Math.abs(o.x-u.x),Math.abs(o.y-u.y))<=1);
+  u.x=x; u.y=y; u.moveLeft-=dist;
+  const nowMelee = b.units.some(o=>o.alive&&o.side!=='player'&&Math.max(Math.abs(o.x-u.x),Math.abs(o.y-u.y))<=1);
+  if(!wasMelee&&nowMelee&&dist*CELL_INCH>=3){ u.charging=true; }
+  sfx(440,0.05,'triangle',0.03);
+  render();
+}
+
+function enterAttackMode(){
+  const b=state.battle;
+  if(!b) return;
+  const u=b.units.find(x=>x.uid===b.activeUid);
+  if(!u||u.acted){ toast('此單位已行動'); return; }
+  b.awaiting='attackTarget';
+  render();
+}
+
+function doPlayerAttack(targetUid, opts){
+  const b=state.battle;
+  if(!b) return;
+  const atk=b.units.find(u=>u.uid===b.activeUid);
+  const def=b.units.find(u=>u.uid===targetUid);
+  if(!atk||!def||!atk.alive||!def.alive) return;
+  const o=opts||{};
+
+  const distCells=Math.max(Math.abs(atk.x-def.x),Math.abs(atk.y-def.y));
+  const isMelee=distCells<=1;
+  if(!isMelee&&distCells*CELL_INCH>60){ toast('超出射程'); return; }
+  if(isMelee&&!isMelee) return;
+  if(!isMelee&&isMelee) return;
+
+  if(!isMelee){
+    if(atk.traits.includes('shortRanged')&&distCells*CELL_INCH>10){ toast('短程專精：目標超出 10" 射程'); return; }
+  }
+
+  let att=isMelee?atk.stats.MATT:atk.stats.RATT;
+  let dmgBonus=atk.stats.DB;
+  let boons=0, banes=0;
+  const notes=[];
+
+  if(isMelee){
+    if(atk.traits.includes('skirmisher')){ dmgBonus+=1; notes.push('散兵+1'); }
+    if(atk.traits.includes('closeAssault')){
+      if(def.kind==='vehicle'){ att+=1; notes.push('突擊套件+1'); }
+      if(def.kind==='infantry'){ att+=2; notes.push('突擊套件+2'); }
+    }
+    if(atk.charging){ att+=1; dmgBonus+=1; notes.push('衝鋒+1/+1'); }
+    // 集團突擊
+    const allies=b.units.filter(a=>a.alive&&a.side==='player'&&a!==atk&&Math.max(Math.abs(a.x-def.x),Math.abs(a.y-def.y))<=1);
+    if(allies.length>0){
+      const bonus=Math.min(3,allies.length);
+      att+=bonus; notes.push(`集團突擊+${bonus}`);
+    }
+  } else {
+    if(atk.traits.includes('riflemen')){ att+=1; notes.push('步槍兵+1'); }
+    if(atk.traits.includes('gaussWeapons')&&distCells*CELL_INCH>15){ att+=1; notes.push('電磁+1'); }
+    if(atk.traits.includes('shortRanged')&&distCells*CELL_INCH<=5){ att+=2; dmgBonus+=2; notes.push('短程+2/+2'); }
+    if(atk.traits.includes('antiInfantry')&&def.kind==='infantry'&&distCells*CELL_INCH<=10){
+      att+=2; dmgBonus+=1; notes.push('反步兵+2/+1');
+    }
+    if(atk.traits.includes('tankHunter')&&(def.kind==='mech'||def.kind==='vehicle')){
+      att+=atk.stats.QUL; dmgBonus+=atk.stats.QUL; notes.push('坦克獵手');
+    }
+    if(atk.traits.includes('kaijuHunter')&&def.kind==='kaiju'){
+      att+=atk.stats.QUL; dmgBonus+=atk.stats.QUL; notes.push('怪獸獵手');
+    }
+  }
+  // X 因素
+  if(atk.hasX){ boons++; notes.push('X因素+1'); }
+  // 掩體
+  const defInCover=b.terrain.some(t=>t.cover&&t.x===def.x&&t.y===def.y);
+  if(defInCover){ banes++; notes.push('目標在掩體'); }
+  // 未付口糧懲罰
+  if(atk.firstAtkPenalty>0&&!atk.hasAttacked){ banes+=atk.firstAtkPenalty; atk.firstAtkPenalty=0; notes.push('口糧懲罰'); }
+  atk.hasAttacked=true;
+
+  const tn=11+def.stats.DEF+(def.hasX?1:0)+(defInCover?1:0);
+
+  // 壓制射擊
+  if(o.suppress&&def.kind==='infantry'){
+    const roll=rollDice(boons,banes);
+    let total=roll.sum+att;
+    let result=total-tn; if(result>=0&&roll.triple) result++;
+    atk.acted=true; atk.moveLeft=0; b.awaiting='none';
+    if(result>=0){
+      const supTN=11+result;
+      const sr=rollDice(0,0);
+      let st=sr.sum+def.stats.QUL;
+      let sres=st-supTN; if(sres>=0&&sr.triple) sres++;
+      if(sres<0){ def.suppressed=true; battleLog(`💥 ${def.name} 被壓制！`); }
+      else { battleLog(`💥 ${def.name} 抵抗壓制。`); }
+      toast(`壓制射擊：${def.name}${def.suppressed?'被壓制':'抵抗成功'}`);
+    } else { toast('壓制射擊未命中'); }
+    render(); setTimeout(()=>{ if(!b.ended) endPlayerTurn(); },250);
+    return;
+  }
+
+  // 過載
+  let overloadDmg=0;
+  if(o.overload&&atk.traits.includes('energyWeapons')){
+    overloadDmg=Math.min(6,Math.max(1,o.overload));
+    atk.dc-=overloadDmg;
+    battleLog(`⚡ ${atk.name} 過載 +${overloadDmg}，自身受 ${overloadDmg} 無法豁免傷害。`);
+    if(atk.dc<=0){ killUnit(atk); }
+  }
+
+  const roll=rollDice(boons,banes);
+  let total=roll.sum+att;
+  let result=total-tn;
+  if(result>=0&&roll.triple) result++;
+  const success=result>=0;
+
+  let dmg=0, saved=0;
+  if(success){
+    dmg=result+dmgBonus+overloadDmg;
+    if(def.armorDice>0){
+      let best=0; for(let i=0;i<def.armorDice;i++) best=Math.max(best,rnd(3));
+      saved=best; dmg=Math.max(0,dmg-best);
+    }
+    def.dc-=dmg;
+    sfxHit();
+    if(dmg>=5) maybeSystemDamage(def,dmg);
+    if(atk.traits.includes('flamer')&&!isMelee){ def.burning=true; }
+    if(def.dc<=0) killUnit(def);
+    battleLog(`${atk.name} ${isMelee?'近戰':'遠程'}攻擊 ${def.name}：${total} vs ${tn}+ → 命中，造成 ${dmg} 傷害${saved?`（裝甲減 ${saved}）`:''}${notes.length?' ['+notes.join(',')+']':''}`);
+  } else {
+    sfxFail();
+    battleLog(`${atk.name} ${isMelee?'近戰':'遠程'}攻擊 ${def.name}：${total} vs ${tn}+ → 未中${notes.length?' ['+notes.join(',')+']':''}`);
+  }
+
+  atk.acted=true; atk.moveLeft=0; b.awaiting='none';
+  render();
+  setTimeout(()=>{ if(!b.ended) endPlayerTurn(); },250);
+}
+
+function maybeSystemDamage(u,dmg){
+  if(!u.systems||!u.systems.length) return;
+  if(dmg>=5){
+    const s=pick(u.systems);
+    if(!s.boxes[0]){ s.boxes[0]=true; battleLog(`⚙️ ${u.name}「${s.name}」受損。`); }
+    else if(!s.boxes[1]){ s.boxes[1]=true; battleLog(`⚙️ ${u.name}「${s.name}」失能！`); }
+  }
+  if(dmg>=10&&u.systems.length>1){
+    const s2=pick(u.systems);
+    if(!s2.boxes[0]) s2.boxes[0]=true;
+    else if(!s2.boxes[1]) s2.boxes[1]=true;
+  }
+}
+
+function doOverheat(){
+  const b=state.battle;
+  const u=b.units.find(x=>x.uid===b.activeUid);
+  if(!u||u.acted){ toast('此單位已行動'); return; }
+  if(u.kind!=='mech'){ toast('只有機甲可以過熱'); return; }
+  u.overheated=true;
+  u.moveLeft+=rnd(3)+1;
+  const dmg=rnd(3)+1;
+  u.dc-=dmg;
+  battleLog(`🔥 ${u.name} 過熱：額外 ${dmg} 移動，受到 ${dmg} 無法豁免傷害。`);
+  if(u.systems&&u.systems.length){
+    const s=pick(u.systems);
+    if(!s.boxes[0]) s.boxes[0]=true; else if(!s.boxes[1]) s.boxes[1]=true;
+  }
+  if(u.dc<=0) killUnit(u);
+  toast(`🔥 過熱：+${dmg} 移動，-${dmg} DC`); sfxHit();
+  render();
+}
+
+function doForcedMarch(){
+  const b=state.battle;
+  const u=b.units.find(x=>x.uid===b.activeUid);
+  if(!u||u.acted){ toast('此單位已行動'); return; }
+  if(u.moveLeft>0){ toast('請先使用完移動力再強行軍'); return; }
+  const roll=rollDice(0,0);
+  let total=roll.sum+u.stats.QUL;
+  let result=total-11; if(result>=0&&roll.triple) result++;
+  if(result>=0){
+    u.moveLeft+=1+result;
+    battleLog(`🏃 ${u.name} 強行軍：額外 ${1+result} 格。`);
+    toast(`🏃 強行軍成功：+${1+result} 格`); sfxOk();
+  } else {
+    battleLog(`🏃 ${u.name} 強行軍失敗。`);
+    toast('❌ 強行軍失敗'); sfxFail();
+  }
+  render();
+}
+
+function doScavenge(){
+  const b=state.battle;
+  const u=b.units.find(x=>x.uid===b.activeUid);
+  if(!u||u.acted){ toast('此單位已行動'); return; }
+  const near=b.scrap.find(s=>!s.taken&&Math.max(Math.abs(s.x-u.x),Math.abs(s.y-u.y))<=1);
+  if(!near){ toast('附近沒有廢鐵標記'); return; }
+  let boons=0;
+  if(u.traits.includes('scrapper')) boons++;
+  const tn=u.kind==='mech'?14:13;
+  const roll=rollDice(boons,0);
+  let total=roll.sum+u.stats.QUL;
+  let result=total-tn; if(result>=0&&roll.triple) result++;
+  if(result>=0){
+    near.taken=true;
+    u.carries++;
+    b.loot++;
+    // 搬運上限檢查
+    let cap=1;
+    if(u.kind==='mech') cap={light:1,medium:2,heavy:3}[u.size]+u.stats.QUL;
+    else if(u.kind==='vehicle') cap={light:2,medium:3,heavy:4}[u.size]+u.stats.QUL;
+    else if(u.traits.includes('powerArmor')) cap=2;
+    if(u.carries>cap){ u.carries=cap; b.loot=Math.max(0,b.loot-1); }
+    battleLog(`⚙️ ${u.name} 取得廢鐵標記（總值 ${total} vs ${tn}+）。`);
+    sfxOk();
+  } else {
+    battleLog(`⚙️ ${u.name} 取廢鐵失敗（總值 ${total} vs ${tn}+）。`);
+    sfxFail();
+  }
+  u.acted=true; b.awaiting='none';
+  render();
+  setTimeout(()=>{ if(!b.ended) endPlayerTurn(); },250);
+}
+
+function endPlayerTurn(){
+  const b=state.battle;
+  if(!b||b.ended) return;
+  const u=b.units.find(x=>x.uid===b.activeUid);
+  if(u){ u.acted=true; u.charging=false; }
+  b.awaiting='none';
+  render();
+  setTimeout(()=>{ b.orderIdx++; nextActivation(); },300);
+}
+
+function killUnit(u){
+  if(!u.alive) return;
+  u.alive=false; u.dc=0;
+  battleLog(`💀 ${u.name} 出局！`);
+  const b=state.battle;
+  // 爆炸
+  if(u.kind==='mech'||u.kind==='vehicle'||u.kind==='kaiju'){
+    const d=[rnd(6),rnd(6),rnd(6)];
+    if(d.includes(1)){
+      const oneIdx=d.indexOf(1);
+      const others=d.filter((v,i)=>i!==oneIdx);
+      const radius=others[0]+others[1];
+      const dmg=u.size==='light'?2:u.size==='medium'?4:6;
+      battleLog(`💥 ${u.name} 爆炸！半徑 ${radius}"，傷害 ${dmg}。`);
+      b.units.filter(o=>o.alive&&o!==u).forEach(o=>{
+        const dist=Math.max(Math.abs(o.x-u.x),Math.abs(o.y-u.y))*CELL_INCH;
+        if(dist<=radius){
+          o.dc-=dmg;
+          battleLog(`　${o.name} 受到 ${dmg} 爆炸傷害。`);
+          if(o.dc<=0) killUnit(o);
+        }
+      });
+    }
+  }
+  // 攜帶廢鐵掉落
+  if(u.carries>0){
+    for(let i=0;i<u.carries;i++){
+      if(rnd(6)<=2){ b.loot=Math.max(0,b.loot-1); }
+    }
+    u.carries=0;
+  }
+  // 打撈機會：敵方機甲/載具被摧毀，我方機甲/載具在 2" 內
+  if(u.side==='gc'&&(u.kind==='mech'||u.kind==='vehicle')){
+    const nearby=b.units.some(p=>p.alive&&p.side==='player'&&(p.kind==='mech'||p.kind==='vehicle')&&Math.max(Math.abs(p.x-u.x),Math.abs(p.y-u.y))<=1);
+    if(nearby){
+      const c=state.campaign;
+      c.salvagePool.push({kind:u.kind,size:u.size});
+      battleLog(`🔧 可以打撈 ${u.name} 的殘骸（${SIZE_ZH[u.size]}${ARCHETYPES[u.kind].zh}）。`);
+    }
+  }
+  checkBattleEnd();
+}
+
+function checkBattleEnd(){
+  const b=state.battle;
+  if(!b||b.ended) return;
+  const pAlive=b.units.some(u=>u.alive&&u.side==='player');
+  const gAlive=b.units.some(u=>u.alive&&u.side==='gc');
+  if(!pAlive){ endBattle('全軍覆沒'); return; }
+  if(!gAlive){ endBattle('敵人全滅'); return; }
+}
+
+/* ---------- GC AI ---------- */
+function gcActivate(u){
+  const b=state.battle;
+  if(!b||b.ended||!u.alive) return;
+  const players=b.units.filter(p=>p.alive&&p.side==='player');
+  if(!players.length){ endBattle('全軍覆沒'); return; }
+  const dist=(a,c)=>Math.max(Math.abs(a.x-c.x),Math.abs(a.y-c.y));
+  const nearest=players.slice().sort((a,c)=>dist(u,a)-dist(u,c))[0];
+  let actionCount=1;
+  if(u.hasX) actionCount=2;
+  let acted=false;
+
+  for(let act=0;act<actionCount;act++){
+    if(!u.alive) break;
+    // 專家優先搶廢鐵
+    if(u.role==='specialist'){
+      const sc=b.scrap.find(s=>!s.taken);
+      if(sc){
+        const d=dist(u,sc);
+        if(d<=1){
+          sc.taken=true; u.carries++; b.loot++;
+          battleLog(`⚙️ ${u.name} 搶走廢鐵標記。`);
+          acted=true;
+          continue;
+        } else { moveToward(u,sc.x,sc.y); }
+      }
+    }
+    const d=dist(u,nearest);
+    if(d<=1){
+      gcAttack(u,nearest,true);
+      acted=true;
+    } else if(u.role==='fighter'&&d<=u.moveLeft){
+      moveToward(u,nearest.x,nearest.y);
+      if(dist(u,nearest)<=1) gcAttack(u,nearest,true);
+      acted=true;
+    } else {
+      const ranged=(u.role==='shooter'||u.role==='leader'||u.kind==='mech'||u.kind==='vehicle'||u.kind==='kaiju');
+      const inRange=players.some(p=>dist(u,p)<=6);
+      if(ranged&&inRange){
+        const tgt=players.slice().sort((a,c)=>dist(u,a)-dist(u,c))[0];
+        gcAttack(u,tgt,false);
+        acted=true;
+      } else {
+        moveToward(u,nearest.x,nearest.y);
+        if(dist(u,nearest)<=1) gcAttack(u,nearest,true);
+        acted=true;
+      }
+    }
+    if(!u.hasX) break;
+  }
+
+  u.acted=true;
+  render();
+  setTimeout(()=>{
+    if(b.ended) return;
+    b.orderIdx++;
+    nextActivation();
+  },500);
+}
+
+function moveToward(u,tx,ty){
+  const b=state.battle;
+  for(let i=0;i<u.moveLeft;i++){
+    const dx=Math.sign(tx-u.x), dy=Math.sign(ty-u.y);
+    if(dx===0&&dy===0) break;
+    const nx=u.x+dx, ny=u.y+dy;
+    if(nx<0||nx>=GRID||ny<0||ny>=GRID) break;
+    const occ=b.units.find(o=>o.alive&&o!==u&&o.x===nx&&o.y===ny);
+    if(occ) break;
+    u.x=nx; u.y=ny;
+    if(u.x===tx&&u.y===ty) break;
+  }
+  u.moveLeft=0;
+}
+
+function gcAttack(atk,def,isMelee){
+  const b=state.battle;
+  let att=isMelee?atk.stats.MATT:atk.stats.RATT;
+  let db=atk.stats.DB;
+  let boons=atk.hasX?1:0;
+  const defInCover=b.terrain.some(t=>t.cover&&t.x===def.x&&t.y===def.y);
+  const banes=defInCover?1:0;
+  const tn=11+def.stats.DEF+(def.hasX?1:0)+(defInCover?1:0);
+  // 集團突擊
+  const allies=b.units.filter(a=>a.alive&&a.side==='gc'&&a!==atk&&Math.max(Math.abs(a.x-def.x),Math.abs(a.y-def.y))<=1);
+  if(isMelee&&allies.length>0) att+=Math.min(3,allies.length);
+
+  const roll=rollDice(boons,banes);
+  let total=roll.sum+att;
+  let result=total-tn; if(result>=0&&roll.triple) result++;
+  const success=result>=0;
+
+  if(success){
+    let dmg=result+db, saved=0;
+    if(def.armorDice>0){
+      let best=0; for(let i=0;i<def.armorDice;i++) best=Math.max(best,rnd(3));
+      saved=best; dmg=Math.max(0,dmg-best);
+    }
+    def.dc-=dmg;
+    sfxHit();
+    if(dmg>=5) maybeSystemDamage(def,dmg);
+    battleLog(`⚔️ ${atk.name} 攻擊 ${def.name}：${total} vs ${tn}+ → 命中，造成 ${dmg} 傷害${saved?`（裝甲減 ${saved}）`:''}`);
+    if(def.dc<=0) killUnit(def);
+  } else {
+    sfxFail();
+    battleLog(`⚔️ ${atk.name} 攻擊 ${def.name}：${total} vs ${tn}+ → 未中`);
+  }
+}
+
+function endBattle(reason){
+  const b=state.battle;
+  if(!b||b.ended) return;
+  b.ended=true; b.phase='ended'; b.awaiting='none'; b.endReason=reason;
+  battleLog(`— 戰鬥結束：${reason} —`);
+  render();
+}
+
+function continueBattle(){
+  const b=state.battle;
+  if(!b) return;
+  b.orderIdx++;
+  nextActivation();
+}
+
+function finishBattle(){
+  const b=state.battle;
+  const c=state.campaign;
+  if(!b) return;
+  const players=b.units.filter(u=>u.side==='player');
+  const ooa=players.filter(u=>!u.alive).map(u=>u.uid);
+  const loot=b.loot;
+  players.forEach(p=>{
+    const src=c.units.find(x=>x.id===p.uid);
+    if(src){
+      src.dc=Math.max(0,p.dc);
+      if(p.systems) src.systems=p.systems.map(s=>({key:s.key,name:s.name,boxes:s.boxes.slice()}));
+    }
+  });
+  c.battleResult={ooa,loot,reason:b.endReason||'結束'};
+  c.ooUnits=ooa;
+  state.battle=null;
+  state.screen='campaign';
+  c.step='fallout';
+  c.defending=false;
+  addHistory(`⚔️ 戰鬥結束（${c.battleResult.reason}）：取得 ${loot} 個廢鐵標記，${ooa.length} 個單位出局。`);
+  render();
+}
+
+/* =========================================================
+   戰鬥畫面
+   ========================================================= */
+function viewBattle(){
+  const b=state.battle;
+  if(!b) return '<div class="panel">戰鬥資料遺失</div>';
+  const active=b.units.find(u=>u.uid===b.activeUid&&u.alive);
+
+  let grid='';
+  for(let y=0;y<GRID;y++){
+    for(let x=0;x<GRID;x++){
+      const u=b.units.find(o=>o.alive&&o.x===x&&o.y===y);
+      const sc=b.scrap.find(s=>!s.taken&&s.x===x&&s.y===y);
+      const terr=b.terrain.find(t=>t.x===x&&t.y===y);
+      let cls='cell';
+      if(terr){ cls+=terr.cover?' cover':' terrain'; }
+      if(active&&b.awaiting==='playerAction'&&!u){
+        const d=Math.max(Math.abs(active.x-x),Math.abs(active.y-y));
+        if(d>0&&d<=active.moveLeft&&!active.acted) cls+=' reach';
+      }
+      if(b.awaiting==='attackTarget'&&u&&u.side==='gc') cls+=' target';
+      if(active&&active.x===x&&active.y===y) cls+=' active';
+
+      let inner='';
+      if(sc&&!u) inner+=`<div class="scrap">${iconFor('scrap','var(--amber)')}</div>`;
+      if(u){
+        const pct=Math.round(Math.max(0,u.dc)/u.dcMax*100);
+        const col=u.side==='player'?'var(--amber)':'var(--red)';
+        inner+=`<div class="uicon">${iconFor(u.kind,col)}</div>`;
+        inner+=`<div class="dcmini"><i style="width:${pct}%;background:${pct<35?'#d0453a':pct<70?'#e8b04b':'#7ab648'}"></i></div>`;
+        if(u.hasX) inner+=`<div class="xmark">X</div>`;
+        if(u.initNum) inner+=`<div class="initmark">${u.initNum}</div>`;
+      }
+
+      let act='';
+      if(b.awaiting==='playerAction'&&!u) act=`data-act="battleMove" data-x="${x}" data-y="${y}"`;
+      else if(b.awaiting==='attackTarget'&&u&&u.side==='gc') act=`data-act="battleAttackTarget" data-uid="${u.uid}"`;
+
+      grid+=`<div class="${cls}" ${act}>${inner}</div>`;
+    }
+  }
+
+  let actionPanel='';
+  if(b.phase==='initiative'){
+    actionPanel=`<div class="panel center">
+      <p class="small dim">第 ${b.round} 輪 — 先攻階段</p>
+      <button class="primary" data-act="battleRollInit" style="width:100%">🎲 抽取先攻籌碼</button>
+    </div>`;
+  } else if(b.phase==='ended'){
+    actionPanel=`<div class="panel center">
+      <h3 class="amber">戰鬥結束</h3>
+      <p class="small">${esc(b.endReason||'')}</p>
+      <p class="small">取得廢鐵標記：<b class="amber">${b.loot}</b></p>
+      <button class="primary" data-act="battleFinish" style="width:100%">📋 進入戰後餘波</button>
+    </div>`;
+  } else if(active&&active.side==='player'){
+    const canAct=!active.acted;
+    const nearScrap=b.scrap.find(s=>!s.taken&&Math.max(Math.abs(s.x-active.x),Math.abs(s.y-active.y))<=1);
+    const adjTargets=b.units.filter(o=>o.alive&&o.side==='gc'&&Math.max(Math.abs(o.x-active.x),Math.abs(o.y-active.y))<=1);
+    actionPanel=`<div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <div><b class="amber">${esc(active.name)}</b> <span class="tiny dim">${SIZE_ZH[active.size]}${ARCHETYPES[active.kind].zh}</span></div>
+        <div class="tiny dim">移動 ${active.moveLeft} 格${active.hasX?' · X':''}</div>
+      </div>
+      <div class="btnrow" style="margin-top:8px">
+        <button class="sm ${b.awaiting==='attackTarget'?'primary':''}" data-act="battleAttack" ${canAct?'':'disabled'}>⚔️ 攻擊</button>
+        <button class="sm" data-act="battleScavenge" ${canAct&&nearScrap?'':'disabled'}>⚙️ 取廢鐵</button>
+        <button class="sm" data-act="battleOverheat" ${canAct&&active.kind==='mech'?'':'disabled'}>🔥 過熱</button>
+        <button class="sm" data-act="battleForcedMarch" ${canAct?'':'disabled'}>🏃 強行軍</button>
+        <button class="sm" data-act="battleEndTurn">⏭ 結束回合</button>
+      </div>
+      ${b.awaiting==='attackTarget'?'<div class="tiny amber center" style="margin-top:6px">請點選紅色目標（近戰需相鄰）</div>':''}
+      ${b.awaiting==='playerAction'?'<div class="tiny dim center" style="margin-top:6px">點擊綠色格子移動，或直接攻擊</div>':''}
+    </div>`;
+  } else if(active){
+    actionPanel=`<div class="panel center"><p class="small dim">${esc(active.name)} 正在行動…</p></div>`;
+  } else {
+    actionPanel=`<div class="panel center">
+      <button class="primary" data-act="battleNext" style="width:100%">▶ 下一個單位</button>
+    </div>`;
+  }
+
+  const playerList=b.units.filter(u=>u.side==='player');
+  const gcList=b.units.filter(u=>u.side==='gc');
+
+  return `
+  <div class="topbar">
+    <div class="stat-chip"><span class="lbl">戰鬥輪</span><span class="val">${b.round}/${b.maxRounds}</span></div>
+    <div class="stat-chip"><span class="lbl">⚙️ 廢鐵</span><span class="val">${b.loot}</span></div>
+    <div class="stat-chip"><span class="lbl">我方</span><span class="val">${playerList.filter(u=>u.alive).length}/${playerList.length}</span></div>
+    <div class="stat-chip"><span class="lbl">敵方</span><span class="val" style="color:var(--red)">${gcList.filter(u=>u.alive).length}/${gcList.length}</span></div>
+  </div>
+  <div class="board-wrap"><div class="board">${grid}</div></div>
+  ${actionPanel}
+  <div class="panel">
+    <h3>📋 戰鬥紀錄</h3>
+    <div class="small" style="max-height:130px;overflow-y:auto;line-height:1.7;color:var(--dim)">
+      ${b.log.slice(-14).reverse().map(l=>`<div>${esc(l)}</div>`).join('')||'<div class="dim2">尚無紀錄</div>'}
+    </div>
+  </div>
+  <div class="panel"><h3>我方單位</h3><div class="hscroll">${playerList.map(u=>battleUnitCard(u)).join('')}</div></div>
+  <div class="panel"><h3>敵方單位</h3><div class="hscroll">${gcList.map(u=>battleUnitCard(u)).join('')}</div></div>`;
+}
+
+function battleUnitCard(u){
+  const pct=Math.round(Math.max(0,u.dc)/u.dcMax*100);
+  const isActive=state.battle.activeUid===u.uid;
+  let sysHTML='';
+  if(u.systems&&u.systems.length){
+    sysHTML=u.systems.slice(0,3).map(s=>`<span class="tag sys">${s.name}<span class="sysbox ${s.boxes[0]?'on':''}"></span><span class="sysbox ${s.boxes[1]?'on':''}"></span></span>`).join('');
+  }
+  return `<div class="card ${u.alive?'':'dead'}" style="width:140px;${isActive?'border-color:var(--amber);box-shadow:0 0 12px rgba(232,176,75,.4)':''}">
+    <div class="cv" style="width:46px;height:46px">${iconFor(u.kind,u.side==='player'?'var(--amber)':'var(--red)')}</div>
+    <div class="cn" style="font-size:10.5px">${esc(u.name)}</div>
+    <div style="width:100%;margin-top:4px">
+      <div class="dcbar"><i class="${pct<35?'crit':pct<70?'warn':''}" style="width:${pct}%"></i></div>
+      <div class="tiny center dim" style="margin-top:2px">${Math.max(0,u.dc)}/${u.dcMax} DC${u.carries?` · ⚙️×${u.carries}`:''}</div>
+      ${sysHTML}
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   事件處理
+   ========================================================= */
+let boundHandler=null;
+function bindGlobal(){
+  const app=$('#app');
+  if(boundHandler) app.removeEventListener('click',boundHandler);
+  boundHandler=(ev)=>{
+    const el=ev.target.closest('[data-act]');
+    if(el&&!el.disabled){
+      try{ handleAction(el.dataset.act,el.dataset); }
+      catch(e){ console.error(e); toast('⚠️ 操作錯誤：'+e.message); }
+    }
+  };
+  app.addEventListener('click',boundHandler);
+
+  const nb=$('#navbar');
+  if(!nb.dataset.bound){
+    nb.dataset.bound='1';
+    nb.addEventListener('click',ev=>{
+      const btn=ev.target.closest('[data-nav]');
+      if(!btn||btn.disabled) return;
+      sfxClick();
+      const a=btn.dataset.nav;
+      if(a==='help') showHelp();
+      else if(a==='save') saveGame();
+      else if(a==='load') loadGame();
+      else if(a==='history') showHistory();
+      else if(a==='sound'){ soundOn=!soundOn; renderNavbar(); toast(soundOn?'🔊 音效開啟':'🔇 音效關閉'); }
+    });
+  }
+}
+
+function handleAction(act,ds){
+  sfxClick();
+  const c=state.campaign;
+  switch(act){
+    case 'newGame': startNewGame(); break;
+    case 'loadGame': loadGame(); break;
+    case 'showHelp': showHelp(); break;
+    case 'restart': state=defaultState(); render(); break;
+
+    case 'doRecon': doRecon(); break;
+    case 'goRaid': state.campaign.step='raid'; render(); break;
+    case 'genEnemies': generateEnemies(); break;
+    case 'startBattle': startBattle(); break;
+    case 'startDefenseBattle': startBattle(); break;
+
+    case 'doFallout': doFallout(); break;
+    case 'nextRepair': beginRepair(); break;
+    case 'repairUnit': repairUnitDC(ds.uid); break;
+    case 'repairSys': repairUnitSys(ds.uid); break;
+    case 'buildMedBay': doExtendedBuild('medicalBay',10,'醫療艙'); break;
+    case 'improveRepairBay': doExtendedBuild('repairBay',10,'維修艙'); break;
+    case 'buildRecRoom': doExtendedBuild('recRoom',8,'娛樂室'); break;
+    case 'repairSalvage': doRepairSalvage(parseInt(ds.idx)); break;
+    case 'nextTrading': state.campaign.step='trading'; render(); break;
+
+    case 'tpReplaceInf': tpReplaceInfantry(); break;
+    case 'tpReplaceVeh': tpReplaceVehicle(); break;
+    case 'tpHireVeh': tpHireVeh(); break;
+    case 'tpHireMech': tpHireMech(); break;
+    case 'tpIntel': tpIntel(); break;
+    case 'tpOddJob': tpOddJob(); break;
+    case 'tpKaiju': tpKaijuMarket(); break;
+    case 'tpSellSalvage': tpSellSalvage(); break;
+    case 'tpBuySystem': tpBuySystem(); break;
+    case 'tpayEscape': tpayEscape(); break;
+    case 'nextDebts': state.campaign.step='debts'; render(); break;
+
+    case 'payDebt1': payDebt(1); break;
+    case 'payDebt3': payDebt(3); break;
+    case 'payDebtAll': payDebt(c.debt); break;
+    case 'payUpkeep': payUpkeep(); break;
+    case 'endRound': endRound(); break;
+
+    case 'battleMove': battleClickCell(parseInt(ds.x),parseInt(ds.y)); break;
+    case 'battleAttack': enterAttackMode(); break;
+    case 'battleAttackTarget': doPlayerAttack(ds.uid); break;
+    case 'battleScavenge': doScavenge(); break;
+    case 'battleOverheat': doOverheat(); break;
+    case 'battleForcedMarch': doForcedMarch(); break;
+    case 'battleEndTurn': endPlayerTurn(); break;
+    case 'battleNext': continueBattle(); break;
+    case 'battleRollInit': rollInitiative(); break;
+    case 'battleFinish': finishBattle(); break;
+
+    case 'closeModal': closeModal(); break;
+    case 'startTutorial': closeModal(); state.tutorialSeen=true; startCampaign(); break;
+  }
+}
+
+function doRepairSalvage(idx){
+  const c=state.campaign;
+  if(!consumeRepairAction()) return;
+  const s=c.salvagePool[idx];
+  if(!s){ toast('打撈品不存在'); return; }
+  const unit=c.units.find(u=>u.status==='ok');
+  if(!unit){ toast('沒有可執行檢定的單位'); return; }
+  let boons=unit.traits.includes('scrapper')?1:0;
+  const roll=rollDice(boons,0);
+  let total=roll.sum+unit.stats.QUL;
+  let result=total-13; if(result>=0&&roll.triple) result++;
+  if(result>=0){
+    c.extended.salvage+=1+result;
+    if(c.extended.salvage>=10){
+      c.salvagePool.splice(idx,1);
+      c.extended.salvage=0;
+      addHistory(`🔧 打撈完成一台敵方${SIZE_ZH[s.size]}${ARCHETYPES[s.kind].zh}。`);
+      toast('🔧 打撈完成！可在交易站出售。'); sfxOk();
+    } else {
+      toast(`打撈進度 ${c.extended.salvage}/10`); sfxOk();
+    }
+  } else {
+    toast('❌ 打撈檢定失敗'); sfxFail();
+  }
+  render();
+}
+
+/* =========================================================
+   新遊戲 / 戰役開始
+   ========================================================= */
+function startNewGame(){
+  state=defaultState();
+  if(!state.tutorialSeen){ showHelp(true); return; }
+  startCampaign();
+}
+
+function startCampaign(){
+  if(!state) state=defaultState();
+  state.screen='campaign';
+  state.campaign.step='recon';
+  const c=state.campaign;
+  c.units=newCrew();
+  c.round=1; c.uwa=0; c.debt=0;
+  c.creditor=pick(CREDITORS);
+  c.luck=rnd(3); c.goal=20;
+  c.history=[]; c.achievements=[];
+  c.localeName=''; c.localeSub=''; c.scrapTotal=0; c.reconDone=false; c.enemiesReady=false;
+  c.enemies=[]; c.battleResult=null; c.ooUnits=[];
+  c.tradingUsed=[]; c.salvagePool=[];
+  c.extended={medicalBay:0,repairBay:0,recRoom:0,salvage:0};
+  c.baseDone={medicalBay:false,repairBay:false,recRoom:false};
+  c.base={medicalBay:0,repairBay:0,recRoom:0};
+  c.missed={sustenance:false,ops:false,base:false};
+  c.debtMissStreak=0; c.intelBonus=false;
+  c.lastGrowthUid=null; c.paidThisRound=false;
+  c.defending=false; c.ended=false; c.victory=false;
+  addHistory('🚩 戰役開始。團隊在荒原中集結。');
+  addHistory(`💰 債主：${c.creditor}。起始運氣 ${c.luck} 點。`);
+  render();
+  setTimeout(()=>toast('💰 起始運氣：'+c.luck+' 點'),300);
+}
+
+function addHistory(txt){
+  state.campaign.history.push(txt);
+  if(state.campaign.history.length>200) state.campaign.history.shift();
+}
+
+/* =========================================================
+   彈窗與說明
+   ========================================================= */
+function showModal(html,cb){
+  const root=$('#modal-root');
+  root.innerHTML=`<div class="modal">${html}</div>`;
+  root.classList.add('on');
+  modalCallback=cb||null;
+}
+function closeModal(){
+  const root=$('#modal-root');
+  root.classList.remove('on');
+  root.innerHTML='';
+  const cb=modalCallback; modalCallback=null;
+  if(cb) try{cb();}catch(e){console.error(e);}
+}
+
+function showHelp(firstTime){
+  const html=`
+  <h2>📖 廢鐵獵犬 — 新手完全指南</h2>
+  <p class="small dim">這份說明是為「完全沒玩過」的你準備的。請跟著下面的順序讀一遍。</p>
+
+  <h4>🎯 一、遊戲目標</h4>
+  <p class="small">
+    你率領一支「廢鐵獵犬」團隊，在末日後的荒原上撿廢鐵、賺兆幣、還清債務。
+    當你的 <b class="amber">💰 兆幣</b> 累積到 <b class="amber">20 MC</b> 以上，
+    而且 <b class="red">📉 債務</b> 歸零時，你們就能買下離開這顆星球的船票——<b class="green">勝利</b>！<br>
+    如果團隊全滅，或債主找上門把你打垮，戰役就會失敗。
+  </p>
+
+  <h4>👀 二、看懂畫面</h4>
+  <ul class="small">
+    <li><b>頂部資源列</b>（畫面最上方那一排）：
+      <ul>
+        <li>🔄 <b>回合</b>：你現在打到第幾輪戰役。</li>
+        <li>💰 <b>兆幣</b>：你的通用財富帳戶（UWA），括號裡的數字就是錢。</li>
+        <li>📉 <b>債務</b>：欠債主的錢，必須還到 0 才能通關。</li>
+        <li>🍀 <b>運氣</b>：每輪會重置的點數，可花 1 點在任何 3D6 檢定上 +2。</li>
+        <li>🎯 <b>目標</b>：你要達成的兆幣數字。</li>
+      </ul>
+    </li>
+    <li><b>團隊名冊</b>（畫面中段的橫向卡片列）：每一張卡代表一個單位，
+      綠色橫條是它的 <b>DC（傷害容量）</b>。條越短表示傷得越重。</li>
+    <li><b>最近紀錄</b>：畫面最下方，顯示剛剛發生的事。</li>
+    <li><b>底部導航列</b>：說明、存檔、讀檔、紀錄、音效開關。</li>
+  </ul>
+
+  <h4>🎲 三、核心檢定：Rugged 3D6</h4>
+  <p class="small">
+    所有檢定都是 <b>3 顆六面骰 + 屬性</b>，要達到或超過 <b>目標值（TN）</b>。<br>
+    • 範例：機甲的 RATT 是 +3，你擲出 3D6 = 11，總值 14，對抗 DEF 14+ → <b class="green">成功</b>。<br>
+    • <b>成果值</b> = 總值 − 目標值。成果值越高，傷害或效果越好。<br>
+    • <b>三同號</b>：成功時額外 +1 成果值。失敗時沒有懲罰。<br>
+    • <b>增益（Boon）</b>：多擲 1 顆骰，取最高的三顆。<br>
+    • <b>減益（Bane）</b>：多擲 1 顆骰，取最低的三顆。<br>
+    • 增益與減益會一對一互相抵消。
+  </p>
+
+  <h4>🗺️ 四、操作步驟（一輪戰役的流程）</h4>
+  <ol class="small">
+    <li><b>地點偵察</b>：按「派出偵察單位」。系統擲 1D6 決定地點，再擲 1D6 決定子區域。
+      接著你的偵察單位做 13+ 素質檢定，成功 → 場上有 5 個廢鐵標記；失敗 → 只有 1D3+1 個。</li>
+    <li><b>廢鐵突襲</b>：按「生成敵軍」。系統依規則表產生敵軍領袖（2D6）與部下（1D3+2）。
+      偵察檢定成功可以「降級」敵人。然後按「進入戰場」。</li>
+    <li><b>戰鬥</b>：每輪先按「抽取先攻籌碼」，系統為每個單位分配 1~N 的編號，並可能給某個敵人
+      <b class="amber">X 因素</b>（該敵人本輪所有目標值 +1，且多一個動作）。
+      輪到你行動時：點擊<b class="green">綠色格子</b>移動，按「⚔️ 攻擊」再點擊<b class="red">紅色目標</b>，
+      或按「⚙️ 取廢鐵」撿走身邊的廢鐵標記。</li>
+    <li><b>戰後餘波</b>：出局的單位要進行 13+ 素質檢定決定命運（失敗但擲出對子 → 只是缺席一場）。
+      每個廢鐵標記價值 1D3+1 MC，最後替一個單位提升一項屬性。</li>
+    <li><b>恢復與維修</b>：每個存活單位提供 1 個動作（基地機械師再給你 1 個）。
+      修 DC、修系統，或投資基地設施（醫療艙／維修艙／娛樂室走延長檢定）。</li>
+    <li><b>交易站</b>：每個單位可以造訪一次。買新單位、收集情報、打零工、賣打撈品……</li>
+    <li><b>償還債務</b>：還錢 + 支付 3 MC 維護費（口糧／行動補給／基地補給）。然後按「結束本輪」。</li>
+  </ol>
+
+  <h4>⚡ 五、容易漏看的特殊機制</h4>
+  <ul class="small">
+    <li><b>X 因素</b>：先攻階段會多出一個 X 籌碼。若它落在敵人身上，該敵人本輪所有 TN +1 且多一個動作——
+      看到畫面右上角的 <b class="amber">X</b> 標記就要小心。</li>
+    <li><b>裝甲化</b>：機甲和某些單位受到傷害後會擲 D3 減傷（輕型 1 顆、中型 2 顆、重型 3 顆，取最高）。</li>
+    <li><b>系統損傷</b>：單次受到 5+ 傷害會隨機打掉一個系統方格；10+ 傷害則是兩個。</li>
+    <li><b>爆炸</b>：機甲／載具／怪獸被摧毀時擲 3D6，只要有一顆是 1 就爆炸，波及周圍單位。</li>
+    <li><b>集團突擊</b>：多打一時，每個攻擊者 MATT +1（最多 +3）。</li>
+    <li><b>衝鋒</b>：移動至少 3" 後攻擊，近戰 +1 MATT 與 +1 傷害。</li>
+    <li><b>脫離近戰</b>：除機甲外，移出近戰會遭對手自由攻擊。</li>
+    <li><b>運氣點</b>：每輪開始時擲 1D3 獲得。任何檢定擲骰前宣告花 1 點，該次 +2。</li>
+    <li><b>維護費</b>：如果付不出口糧，下場戰鬥第一次攻擊與防禦會受減益；付不出行動補給，先攻會多 2 個 X 因素。</li>
+    <li><b>債務違約</b>：連續兩輪沒還錢，債主會派回收小隊——下一輪變成保衛基地戰。</li>
+  </ul>
+
+  <h4>💡 六、新手小訣竅</h4>
+  <ul class="small">
+    <li>不要想殲滅敵人——你的目標是<b>搶廢鐵</b>。搶到就撤，比硬拚划算。</li>
+    <li>機甲是你最強的單位，但也最貴。讓步兵先去撿廢鐵，機甲負責掩護。</li>
+    <li>「收集情報」只要 1 MC，卻能讓下次偵察獲得增益——非常划算。</li>
+    <li>每輪一定要付清 3 MC 維護費，否則懲罰會滾雪球。</li>
+    <li>如果真的周轉不過來，優先還債（避免債主上門），維護費其次。</li>
+  </ul>
+
+  <div class="btnrow" style="margin-top:18px">
+    <button class="primary" data-act="${firstTime?'startTutorial':'closeModal'}" style="flex:1">
+      ${firstTime?'🚀 我準備好了，開始遊戲':'✅ 關閉說明'}
+    </button>
+  </div>`;
+  showModal(html);
+}
+
+function showHistory(){
+  if(!state||state.screen==='title'){ toast('尚未開始遊戲'); return; }
+  const c=state.campaign;
+  const achNames={victory:'🚀 離開這顆星球',defeat:'💀 團隊覆滅',round10:'⏳ 撐過十輪',debtFree:'💎 無債一身輕'};
+  const html=`
+    <h2>📜 歷史紀錄</h2>
+    <p class="small dim">你走過的路線。</p>
+    <div class="timeline" style="max-height:48vh;overflow-y:auto;margin-top:10px">
+      ${c.history.slice().reverse().map(h=>`<div class="tl-item">${h}</div>`).join('')||'<div class="dim2 small">尚無紀錄</div>'}
+    </div>
+    <h4>🏆 成就</h4>
+    <div class="small">
+      ${c.achievements.length?c.achievements.map(a=>`<span class="tag">${achNames[a]||a}</span>`).join(''):'<span class="dim2">尚未解鎖任何成就</span>'}
+    </div>
+    <div class="btnrow" style="margin-top:14px">
+      <button class="primary" data-act="closeModal" style="flex:1">關閉</button>
+    </div>`;
+  showModal(html);
+}
+
+/* =========================================================
+   啟動
+   ========================================================= */
+state=defaultState();
+render();
+</script>
+</body>
+</html>
