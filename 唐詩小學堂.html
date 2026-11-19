@@ -5,15 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>唐詩小學堂 🌸</title>
 <style>
+:root{--fs-base:1;}
+html[data-font="small"]{--fs-base:.9;}
+html[data-font="large"]{--fs-base:1.14;}
+html[data-font="xlarge"]{--fs-base:1.28;}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;}
 body{
   font-family:"jf open 粉圓","Yuanti TC","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
-  background:
-    radial-gradient(circle at 12% 8%, #fff2cc 0%, transparent 38%),
-    radial-gradient(circle at 88% 12%, #ffe0ef 0%, transparent 40%),
-    radial-gradient(circle at 50% 100%, #e2f2ff 0%, transparent 55%),
-    #fffaf3;
+  background:radial-gradient(circle at 12% 8%,#fff2cc 0,transparent 38%),
+             radial-gradient(circle at 88% 12%,#ffe0ef 0,transparent 40%),
+             radial-gradient(circle at 50% 100%,#e2f2ff 0,transparent 55%),#fffaf3;
   min-height:100vh;color:#5a4632;padding-bottom:40px;overflow-x:hidden;
 }
 /* 頂欄 */
@@ -34,16 +36,30 @@ body{
 /* 容器 */
 .view{max-width:780px;margin:0 auto;padding:0 0 20px;}
 /* 首頁 */
-.hero{text-align:center;padding:22px 20px 8px;}
+.hero{text-align:center;padding:20px 20px 6px;}
 .hero .hero-emoji{font-size:52px;line-height:1;animation:float 3s ease-in-out infinite;}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .hero h2{margin:10px 0 4px;font-size:24px;color:#e26a8d;letter-spacing:1px;}
 .hero p{margin:0;color:#a08b7a;font-size:14px;}
-.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px;padding:18px 16px;}
+/* 快捷卡片 */
+.quick-row{display:flex;gap:12px;padding:14px 16px 4px;}
+.quick-card{
+  flex:1;border:none;border-radius:22px;padding:14px 12px;cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;gap:10px;transition:.15s;
+}
+.quick-card:active{transform:translateY(3px);}
+.q-review{background:linear-gradient(135deg,#ffd86b,#ffb347);color:#8a5200;box-shadow:0 5px 0 #e09a2a;}
+.q-sticker{background:linear-gradient(135deg,#c6b7ff,#a18aff);color:#fff;box-shadow:0 5px 0 #7d63e0;}
+.q-icon{font-size:34px;line-height:1;flex:0 0 auto;}
+.q-text{flex:1;text-align:left;}
+.q-text b{display:block;font-size:17px;letter-spacing:1px;}
+.q-text small{display:block;font-size:11.5px;opacity:.82;margin-top:2px;letter-spacing:.5px;}
+/* 章節 */
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px;padding:14px 16px;}
 .chapter{
   border:none;cursor:pointer;text-align:center;background:#fff;border-radius:24px;padding:10px 10px 14px;
-  box-shadow:0 6px 0 rgba(232,190,210,.45), 0 12px 22px rgba(200,160,180,.15);
-  transition:transform .15s, box-shadow .15s;
+  box-shadow:0 6px 0 rgba(232,190,210,.45),0 12px 22px rgba(200,160,180,.15);
+  transition:transform .15s,box-shadow .15s;
   display:flex;flex-direction:column;align-items:center;gap:4px;font-family:inherit;position:relative;
 }
 .chapter:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(232,190,210,.45);}
@@ -59,9 +75,8 @@ body{
   font-size:10px;font-weight:800;border-radius:8px;padding:2px 6px;
 }
 .add-chapter{
-  border:3px dashed #ffd0e2 !important;
-  background:linear-gradient(135deg,#fffdfe,#fff5fa) !important;
-  box-shadow:none !important;justify-content:center;min-height:170px;
+  border:3px dashed #ffd0e2!important;background:linear-gradient(135deg,#fffdfe,#fff5fa)!important;
+  box-shadow:none!important;justify-content:center;min-height:170px;
 }
 .add-chapter:active{transform:translateY(4px);}
 .add-icon{font-size:44px;color:#ff9ec4;line-height:1;margin-bottom:6px;}
@@ -71,6 +86,15 @@ body{
   display:grid;place-items:center;min-height:86px;font-size:52px;
   background:linear-gradient(135deg,#fff6fb,#ffeaf3);
 }
+/* 家長入口 */
+.parent-link{
+  text-align:center;padding:22px 20px 8px;
+}
+.parent-link button{
+  background:none;border:none;color:#c9b8aa;font-family:inherit;
+  font-size:12.5px;letter-spacing:1px;cursor:pointer;padding:6px 12px;
+}
+.parent-link button:active{color:#a89684;}
 /* 詩頁 */
 .poem-view{animation:fadeIn .3s ease;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -87,7 +111,7 @@ body{
 .del-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #ffd6d6;}
 .poem-card{
   margin:14px 16px;border-radius:26px;overflow:hidden;background:#fff;
-  box-shadow:0 8px 0 rgba(232,190,210,.35), 0 14px 26px rgba(200,160,180,.16);
+  box-shadow:0 8px 0 rgba(232,190,210,.35),0 14px 26px rgba(200,160,180,.16);
   display:flex;align-items:center;
 }
 .poem-art{width:46%;line-height:0;flex:0 0 auto;}
@@ -108,15 +132,29 @@ body{
 .lines{display:flex;flex-direction:column;gap:12px;}
 .line{
   display:block;width:100%;border:3px solid #ffe6f0;background:#fff;border-radius:20px;
-  padding:14px 8px 16px;font-size:clamp(20px,5.6vw,30px);cursor:pointer;transition:.15s;
-  font-family:inherit;color:#4a3b2a;box-shadow:0 4px 0 rgba(255,190,215,.5);line-height:1.2;
+  padding:14px 8px 16px;font-size:calc(clamp(20px,5.6vw,30px)*var(--fs-base));
+  cursor:pointer;transition:.15s;font-family:inherit;color:#4a3b2a;
+  box-shadow:0 4px 0 rgba(255,190,215,.5);line-height:1.2;
 }
 .line.active{border-color:#ffb347;background:#fffbf0;box-shadow:0 4px 0 rgba(255,180,70,.55);}
 .line:active{transform:scale(.99);}
-ruby{ruby-position:over;padding:0 2px;transition:background .15s, transform .15s;border-radius:6px;}
+ruby{ruby-position:over;padding:0 2px;transition:background .15s,transform .15s;border-radius:6px;}
 ruby.lit{background:#ffe88a;transform:scale(1.12);}
 rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.05;font-family:inherit;}
 .punct{color:#c9b8aa;margin-left:1px;}
+.story-box{
+  background:linear-gradient(135deg,#fffbe6,#fff5d6);border:3px solid #ffe6a8;
+  border-radius:20px;padding:16px;margin-top:14px;
+  display:none;animation:fadeIn .3s ease;
+}
+.story-box.show{display:block;}
+.story-box p{margin:0 0 10px;font-size:calc(15.5px*var(--fs-base));line-height:1.85;color:#8a6a3a;letter-spacing:.5px;}
+.story-speaker{
+  display:inline-flex;align-items:center;gap:8px;border:none;background:#fff;
+  border-radius:14px;padding:10px 16px;font-size:14px;font-weight:800;color:#c98a00;
+  font-family:inherit;cursor:pointer;box-shadow:0 3px 0 #ffe6a8;transition:.15s;
+}
+.story-speaker:active{transform:translateY(2px);box-shadow:0 1px 0 #ffe6a8;}
 .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
 .btn{
   flex:1;min-width:130px;border:none;border-radius:20px;padding:16px 16px;
@@ -124,18 +162,15 @@ rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.
 }
 .btn.primary{background:linear-gradient(135deg,#7ed4ff,#4fa8f0);color:#fff;box-shadow:0 5px 0 #3d8fd0;}
 .btn.next{background:linear-gradient(135deg,#ffd86b,#ffb347);color:#8a5200;box-shadow:0 5px 0 #e09a2a;}
+.btn.ghost{background:#fff;color:#a08b7a;box-shadow:0 5px 0 #f0e2d8;border:2px solid #f4ead9;}
 .btn:active{transform:translateY(3px);box-shadow:none;}
-/* 填一填（聽音選字） */
+/* 填一填 */
 .game-title{text-align:center;font-size:17px;font-weight:800;color:#e26a8d;letter-spacing:1px;margin:4px 0 16px;}
-.big-speaker{
-  display:flex;align-items:center;justify-content:center;gap:14px;
-  margin:0 0 20px;
-}
+.big-speaker{display:flex;align-items:center;justify-content:center;gap:14px;margin:0 0 20px;}
 .speaker-btn{
   width:84px;height:84px;border-radius:50%;border:none;cursor:pointer;
-  background:linear-gradient(135deg,#7ed4ff,#4fa8f0);
-  color:#fff;font-size:38px;box-shadow:0 6px 0 #3d8fd0;
-  display:grid;place-items:center;transition:.15s;
+  background:linear-gradient(135deg,#7ed4ff,#4fa8f0);color:#fff;font-size:38px;
+  box-shadow:0 6px 0 #3d8fd0;display:grid;place-items:center;transition:.15s;
 }
 .speaker-btn:active{transform:translateY(4px);box-shadow:0 2px 0 #3d8fd0;}
 .speaker-btn.playing{animation:pulse 1s ease-in-out infinite;}
@@ -143,14 +178,13 @@ rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.
 .speaker-label{font-size:14px;color:#8a7a6a;font-weight:700;letter-spacing:1px;}
 .fill-line{
   background:#fff;border:3px dashed #ffd0e2;border-radius:22px;padding:20px 10px;text-align:center;
-  font-size:clamp(26px,7.5vw,40px);letter-spacing:6px;margin-bottom:22px;transition:.25s;
+  font-size:calc(clamp(26px,7.5vw,40px)*var(--fs-base));
+  letter-spacing:6px;margin-bottom:22px;transition:.25s;
 }
 .fill-line.solved{border-style:solid;border-color:#a8e6c4;background:#f2fff8;}
-.fill-line ruby{font-size:1em;}
 .blank{
-  display:inline-block;min-width:1em;color:#ff8fab;
-  border-bottom:5px solid #ff8fab;animation:blink .9s infinite;
-  padding:0 4px;
+  display:inline-block;min-width:1em;color:#ff8fab;border-bottom:5px solid #ff8fab;
+  animation:blink .9s infinite;padding:0 4px;
 }
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .fill-line.solved .blank{border-bottom-color:#4fc98b;color:#4fc98b;animation:none;}
@@ -159,10 +193,9 @@ rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.
   width:92px;height:92px;border-radius:26px;border:4px solid #ffe0ec;background:#fff;
   cursor:pointer;transition:.15s;font-family:inherit;
   box-shadow:0 6px 0 rgba(255,190,215,.55);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
-  padding:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
 }
-.opt-char{font-size:42px;font-weight:800;color:#5a4632;line-height:1;}
+.opt-char{font-size:calc(42px*var(--fs-base));font-weight:800;color:#5a4632;line-height:1;}
 .opt-zhuyin{font-size:14px;color:#ea85a4;font-weight:700;margin-top:3px;letter-spacing:1px;line-height:1;}
 .opt:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(255,190,215,.55);}
 .opt.correct{background:linear-gradient(135deg,#b6f5d4,#6fe0a8);border-color:#4fc98b;animation:pop .35s ease;}
@@ -180,7 +213,7 @@ rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.
 }
 .hint-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #ffe6a8;}
 .feedback{text-align:center;font-size:18px;font-weight:800;color:#4fc98b;min-height:34px;margin-top:16px;letter-spacing:1px;}
-/* 排排看（聽音找句） */
+/* 排排看 */
 .order-hint{
   background:linear-gradient(135deg,#fff8e6,#ffeec9);border-radius:20px;padding:16px;
   text-align:center;margin-bottom:18px;border:3px solid #ffe6a8;
@@ -201,7 +234,7 @@ rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.
 .slot .num{
   display:inline-flex;align-items:center;justify-content:center;
   width:38px;height:38px;border-radius:50%;background:#f0f0f0;
-  font-weight:800;font-size:16px;margin-right:12px;color:#a8a8a8;
+  font-weight:800;font-size:16px;margin-right:12px;color:#a8a8a8;flex:0 0 auto;
 }
 .slot.filled .num{background:#a8d4ff;color:#fff;}
 .pool{display:flex;flex-direction:column;gap:10px;}
@@ -219,7 +252,7 @@ rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.
 .chip:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(255,190,215,.5);}
 .chip.wrong{animation:shake .4s ease;background:#ffe8e8;border-color:#ffb3b3;}
 .chip.hint-glow{animation:glow 1s ease-in-out 2;}
-@keyframes glow{0%,100%{box-shadow:0 4px 0 rgba(255,190,215,.5)}50%{box-shadow:0 4px 0 #ffb347, 0 0 20px #ffb347;}}
+@keyframes glow{0%,100%{box-shadow:0 4px 0 rgba(255,190,215,.5)}50%{box-shadow:0 4px 0 #ffb347,0 0 20px #ffb347;}}
 /* 慶祝 */
 .celebrate{
   position:fixed;inset:0;z-index:100;background:rgba(60,40,60,.45);
@@ -235,7 +268,7 @@ rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.
 .celebration-box p{margin:0 0 20px;color:#a08b7a;font-size:15px;letter-spacing:1px;}
 .confetti{position:fixed;top:-20px;font-size:20px;z-index:99;animation:fall linear forwards;pointer-events:none;}
 @keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.2;}}
-/* 彈窗 */
+/* 彈窗通用 */
 .modal{
   position:fixed;inset:0;z-index:150;background:rgba(60,40,60,.5);
   backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;
@@ -267,7 +300,6 @@ rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.
   background:#fff8e6;border:2px solid #ffe6a8;border-radius:12px;padding:9px 12px;
   font-size:12.5px;color:#9a7a1a;margin-bottom:7px;line-height:1.7;
 }
-.preview-warn b{color:#c98a00;}
 .modal-actions{display:flex;gap:10px;margin-top:14px;}
 .m-btn{
   flex:1;border:none;border-radius:16px;padding:14px 10px;font-size:15px;font-weight:800;
@@ -275,11 +307,126 @@ rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.
 }
 .m-btn.primary{background:linear-gradient(135deg,#7ed4ff,#4fa8f0);color:#fff;box-shadow:0 4px 0 #3d8fd0;}
 .m-btn.ghost{background:#f4f0f2;color:#a08b7a;box-shadow:0 4px 0 #e6dfe3;}
+.m-btn.danger{background:linear-gradient(135deg,#ff8f8f,#ff6b6b);color:#fff;box-shadow:0 4px 0 #d95050;}
 .m-btn:active{transform:translateY(2px);box-shadow:none;}
+/* 複習視圖 */
+.review-overlay{
+  position:fixed;inset:0;z-index:180;background:#fffaf3;
+  overflow-y:auto;display:none;animation:fadeIn .3s ease;
+}
+.review-overlay.show{display:block;}
+.review-header{
+  position:sticky;top:0;z-index:5;background:rgba(255,255,255,.94);
+  backdrop-filter:blur(10px);padding:12px 16px;
+  display:flex;align-items:center;gap:12px;border-bottom:2px solid #ffe6f0;
+}
+.review-progress{flex:1;}
+.review-progress .bar{
+  height:10px;background:#f0e2d8;border-radius:5px;overflow:hidden;
+}
+.review-progress .bar-fill{
+  height:100%;background:linear-gradient(90deg,#ffd86b,#ffb347);
+  border-radius:5px;width:0;transition:width .35s ease;
+}
+.review-progress .bar-label{
+  font-size:12.5px;color:#a08b7a;font-weight:700;margin-top:5px;letter-spacing:.5px;
+}
+.review-body{max-width:600px;margin:0 auto;padding:20px 16px 40px;}
+.review-from{
+  text-align:center;font-size:13px;color:#a08b7a;letter-spacing:1px;margin-bottom:14px;
+}
+.review-from b{color:#e26a8d;}
+.review-summary{max-width:440px;margin:30px auto;padding:0 20px;text-align:center;}
+.review-summary .big-emoji{font-size:72px;line-height:1;animation:float 1.6s ease-in-out infinite;margin-bottom:10px;}
+.review-summary h3{margin:0 0 8px;font-size:24px;color:#e26a8d;letter-spacing:2px;}
+.review-summary p{margin:0 0 8px;font-size:15px;color:#8a7a6a;line-height:1.7;}
+.review-summary .stars-earned{font-size:32px;letter-spacing:4px;margin:12px 0 22px;}
+/* 貼紙冊 */
+.sticker-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));
+  gap:14px;padding:6px 0;
+}
+.sticker-card{
+  border-radius:20px;padding:14px 8px;text-align:center;
+  background:linear-gradient(135deg,#fff6fb,#ffeaf3);
+  border:3px solid #ffe0ec;transition:.2s;
+}
+.sticker-card.locked{
+  background:#f7f4f5;border-color:#e8e2e6;
+  filter:grayscale(1);opacity:.55;
+}
+.sticker-card .sticker-emoji{font-size:44px;line-height:1;margin-bottom:6px;}
+.sticker-card.locked .sticker-emoji{filter:blur(1px);}
+.sticker-card .sticker-title{
+  font-size:12.5px;font-weight:800;color:#5a4632;letter-spacing:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.sticker-card.locked .sticker-title{color:#b3a091;}
+.sticker-total{
+  text-align:center;font-size:14px;color:#a08b7a;margin-bottom:12px;letter-spacing:1px;
+}
+.sticker-total b{color:#e26a8d;font-size:18px;}
+/* 家長頁 */
+.parent-section{margin-bottom:20px;}
+.parent-section h4{
+  margin:0 0 10px;font-size:15px;color:#e26a8d;letter-spacing:1.5px;
+  display:flex;align-items:center;gap:6px;
+}
+.parent-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+}
+.stat-box{
+  background:#fff8f0;border-radius:16px;padding:12px 8px;text-align:center;
+  border:2px solid #ffe6cc;
+}
+.stat-box .num{font-size:26px;font-weight:900;color:#e26a8d;line-height:1.1;}
+.stat-box .lbl{font-size:11.5px;color:#a08b7a;margin-top:3px;letter-spacing:.5px;}
+.poem-status-list{display:flex;flex-direction:column;gap:8px;}
+.poem-status{
+  background:#f9f7ff;border-radius:14px;padding:10px 12px;
+  border:2px solid #e8e0ff;
+}
+.poem-status .row1{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.poem-status .title{flex:1;font-size:14px;font-weight:800;color:#5a4632;letter-spacing:1px;}
+.poem-status .level{font-size:12px;letter-spacing:1px;}
+.poem-status .row2{font-size:11.5px;color:#a08b7a;letter-spacing:.5px;}
+.wrong-chars{display:flex;flex-wrap:wrap;gap:6px;}
+.wrong-char{
+  background:#fff0f0;border:2px solid #ffd6d6;border-radius:12px;
+  padding:6px 10px;font-size:14px;color:#e06060;font-weight:800;
+  display:flex;align-items:center;gap:5px;
+}
+.wrong-char small{font-size:10.5px;color:#c9a0a0;font-weight:600;}
+.setting-row{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+}
+.setting-label{font-size:13.5px;color:#5a4632;font-weight:700;flex:0 0 60px;letter-spacing:.5px;}
+.seg{display:flex;flex:1;gap:5px;}
+.seg button{
+  flex:1;border:2px solid #ffe6f0;background:#fff;border-radius:12px;
+  padding:9px 4px;font-size:13px;font-weight:800;font-family:inherit;color:#a08b7a;
+  cursor:pointer;transition:.15s;letter-spacing:.5px;
+}
+.seg button.on{
+  background:linear-gradient(135deg,#ffd86b,#ffb347);color:#8a5200;
+  border-color:#e09a2a;box-shadow:0 3px 0 #e09a2a;
+}
+.data-btn-row{display:flex;flex-direction:column;gap:8px;}
+.data-btn{
+  border:none;border-radius:14px;padding:12px 16px;font-size:14px;font-weight:800;
+  font-family:inherit;cursor:pointer;transition:.15s;letter-spacing:.8px;
+  display:flex;align-items:center;gap:10px;text-align:left;
+}
+.data-btn .ic{font-size:20px;flex:0 0 auto;}
+.data-btn:active{transform:translateY(2px);}
+.data-btn.export{background:#f2f8ff;color:#3d8fd0;box-shadow:0 3px 0 #d0e6ff;}
+.data-btn.import{background:#f0fff5;color:#2e8a5f;box-shadow:0 3px 0 #c6e8d6;}
+.data-btn.danger{background:#fff0f0;color:#e06060;box-shadow:0 3px 0 #ffd6d6;}
+/* toast */
 .toast{
   position:fixed;left:50%;bottom:36px;transform:translate(-50%,20px);
   background:rgba(90,70,50,.94);color:#fff;padding:12px 22px;border-radius:20px;
-  font-size:14px;font-weight:700;letter-spacing:1px;z-index:200;
+  font-size:14px;font-weight:700;letter-spacing:1px;z-index:300;
   opacity:0;transition:.3s;pointer-events:none;white-space:pre-line;text-align:center;
   max-width:80vw;line-height:1.6;
 }
@@ -289,6 +436,9 @@ rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.
   .opt{width:80px;height:80px;}
   .opt-char{font-size:36px;}
   .opt-zhuyin{font-size:12px;}
+  .quick-card{padding:12px 10px;}
+  .q-icon{font-size:28px;}
+  .q-text b{font-size:15px;}
 }
 </style>
 </head>
@@ -302,6 +452,7 @@ rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.
 
 <main class="view" id="view"></main>
 
+<!-- 加入新詩 -->
 <div class="modal" id="addModal">
   <div class="modal-box">
     <h3>➕ 加入新唐詩</h3>
@@ -320,15 +471,96 @@ rt{font-size:.42em;color:#ea85a4;letter-spacing:0;font-weight:700;line-height:1.
       <button class="m-btn primary" id="addParse">✨ 解析預覽</button>
     </div>
     <div class="modal-actions" id="confirmRow" style="display:none;margin-top:10px;">
-      <button class="m-btn primary" id="addConfirm" style="flex:1;">✅ 確認加入題庫</button>
+      <button class="m-btn primary" id="addConfirm">✅ 確認加入題庫</button>
     </div>
   </div>
+</div>
+
+<!-- 貼紙冊 -->
+<div class="modal" id="stickerModal">
+  <div class="modal-box">
+    <h3>📖 我的貼紙冊</h3>
+    <p class="modal-tip">學完一首詩（三關全過）就能收集一張貼紙！</p>
+    <div class="sticker-total" id="stickerTotal"></div>
+    <div class="sticker-grid" id="stickerGrid"></div>
+    <div class="modal-actions">
+      <button class="m-btn ghost" id="stickerClose" style="flex:1;">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- 家長中心 -->
+<div class="modal" id="parentModal">
+  <div class="modal-box">
+    <h3>👨‍👩‍👧 家長中心</h3>
+    <p class="modal-tip">這裡的設定會自動保存</p>
+
+    <div class="parent-section">
+      <h4>📊 學習總覽</h4>
+      <div class="parent-stats" id="parentStats"></div>
+    </div>
+
+    <div class="parent-section">
+      <h4>📚 詩詞學習狀態</h4>
+      <div class="poem-status-list" id="poemStatusList"></div>
+    </div>
+
+    <div class="parent-section">
+      <h4>⚠️ 最常錯的字</h4>
+      <div class="wrong-chars" id="wrongChars"></div>
+    </div>
+
+    <div class="parent-section">
+      <h4>⚙️ 顯示設定</h4>
+      <div class="setting-row">
+        <div class="setting-label">字號</div>
+        <div class="seg" id="fontSeg">
+          <button data-v="small">小</button>
+          <button data-v="medium">中</button>
+          <button data-v="large">大</button>
+          <button data-v="xlarge">特大</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="parent-section">
+      <h4>💾 資料管理</h4>
+      <div class="data-btn-row">
+        <button class="data-btn export" id="exportBtn">
+          <span class="ic">📤</span>匯出自訂題庫（.json）
+        </button>
+        <button class="data-btn import" id="importBtn">
+          <span class="ic">📥</span>匯入題庫（合併現有）
+        </button>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none;">
+        <button class="data-btn danger" id="clearBtn">
+          <span class="ic">🗑️</span>清除所有資料（不可復原）
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="m-btn ghost" id="parentClose" style="flex:1;">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- 複習視圖 -->
+<div class="review-overlay" id="reviewOverlay">
+  <div class="review-header">
+    <button class="icon-btn" id="reviewClose" aria-label="結束複習" style="width:40px;height:40px;font-size:18px;">✕</button>
+    <div class="review-progress">
+      <div class="bar"><div class="bar-fill" id="reviewBar"></div></div>
+      <div class="bar-label" id="reviewLabel">準備開始…</div>
+    </div>
+  </div>
+  <div id="reviewContent"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3/dist/index.js"></script>
 <script>
 /* =========================================================
-   注音引擎
+   一、注音引擎
    ========================================================= */
 const SM={b:'ㄅ',p:'ㄆ',m:'ㄇ',f:'ㄈ',d:'ㄉ',t:'ㄊ',n:'ㄋ',l:'ㄌ',g:'ㄍ',k:'ㄎ',h:'ㄏ',j:'ㄐ',q:'ㄑ',x:'ㄒ',zh:'ㄓ',ch:'ㄔ',sh:'ㄕ',r:'ㄖ',z:'ㄗ',c:'ㄘ',s:'ㄙ'};
 const YM={a:'ㄚ',o:'ㄛ',e:'ㄜ',ai:'ㄞ',ei:'ㄟ',ao:'ㄠ',ou:'ㄡ',an:'ㄢ',en:'ㄣ',ang:'ㄤ',eng:'ㄥ',er:'ㄦ',i:'ㄧ',ia:'ㄧㄚ',ie:'ㄧㄝ',iao:'ㄧㄠ',iu:'ㄧㄡ',iou:'ㄧㄡ',ian:'ㄧㄢ',in:'ㄧㄣ',iang:'ㄧㄤ',ing:'ㄧㄥ',iong:'ㄩㄥ',u:'ㄨ',ua:'ㄨㄚ',uo:'ㄨㄛ',uai:'ㄨㄞ',ui:'ㄨㄟ',uei:'ㄨㄟ',uan:'ㄨㄢ',un:'ㄨㄣ',uen:'ㄨㄣ',uang:'ㄨㄤ',ueng:'ㄨㄥ',ong:'ㄨㄥ',v:'ㄩ',ve:'ㄩㄝ',van:'ㄩㄢ',vn:'ㄩㄣ'};
@@ -368,7 +600,7 @@ function zhuyinOf(text,warnSet,title){
 }
 
 /* =========================================================
-   文字解析
+   二、文字 → 詩 解析器
    ========================================================= */
 const hasPunct=s=>/[，。！？、；：,.!?;:]/.test(s);
 function parseBlock(lines){
@@ -435,20 +667,20 @@ function parsePoemsText(raw){
       id:'custom_'+stamp+'_'+(bi+1),
       title:title||('未命名'+(bi+1)),
       author:author||'',
-      art:'📜',
-      custom:true,
-      lines:poemLines
+      art:'📜',sticker:'📜',story:'',
+      custom:true,lines:poemLines
     });
   });
   return {poems,warns};
 }
 
 /* =========================================================
-   內建詩（5 首，保留注音）
+   三、內建詩（含貼紙 + 白話故事）
    ========================================================= */
 const BUILTIN_POEMS=[
   {
-    id:'jys',title:'靜夜思',author:'李白',
+    id:'jys',title:'靜夜思',author:'李白',sticker:'🌙',
+    story:'李白晚上睡不著，看到床前的月光，還以為地上結了霜。他抬起頭看著天上的月亮，低下頭就想起了遠方的家鄉。',
     svg:`<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="120" fill="#1d2a63"/><circle cx="155" cy="28" r="19" fill="#ffe98a"/><g fill="#fff" opacity=".85"><circle cx="25" cy="16" r="1.5"/><circle cx="62" cy="30" r="1.2"/><circle cx="100" cy="13" r="1.4"/><circle cx="132" cy="40" r="1"/><circle cx="186" cy="16" r="1.3"/></g><rect x="20" y="45" width="80" height="55" rx="4" fill="#2c3a7d" stroke="#8fa2e0" stroke-width="3"/><path d="M60 45 V100 M20 72 H100" stroke="#8fa2e0" stroke-width="2.5"/><path d="M100 55 L188 120 L48 120 Z" fill="#ffe98a" opacity=".16"/><rect x="0" y="102" width="200" height="18" fill="#8fa2e0" opacity=".22"/></svg>`,
     lines:[
       {t:'床前明月光',z:'ㄔㄨㄤˊ ㄑㄧㄢˊ ㄇㄧㄥˊ ㄩㄝˋ ㄍㄨㄤ',p:'，'},
@@ -458,7 +690,8 @@ const BUILTIN_POEMS=[
     ]
   },
   {
-    id:'cx',title:'春曉',author:'孟浩然',
+    id:'cx',title:'春曉',author:'孟浩然',sticker:'🌸',
+    story:'春天睡得好香，不知不覺天就亮了。醒來聽到處處都有鳥兒在叫。想起昨晚有風有雨，不知道有多少花被打落了呢？',
     svg:`<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="120" fill="#cfeaff"/><circle cx="162" cy="26" r="15" fill="#ffd54a"/><ellipse cx="45" cy="130" rx="95" ry="48" fill="#a8e6a3"/><ellipse cx="165" cy="135" rx="95" ry="43" fill="#8fdd8a"/><rect x="55" y="62" width="9" height="36" rx="3" fill="#8b6b4a"/><circle cx="59" cy="52" r="23" fill="#7ed957"/><circle cx="38" cy="62" r="15" fill="#93e86c"/><circle cx="80" cy="62" r="15" fill="#93e86c"/><g fill="#ffb3d1"><circle cx="28" cy="88" r="3.2"/><circle cx="110" cy="78" r="3"/><circle cx="142" cy="98" r="3.2"/><circle cx="90" cy="104" r="3"/><circle cx="170" cy="88" r="2.6"/></g><path d="M118 44 q6 -7 12 0" fill="none" stroke="#6b6b6b" stroke-width="2.4" stroke-linecap="round"/><path d="M136 33 q5 -6 10 0" fill="none" stroke="#6b6b6b" stroke-width="2.4" stroke-linecap="round"/></svg>`,
     lines:[
       {t:'春眠不覺曉',z:'ㄔㄨㄣ ㄇㄧㄢˊ ㄅㄨˋ ㄐㄩㄝˊ ㄒㄧㄠˇ',p:'，'},
@@ -468,7 +701,8 @@ const BUILTIN_POEMS=[
     ]
   },
   {
-    id:'dgql',title:'登鸛雀樓',author:'王之渙',
+    id:'dgql',title:'登鸛雀樓',author:'王之渙',sticker:'🏯',
+    story:'太陽慢慢地落到山後面去了，黃河的水嘩啦啦地流向大海。想要看得更遠，就要再爬上一層樓。',
     svg:`<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="120" fill="#ffd9a0"/><circle cx="42" cy="74" r="17" fill="#ff7e4d"/><path d="M0 100 L42 56 L84 100 Z" fill="#9aa6b8"/><path d="M52 100 L104 62 L156 100 Z" fill="#7d8ba1"/><path d="M124 100 L172 68 L200 100 Z" fill="#68789a"/><rect x="0" y="98" width="200" height="22" fill="#6fb3d9"/><rect x="150" y="62" width="30" height="38" fill="#c98a5a"/><path d="M142 64 L188 64 L180 52 L150 52 Z" fill="#a85c3c"/><path d="M147 52 L183 52 L176 42 L154 42 Z" fill="#a85c3c"/></svg>`,
     lines:[
       {t:'白日依山盡',z:'ㄅㄞˊ ㄖˋ ㄧ ㄕㄢ ㄐㄧㄣˋ',p:'，'},
@@ -478,7 +712,8 @@ const BUILTIN_POEMS=[
     ]
   },
   {
-    id:'mn',title:'憫農',author:'李紳',
+    id:'mn',title:'憫農',author:'李紳',sticker:'🌾',
+    story:'農夫中午在田裡鋤草，太陽好大，汗水一滴一滴掉在泥土裡。我們吃的每一粒米，都是農夫辛苦種出來的啊！',
     svg:`<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="120" fill="#fff0c9"/><circle cx="40" cy="28" r="16" fill="#ffb84d"/><path d="M0 88 q100 -11 200 0 v32 h-200z" fill="#c49a6c"/><g stroke="#7fbf4d" stroke-width="3" stroke-linecap="round" fill="none"><path d="M30 90 q0 -18 6 -27"/><path d="M62 90 q0 -20 -5 -29"/><path d="M138 90 q0 -18 6 -27"/><path d="M170 90 q0 -20 -5 -29"/></g><g fill="#e8c34a"><ellipse cx="37" cy="60" rx="4" ry="7" transform="rotate(22 37 60)"/><ellipse cx="56" cy="58" rx="4" ry="7" transform="rotate(-22 56 58)"/><ellipse cx="145" cy="60" rx="4" ry="7" transform="rotate(22 145 60)"/><ellipse cx="164" cy="58" rx="4" ry="7" transform="rotate(-22 164 58)"/></g></svg>`,
     lines:[
       {t:'鋤禾日當午',z:'ㄔㄨˊ ㄏㄜˊ ㄖˋ ㄉㄤ ㄨˇ',p:'，'},
@@ -488,7 +723,8 @@ const BUILTIN_POEMS=[
     ]
   },
   {
-    id:'ye',title:'詠鵝',author:'駱賓王',
+    id:'ye',title:'詠鵝',author:'駱賓王',sticker:'🦢',
+    story:'鵝啊鵝啊鵝，彎著脖子對著天空唱歌。白色的羽毛浮在綠綠的水面上，紅紅的腳掌撥動清清的水波。',
     svg:`<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="120" fill="#d6f0ff"/><circle cx="30" cy="22" r="12" fill="#ffe066"/><ellipse cx="100" cy="128" rx="125" ry="46" fill="#8fd3f4"/><ellipse cx="95" cy="86" rx="30" ry="18" fill="#fff"/><path d="M119 78 q11 -26 4 -36" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="123" cy="41" r="9.5" fill="#fff"/><path d="M131 41 l13 4.5 l-13 4.5z" fill="#ff9f43"/><circle cx="126" cy="39" r="1.9" fill="#3a3a3a"/><path d="M80 100 l-6 9 h13z" fill="#ff6b6b"/><path d="M100 100 l-6 9 h13z" fill="#ff6b6b"/></svg>`,
     lines:[
       {t:'鵝鵝鵝',z:'ㄜˊ ㄜˊ ㄜˊ',p:'，'},
@@ -500,46 +736,112 @@ const BUILTIN_POEMS=[
 ];
 
 /* =========================================================
-   自訂詩 + 進度
+   四、持久化（自訂詩 + 進度 + 錯字 + 設定）
    ========================================================= */
-const LS_KEY='ts_custom_poems';
+const LS_CUSTOM='ts_custom_poems';
+const LS_PROGRESS='ts_progress';
+const LS_SETTINGS='ts_settings';
+
 function loadCustomPoems(){
   try{
-    const raw=localStorage.getItem(LS_KEY);
+    const raw=localStorage.getItem(LS_CUSTOM);
     if(!raw) return [];
     const arr=JSON.parse(raw);
     if(!Array.isArray(arr)) return [];
     return arr.filter(p=>p&&typeof p==='object'&&p.id&&p.title&&Array.isArray(p.lines)&&p.lines.length)
-      .map(p=>({id:p.id,title:p.title,author:p.author||'',art:p.art||'📜',custom:true,lines:p.lines.map(ln=>({t:ln.t||'',z:ln.z||'',p:ln.p||''}))}));
+      .map(p=>({
+        id:p.id,title:p.title,author:p.author||'',
+        art:p.art||'📜',sticker:p.sticker||'📜',story:p.story||'',
+        custom:true,
+        lines:p.lines.map(ln=>({t:ln.t||'',z:ln.z||'',p:ln.p||''}))
+      }));
   }catch(e){return [];}
 }
-function saveCustomPoems(){try{localStorage.setItem(LS_KEY,JSON.stringify(customPoems));}catch(e){}}
+function saveCustomPoems(){
+  try{localStorage.setItem(LS_CUSTOM,JSON.stringify(customPoems));}catch(e){}
+}
+
+function loadProgress(){
+  try{
+    const raw=localStorage.getItem(LS_PROGRESS);
+    const obj=raw?JSON.parse(raw):{};
+    return (obj&&typeof obj==='object')?obj:{};
+  }catch(e){return {};}
+}
+function saveProgress(){
+  try{localStorage.setItem(LS_PROGRESS,JSON.stringify(progress));}catch(e){}
+}
+
+function loadSettings(){
+  try{
+    const raw=localStorage.getItem(LS_SETTINGS);
+    const obj=raw?JSON.parse(raw):{};
+    return Object.assign({font:'medium'},obj||{});
+  }catch(e){return {font:'medium'};}
+}
+function saveSettings(){
+  try{localStorage.setItem(LS_SETTINGS,JSON.stringify(settings));}catch(e){}
+}
+
 let customPoems=loadCustomPoems();
+let progress=loadProgress();
+let settings=loadSettings();
 let POEMS=[];
 function rebuildPoems(){POEMS=BUILTIN_POEMS.concat(customPoems);}
 rebuildPoems();
 
-let progress={};
-try{progress=JSON.parse(localStorage.getItem('ts_progress')||'{}');}catch(e){progress={};}
-function saveProgress(){try{localStorage.setItem('ts_progress',JSON.stringify(progress));}catch(e){}}
-function getProg(id){return progress[id]||{};}
-function markDone(id,key){progress[id]=Object.assign({},getProg(id),{[key]:true});saveProgress();}
-
-function artHTML(p){
-  const raw=String(p.svg||p.art||'').trim();
-  if(raw.startsWith('<svg')) return raw;
-  if(/^(https?:|data:)/.test(raw)) return `<img src="${raw}" alt="" style="width:100%;display:block">`;
-  if(raw) return `<div class="art-emoji">${raw}</div>`;
-  return `<div class="art-emoji">📜</div>`;
+/* 進度 API */
+function getProg(id){
+  const p=progress[id];
+  if(!p||typeof p!=='object') return {learn:false,fill:false,order:false,wrongChars:{}};
+  return p;
+}
+function setProg(id,patch){
+  progress[id]=Object.assign({},getProg(id),patch);
+  saveProgress();
+}
+function markDone(id,key){
+  const p=getProg(id);
+  p[key]=true;
+  // 三關全過 → 記錄掌握時間、初始化複習
+  if(p.learn&&p.fill&&p.order&&!p.masteredAt){
+    p.masteredAt=Date.now();
+    p.reviewLevel=0;
+    p.nextReview=Date.now()+1*24*3600*1000; // 1 天後
+  }
+  progress[id]=p;
+  saveProgress();
+}
+function addWrongChar(ch){
+  if(!ch) return;
+  const w=progress.__wrongChars__||{};
+  w[ch]=(w[ch]||0)+1;
+  progress.__wrongChars__=w;
+  saveProgress();
+}
+function addRightChar(ch){
+  if(!ch) return;
+  const w=progress.__wrongChars__||{};
+  if(w[ch]&&w[ch]>0){
+    w[ch]=w[ch]-1;
+    if(w[ch]<=0) delete w[ch];
+    progress.__wrongChars__=w;
+    saveProgress();
+  }
+}
+function getWrongChars(){
+  const w=progress.__wrongChars__||{};
+  return Object.entries(w).sort((a,b)=>b[1]-a[1]);
 }
 
 /* =========================================================
-   狀態
+   五、狀態
    ========================================================= */
 const state={
   step:'learn',poemIndex:0,
   fillQueue:null,fillIdx:0,fill:null,
-  order:null,reading:false,soundOn:true
+  order:null,reading:false,soundOn:true,
+  review:null
 };
 const view=document.getElementById('view');
 const topTitle=document.getElementById('topTitle');
@@ -551,6 +853,13 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const lineText=ln=>ln.t;
 const linePlain=ln=>ln.t+(ln.p||'');
 
+/* 套用字號 */
+function applyFont(){
+  document.documentElement.setAttribute('data-font',settings.font||'medium');
+}
+applyFont();
+
+/* toast */
 let toastTimer=null;
 function toast(msg){
   let el=document.querySelector('.toast');
@@ -562,7 +871,7 @@ function toast(msg){
 }
 
 /* =========================================================
-   語音
+   六、語音
    ========================================================= */
 function pickVoice(){
   if(!('speechSynthesis' in window)) return null;
@@ -599,8 +908,15 @@ soundBtn.addEventListener('click',()=>{
 });
 
 /* =========================================================
-   注音 HTML（可逐字點擊）
+   七、輔助
    ========================================================= */
+function artHTML(p){
+  const raw=String(p.svg||p.art||'').trim();
+  if(raw.startsWith('<svg')) return raw;
+  if(/^(https?:|data:)/.test(raw)) return `<img src="${raw}" alt="" style="width:100%;display:block">`;
+  if(raw) return `<div class="art-emoji">${raw}</div>`;
+  return `<div class="art-emoji">📜</div>`;
+}
 function rubyHTML(ln,blankIdx=-1,reveal=null,clickable=false){
   const chars=ln.t.split('');
   const zs=ln.z.split(' ');
@@ -613,14 +929,20 @@ function rubyHTML(ln,blankIdx=-1,reveal=null,clickable=false){
   if(ln.p) html+=`<span class="punct">${ln.p}</span>`;
   return html;
 }
+function isPoemMastered(id){
+  const p=getProg(id);
+  return !!(p.learn&&p.fill&&p.order);
+}
 
 /* =========================================================
-   首頁
+   八、首頁
    ========================================================= */
 function renderHome(){
   topTitle.textContent='唐詩小學堂';
   homeBtn.style.visibility='hidden';
   if('speechSynthesis' in window) speechSynthesis.cancel();
+
+  const masteredCount=POEMS.filter(p=>isPoemMastered(p.id)).length;
 
   view.innerHTML=`
     <div class="hero">
@@ -628,15 +950,34 @@ function renderHome(){
       <h2>一起來讀唐詩吧！</h2>
       <p>點一點 · 聽一聽 · 玩一玩</p>
     </div>
+
+    <div class="quick-row">
+      <button class="quick-card q-review" id="reviewBtn">
+        <span class="q-icon">🎯</span>
+        <span class="q-text">
+          <b>複習練習</b>
+          <small>從學過的诗裡抽 5 題</small>
+        </span>
+      </button>
+      <button class="quick-card q-sticker" id="stickerBtn">
+        <span class="q-icon">📖</span>
+        <span class="q-text">
+          <b>我的貼紙冊</b>
+          <small>已收集 ${masteredCount} / ${POEMS.length} 張</small>
+        </span>
+      </button>
+    </div>
+
     <div class="chapters">
       ${POEMS.map((p,i)=>{
         const pr=getProg(p.id);
         const done=[pr.learn,pr.fill,pr.order].filter(Boolean).length;
+        const mastered=done===3;
         return `
           <button class="chapter ${p.custom?'custom':''}" data-i="${i}">
             ${p.custom?'<span class="ch-badge">自訂</span>':''}
             <div class="ch-art">${artHTML(p)}</div>
-            <div class="ch-num">第 ${i+1} 章</div>
+            <div class="ch-num">第 ${i+1} 章 ${mastered?'· 已掌握 🎉':''}</div>
             <div class="ch-title">${p.title}</div>
             <div class="ch-author">${p.author||'　'}</div>
             <div class="ch-stars">${'⭐'.repeat(done)}${'☆'.repeat(3-done)}</div>
@@ -648,15 +989,23 @@ function renderHome(){
         <div class="ch-author">貼上詩詞自動生成</div>
       </button>
     </div>
+
+    <div class="parent-link">
+      <button id="parentBtn">👨‍👩‍👧 家長中心</button>
+    </div>
   `;
+
   view.querySelectorAll('.chapter[data-i]').forEach(btn=>{
     btn.addEventListener('click',()=>openPoem(+btn.dataset.i));
   });
   document.getElementById('addPoemBtn').addEventListener('click',openAddModal);
+  document.getElementById('reviewBtn').addEventListener('click',startReview);
+  document.getElementById('stickerBtn').addEventListener('click',openStickerModal);
+  document.getElementById('parentBtn').addEventListener('click',openParentModal);
 }
 
 /* =========================================================
-   詩頁
+   九、詩頁
    ========================================================= */
 function openPoem(i){
   state.poemIndex=i;state.step='learn';
@@ -728,10 +1077,11 @@ function renderStage(){
 }
 
 /* =========================================================
-   關卡一：讀一讀（點字發音 + 卡拉OK）
+   十、讀一讀（含故事）
    ========================================================= */
 function renderLearn(stage){
   const p=POEMS[state.poemIndex];
+  const hasStory=!!p.story;
   stage.innerHTML=`
     <div class="game-title">✦ 點句子聽整句，點字聽單字 ✦</div>
     <div class="lines">
@@ -739,23 +1089,42 @@ function renderLearn(stage){
         <button class="line" data-i="${i}">${rubyHTML(ln,-1,null,true)}</button>
       `).join('')}
     </div>
+    ${hasStory?`
+      <div class="story-box" id="storyBox">
+        <p>💡 ${p.story}</p>
+        <button class="story-speaker" id="storySpeak">🔊 聽故事</button>
+      </div>
+    `:''}
     <div class="actions">
+      ${hasStory?`<button class="btn ghost" id="storyToggle">💡 詩在說什麼</button>`:''}
       <button class="btn primary" id="readAll">🔊 朗讀全詩</button>
-      <button class="btn next" id="nextBtn">下一關 →</button>
+    </div>
+    <div class="actions">
+      <button class="btn next" id="nextBtn" style="flex:1;">下一關 →</button>
     </div>
   `;
 
+  if(hasStory){
+    stage.querySelector('#storyToggle').addEventListener('click',()=>{
+      const box=stage.querySelector('#storyBox');
+      box.classList.toggle('show');
+      if(box.classList.contains('show')){
+        speakAsync(p.story,{rate:0.75,pitch:1.45});
+      }
+    });
+    stage.querySelector('#storySpeak').addEventListener('click',()=>{
+      speakAsync(p.story,{rate:0.75,pitch:1.45});
+    });
+  }
+
   stage.querySelectorAll('.line').forEach(lineEl=>{
-    // 點整句 → 整句朗讀 + 逐字高亮
     lineEl.addEventListener('click',async e=>{
       const ruby=e.target.closest('ruby');
       if(ruby){
-        // 點到單字 → 只讀該字
         const ch=ruby.dataset.ch;
         const zy=ruby.dataset.zy;
         ruby.classList.add('lit');
         await speakAsync(ch,{rate:0.75,pitch:1.5});
-        // 順便念注音
         if(zy) await speakAsync(zy,{rate:0.7,pitch:1.4});
         setTimeout(()=>ruby.classList.remove('lit'),300);
         return;
@@ -798,10 +1167,10 @@ async function readWhole(stage){
     if(state.step!=='learn') break;
     highlightLine(stage,i);
     const lineEl=stage.querySelector(`.line[data-i="${i}"]`);
+    if(!lineEl) break;
     const rubies=[...lineEl.querySelectorAll('ruby')];
     rubies.forEach(r=>r.classList.remove('lit'));
     await speakAsync(lineText(p.lines[i]),{rate:0.7,pitch:1.45});
-    // 輕量高亮（不等待逐字）
     for(const r of rubies){r.classList.add('lit');await sleep(90);}
     await sleep(700);
     rubies.forEach(r=>r.classList.remove('lit'));
@@ -812,7 +1181,7 @@ async function readWhole(stage){
 }
 
 /* =========================================================
-   關卡二：填一填（聽音選字）
+   十一、填一填
    ========================================================= */
 function newFillRound(li){
   const p=POEMS[state.poemIndex];
@@ -844,7 +1213,7 @@ function renderFill(stage){
   stage.innerHTML=`
     <div class="game-title">✦ 聽一聽，少了哪一個字？ ✦</div>
     <div class="big-speaker">
-      <button class="speaker-btn" id="playLine" aria-label="播放整句">🔊</button>
+      <button class="speaker-btn" id="playLine">🔊</button>
       <div class="speaker-label">點我聽整句</div>
     </div>
     <div class="fill-line" id="fillLine">${rubyHTML(ln,f.ci)}</div>
@@ -868,15 +1237,14 @@ function renderFill(stage){
     btn.classList.remove('playing');
   });
 
-  // 點選項先念出來
   stage.querySelectorAll('.opt').forEach(btn=>{
     btn.addEventListener('click',async()=>{
       const c=btn.dataset.c;
       await speakAsync(c,{rate:0.72,pitch:1.5});
-      if(c===f.answer&&!f.solved){
-        onPickCorrect(btn,stage);
-      } else if(!f.solved){
+      if(c===f.answer&&!f.solved) onPickCorrect(btn,stage);
+      else if(!f.solved){
         btn.classList.add('wrong');
+        addWrongChar(c);
         setTimeout(()=>btn.classList.remove('wrong'),500);
         speakAsync('再聽一次喔',{rate:0.85,pitch:1.4});
       }
@@ -888,7 +1256,6 @@ function renderFill(stage){
     await speakAsync(`這個字念 ${f.answerZ}`,{rate:0.7,pitch:1.45});
   });
 
-  // 進到這題時自動播放一次整句
   setTimeout(()=>{
     if(state.step==='fill'&&state.fill===f&&!f.played){
       f.played=true;
@@ -904,11 +1271,12 @@ async function onPickCorrect(btn,stage){
   f.solved=true;
   btn.classList.add('correct');
   stage.querySelectorAll('.opt').forEach(b=>b.disabled=true);
-  stage.querySelector('#hintBtn').style.display='none';
+  const hint=stage.querySelector('#hintBtn'); if(hint) hint.style.display='none';
 
   const fl=stage.querySelector('#fillLine');
   fl.innerHTML=rubyHTML(p.lines[f.li],f.ci,f.answer);
   fl.classList.add('solved');
+  addRightChar(f.answer);
 
   stage.querySelector('#fb').textContent='🎉 答對了！你好棒！';
   await speakAsync(lineText(p.lines[f.li]),{rate:0.7,pitch:1.45});
@@ -917,7 +1285,7 @@ async function onPickCorrect(btn,stage){
 }
 
 /* =========================================================
-   關卡三：排排看（聽音找句）
+   十二、排排看
    ========================================================= */
 function renderOrder(stage){
   const p=POEMS[state.poemIndex];
@@ -961,7 +1329,6 @@ function drawOrder(stage,p,o){
 
   if(finished) return;
 
-  // 自動播一次目標句
   setTimeout(()=>{
     if(state.step==='order'&&state.order===o&&!o.placed.includes(nextIdx)){
       speakAsync(lineText(targetLine),{rate:0.68,pitch:1.45});
@@ -979,7 +1346,6 @@ function drawOrder(stage,p,o){
     btn.addEventListener('click',async()=>{
       const li=+btn.dataset.li;
       const curIdx=o.placed.length;
-      // 先念這張卡片
       await speakAsync(lineText(p.lines[li]),{rate:0.68,pitch:1.45});
       if(li===curIdx){
         o.placed.push(li);
@@ -995,7 +1361,6 @@ function drawOrder(stage,p,o){
         btn.classList.add('wrong');
         setTimeout(()=>btn.classList.remove('wrong'),500);
         await speakAsync('再聽一次喔',{rate:0.85,pitch:1.4});
-        // 連錯兩次 → 提示正確卡片
         if(o.wrongCount>=2){
           o.wrongCount=0;
           const targetChip=stage.querySelector(`.chip[data-li="${curIdx}"]`);
@@ -1004,7 +1369,6 @@ function drawOrder(stage,p,o){
             setTimeout(()=>targetChip.classList.remove('hint-glow'),2200);
           }
         }
-        // 重播目標句
         speakAsync(lineText(p.lines[curIdx]),{rate:0.68,pitch:1.45});
       }
     });
@@ -1012,7 +1376,7 @@ function drawOrder(stage,p,o){
 }
 
 /* =========================================================
-   慶祝
+   十三、慶祝
    ========================================================= */
 function launchConfetti(){
   const emojis=['🌸','⭐','🎉','💖','✨','🌟','🍡','🎈'];
@@ -1037,6 +1401,7 @@ function showCelebration(p){
       <div class="big">🎉</div>
       <h3>太棒了！</h3>
       <p>你學會了《${p.title}》</p>
+      <p style="font-size:34px;letter-spacing:4px;color:#ffb347;margin:-8px 0 16px;">${p.sticker||'📜'}</p>
       <button class="btn primary" id="backHome">回到目錄 🏠</button>
     </div>
   `;
@@ -1049,7 +1414,485 @@ function showCelebration(p){
 }
 
 /* =========================================================
-   加詩彈窗
+   十四、複習
+   ========================================================= */
+const reviewOverlay=document.getElementById('reviewOverlay');
+const reviewContent=document.getElementById('reviewContent');
+const reviewBar=document.getElementById('reviewBar');
+const reviewLabel=document.getElementById('reviewLabel');
+const reviewClose=document.getElementById('reviewClose');
+
+reviewClose.addEventListener('click',()=>{
+  if(state.review&&state.review.qIdx>0&&state.review.qIdx<state.review.questions.length){
+    if(!confirm('要結束這次複習嗎？')) return;
+  }
+  closeReview();
+});
+
+function closeReview(){
+  reviewOverlay.classList.remove('show');
+  state.review=null;
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+  renderHome();
+}
+
+function buildReviewQuestions(maxQty=5){
+  const now=Date.now();
+  // 優先抽有錯字的詩
+  const wrongChars=progress.__wrongChars__||{};
+  const candidates=[];
+  for(const p of POEMS){
+    const pr=getProg(p.id);
+    if(!(pr.learn&&pr.fill&&pr.order)) continue;
+    // 計算加權
+    let weight=1;
+    // 到期的詩優先
+    if(!pr.nextReview||pr.nextReview<=now) weight+=3;
+    // 錯誤字多優先
+    for(const ln of p.lines){
+      for(const ch of ln.t){
+        if(wrongChars[ch]) weight+=wrongChars[ch];
+      }
+    }
+    candidates.push({poem:p,weight});
+  }
+  if(!candidates.length) return [];
+
+  // 加權洗牌
+  const expanded=[];
+  for(const c of candidates){
+    for(let i=0;i<c.weight;i++) expanded.push(c.poem);
+  }
+  const pickedPoems=[];
+  const seen=new Set();
+  for(const p of shuffle(expanded.slice())){
+    if(seen.has(p.id)) continue;
+    seen.add(p.id);
+    pickedPoems.push(p);
+    if(pickedPoems.length>=3) break;
+  }
+
+  const questions=[];
+  for(const p of pickedPoems){
+    if(questions.length>=maxQty) break;
+    const need=Math.min(2,maxQty-questions.length);
+    const usedLineIdx=new Set();
+    let added=0;
+    let tries=0;
+    while(added<need&&tries<10){
+      tries++;
+      const li=Math.floor(Math.random()*p.lines.length);
+      if(usedLineIdx.has(li)) continue;
+      usedLineIdx.add(li);
+      const ln=p.lines[li];
+      const ci=Math.floor(Math.random()*ln.t.length);
+      const answer=ln.t[ci];
+      const answerZ=(ln.z.split(' ')[ci])||'';
+      const allChars=[...new Set(p.lines.map(l=>l.t).join('').split(''))].filter(c=>c!==answer);
+      shuffle(allChars);
+      const opts=shuffle([answer,...allChars.slice(0,2)]);
+      questions.push({
+        poemTitle:p.title,poemId:p.id,li,ci,answer,answerZ,opts
+      });
+      added++;
+    }
+  }
+  return shuffle(questions);
+}
+
+function startReview(){
+  const questions=buildReviewQuestions(5);
+  if(!questions.length){
+    toast('先去把一首詩的三關都過完，就能複習囉！');
+    return;
+  }
+  state.review={
+    questions,qIdx:0,correct:0,wrong:0,
+    answered:false
+  };
+  reviewOverlay.classList.add('show');
+  document.body.style.overflow='hidden';
+  renderReviewQuestion();
+}
+
+function updateReviewHeader(){
+  const r=state.review;
+  if(!r) return;
+  const total=r.questions.length;
+  const done=r.qIdx;
+  reviewBar.style.width=Math.min(100,(done/total)*100)+'%';
+  reviewLabel.textContent=`第 ${Math.min(done+1,total)} 題 / 共 ${total} 題`;
+}
+
+function renderReviewQuestion(){
+  const r=state.review;
+  if(!r) return;
+
+  if(r.qIdx>=r.questions.length){
+    renderReviewSummary();
+    return;
+  }
+
+  r.answered=false;
+  const q=r.questions[r.qIdx];
+  updateReviewHeader();
+
+  reviewContent.innerHTML=`
+    <div class="review-body">
+      <div class="review-from">出自《<b>${q.poemTitle}</b>》</div>
+      <div class="big-speaker">
+        <button class="speaker-btn" id="reviewPlay">🔊</button>
+        <div class="speaker-label">點我聽句子</div>
+      </div>
+      <div class="fill-line" id="reviewFill">
+        ${makeReviewLineHTML(q)}
+      </div>
+      <div class="options" id="reviewOpts">
+        ${q.opts.map(o=>{
+          // 從原詩找 o 的注音
+          const p=POEMS.find(x=>x.id===q.poemId);
+          let zy='';
+          if(p){
+            for(const ln of p.lines){
+              const idx=ln.t.indexOf(o);
+              if(idx>=0){zy=(ln.z.split(' ')[idx])||'';break;}
+            }
+          }
+          return `<button class="opt" data-c="${o}">
+            <span class="opt-char">${o}</span>
+            <span class="opt-zhuyin">${zy}</span>
+          </button>`;
+        }).join('')}
+      </div>
+      <div class="feedback" id="reviewFb"></div>
+    </div>
+  `;
+
+  // 自動播放整句
+  const p=POEMS.find(x=>x.id===q.poemId);
+  if(p){
+    const fullLine=p.lines[q.li];
+    setTimeout(()=>{
+      if(state.review===r&&!r.answered){
+        speakAsync(lineText(fullLine),{rate:0.68,pitch:1.45});
+      }
+    },300);
+  }
+
+  const playBtn=document.getElementById('reviewPlay');
+  playBtn.addEventListener('click',()=>{
+    if(!p) return;
+    const fullLine=p.lines[q.li];
+    playBtn.classList.add('playing');
+    speakAsync(lineText(fullLine),{rate:0.68,pitch:1.45}).then(()=>{
+      playBtn.classList.remove('playing');
+    });
+  });
+
+  reviewContent.querySelectorAll('.opt').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      if(r.answered) return;
+      const c=btn.dataset.c;
+      await speakAsync(c,{rate:0.72,pitch:1.5});
+      if(c===q.answer) reviewCorrect(btn,p);
+      else reviewWrong(btn,c);
+    });
+  });
+}
+
+function makeReviewLineHTML(q){
+  const p=POEMS.find(x=>x.id===q.poemId);
+  if(!p) return '';
+  const ln=p.lines[q.li];
+  return rubyHTML(ln,q.ci);
+}
+
+async function reviewCorrect(btn,p){
+  const r=state.review;
+  if(!r||r.answered) return;
+  r.answered=true;r.correct++;
+  btn.classList.add('correct');
+  reviewContent.querySelectorAll('.opt').forEach(b=>b.disabled=true);
+
+  const fl=reviewContent.querySelector('#reviewFill');
+  const q=r.questions[r.qIdx];
+  fl.innerHTML=rubyHTML(p.lines[q.li],q.ci,q.answer);
+  fl.classList.add('solved');
+  addRightChar(q.answer);
+
+  reviewContent.querySelector('#reviewFb').textContent='🎉 太棒了！';
+  const fullLine=p.lines[q.li];
+  await speakAsync(lineText(fullLine),{rate:0.7,pitch:1.45});
+
+  setTimeout(()=>{
+    r.qIdx++;
+    renderReviewQuestion();
+  },1300);
+}
+
+function reviewWrong(btn,ch){
+  const r=state.review;
+  if(!r||r.answered) return;
+  r.answered=true;r.wrong++;
+  addWrongChar(ch);
+  btn.classList.add('wrong');
+  reviewContent.querySelectorAll('.opt').forEach(b=>{
+    b.disabled=true;
+    if(b.dataset.c===r.questions[r.qIdx].answer) b.classList.add('correct');
+  });
+
+  const q=r.questions[r.qIdx];
+  const p=POEMS.find(x=>x.id===q.poemId);
+  const fl=reviewContent.querySelector('#reviewFill');
+  fl.innerHTML=rubyHTML(p.lines[q.li],q.ci,q.answer);
+  fl.classList.add('solved');
+
+  reviewContent.querySelector('#reviewFb').textContent='💡 記住這個字喔！';
+  speakAsync('記住這個字喔',{rate:0.85,pitch:1.4});
+
+  setTimeout(()=>{
+    r.qIdx++;
+    renderReviewQuestion();
+  },1700);
+}
+
+function renderReviewSummary(){
+  const r=state.review;
+  const total=r.questions.length;
+  const pct=r.correct/total;
+  const perfect=pct===1;
+
+  // 更新複習等級
+  const updatedPoems=new Set();
+  for(const q of r.questions){
+    if(updatedPoems.has(q.poemId)) continue;
+    updatedPoems.add(q.poemId);
+    const pr=getProg(q.poemId);
+    if(typeof pr.reviewLevel!=='number') pr.reviewLevel=0;
+    if(perfect){
+      pr.reviewLevel=Math.min(4,pr.reviewLevel+1);
+    }
+    const intervals=[1,3,7,14,30];
+    const days=intervals[pr.reviewLevel]||30;
+    pr.nextReview=Date.now()+days*24*3600*1000;
+    progress[q.poemId]=pr;
+  }
+  saveProgress();
+
+  reviewBar.style.width='100%';
+  reviewLabel.textContent=`完成！${r.correct} / ${total} 題答對`;
+
+  let stars='';
+  if(perfect) stars='⭐⭐⭐';
+  else if(pct>=0.6) stars='⭐⭐☆';
+  else stars='⭐☆☆';
+
+  reviewContent.innerHTML=`
+    <div class="review-summary">
+      <div class="big-emoji">${perfect?'🏆':'🌱'}</div>
+      <h3>${perfect?'全部答對！':'繼續加油！'}</h3>
+      <p>你答對了 <b>${r.correct}</b> / ${total} 題</p>
+      <div class="stars-earned">${stars}</div>
+      <button class="btn primary" id="reviewDone" style="width:100%;">回到目錄 🏠</button>
+    </div>
+  `;
+  speakAsync(perfect?'太厲害了，全部答對！':'不錯喔，繼續練習！',{rate:0.8,pitch:1.5});
+
+  document.getElementById('reviewDone').addEventListener('click',()=>{
+    closeReview();
+  });
+}
+
+/* =========================================================
+   十五、貼紙冊
+   ========================================================= */
+const stickerModal=document.getElementById('stickerModal');
+const stickerGrid=document.getElementById('stickerGrid');
+const stickerTotal=document.getElementById('stickerTotal');
+const stickerClose=document.getElementById('stickerClose');
+
+function openStickerModal(){
+  const total=POEMS.length;
+  const owned=POEMS.filter(p=>isPoemMastered(p.id)).length;
+  stickerTotal.innerHTML=`已收集 <b>${owned}</b> / ${total} 張貼紙`;
+  stickerGrid.innerHTML=POEMS.map(p=>{
+    const locked=!isPoemMastered(p.id);
+    return `<div class="sticker-card ${locked?'locked':''}">
+      <div class="sticker-emoji">${locked?'❓':(p.sticker||'📜')}</div>
+      <div class="sticker-title">${locked?'？？？':p.title}</div>
+    </div>`;
+  }).join('')||'<p style="text-align:center;color:#a08b7a;">還沒有詩可以收集，先去學一首吧！</p>';
+  stickerModal.classList.add('show');
+}
+stickerClose.addEventListener('click',()=>stickerModal.classList.remove('show'));
+stickerModal.addEventListener('click',e=>{if(e.target===stickerModal) stickerModal.classList.remove('show');});
+
+/* =========================================================
+   十六、家長中心
+   ========================================================= */
+const parentModal=document.getElementById('parentModal');
+const parentClose=document.getElementById('parentClose');
+const parentStats=document.getElementById('parentStats');
+const poemStatusList=document.getElementById('poemStatusList');
+const wrongCharsEl=document.getElementById('wrongChars');
+const fontSeg=document.getElementById('fontSeg');
+
+function openParentModal(){
+  renderParentStats();
+  renderPoemStatus();
+  renderWrongChars();
+  renderFontSeg();
+  parentModal.classList.add('show');
+}
+parentClose.addEventListener('click',()=>parentModal.classList.remove('show'));
+parentModal.addEventListener('click',e=>{if(e.target===parentModal) parentModal.classList.remove('show');});
+
+function renderParentStats(){
+  const total=POEMS.length;
+  const mastered=POEMS.filter(p=>isPoemMastered(p.id)).length;
+  let reviewCount=0;
+  for(const p of POEMS){
+    const pr=getProg(p.id);
+    if(pr.reviewLevel) reviewCount+=pr.reviewLevel;
+  }
+  parentStats.innerHTML=`
+    <div class="stat-box"><div class="num">${mastered}</div><div class="lbl">已學完詩</div></div>
+    <div class="stat-box"><div class="num">${total}</div><div class="lbl">總詩數</div></div>
+    <div class="stat-box"><div class="num">${reviewCount}</div><div class="lbl">複習星等合計</div></div>
+  `;
+}
+
+function renderPoemStatus(){
+  const levelIcon=l=>['⭐','⭐⭐','⭐⭐⭐','⭐⭐⭐⭐','⭐⭐⭐⭐⭐'][Math.min(4,l||0)]||'☆☆☆';
+  poemStatusList.innerHTML=POEMS.map(p=>{
+    const pr=getProg(p.id);
+    const done=[pr.learn,pr.fill,pr.order].filter(Boolean).length;
+    const mastered=done===3;
+    let nextReview='';
+    if(mastered&&pr.nextReview){
+      const days=Math.ceil((pr.nextReview-Date.now())/(24*3600*1000));
+      nextReview=days>0?`${days}天後復習`:'待復習';
+    }
+    return `<div class="poem-status">
+      <div class="row1">
+        <div class="title">${p.sticker||'📜'} ${p.title}</div>
+        <div class="level">${mastered?levelIcon(pr.reviewLevel||0):'⋯'}</div>
+      </div>
+      <div class="row2">讀 ${pr.learn?'✅':'⬜'} · 填 ${pr.fill?'✅':'⬜'} · 排 ${pr.order?'✅':'⬜'} ${nextReview?' · '+nextReview:''}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderWrongChars(){
+  const list=getWrongChars().slice(0,15);
+  if(!list.length){
+    wrongCharsEl.innerHTML='<span style="color:#a08b7a;font-size:13px;">目前沒有記錄到錯字，繼續保持！</span>';
+    return;
+  }
+  wrongCharsEl.innerHTML=list.map(([ch,n])=>
+    `<div class="wrong-char">${ch} <small>×${n}</small></div>`
+  ).join('');
+}
+
+function renderFontSeg(){
+  fontSeg.querySelectorAll('button').forEach(b=>{
+    b.classList.toggle('on',b.dataset.v===(settings.font||'medium'));
+  });
+}
+fontSeg.querySelectorAll('button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    settings.font=b.dataset.v;
+    saveSettings();
+    applyFont();
+    renderFontSeg();
+  });
+});
+
+/* 匯出 / 匯入 / 清除 */
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  if(!customPoems.length){
+    toast('目前沒有自訂詩可以匯出');
+    return;
+  }
+  const data={
+    version:1,
+    exportedAt:new Date().toISOString(),
+    poems:customPoems.map(p=>({
+      id:p.id,title:p.title,author:p.author,
+      art:p.art,sticker:p.sticker,story:p.story,
+      lines:p.lines
+    }))
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='唐詩題庫_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('已匯出 '+customPoems.length+' 首詩');
+});
+
+document.getElementById('importBtn').addEventListener('click',()=>{
+  document.getElementById('importFile').click();
+});
+
+document.getElementById('importFile').addEventListener('change',async e=>{
+  const file=e.target.files[0];
+  if(!file) return;
+  try{
+    const text=await file.text();
+    const data=JSON.parse(text);
+    const list=Array.isArray(data)?data:(data.poems||[]);
+    if(!Array.isArray(list)||!list.length) throw new Error('沒有可用的詩');
+    let added=0;
+    const stamp=Date.now();
+    for(const p of list){
+      if(!p.title||!Array.isArray(p.lines)||!p.lines.length) continue;
+      // 重新產生 ID 避免衝突
+      const newPoem={
+        id:'import_'+stamp+'_'+(++added),
+        title:p.title,
+        author:p.author||'',
+        art:p.art||'📜',
+        sticker:p.sticker||'📜',
+        story:p.story||'',
+        custom:true,
+        lines:p.lines.map(ln=>({
+          t:ln.t||'',
+          z:ln.z||'',
+          p:ln.p||''
+        }))
+      };
+      customPoems.push(newPoem);
+    }
+    saveCustomPoems();
+    rebuildPoems();
+    renderParentStats();
+    renderPoemStatus();
+    toast(`已匯入 ${added} 首詩`);
+  }catch(err){
+    console.error(err);
+    alert('檔案格式錯誤，無法匯入。請確認是從本程式匯出的 JSON 檔。');
+  }finally{
+    e.target.value='';
+  }
+});
+
+document.getElementById('clearBtn').addEventListener('click',()=>{
+  if(!confirm('確定要清除所有學習資料嗎？（自訂題庫也會一起清除）\n\n這個動作無法復原！')) return;
+  if(!confirm('真的要清除嗎？建議先匯出自訂題庫備份！')) return;
+  localStorage.removeItem(LS_CUSTOM);
+  localStorage.removeItem(LS_PROGRESS);
+  customPoems=[];
+  progress={};
+  rebuildPoems();
+  parentModal.classList.remove('show');
+  toast('已清除所有資料');
+  renderHome();
+});
+
+/* =========================================================
+   十七、加入新詩
    ========================================================= */
 const addModal=document.getElementById('addModal');
 const addInput=document.getElementById('addInput');
@@ -1106,11 +1949,17 @@ addConfirm.addEventListener('click',()=>{
 });
 
 /* =========================================================
-   初始化
+   十八、初始化
    ========================================================= */
 homeBtn.addEventListener('click',()=>{
   if('speechSynthesis' in window) speechSynthesis.cancel();
-  state.reading=false;renderHome();
+  state.reading=false;
+  if(reviewOverlay.classList.contains('show')){
+    if(!confirm('要結束複習並回到目錄嗎？')) return;
+    closeReview();
+    return;
+  }
+  renderHome();
 });
 if('speechSynthesis' in window){
   speechSynthesis.getVoices();
