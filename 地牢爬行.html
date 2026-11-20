@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>地牢爬行经典 · 单人冒险</title>
+<style>
+:root{
+  --parchment:#e8dcc8;
+  --parchment-2:#d4c4a8;
+  --ink:#241608;
+  --ink-2:#5a4030;
+  --gold:#c9a227;
+  --blood:#8b1a1a;
+  --paper-shadow:rgba(40,25,10,.55);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:"Songti SC","SimSun","Noto Serif TC","Source Han Serif TC",serif;
+  background:#120d08;
+  color:var(--ink);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  height:100vh;height:100dvh;
+  user-select:none;
+}
+/* ===== 背景羊皮纸纹理 ===== */
+#app{
+  position:relative;flex:1;display:flex;flex-direction:column;overflow:hidden;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 0%, #3a2a18 0%, #120d08 70%),
+    #120d08;
+}
+#app::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.85) 100%);
+  z-index:5;
+}
+/* ===== 顶栏 ===== */
+#topbar{
+  position:relative;z-index:20;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;
+  background:linear-gradient(180deg,#2b1d10,#1a120a);
+  border-bottom:2px solid var(--gold);
+  color:#f0e0c0;
+  font-size:14px;
+  box-shadow:0 2px 12px rgba(0,0,0,.7);
+  flex-wrap:wrap;gap:6px;
+}
+#topbar .brand{font-weight:bold;letter-spacing:2px;color:var(--gold);text-shadow:0 0 8px rgba(201,162,39,.5);font-size:15px}
+#topbar .stats{display:flex;gap:14px;font-size:13px;color:#e8d8b8}
+#topbar .stats span{white-space:nowrap}
+/* ===== 主舞台 ===== */
+#stage{
+  position:relative;z-index:10;flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:12px;display:flex;flex-direction:column;gap:12px;
+  scrollbar-width:thin;
+}
+#stage::-webkit-scrollbar{width:6px}
+#stage::-webkit-scrollbar-thumb{background:#6b5335;border-radius:3px}
+/* ===== 羊皮纸面板 ===== */
+.panel{
+  position:relative;
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(255,245,215,.55), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(150,110,65,.30), transparent 55%),
+    repeating-linear-gradient(45deg, rgba(120,90,55,.03) 0 2px, transparent 2px 4px),
+    linear-gradient(150deg,#ecdfc9,#d6c3a2);
+  border:1px solid #8a7050;
+  border-radius:5px;
+  box-shadow:0 4px 18px rgba(0,0,0,.65), inset 0 0 30px rgba(120,90,50,.15);
+  color:var(--ink);
+}
+.panel-inner{padding:14px}
+/* ===== 遭遇卡 ===== */
+.encounter-card{overflow:hidden}
+.enc-art{
+  width:100%;height:150px;display:block;
+  background:#0d0a06;
+  border-bottom:1px solid #8a7050;
+}
+.enc-body{padding:12px 14px}
+.enc-name{
+  font-size:19px;font-weight:bold;color:#3a1f0c;letter-spacing:1px;
+  border-bottom:1px dashed #9a7f58;padding-bottom:6px;margin-bottom:8px;
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+}
+.enc-name .tag{
+  font-size:11px;font-weight:normal;background:#3a2412;color:#e8d8b0;
+  padding:2px 8px;border-radius:10px;letter-spacing:1px;white-space:nowrap;
+}
+.enc-desc{font-size:14px;line-height:1.75;color:#3a2a1a;min-height:52px}
+.enc-desc .cursor{animation:blink .8s infinite}
+@keyframes blink{50%{opacity:0}}
+.challenge-box{
+  margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  background:rgba(90,60,30,.12);border:1px solid #a08a60;border-radius:4px;padding:8px 10px;
+  font-size:13px;
+}
+.challenge-box b{color:var(--blood)}
+/* ===== 队伍列（不换行 + 水平滚动） ===== */
+.party-wrap{
+  display:flex;flex-direction:column;gap:6px;
+}
+.party-label{
+  font-size:12px;color:#c8b088;letter-spacing:2px;padding-left:4px;
+  display:flex;justify-content:space-between;
+}
+.party-row{
+  display:flex;flex-wrap:nowrap;
+  gap:8px;overflow-x:auto;overflow-y:hidden;
+  align-items:center;
+  padding:4px 2px 10px;
+  scrollbar-width:thin;
+}
+.party-row::-webkit-scrollbar{height:5px}
+.party-row::-webkit-scrollbar-thumb{background:#6b5335;border-radius:3px}
+/* ===== 角色卡 ===== */
+.char-card{
+  flex:0 0 auto;width:128px;
+  background:linear-gradient(160deg,#efe3cc,#d8c6a4);
+  border:2px solid #8a7050;border-radius:6px;
+  padding:7px 8px;
+  cursor:pointer;
+  transition:transform .13s ease, box-shadow .13s ease, border-color .13s;
+  box-shadow:0 3px 8px rgba(0,0,0,.5);
+  position:relative;
+}
+.char-card:active{transform:scale(.97)}
+.char-card.selected{
+  border-color:var(--gold);
+  box-shadow:0 0 0 2px var(--gold), 0 0 18px rgba(201,162,39,.75);
+  transform:translateY(-3px);
+}
+.char-card.dead{
+  filter:grayscale(1) brightness(.55);
+  cursor:not-allowed;
+  border-color:#5a4a3a;
+}
+.char-card.dead::after{
+  content:'阵亡';position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) rotate(-18deg);
+  color:#e04040;font-size:22px;font-weight:bold;letter-spacing:3px;
+  text-shadow:0 0 6px #000;border:3px solid #e04040;padding:2px 8px;border-radius:4px;
+}
+.cc-name{font-size:13px;font-weight:bold;color:#2b1a08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-occ{font-size:10px;color:#7a6040;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.cc-hpbar{height:7px;background:#3a2a1a;border-radius:4px;overflow:hidden;margin:3px 0 2px;border:1px solid #5a4030}
+.cc-hpfill{height:100%;background:linear-gradient(90deg,#c02020,#e06030);transition:width .3s}
+.cc-hptext{font-size:10px;color:#5a4030;text-align:right}
+.cc-stats{font-size:10px;color:#4a3a28;line-height:1.5;margin-top:3px;white-space:nowrap}
+.cc-xp{font-size:10px;color:#7a5a20;margin-top:2px;display:flex;justify-content:space-between}
+.cc-lvl{color:var(--blood);font-weight:bold}
+/* ===== 行动按钮 ===== */
+.action-bar{display:flex;gap:10px;justify-content:center;padding:2px 0 6px}
+.btn{
+  font-family:inherit;
+  border:2px solid #6b4a20;
+  background:linear-gradient(180deg,#e8d0a0,#c8a870);
+  color:#2b1a08;font-size:15px;font-weight:bold;letter-spacing:2px;
+  padding:12px 26px;border-radius:6px;cursor:pointer;
+  box-shadow:0 4px 0 #5a3f1c, 0 6px 14px rgba(0,0,0,.55);
+  transition:transform .08s, box-shadow .08s, filter .15s;
+  min-width:140px;
+}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #5a3f1c, 0 3px 8px rgba(0,0,0,.5)}
+.btn:disabled{
+  filter:grayscale(.75) brightness(.65);cursor:not-allowed;
+  box-shadow:0 4px 0 #3a3020;opacity:.7;
+}
+.btn.gold{background:linear-gradient(180deg,#f2d868,#c9a227);border-color:#8a6a10;box-shadow:0 4px 0 #7a5a10,0 6px 14px rgba(0,0,0,.55)}
+.btn.blood{background:linear-gradient(180deg,#d06040,#8b1a1a);color:#fff;border-color:#5a0a0a;box-shadow:0 4px 0 #4a0808,0 6px 14px rgba(0,0,0,.55)}
+.btn.small{font-size:13px;padding:8px 16px;min-width:0;letter-spacing:1px}
+/* ===== 底部导航 ===== */
+#bottomnav{
+  position:relative;z-index:20;
+  display:flex;justify-content:space-around;align-items:stretch;
+  background:linear-gradient(180deg,#1a120a,#2b1d10);
+  border-top:2px solid var(--gold);
+  padding:6px 2px;
+  padding-bottom:calc(6px + env(safe-area-inset-bottom));
+  box-shadow:0 -3px 14px rgba(0,0,0,.75);
+}
+#bottomnav button{
+  flex:1;background:none;border:none;color:#c8b088;
+  font-family:inherit;font-size:10px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:4px 2px;border-radius:6px;transition:background .15s,color .15s;
+  min-width:0;
+}
+#bottomnav button .ico{font-size:18px;line-height:1}
+#bottomnav button:active{background:rgba(201,162,39,.18)}
+#bottomnav button.on{color:var(--gold)}
+/* ===== 模态框 ===== */
+#modalLayer{
+  position:fixed;inset:0;z-index:200;display:none;
+  background:rgba(0,0,0,.78);
+  backdrop-filter:blur(2px);
+  align-items:center;justify-content:center;
+  padding:16px;
+}
+#modalLayer.show{display:flex}
+.modal{
+  width:100%;max-width:560px;max-height:86vh;
+  display:flex;flex-direction:column;
+  animation:modalIn .22s ease;
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+.modal-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 14px;border-bottom:2px solid #8a7050;
+  font-weight:bold;font-size:16px;color:#3a1f0c;letter-spacing:2px;
+}
+.modal-head button{
+  background:none;border:none;font-size:20px;color:#6a4a20;cursor:pointer;
+  line-height:1;padding:0 4px;font-family:inherit;
+}
+.modal-body{
+  padding:14px;overflow-y:auto;font-size:13.5px;line-height:1.8;color:#33240f;
+  scrollbar-width:thin;
+}
+.modal-body::-webkit-scrollbar{width:6px}
+.modal-body::-webkit-scrollbar-thumb{background:#8a7050;border-radius:3px}
+.modal-foot{padding:10px 14px;border-top:1px solid #a08a60;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.modal-body h3{
+  font-size:14px;color:var(--blood);margin:14px 0 6px;letter-spacing:1px;
+  border-left:3px solid var(--gold);padding-left:8px;
+}
+.modal-body h3:first-child{margin-top:0}
+.modal-body p{margin-bottom:8px}
+.modal-body ul{margin:0 0 10px 20px}
+.modal-body li{margin-bottom:5px}
+.modal-body .hl{color:#7a1a1a;font-weight:bold}
+.modal-body .em{color:#8a5a00;font-weight:bold}
+.modal-body code{background:rgba(90,60,30,.15);padding:1px 5px;border-radius:3px;font-family:inherit;color:#5a2a0a}
+/* ===== Toast ===== */
+#toastLayer{
+  position:fixed;left:50%;bottom:90px;transform:translateX(-50%);
+  z-index:300;display:flex;flex-direction:column;gap:8px;align-items:center;
+  pointer-events:none;width:92%;max-width:420px;
+}
+.toast{
+  background:rgba(30,18,8,.95);color:#f0e0c0;
+  border:1px solid var(--gold);border-radius:6px;
+  padding:9px 16px;font-size:13px;letter-spacing:.5px;
+  box-shadow:0 4px 18px rgba(0,0,0,.8);
+  animation:toastIn .25s ease, toastOut .4s ease 2.1s forwards;
+  text-align:center;line-height:1.5;
+}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-10px)}}
+/* ===== 掷骰结果面板 ===== */
+.dice-display{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  padding:16px;flex-wrap:wrap;
+}
+.die-box{
+  width:74px;height:74px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:30px;font-weight:bold;color:#f0e0c0;
+  background:radial-gradient(circle at 30% 25%, #6b4a20, #2b1a08);
+  border:3px solid var(--gold);border-radius:10px;
+  box-shadow:0 0 18px rgba(201,162,39,.55), inset 0 0 16px rgba(0,0,0,.6);
+  animation:dieRoll .5s ease;
+}
+@keyframes dieRoll{
+  0%{transform:rotate(-14deg) scale(.6);opacity:.2}
+  55%{transform:rotate(9deg) scale(1.12)}
+  100%{transform:none}
+}
+.result-line{text-align:center;font-size:15px;letter-spacing:1px;color:#3a2a1a;margin:4px 0;line-height:1.6}
+.result-line .big{font-size:22px;font-weight:bold}
+.ok{color:#1a6b2a!important;font-weight:bold}
+.bad{color:var(--blood)!important;font-weight:bold}
+/* ===== 升级职业选择 ===== */
+.class-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
+.class-opt{
+  background:linear-gradient(160deg,#efe3cc,#d8c6a4);
+  border:2px solid #8a7050;border-radius:6px;padding:10px;cursor:pointer;
+  transition:transform .12s, box-shadow .12s, border-color .12s;
+  box-shadow:0 3px 8px rgba(0,0,0,.45);
+}
+.class-opt:active{transform:scale(.97)}
+.class-opt:hover{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 3px 14px rgba(201,162,39,.6)}
+.class-opt .cn{font-size:15px;font-weight:bold;color:#3a1f0c;letter-spacing:1px}
+.class-opt .cd{font-size:11px;color:#6a5030;line-height:1.5;margin-top:4px}
+/* ===== 历史时间线 ===== */
+.timeline{position:relative;padding-left:18px}
+.timeline::before{content:'';position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#a08a60}
+.tl-item{position:relative;margin-bottom:10px;font-size:12.5px;line-height:1.6;color:#3a2a1a}
+.tl-item::before{
+  content:'';position:absolute;left:-17px;top:5px;width:8px;height:8px;border-radius:50%;
+  background:var(--gold);border:2px solid #6b4a20;
+}
+.tl-item .tt{font-size:10px;color:#8a7050;display:block}
+/* ===== 成就 ===== */
+.ach-item{
+  display:flex;gap:10px;align-items:center;padding:8px;border-bottom:1px dashed #b0a080;
+}
+.ach-item:last-child{border-bottom:none}
+.ach-ico{font-size:24px;filter:grayscale(1) opacity(.35)}
+.ach-item.unlocked .ach-ico{filter:none}
+.ach-name{font-size:13px;font-weight:bold;color:#6a5030}
+.ach-item.unlocked .ach-name{color:#3a1f0c}
+.ach-desc{font-size:11px;color:#8a7050}
+/* ===== 标题画面 ===== */
+.title-screen{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:18px;padding:28px 16px;text-align:center;flex:1;
+}
+.title-screen .big-title{
+  font-size:clamp(26px,7vw,40px);letter-spacing:6px;font-weight:bold;
+  color:var(--gold);
+  text-shadow:0 0 22px rgba(201,162,39,.6),0 3px 0 #4a3208;
+}
+.title-screen .subtitle{font-size:13px;color:#b8a080;letter-spacing:3px}
+.title-screen .quote{
+  font-size:12.5px;color:#9a8a70;line-height:1.9;max-width:420px;
+  font-style:italic;border-left:2px solid #6b5335;padding-left:12px;text-align:left;
+}
+.fade-in{animation:fadeIn .45s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+/* ===== 响应式 ===== */
+@media(max-width:420px){
+  .enc-art{height:120px}
+  .enc-name{font-size:16px}
+  .enc-desc{font-size:13px}
+  .char-card{width:112px}
+  .btn{font-size:14px;padding:11px 18px;min-width:120px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="brand">🏰 地牢爬行经典</div>
+    <div class="stats">
+      <span id="goldDisplay">💰 0 铜币</span>
+      <span id="floorDisplay">🏛️ 房间 0 / 10</span>
+      <span id="partyDisplay">👥 0</span>
+    </div>
+  </header>
+  <main id="stage"></main>
+  <nav id="bottomnav">
+    <button data-nav="help"><span class="ico">📖</span><span>说明</span></button>
+    <button data-nav="save"><span class="ico">💾</span><span>存档</span></button>
+    <button data-nav="load"><span class="ico">📂</span><span>读档</span></button>
+    <button data-nav="history"><span class="ico">📜</span><span>历史</span></button>
+    <button data-nav="achievements"><span class="ico">🏆</span><span>成就</span></button>
+    <button data-nav="sound" id="soundBtn"><span class="ico">🔊</span><span>音效</span></button>
+  </nav>
+</div>
+<div id="modalLayer"></div>
+<div id="toastLayer"></div>
+
+<script>
+"use strict";
+/* =========================================================
+   地牢爬行经典 · 单人网页版
+   依据《Dungeon Crawl Classics RPG》核心规则简化实现
+   ========================================================= */
+
+/* ---------------- 工具函数 ---------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const rnd = n => Math.floor(Math.random() * n) + 1;
+const rng = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function rollDiceExpr(expr) {
+  const m = String(expr).match(/(\d+)d(\d+)\s*([+-]\s*\d+)?/);
+  if (!m) return 0;
+  const n = parseInt(m[1]), s = parseInt(m[2]);
+  const mod = m[3] ? parseInt(m[3].replace(/\s/g, '')) : 0;
+  let total = mod;
+  for (let i = 0; i < n; i++) total += rnd(s);
+  return total;
+}
+
+/* ---------------- 骰链 ---------------- */
+const DICE_CHAIN = [3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 30];
+function stepDie(size, steps) {
+  const i = DICE_CHAIN.indexOf(size);
+  if (i === -1) return size;
+  return DICE_CHAIN[clamp(i + steps, 0, DICE_CHAIN.length - 1)];
+}
+
+/* ---------------- 表 1-1：属性修正值 ---------------- */
+const ABILITY_MOD = {
+  3: -3, 4: -2, 5: -2, 6: -1, 7: -1, 8: -1, 9: 0, 10: 0, 11: 0, 12: 0,
+  13: 1, 14: 1, 15: 1, 16: 2, 17: 2, 18: 3
+};
+const mod = v => ABILITY_MOD[clamp(v, 3, 18)];
+
+/* ---------------- 表 1-2：幸运掷骰（d30） ---------------- */
+const LUCK_TABLE = [
+  null,
+  { name: '严冬', desc: '所有攻击掷骰', key: 'attack' },
+  { name: '公牛', desc: '近战攻击掷骰', key: 'melee' },
+  { name: '吉日', desc: '远程攻击掷骰', key: 'ranged' },
+  { name: '狼群养大', desc: '徒手攻击掷骰', key: 'unarmed' },
+  { name: '马上受孕', desc: '骑乘攻击掷骰', key: 'mounted' },
+  { name: '生于战场', desc: '伤害掷骰', key: 'damage' },
+  { name: '熊之道', desc: '近战伤害掷骰', key: 'melee_dmg' },
+  { name: '鹰眼', desc: '远程伤害掷骰', key: 'ranged_dmg' },
+  { name: '群猎者', desc: '0 级起始武器的攻击与伤害掷骰', key: 'weapon' },
+  { name: '织机下出生', desc: '技能检定（包括盗贼技能）', key: 'skill' },
+  { name: '狐狸的狡黠', desc: '发现 / 解除陷阱', key: 'trap' },
+  { name: '四叶草', desc: '发现暗门', key: 'secret' },
+  { name: '第七子', desc: '法术检定', key: 'spell' },
+  { name: '狂怒风暴', desc: '法术伤害', key: 'spell_dmg' },
+  { name: '正义之心', desc: '驱散邪祟检定', key: 'turn' },
+  { name: '瘟疫幸存者', desc: '魔法治疗', key: 'heal' },
+  { name: '幸运吉兆', desc: '豁免检定', key: 'save' },
+  { name: '守护天使', desc: '逃离陷阱的豁免检定', key: 'trap_save' },
+  { name: '蜘蛛咬伤幸存者', desc: '抗毒豁免检定', key: 'poison' },
+  { name: '遭雷击', desc: '反射豁免', key: 'reflex' },
+  { name: '熬过饥荒', desc: '强韧豁免', key: 'fort' },
+  { name: '抵住诱惑', desc: '意志豁免', key: 'will' },
+  { name: '吉屋', desc: '护甲等级', key: 'ac' },
+  { name: '眼镜蛇之速', desc: '先攻', key: 'init' },
+  { name: '丰收', desc: '生命值（在每个等级生效）', key: 'hp' },
+  { name: '战士之臂', desc: '暴击表', key: 'crit' },
+  { name: '凶宅', desc: '腐化掷骰', key: 'corruption' },
+  { name: '破碎之星', desc: '大失败', key: 'fumble' },
+  { name: '鸟鸣', desc: '语言数量', key: 'lang' },
+  { name: '野孩子', desc: '速度', key: 'speed' }
+];
+
+/* ---------------- 表 1-3：职业（d%） ---------------- */
+const OCCUPATIONS = [
+  { r: [1, 1], name: '炼金术士', weapon: '法杖', goods: '油，1 瓶' },
+  { r: [2, 2], name: '驯兽师', weapon: '棍棒', goods: '矮种马' },
+  { r: [3, 3], name: '甲匠', weapon: '锤（视作棍棒）', goods: '铁盔' },
+  { r: [4, 4], name: '占星师', weapon: '匕首', goods: '单筒望远镜' },
+  { r: [5, 5], name: '理发师', weapon: '剃刀（视作匕首）', goods: '剪刀' },
+  { r: [6, 6], name: '教区执事', weapon: '法杖', goods: '圣徽' },
+  { r: [7, 7], name: '养蜂人', weapon: '法杖', goods: '一罐蜂蜜' },
+  { r: [8, 8], name: '铁匠', weapon: '锤（视作棍棒）', goods: '钢钳' },
+  { r: [9, 9], name: '屠夫', weapon: '剁刀（视作斧）', goods: '半扇牛肉' },
+  { r: [10, 10], name: '商队护卫', weapon: '短剑', goods: '亚麻布，1 码' },
+  { r: [11, 11], name: '奶酪匠', weapon: '短棒（视作法杖）', goods: '臭奶酪' },
+  { r: [12, 12], name: '鞋匠', weapon: '锥子（视作匕首）', goods: '鞋拔' },
+  { r: [13, 13], name: '骗子', weapon: '匕首', goods: '上等斗篷' },
+  { r: [14, 14], name: '桶匠', weapon: '铁撬（视作棍棒）', goods: '木桶' },
+  { r: [15, 15], name: '果贩', weapon: '刀（视作匕首）', goods: '水果' },
+  { r: [16, 16], name: '扒手', weapon: '匕首', goods: '小箱子' },
+  { r: [17, 17], name: '挖渠工', weapon: '铁锹（视作法杖）', goods: '细土，1 磅' },
+  { r: [18, 18], name: '矮人药剂师', weapon: '短棒（视作法杖）', goods: '钢制小瓶' },
+  { r: [19, 20], name: '矮人铁匠', weapon: '锤（视作棍棒）', goods: '秘银，1 盎司' },
+  { r: [21, 21], name: '矮人制箱匠', weapon: '凿子（视作匕首）', goods: '木材，10 磅' },
+  { r: [22, 22], name: '矮人牧人', weapon: '法杖', goods: '母猪' },
+  { r: [23, 24], name: '矮人矿工', weapon: '镐（视作棍棒）', goods: '提灯' },
+  { r: [25, 25], name: '矮人菇农', weapon: '铁锹', goods: '麻袋' },
+  { r: [26, 26], name: '矮人捕鼠人', weapon: '棍棒', goods: '网' },
+  { r: [27, 28], name: '矮人石匠', weapon: '锤', goods: '上等石料，10 磅' },
+  { r: [29, 29], name: '精灵工匠', weapon: '法杖', goods: '黏土，1 磅' },
+  { r: [30, 30], name: '精灵律师', weapon: '羽笔（视作飞镖）', goods: '书' },
+  { r: [31, 31], name: '精灵蜡烛匠', weapon: '剪刀（视作匕首）', goods: '蜡烛，20 支' },
+  { r: [32, 32], name: '精灵驯鹰人', weapon: '匕首', goods: '猎鹰' },
+  { r: [33, 34], name: '精灵林务官', weapon: '法杖', goods: '草药，1 磅' },
+  { r: [35, 35], name: '精灵吹玻璃匠', weapon: '锤', goods: '玻璃珠' },
+  { r: [36, 36], name: '精灵领航员', weapon: '弓', goods: '单筒望远镜' },
+  { r: [37, 38], name: '精灵贤者', weapon: '匕首', goods: '羊皮纸与羽笔' },
+  { r: [39, 47], name: '农夫', weapon: '干草叉（视作矛）', goods: '母鸡' },
+  { r: [48, 48], name: '算命师', weapon: '匕首', goods: '塔罗牌' },
+  { r: [49, 49], name: '赌徒', weapon: '棍棒', goods: '骰子' },
+  { r: [50, 50], name: '掏粪工', weapon: '泥刀（视作匕首）', goods: '一袋夜土' },
+  { r: [51, 52], name: '掘墓人', weapon: '铁锹（视作法杖）', goods: '泥刀' },
+  { r: [53, 54], name: '行会乞丐', weapon: '投石索', goods: '拐杖' },
+  { r: [55, 55], name: '半身人鸡贩', weapon: '手斧', goods: '鸡肉，5 磅' },
+  { r: [56, 57], name: '半身人染工', weapon: '法杖', goods: '布料，3 码' },
+  { r: [58, 58], name: '半身人手套匠', weapon: '锥子（视作匕首）', goods: '手套，4 副' },
+  { r: [59, 59], name: '半身人吉普赛人', weapon: '投石索', goods: '巫偶' },
+  { r: [60, 60], name: '半身人服饰商', weapon: '剪刀（视作匕首）', goods: '上等套装，3 套' },
+  { r: [61, 61], name: '半身人水手', weapon: '刀（视作匕首）', goods: '帆布，2 码' },
+  { r: [62, 62], name: '半身人放贷人', weapon: '短剑', goods: '5gp，10sp，200cp' },
+  { r: [63, 63], name: '半身人商贩', weapon: '短剑', goods: '20sp' },
+  { r: [64, 64], name: '半身人流浪汉', weapon: '棍棒', goods: '讨饭碗' },
+  { r: [65, 65], name: '治疗者', weapon: '棍棒', goods: '圣水，1 瓶' },
+  { r: [66, 66], name: '草药师', weapon: '棍棒', goods: '草药，1 磅' },
+  { r: [67, 67], name: '牧人', weapon: '法杖', goods: '牧羊犬' },
+  { r: [68, 69], name: '猎人', weapon: '短弓', goods: '鹿皮' },
+  { r: [70, 70], name: '契约仆役', weapon: '法杖', goods: '挂坠盒' },
+  { r: [71, 71], name: '弄臣', weapon: '飞镖', goods: '丝绸衣服' },
+  { r: [72, 72], name: '珠宝匠', weapon: '匕首', goods: '价值 20gp 的宝石' },
+  { r: [73, 73], name: '锁匠', weapon: '匕首', goods: '精良工具' },
+  { r: [74, 74], name: '托钵僧', weapon: '棍棒', goods: '奶酪蘸酱' },
+  { r: [75, 75], name: '雇佣兵', weapon: '长剑', goods: '兽皮甲' },
+  { r: [76, 76], name: '商人', weapon: '匕首', goods: '4gp，14sp，27cp' },
+  { r: [77, 77], name: '磨坊主 / 面包师', weapon: '棍棒', goods: '面粉，1 磅' },
+  { r: [78, 78], name: '吟游诗人', weapon: '匕首', goods: '尤克里里' },
+  { r: [79, 79], name: '贵族', weapon: '长剑', goods: '价值 10gp 的金戒指' },
+  { r: [80, 80], name: '孤儿', weapon: '棍棒', goods: '布娃娃' },
+  { r: [81, 81], name: '马夫', weapon: '法杖', goods: '马笼头' },
+  { r: [82, 82], name: '亡命徒', weapon: '短剑', goods: '皮甲' },
+  { r: [83, 83], name: '制绳匠', weapon: '刀（视作匕首）', goods: '绳索，100 尺' },
+  { r: [84, 84], name: '抄写员', weapon: '飞镖', goods: '羊皮纸，10 张' },
+  { r: [85, 85], name: '萨满', weapon: '钉头锤', goods: '草药，1 磅' },
+  { r: [86, 86], name: '奴隶', weapon: '棍棒', goods: '模样古怪的石头' },
+  { r: [87, 87], name: '走私者', weapon: '投石索', goods: '防水袋' },
+  { r: [88, 88], name: '士兵', weapon: '矛', goods: '盾牌' },
+  { r: [89, 90], name: '侍从', weapon: '长剑', goods: '钢盔' },
+  { r: [91, 91], name: '税吏', weapon: '长剑', goods: '100cp' },
+  { r: [92, 93], name: '捕兽者', weapon: '投石索', goods: '獾皮' },
+  { r: [94, 94], name: '街头顽童', weapon: '木棍（视作棍棒）', goods: '讨饭碗' },
+  { r: [95, 95], name: '车匠', weapon: '棍棒', goods: '手推车' },
+  { r: [96, 96], name: '织工', weapon: '匕首', goods: '上等衣服' },
+  { r: [97, 97], name: '法师学徒', weapon: '匕首', goods: '黑色魔法书' },
+  { r: [98, 100], name: '伐木工', weapon: '手斧', goods: '一捆木柴' }
+];
+
+function rollOccupation() {
+  const r = rnd(100);
+  return OCCUPATIONS.find(o => r >= o.r[0] && r <= o.r[1]) || OCCUPATIONS[0];
+}
+function raceFromOccupation(name) {
+  if (name.startsWith('矮人')) return 'dwarf';
+  if (name.startsWith('精灵')) return 'elf';
+  if (name.startsWith('半身人')) return 'halfling';
+  return 'human';
+}
+/* 从「锤（视作棍棒）」中取出实际武器类别 */
+function baseWeapon(w) {
+  const m = w.match(/（视作(.+?)）/);
+  return m ? m[1] : w;
+}
+const WEAPON_DMG = {
+  '匕首': '1d4', '棍棒': '1d4', '法杖': '1d4', '飞镖': '1d4', '投石索': '1d4',
+  '手斧': '1d6', '短剑': '1d6', '钉头锤': '1d6', '短弓': '1d6', '弩': '1d6',
+  '斧': '1d8', '长剑': '1d8', '矛': '1d8', '弓': '1d8',
+  '铁锹': '1d4', '镐': '1d4', '锤': '1d4', '刀': '1d4'
+};
+
+/* ---------------- 表 1-4：经验值门槛 ---------------- */
+const XP_THRESHOLDS = [0, 10, 50, 110, 190, 290, 410, 550, 710, 890, 1090];
+
+/* ---------------- 职业定义 ---------------- */
+const CLASSES = {
+  cleric: {
+    name: '牧师', hpDie: 8, race: 'human',
+    desc: '神祇的武斗仆从。可驱散邪祟、按手治疗。生命骰 1d8。',
+    attack: 0, fort: 1, ref: 0, will: 1
+  },
+  thief: {
+    name: '盗贼', hpDie: 6, race: 'human',
+    desc: '靠潜行与狡诈活命。背刺自动暴击，可焚烧幸运并每日恢复。生命骰 1d6。',
+    attack: 0, fort: 1, ref: 1, will: 0
+  },
+  warrior: {
+    name: '战士', hpDie: 12, race: 'human',
+    desc: '最好的攻击加值、最高的生命值。拥有武勇事迹骰（d3）。生命骰 1d12。',
+    attack: 0, fort: 1, ref: 1, will: 0, deed: 3
+  },
+  wizard: {
+    name: '法师', hpDie: 4, race: 'human',
+    desc: '驾驭狂野魔法，1 级时掌握 4 个法术。生命骰 1d4。',
+    attack: 0, fort: 0, ref: 1, will: 1
+  },
+  dwarf: {
+    name: '矮人', hpDie: 10, race: 'dwarf',
+    desc: '坚韧的半人类，拥有事迹骰与盾击、红外视觉。生命骰 1d10。',
+    attack: 0, fort: 1, ref: 1, will: 1, deed: 3
+  },
+  elf: {
+    name: '精灵', hpDie: 6, race: 'elf',
+    desc: '兼具武艺与魔法。掌握 3 个法术，免疫睡眠与麻痹。生命骰 1d6。',
+    attack: 1, fort: 1, ref: 1, will: 1
+  },
+  halfling: {
+    name: '半身人', hpDie: 6, race: 'halfling',
+    desc: '小巧而幸运，双武器大师，潜行加值。生命骰 1d6。',
+    attack: 1, fort: 1, ref: 1, will: 1
+  }
+};
+
+/* ---------------- 名字库 ---------------- */
+const NAMES = ['阿德温', '布莱恩', '卡洛', '德文', '艾拉', '芬恩', '格温', '海拉', '伊恩',
+  '乔拉', '凯恩', '莉亚', '莫尔', '妮雅', '奥德', '佩拉', '奎恩', '罗兰', '塞拉', '塔恩',
+  '乌尔夫', '瓦伦', '韦恩', '西拉', '约恩', '泽恩', '雷格', '黛丝', '卡兰', '希欧'];
+
+/* ---------------- 遭遇池（10 个房间） ---------------- */
+const ENCOUNTERS = [
+  {
+    id: 'entrance', art: 'rubble', tag: '障碍', type: 'obstacle',
+    name: '崩塌的入口',
+    desc: '你踏入地牢，身后的石梁轰然塌落。前方甬道被碎石堆彻底堵死，必须徒手搬开。',
+    attr: 'str', dc: 10, xp: 2,
+    okText: '你奋力推开沉重的碎石，勉强钻入幽深的甬道，肩头磨出了血。',
+    badText: '一块巨石滚落砸中了你，你狼狈地滚到一旁。',
+    badDmg: '1d4'
+  },
+  {
+    id: 'corridor', art: 'corridor', tag: '陷阱', type: 'trap',
+    name: '幽暗走廊',
+    desc: '石板地面泛着微光。你隐约看见几块地砖略微下陷——那是弹簧驱动的斧刃陷阱。',
+    attr: 'agi', dc: 12, xp: 2,
+    okText: '你贴墙侧身滑过，斧刃在你身后呼啸落下，擦过衣角。',
+    badText: '脚下一沉，锈蚀的斧刃从墙中弹出，狠狠划开你的腿。',
+    badDmg: '1d4'
+  },
+  {
+    id: 'skeleton', art: 'skeleton', tag: '战斗', type: 'combat',
+    name: '骷髅守卫',
+    desc: '一具锈蚀铠甲下的骷髅自阴影中站起，手中的短剑缓缓抬起，眼窝里跳着幽绿的鬼火。',
+    attr: 'str', dc: 12, xp: 3, enemy: '骷髅守卫（AC 12）',
+    okText: '你抢在它挥剑前一击命中，骷髅的颅骨崩裂，铠甲哗啦一声散落一地。',
+    badText: '你的攻击落空，骷髅的锈剑从甲缝间刺入你的肋下。',
+    badDmg: '1d4'
+  },
+  {
+    id: 'chest', art: 'chest', tag: '宝藏', type: 'treasure',
+    name: '锈蚀宝箱',
+    desc: '墙角躺着一只半掩于瓦砾中的铁皮箱，锁孔锈死。箱盖上刻着一行早已模糊的符文。',
+    attr: 'luck', dc: 10, xp: 2,
+    okText: '你伸手一探，锁扣应声而断。箱中散落着铜币与一枚发暗的银戒。',
+    badText: '你刚触到箱盖，一根细针刺入指尖——箱中什么也没有。',
+    badDmg: '1d3', gold: true
+  },
+  {
+    id: 'door', art: 'door', tag: '谜题', type: 'puzzle',
+    name: '符文石门',
+    desc: '一扇巨大的花岗岩门横在面前，门上刻着六个发光的符号，顺序似乎暗藏玄机。',
+    attr: 'int', dc: 13, xp: 3,
+    okText: '你盯着符号片刻，伸手按下一串顺序——石门轰然向两侧滑开。',
+    badText: '你误触了错误的符号，门缝中喷出灼热的蒸汽。',
+    badDmg: '1d4'
+  },
+  {
+    id: 'gargoyle', art: 'gargoyle', tag: '战斗', type: 'combat',
+    name: '石像鬼突袭',
+    desc: '头顶的雕像忽然抖动，石屑簌簌落下。它展开双翼俯冲而下，利爪直取你的面门。',
+    attr: 'str', dc: 14, xp: 4, enemy: '石像鬼（AC 14）',
+    okText: '你侧身闪过，一记重击砸在石像鬼的翼根，它碎裂成漫天石屑。',
+    badText: '利爪撕开你的肩膀，你被撞得倒退数步。',
+    badDmg: '1d6'
+  },
+  {
+    id: 'gas', art: 'gas', tag: '毒素', type: 'gas',
+    name: '毒气室',
+    desc: '前方的房间弥漫着一层淡绿色的雾，空气中带着金属般的腥甜味。你必须屏息穿过。',
+    attr: 'sta', dc: 12, xp: 2,
+    okText: '你屏住呼吸，三步并作两步穿过了毒雾，肺里火辣辣地疼但没有大碍。',
+    badText: '你终究还是吸进了一口，喉咙灼烧，视线发黑。',
+    badDmg: '1d4'
+  },
+  {
+    id: 'chasm', art: 'chasm', tag: '陷阱', type: 'trap',
+    name: '深渊裂隙',
+    desc: '地面在此裂开一道宽阔的深壑，对面只有一根腐朽的木梁。下方漆黑一片，深不见底。',
+    attr: 'agi', dc: 15, xp: 3,
+    okText: '你深吸一口气，几步助跑后跃过裂隙，落地时扬起一片尘土。',
+    badText: '木梁在你脚下一断，你死死抓住崖沿才没掉下去，指甲掀翻了两片。',
+    badDmg: '1d6'
+  },
+  {
+    id: 'goblin', art: 'goblin', tag: '战斗', type: 'combat',
+    name: '哥布林哨兵',
+    desc: '三只瘦小的哥布林正围着一堆火烤着什么，其中一个发现了你，尖声怪叫着扑上来。',
+    attr: 'str', dc: 11, xp: 3, enemy: '哥布林哨兵（AC 11）',
+    okText: '你一击撂倒了冲在最前的哥布林，其余两个吓得钻进了裂缝。',
+    badText: '哥布林的锈刀砍在你的小腿上，你疼得单膝跪地。',
+    badDmg: '1d6'
+  },
+  {
+    id: 'boss', art: 'boss', tag: '首领', type: 'combat',
+    name: '地牢核心',
+    desc: '最深处的石殿中，一尊披着破烂长袍的巨大骸骨缓缓转身。它空洞的眼窝里燃起两团紫焰——这是这座地牢的主人。',
+    attr: 'str', dc: 15, xp: 4, enemy: '骸骨巫妖（AC 15）',
+    okText: '你抓住它施法的间隙，一击贯穿了它的胸腔。紫焰熄灭，骸骨崩塌成灰。',
+    badText: '紫焰灼过你的身体，你几乎被掀翻在地，五脏六腑都在抽搐。',
+    badDmg: '1d8'
+  }
+];
+
+/* ---------------- 状态机 ---------------- */
+const PHASE = {
+  TITLE: 'title',
+  CREATION: 'creation',
+  EXPLORE: 'explore',
+  RESULT: 'result',
+  LEVELUP: 'levelup',
+  GAMEOVER: 'gameover',
+  VICTORY: 'victory'
+};
+
+const state = {
+  phase: PHASE.TITLE,
+  party: [],
+  gold: 0,
+  roomIndex: 0,
+  selectedId: null,
+  lastResult: null,
+  pendingLevelUps: [],
+  history: [],
+  achievements: {},
+  soundOn: true,
+  helpShown: false,
+  pendingContinuation: null
+};
+
+let audioCtx = null;
+let toastTimer = null;
+
+/* ---------------- 音效（Web Audio API 合成） ---------------- */
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+function sfx(type) {
+  if (!state.soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  switch (type) {
+    case 'click':
+      o.type = 'square';
+      o.frequency.setValueAtTime(520, now);
+      o.frequency.exponentialRampToValueAtTime(200, now + 0.06);
+      g.gain.setValueAtTime(0.07, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      o.start(now); o.stop(now + 0.09);
+      break;
+    case 'roll':
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(180, now);
+      o.frequency.linearRampToValueAtTime(420, now + 0.18);
+      g.gain.setValueAtTime(0.08, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      o.start(now); o.stop(now + 0.26);
+      break;
+    case 'success':
+      [523, 659, 784].forEach((f, i) => {
+        const oo = audioCtx.createOscillator(), gg = audioCtx.createGain();
+        oo.connect(gg); gg.connect(audioCtx.destination);
+        oo.type = 'sine';
+        oo.frequency.setValueAtTime(f, now + i * 0.09);
+        gg.gain.setValueAtTime(0.001, now + i * 0.09);
+        gg.gain.linearRampToValueAtTime(0.09, now + i * 0.09 + 0.02);
+        gg.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.2);
+        oo.start(now + i * 0.09); oo.stop(now + i * 0.09 + 0.22);
+      });
+      break;
+    case 'fail':
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(220, now);
+      o.frequency.exponentialRampToValueAtTime(70, now + 0.35);
+      g.gain.setValueAtTime(0.1, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      o.start(now); o.stop(now + 0.42);
+      break;
+    case 'death':
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(160, now);
+      o.frequency.exponentialRampToValueAtTime(40, now + 0.7);
+      g.gain.setValueAtTime(0.12, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      o.start(now); o.stop(now + 0.82);
+      break;
+    case 'levelup':
+      [392, 523, 659, 784, 1046].forEach((f, i) => {
+        const oo = audioCtx.createOscillator(), gg = audioCtx.createGain();
+        oo.connect(gg); gg.connect(audioCtx.destination);
+        oo.type = 'sine';
+        oo.frequency.setValueAtTime(f, now + i * 0.1);
+        gg.gain.setValueAtTime(0.001, now + i * 0.1);
+        gg.gain.linearRampToValueAtTime(0.1, now + i * 0.1 + 0.02);
+        gg.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.25);
+        oo.start(now + i * 0.1); oo.stop(now + i * 0.1 + 0.28);
+      });
+      break;
+  }
+}
+
+/* ---------------- Toast ---------------- */
+function toast(msg) {
+  const layer = $('#toastLayer');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  layer.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+/* ---------------- 历史 / 成就 ---------------- */
+function logEvent(text) {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  state.history.push({ t: `${hh}:${mm}`, text });
+  if (state.history.length > 200) state.history.shift();
+}
+
+const ACHIEVEMENTS = {
+  first_blood: { ico: '💀', name: '初次见血', desc: '第一名队员阵亡' },
+  survivor: { ico: '🎖️', name: '幸存者', desc: '有队员晋升至 1 级' },
+  deep: { ico: '🕳️', name: '深入者', desc: '抵达第 5 个房间' },
+  conqueror: { ico: '👑', name: '地牢征服者', desc: '击败骸骨巫妖，通关地牢' },
+  wipe: { ico: '⚰️', name: '全军覆没', desc: '整支队伍葬身地牢' },
+  natural20: { ico: '🌟', name: '天命所归', desc: '一次判定自然掷出 20' },
+  fumble: { ico: '🎲', name: '笨手笨脚', desc: '一次判定自然掷出 1' },
+  rich: { ico: '💰', name: '小有积蓄', desc: '累计获得 200 枚以上铜币' }
+};
+
+function unlockAch(key) {
+  if (state.achievements[key]) return;
+  state.achievements[key] = true;
+  toast(`🏆 解锁成就：${ACHIEVEMENTS[key].name}`);
+  sfx('levelup');
+  logEvent(`🏆 解锁成就：${ACHIEVEMENTS[key].name}`);
+}
+
+/* ---------------- 角色生成 ---------------- */
+let charSeq = 0;
+function createCharacter() {
+  const str = rnd(6) + rnd(6) + rnd(6);
+  const agi = rnd(6) + rnd(6) + rnd(6);
+  const sta = rnd(6) + rnd(6) + rnd(6);
+  const per = rnd(6) + rnd(6) + rnd(6);
+  const int_ = rnd(6) + rnd(6) + rnd(6);
+  const luck = rnd(6) + rnd(6) + rnd(6);
+
+  const occ = rollOccupation();
+  const race = raceFromOccupation(occ.name);
+  const luckAugur = LUCK_TABLE[rnd(30)];
+  const luckMod = mod(luck);
+  const staMod = mod(sta);
+
+  let hp = Math.max(1, rnd(4) + staMod);
+  if (luckAugur && luckAugur.key === 'hp') hp = Math.max(1, hp + luckMod);
+
+  const cp = (() => { let t = 0; for (let i = 0; i < 5; i++) t += rnd(12); return t; })();
+
+  return {
+    id: ++charSeq,
+    name: pick(NAMES) + '·' + String.fromCharCode(0x4e00 + rnd(200)),
+    race,
+    occupation: occ.name,
+    weapon: occ.weapon,
+    baseWeapon: baseWeapon(occ.weapon),
+    weaponDmg: WEAPON_DMG[baseWeapon(occ.weapon)] || '1d4',
+    goods: occ.goods,
+    attrs: { str, agi, sta, per, int: int_, luck },
+    luckAugur,
+    luckMod,
+    hp, maxHp: hp,
+    xp: 0,
+    level: 0,
+    cls: null,
+    dead: false,
+    gold: cp
+  };
+}
+
+/* ---------------- 属性快捷访问 ---------------- */
+const M = {
+  str: c => mod(c.attrs.str),
+  agi: c => mod(c.attrs.agi),
+  sta: c => mod(c.attrs.sta),
+  per: c => mod(c.attrs.per),
+  int: c => mod(c.attrs.int),
+  luck: c => mod(c.attrs.luck)
+};
+
+/* 战斗攻击加值（0 级 +0；1 级起按职业） */
+function attackBonus(c) {
+  if (c.level === 0) return 0;
+  const cls = CLASSES[c.cls];
+  if (!cls) return 0;
+  if (cls.deed) return 0; // 事迹骰单独处理
+  return Math.floor(c.level / 2) + (cls.attack || 0);
+}
+
+/* ---------------- 挑战检定 ---------------- */
+function attrLabel(a) {
+  return { str: '力量', agi: '敏捷', sta: '耐力', per: '个性', int: '智力', luck: '幸运' }[a] || a;
+}
+
+/* 计算某角色在某遭遇上的修正值 */
+function challengeMod(c, enc) {
+  let m = M[enc.attr] ? M[enc.attr](c) : 0;
+  // 幸运预兆加成（若对应）
+  if (c.luckAugur) {
+    const k = c.luckAugur.key;
+    const match =
+      (enc.type === 'combat' && (k === 'attack' || k === 'melee')) ||
+      (enc.type === 'trap' && (k === 'trap_save' || k === 'reflex' || k === 'save')) ||
+      (enc.type === 'obstacle' && (k === 'skill' || k === 'save')) ||
+      (enc.type === 'puzzle' && (k === 'skill' || k === 'save')) ||
+      (enc.type === 'treasure' && k === 'skill') ||
+      (enc.type === 'gas' && (k === 'fort' || k === 'poison' || k === 'save'));
+    if (match) m += c.luckMod;
+  }
+  return m;
+}
+
+/* =========================================================
+   渲染
+   ========================================================= */
+function render() {
+  updateTopBar();
+  const stage = $('#stage');
+  switch (state.phase) {
+    case PHASE.TITLE: stage.innerHTML = viewTitle(); break;
+    case PHASE.CREATION: stage.innerHTML = viewCreation(); break;
+    case PHASE.EXPLORE: stage.innerHTML = viewExplore(); break;
+    case PHASE.RESULT: stage.innerHTML = viewResult(); break;
+    case PHASE.LEVELUP: stage.innerHTML = viewLevelUp(); break;
+    case PHASE.GAMEOVER: stage.innerHTML = viewGameOver(); break;
+    case PHASE.VICTORY: stage.innerHTML = viewVictory(); break;
+    default: stage.innerHTML = '';
+  }
+  stage.classList.remove('fade-in');
+  void stage.offsetWidth;
+  stage.classList.add('fade-in');
+}
+
+function updateTopBar() {
+  $('#goldDisplay').textContent = `💰 ${state.gold} 铜币`;
+  const alive = state.party.filter(c => !c.dead).length;
+  $('#floorDisplay').textContent = `🏛️ 房间 ${Math.min(state.roomIndex + (state.phase === PHASE.EXPLORE ? 1 : 0), ENCOUNTERS.length)} / ${ENCOUNTERS.length}`;
+  $('#partyDisplay').textContent = `👥 ${alive}`;
+}
+
+/* ---------------- 标题画面 ---------------- */
+function viewTitle() {
+  return `
+  <div class="title-screen">
+    <div class="big-title">地牢爬行经典</div>
+    <div class="subtitle">DUNGEON CRAWL CLASSICS</div>
+    <div class="quote">
+      「你并非英雄。<br>
+      你是个冒险者：一个掠夺者、一个扒手、一个异教徒杀手。<br>
+      地底深处藏有待夺取的宝藏，而你必将将其收入囊中。」
+    </div>
+    <button class="btn gold" data-action="start">🔥 开 始 冒 险</button>
+    <div style="font-size:11px;color:#7a6a50;letter-spacing:1px">
+      建议先阅读「📖 说明」，本游戏依据 DCC RPG 核心规则制作
+    </div>
+  </div>`;
+}
+
+/* ---------------- 角色创建 ---------------- */
+function viewCreation() {
+  const cards = state.party.map(c => charCardHtml(c, false)).join('');
+  return `
+  <div class="panel"><div class="panel-inner" style="text-align:center">
+    <div style="font-size:16px;font-weight:bold;letter-spacing:2px;color:#3a1f0c">⚗️ 角色创建漏斗</div>
+    <div style="font-size:12px;color:#6a5030;margin-top:6px;line-height:1.7">
+      每位玩家生成 4 名 <b>0 级</b>角色：完全随机的属性、随机职业、随机幸运预兆。<br>
+      他们中大多数会死在地牢里——别对他们产生感情。
+    </div>
+  </div></div>
+  <div class="party-wrap">
+    <div class="party-label"><span>🛡️ 你的 0 级队伍</span><span>${state.party.length} 人</span></div>
+    <div class="party-row">${cards}</div>
+  </div>
+  <div class="panel"><div class="panel-inner">
+    ${state.party.map(c => `
+      <div style="font-size:12px;color:#3a2a1a;line-height:1.7;border-bottom:1px dashed #b0a080;padding:6px 0">
+        <b style="color:#7a1a1a">${c.name}</b>　${c.occupation}
+        ｜力量 ${c.attrs.str}（${fmtMod(M.str(c))}）　敏捷 ${c.attrs.agi}（${fmtMod(M.agi(c))}）　耐力 ${c.attrs.sta}（${fmtMod(M.sta(c))}）<br>
+        <span style="color:#6a5030">武器：${c.weapon}（${c.weaponDmg}）　幸运预兆：${c.luckAugur.name}（${c.luckAugur.desc}）</span>
+      </div>`).join('')}
+  </div></div>
+  <div class="action-bar">
+    <button class="btn" data-action="reroll">🎲 重新生成</button>
+    <button class="btn gold" data-action="enter">🚪 进入地牢</button>
+  </div>`;
+}
+
+function fmtMod(v) { return v >= 0 ? `+${v}` : `${v}`; }
+
+/* ---------------- 角色卡 ---------------- */
+function charCardHtml(c, selectable) {
+  const pct = clamp((c.hp / c.maxHp) * 100, 0, 100);
+  const sel = state.selectedId === c.id ? 'selected' : '';
+  const dead = c.dead ? 'dead' : '';
+  const lvl = c.level === 0 ? '0 级' : `${c.level} 级 ${CLASSES[c.cls] ? CLASSES[c.cls].name : ''}`;
+  return `
+  <div class="char-card ${sel} ${dead}" ${selectable && !c.dead ? `data-action="select" data-id="${c.id}"` : ''}>
+    <div class="cc-name">${c.name}</div>
+    <div class="cc-occ">${c.occupation}</div>
+    <div class="cc-hpbar"><div class="cc-hpfill" style="width:${pct}%"></div></div>
+    <div class="cc-hptext">${Math.max(0, c.hp)} / ${c.maxHp} HP</div>
+    <div class="cc-stats">力${c.attrs.str} 敏${c.attrs.agi} 耐${c.attrs.sta}</div>
+    <div class="cc-xp"><span class="cc-lvl">${lvl}</span><span>XP ${c.xp}</span></div>
+  </div>`;
+}
+
+/* ---------------- SVG 程序化插画 ---------------- */
+function svgArt(kind) {
+  const wrap = inner => `<svg class="enc-art" viewBox="0 0 240 140" preserveAspectRatio="xMidYMid slice">${inner}</svg>`;
+  const stars = () => Array.from({ length: 14 }, () =>
+    `<circle cx="${rnd(230) + 5}" cy="${rnd(60) + 5}" r="${Math.random() * 1.2 + .4}" fill="#e8d8a0" opacity="${(Math.random() * .6 + .3).toFixed(2)}"/>`
+  ).join('');
+  switch (kind) {
+    case 'rubble':
+      return wrap(`
+        <defs><radialGradient id="g1" cx="50%" cy="20%"><stop offset="0%" stop-color="#4a3a28"/><stop offset="100%" stop-color="#0d0a06"/></radialGradient></defs>
+        <rect width="240" height="140" fill="url(#g1)"/>
+        ${stars()}
+        <polygon points="0,140 0,72 40,58 85,80 130,62 180,84 240,66 240,140" fill="#2a2118"/>
+        ${Array.from({ length: 13 }, (_, i) =>
+        `<circle cx="${12 + i * 18}" cy="${104 + Math.sin(i * 1.3) * 14}" r="${5 + (i % 3) * 3}" fill="#3d3225" stroke="#1a1410" stroke-width="1"/>`
+      ).join('')}
+        <rect x="0" y="132" width="240" height="8" fill="#0a0806"/>
+      `);
+    case 'corridor':
+      return wrap(`
+        <rect width="240" height="140" fill="#0d0a06"/>
+        <polygon points="0,0 80,45 80,95 0,140" fill="#241a10"/>
+        <polygon points="240,0 160,45 160,95 240,140" fill="#1a120a"/>
+        <rect x="80" y="45" width="80" height="50" fill="#3a2a18"/>
+        <polygon points="80,95 160,95 200,140 40,140" fill="#2a2016"/>
+        <rect x="80" y="45" width="80" height="50" fill="none" stroke="#6b5030" stroke-width="1.5"/>
+        <circle cx="120" cy="70" r="14" fill="#5a1a1a" opacity=".35"/>
+        <line x1="88" y1="102" x2="104" y2="112" stroke="#c9a227" stroke-width="2" opacity=".8"/>
+        <line x1="104" y1="112" x2="96" y2="124" stroke="#c9a227" stroke-width="2" opacity=".6"/>
+      `);
+    case 'skeleton':
+      return wrap(`
+        <defs><radialGradient id="g2" cx="50%" cy="45%"><stop offset="0%" stop-color="#2a2018"/><stop offset="100%" stop-color="#080604"/></radialGradient></defs>
+        <rect width="240" height="140" fill="url(#g2)"/>
+        <ellipse cx="120" cy="132" rx="60" ry="10" fill="#000" opacity=".6"/>
+        <g transform="translate(120,64)">
+          <ellipse cx="0" cy="-22" rx="18" ry="20" fill="#d8d0b8"/>
+          <ellipse cx="-7" cy="-26" rx="5" ry="6" fill="#0a0806"/>
+          <ellipse cx="7" cy="-26" rx="5" ry="6" fill="#0a0806"/>
+          <circle cx="-7" cy="-26" r="2" fill="#5aff8a" opacity=".9"><animate attributeName="opacity" values="0.3;1;0.3" dur="1.6s" repeatCount="indefinite"/></circle>
+          <circle cx="7" cy="-26" r="2" fill="#5aff8a" opacity=".9"><animate attributeName="opacity" values="1;0.3;1" dur="1.6s" repeatCount="indefinite"/></circle>
+          <path d="M-8,-14 L0,-8 L8,-14" stroke="#8a7a5a" stroke-width="2" fill="none"/>
+          <path d="M0,-2 L0,34" stroke="#d8d0b8" stroke-width="5"/>
+          <path d="M0,6 L-22,20 M0,6 L22,20" stroke="#d8d0b8" stroke-width="4"/>
+          <path d="M0,34 L-14,58 M0,34 L14,58" stroke="#d8d0b8" stroke-width="4"/>
+          <rect x="20" y="-4" width="5" height="52" fill="#8a8a90" transform="rotate(16,22,20)"/>
+          <rect x="16" y="18" width="15" height="5" fill="#5a4a30" transform="rotate(16,22,20)"/>
+        </g>
+      `);
+    case 'chest':
+      return wrap(`
+        <rect width="240" height="140" fill="#0d0a06"/>
+        <ellipse cx="120" cy="120" rx="80" ry="16" fill="#1a120a"/>
+        <g transform="translate(120,86)">
+          <rect x="-44" y="-20" width="88" height="46" rx="4" fill="#6b4a24" stroke="#3a2410" stroke-width="2"/>
+          <path d="M-44,-20 Q0,-52 44,-20 Z" fill="#7a5530" stroke="#3a2410" stroke-width="2"/>
+          <rect x="-44" y="-2" width="88" height="6" fill="#3a2410"/>
+          <rect x="-8" y="-8" width="16" height="18" rx="2" fill="#c9a227"/>
+          <circle cx="0" cy="0" r="3" fill="#3a2410"/>
+        </g>
+        ${Array.from({ length: 8 }, (_, i) =>
+        `<circle cx="${70 + i * 14}" cy="${44 + (i % 2) * 6}" r="${1.5 + (i % 3)}" fill="#f2d868" opacity="${.5 + Math.random() * .5}"><animate attributeName="opacity" values="0.2;1;0.2" dur="${(1 + i * .2).toFixed(1)}s" repeatCount="indefinite"/></circle>`
+      ).join('')}
+      `);
+    case 'door':
+      return wrap(`
+        <rect width="240" height="140" fill="#0a0806"/>
+        <rect x="0" y="118" width="240" height="22" fill="#1a1410"/>
+        <path d="M60,128 L60,42 Q120,-6 180,42 L180,128 Z" fill="#2a2018" stroke="#6b5030" stroke-width="3"/>
+        <path d="M74,124 L74,50 Q120,10 166,50 L166,124 Z" fill="#3a2c1e"/>
+        ${Array.from({ length: 6 }, (_, i) =>
+        `<circle cx="${92 + (i % 3) * 28}" cy="${68 + Math.floor(i / 3) * 30}" r="8" fill="none" stroke="#c9a227" stroke-width="2" opacity=".85">
+           <animate attributeName="opacity" values="0.3;1;0.3" dur="${(1.4 + i * .3).toFixed(1)}s" repeatCount="indefinite"/>
+         </circle>`
+      ).join('')}
+        <line x1="120" y1="118" x2="120" y2="96" stroke="#c9a227" stroke-width="3"/>
+      `);
+    case 'gargoyle':
+      return wrap(`
+        <defs><radialGradient id="g3" cx="50%" cy="30%"><stop offset="0%" stop-color="#3a2a1a"/><stop offset="100%" stop-color="#0a0806"/></radialGradient></defs>
+        <rect width="240" height="140" fill="url(#g3)"/>
+        <g transform="translate(120,72)">
+          <path d="M-10,-30 L-58,-6 L-38,10 L-14,0 Z" fill="#4a4038" stroke="#2a2420" stroke-width="2"/>
+          <path d="M10,-30 L58,-6 L38,10 L14,0 Z" fill="#4a4038" stroke="#2a2420" stroke-width="2"/>
+          <ellipse cx="0" cy="0" rx="18" ry="24" fill="#5a5048" stroke="#2a2420" stroke-width="2"/>
+          <path d="M-12,-22 L-18,-36 L-6,-26 Z" fill="#5a5048" stroke="#2a2420" stroke-width="1.5"/>
+          <path d="M12,-22 L18,-36 L6,-26 Z" fill="#5a5048" stroke="#2a2420" stroke-width="1.5"/>
+          <circle cx="-7" cy="-6" r="3" fill="#c02020"><animate attributeName="r" values="2.5;4;2.5" dur="1.2s" repeatCount="indefinite"/></circle>
+          <circle cx="7" cy="-6" r="3" fill="#c02020"><animate attributeName="r" values="4;2.5;4" dur="1.2s" repeatCount="indefinite"/></circle>
+          <path d="M-6,4 L0,10 L6,4" stroke="#2a2420" stroke-width="2" fill="none"/>
+        </g>
+      `);
+    case 'gas':
+      return wrap(`
+        <rect width="240" height="140" fill="#0a1008"/>
+        ${Array.from({ length: 7 }, (_, i) =>
+        `<ellipse cx="${20 + i * 34}" cy="${60 + Math.sin(i) * 20}" rx="${28 + i * 3}" ry="${22 + i * 2}" fill="#2a5a2a" opacity="${.15 + i * .03}">
+           <animate attributeName="cy" values="${60 + Math.sin(i) * 20};${50 + Math.sin(i) * 20};${60 + Math.sin(i) * 20}" dur="${(2 + i * .3).toFixed(1)}s" repeatCount="indefinite"/>
+         </ellipse>`
+      ).join('')}
+        <rect x="0" y="118" width="240" height="22" fill="#141a12"/>
+        <path d="M40,120 L40,60 L100,60 L100,120 Z" fill="#1a2418" stroke="#3a5a3a" stroke-width="1.5"/>
+        <circle cx="70" cy="80" r="4" fill="#5aff5a" opacity=".6"><animate attributeName="opacity" values=".2;.9;.2" dur="1.8s" repeatCount="indefinite"/></circle>
+      `);
+    case 'chasm':
+      return wrap(`
+        <rect width="240" height="140" fill="#080604"/>
+        <polygon points="0,0 240,0 240,52 160,60 120,58 80,62 0,54" fill="#2a2018"/>
+        <polygon points="0,140 240,140 240,96 160,88 120,90 80,86 0,94" fill="#2a2018"/>
+        <polygon points="160,60 120,58 80,62 80,86 120,90 160,88" fill="#050403"/>
+        <rect x="96" y="62" width="48" height="6" fill="#6b4a24" opacity=".9"/>
+        <rect x="96" y="82" width="48" height="6" fill="#6b4a24" opacity=".9"/>
+        ${Array.from({ length: 6 }, (_, i) =>
+        `<circle cx="${108 + i * 5}" cy="${120 + i * 2}" r="1" fill="#c9a227" opacity=".4"><animate attributeName="opacity" values="0;.7;0" dur="${(1 + i * .4).toFixed(1)}s" repeatCount="indefinite"/></circle>`
+      ).join('')}
+      `);
+    case 'goblin':
+      return wrap(`
+        <defs><radialGradient id="g4" cx="50%" cy="60%"><stop offset="0%" stop-color="#3a2410"/><stop offset="100%" stop-color="#0a0806"/></radialGradient></defs>
+        <rect width="240" height="140" fill="url(#g4)"/>
+        <g transform="translate(120,82)">
+          <ellipse cx="0" cy="30" rx="46" ry="30" fill="#3a2a12"/>
+          <ellipse cx="-12" cy="0" rx="16" ry="18" fill="#4a7a30"/>
+          <ellipse cx="-30" cy="-6" rx="10" ry="16" fill="#4a7a30" transform="rotate(-20,-30,-6)"/>
+          <ellipse cx="6" cy="-6" rx="10" ry="16" fill="#4a7a30" transform="rotate(20,6,-6)"/>
+          <circle cx="-16" cy="-4" r="3" fill="#f0e040"/>
+          <circle cx="-8" cy="-4" r="3" fill="#f0e040"/>
+          <path d="M-20,8 L-12,12 L-16,14 Z" fill="#0a0806"/>
+          <rect x="16" y="-4" width="4" height="30" fill="#8a7a5a" transform="rotate(24,18,10)"/>
+          <ellipse cx="0" cy="14" rx="10" ry="12" fill="#3a5a24"/>
+          <ellipse cx="46" cy="0" rx="12" ry="14" fill="#4a7a30" opacity=".8"/>
+          <circle cx="42" cy="-4" r="2.5" fill="#f0e040"/>
+          <circle cx="50" cy="-4" r="2.5" fill="#f0e040"/>
+        </g>
+        <ellipse cx="120" cy="120" rx="70" ry="14" fill="#c05010" opacity=".25"/>
+      `);
+    case 'boss':
+      return wrap(`
+        <defs><radialGradient id="g5" cx="50%" cy="40%"><stop offset="0%" stop-color="#2a0a3a"/><stop offset="100%" stop-color="#050208"/></radialGradient></defs>
+        <rect width="240" height="140" fill="url(#g5)"/>
+        ${stars()}
+        <g transform="translate(120,68)">
+          <path d="M-40,60 Q-56,10 -30,-20 Q0,-46 30,-20 Q56,10 40,60 Z" fill="#2a1a3a" stroke="#6a3a8a" stroke-width="2"/>
+          <ellipse cx="0" cy="-20" rx="20" ry="22" fill="#d8d0c0"/>
+          <ellipse cx="-8" cy="-26" rx="6" ry="7" fill="#12081a"/>
+          <ellipse cx="8" cy="-26" rx="6" ry="7" fill="#12081a"/>
+          <circle cx="-8" cy="-26" r="3.5" fill="#a040ff"><animate attributeName="r" values="2.5;5;2.5" dur="1.5s" repeatCount="indefinite"/></circle>
+          <circle cx="8" cy="-26" r="3.5" fill="#a040ff"><animate attributeName="r" values="5;2.5;5" dur="1.5s" repeatCount="indefinite"/></circle>
+          <path d="M-10,-10 L0,-4 L10,-10" stroke="#8a7a5a" stroke-width="2" fill="none"/>
+          <path d="M-30,10 Q0,-6 30,10" stroke="#6a3a8a" stroke-width="2" fill="none"/>
+          <path d="M0,4 L0,54" stroke="#d8d0c0" stroke-width="6"/>
+          <path d="M0,16 L-30,36 M0,16 L30,36" stroke="#d8d0c0" stroke-width="4"/>
+          <path d="M-36,56 L-50,74 M36,56 L50,74" stroke="#3a2a4a" stroke-width="3"/>
+        </g>
+        <ellipse cx="120" cy="128" rx="80" ry="12" fill="#6a20aa" opacity=".3"><animate attributeName="opacity" values=".15;.4;.15" dur="2.4s" repeatCount="indefinite"/></ellipse>
+      `);
+    default:
+      return wrap(`<rect width="240" height="140" fill="#1a120a"/>`);
+  }
+}
+
+/* ---------------- 打字机 ---------------- */
+let typeTimer = null;
+function typewriter(el, text) {
+  if (typeTimer) clearInterval(typeTimer);
+  el.textContent = '';
+  el.dataset.full = text;
+  el.dataset.typing = '1';
+  let i = 0;
+  typeTimer = setInterval(() => {
+    el.textContent = text.slice(0, ++i);
+    if (i >= text.length) {
+      clearInterval(typeTimer);
+      typeTimer = null;
+      el.dataset.typing = '0';
+    }
+  }, 26);
+}
+
+/* ---------------- 探索画面 ---------------- */
+function viewExplore() {
+  const enc = ENCOUNTERS[state.roomIndex];
+  const selectable = true;
+  const aliveChars = state.party.filter(c => !c.dead);
+  const canAct = state.selectedId && aliveChars.some(c => c.id === state.selectedId);
+
+  return `
+  <div class="panel encounter-card">
+    ${svgArt(enc.art)}
+    <div class="enc-body">
+      <div class="enc-name"><span>${enc.name}</span><span class="tag">${enc.tag} · 房间 ${state.roomIndex + 1}</span></div>
+      <div class="enc-desc" id="encDesc"></div>
+      <div class="challenge-box">
+        <span>🎯 挑战：<b>${attrLabel(enc.attr)}检定 DC ${enc.dc}</b></span>
+        <span>✨ 经验：${enc.xp} XP</span>
+        ${enc.enemy ? `<span>👹 ${enc.enemy}</span>` : ''}
+      </div>
+    </div>
+  </div>
+
+  <div class="party-wrap">
+    <div class="party-label"><span>🛡️ 选择一名队员迎接挑战</span><span>${aliveChars.length} 人存活</span></div>
+    <div class="party-row">
+      ${state.party.map(c => charCardHtml(c, selectable)).join('')}
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn gold" data-action="act" ${canAct ? '' : 'disabled'}>
+      ${enc.type === 'combat' ? '⚔️ 发 起 攻 击' : enc.type === 'treasure' ? '🔍 探 查' : '🎲 尝 试'}
+    </button>
+  </div>
+
+  <div class="panel"><div class="panel-inner" style="font-size:11.5px;color:#5a4030;line-height:1.7">
+    <b>💡 提示：</b>点击上方角色卡以选择由谁面对挑战。不同角色的属性修正值不同，选择最适合的人选。
+    掷骰结果 = <b>d20 + 属性修正值</b>，达到或超过 DC 即成功。
+  </div></div>`;
+}
+
+/* ---------------- 结果画面 ---------------- */
+function viewResult() {
+  const r = state.lastResult;
+  const enc = ENCOUNTERS[state.roomIndex];
+  const diceCls = r.success ? 'ok' : 'bad';
+  return `
+  <div class="panel"><div class="panel-inner">
+    <div style="text-align:center;font-size:16px;font-weight:bold;letter-spacing:2px;color:#3a1f0c;margin-bottom:6px">
+      ${r.success ? '✅ 成 功' : '❌ 失 败'}
+    </div>
+    <div class="dice-display">
+      <div>
+        <div class="die-box">${r.roll}</div>
+        <div style="text-align:center;font-size:11px;color:#6a5030;margin-top:4px">d20</div>
+      </div>
+      <div style="font-size:20px;color:#6a5030">+</div>
+      <div>
+        <div class="die-box" style="font-size:22px">${r.mod >= 0 ? '+' : ''}${r.mod}</div>
+        <div style="text-align:center;font-size:11px;color:#6a5030;margin-top:4px">修正值</div>
+      </div>
+      <div style="font-size:20px;color:#6a5030">=</div>
+      <div>
+        <div class="die-box" style="font-size:26px;background:radial-gradient(circle at 30% 25%, #8a6a20, #3a2a08)">${r.total}</div>
+        <div style="text-align:center;font-size:11px;color:#6a5030;margin-top:4px">总计</div>
+      </div>
+    </div>
+    <div class="result-line ${diceCls}">
+      ${r.success
+      ? `你以 <span class="big">${r.total}</span> 对抗 DC ${r.dc} —— 成功！`
+      : `你以 <span class="big">${r.total}</span> 对抗 DC ${r.dc} —— 失败！`}
+    </div>
+    ${r.nat20 ? `<div class="result-line ok" style="font-size:13px">🌟 自然掷出 20 —— 自动命中！</div>` : ''}
+    ${r.nat1 ? `<div class="result-line bad" style="font-size:13px">🎲 自然掷出 1 —— 自动失败（大失败）！</div>` : ''}
+    <div style="border-top:1px dashed #a08a60;margin:12px 0 10px"></div>
+    <div style="font-size:13.5px;line-height:1.85;color:#3a2a1a;text-align:center">
+      ${r.message}
+    </div>
+    <div style="margin-top:12px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:13px">
+      ${r.xp ? `<span class="ok">✨ +${r.xp} XP</span>` : ''}
+      ${r.dmg ? `<span class="bad">💔 -${r.dmg} HP</span>` : ''}
+      ${r.gold ? `<span style="color:#8a6a00;font-weight:bold">💰 +${r.gold} 铜币</span>` : ''}
+      ${r.death ? `<span class="bad">⚰️ ${r.death} 阵亡</span>` : ''}
+    </div>
+  </div></div>
+
+  <div class="action-bar">
+    <button class="btn gold" data-action="continue">➡️ 继 续 前 进</button>
+  </div>`;
+}
+
+/* ---------------- 升级画面 ---------------- */
+function viewLevelUp() {
+  const c = state.pendingLevelUps[0];
+  if (!c) { return ''; }
+  const opts = Object.entries(CLASSES).filter(([k, v]) => {
+    if (c.race === 'human') return v.race === 'human';
+    return v.race === c.race;
+  });
+  return `
+  <div class="panel"><div class="panel-inner" style="text-align:center">
+    <div style="font-size:18px;font-weight:bold;letter-spacing:2px;color:#7a1a1a">✨ 晋 升 时 刻 ✨</div>
+    <div style="font-size:13px;color:#3a2a1a;margin-top:8px;line-height:1.8">
+      <b>${c.name}</b> 从这场残酷的试炼中活了下来，<br>
+      积累了 <b>${c.xp} 点经验值</b>，如今可以成为一名 <b>1 级冒险者</b>。
+    </div>
+    <div style="font-size:12px;color:#6a5030;margin-top:6px">
+      （种族：${({ human: '人类', dwarf: '矮人', elf: '精灵', halfling: '半身人' })[c.race]}，可选择对应职业）
+    </div>
+  </div></div>
+  <div class="panel"><div class="panel-inner">
+    <div style="font-size:13px;font-weight:bold;color:#3a1f0c;letter-spacing:1px">⚔️ 选择一个职业</div>
+    <div class="class-grid">
+      ${opts.map(([k, v]) => `
+        <div class="class-opt" data-action="chooseclass" data-cls="${k}">
+          <div class="cn">${v.name}</div>
+          <div class="cd">生命骰 d${v.hpDie}　${v.desc}</div>
+        </div>`).join('')}
+    </div>
+  </div></div>`;
+}
+
+/* ---------------- 游戏结束 ---------------- */
+function viewGameOver() {
+  return `
+  <div class="panel"><div class="panel-inner" style="text-align:center;padding:24px 14px">
+    <div style="font-size:34px;margin-bottom:8px">⚰️</div>
+    <div style="font-size:22px;font-weight:bold;letter-spacing:3px;color:#7a1a1a">全 军 覆 没</div>
+    <div style="font-size:13.5px;color:#3a2a1a;line-height:1.9;margin-top:14px">
+      最后一支火把熄灭了。<br>
+      你的冒险者们在黑暗中被遗忘，<br>
+      他们的名字不会出现在任何歌谣之中。<br><br>
+      <span style="color:#6a5030;font-size:12px">—— 地牢永远等待着下一批牺牲者。</span>
+    </div>
+    <div style="margin-top:16px;font-size:13px;color:#6a5030">
+      抵达房间：<b>${state.roomIndex + 1} / ${ENCOUNTERS.length}</b>　累计铜币：<b>${state.gold}</b>
+    </div>
+  </div></div>
+  <div class="action-bar">
+    <button class="btn gold" data-action="restart">🔄 重 新 开 始</button>
+  </div>`;
+}
+
+/* ---------------- 胜利 ---------------- */
+function viewVictory() {
+  return `
+  <div class="panel"><div class="panel-inner" style="text-align:center;padding:24px 14px">
+    <div style="font-size:34px;margin-bottom:8px">👑</div>
+    <div style="font-size:22px;font-weight:bold;letter-spacing:3px;color:#8a6a00">地 牢 征 服 者</div>
+    <div style="font-size:13.5px;color:#3a2a1a;line-height:1.9;margin-top:14px">
+      骸骨巫妖的紫焰熄灭，<br>
+      地牢深处的回响归于沉寂。<br>
+      你带着满身伤痕与宝藏回到了地表——<br>
+      而关于你的传说，才刚刚开始。
+    </div>
+    <div style="margin-top:16px;font-size:13px;color:#6a5030;line-height:2">
+      存活队员：<b>${state.party.filter(c => !c.dead).length} / ${state.party.length}</b><br>
+      累计铜币：<b>${state.gold}</b><br>
+      1 级以上队员：<b>${state.party.filter(c => c.level >= 1 && !c.dead).length}</b>
+    </div>
+  </div></div>
+  <div class="action-bar">
+    <button class="btn gold" data-action="restart">🔄 再 来 一 次</button>
+  </div>`;
+}
+
+/* =========================================================
+   游戏逻辑
+   ========================================================= */
+
+function startGame() {
+  state.phase = PHASE.CREATION;
+  state.party = [];
+  state.gold = 0;
+  state.roomIndex = 0;
+  state.selectedId = null;
+  state.lastResult = null;
+  state.pendingLevelUps = [];
+  state.history = [];
+  state.achievements = {};
+  rollParty();
+  logEvent('🎲 生成 4 名 0 级冒险者');
+  render();
+}
+
+function rollParty() {
+  state.party = [];
+  for (let i = 0; i < 4; i++) state.party.push(createCharacter());
+}
+
+function enterDungeon() {
+  state.phase = PHASE.EXPLORE;
+  state.roomIndex = 0;
+  state.selectedId = null;
+  logEvent('🚪 踏入地牢入口');
+  render();
+}
+
+function selectChar(id) {
+  const c = state.party.find(x => x.id === id);
+  if (!c || c.dead) return;
+  state.selectedId = id;
+  sfx('click');
+  render();
+}
+
+function doAction() {
+  const enc = ENCOUNTERS[state.roomIndex];
+  const c = state.party.find(x => x.id === state.selectedId);
+  if (!c || c.dead) {
+    toast('⚠️ 请先选择一名存活的队员');
+    return;
+  }
+  if (state.phase !== PHASE.EXPLORE) return;
+
+  sfx('roll');
+
+  const modVal = challengeMod(c, enc);
+  const roll = rnd(20);
+  const total = roll + modVal;
+  let success = total >= enc.dc;
+  let nat20 = roll === 20;
+  let nat1 = roll === 1;
+  if (nat20) success = true;
+  if (nat1) success = false;
+
+  if (nat20) unlockAch('natural20');
+  if (nat1) unlockAch('fumble');
+
+  const result = {
+    roll, mod: modVal, total, dc: enc.dc,
+    success, nat20, nat1,
+    xp: 0, dmg: 0, gold: 0, death: null, message: ''
+  };
+
+  if (success) {
+    result.xp = enc.xp;
+    c.xp += enc.xp;
+    state.gold += enc.gold ? rng(10, 40) : 0;
+    if (enc.gold) { result.gold = state.gold; }
+    result.message = enc.okText;
+    sfx('success');
+    logEvent(`✅ ${c.name} 在「${enc.name}」中成功（${total} vs DC ${enc.dc}），获得 ${enc.xp} XP`);
+  } else {
+    const dmg = rollDiceExpr(enc.badDmg || '1d4');
+    result.dmg = dmg;
+    c.hp -= dmg;
+    result.message = enc.badText;
+    if (c.hp <= 0) {
+      c.hp = 0;
+      c.dead = true;
+      result.death = c.name;
+      sfx('death');
+      logEvent(`⚰️ ${c.name} 在「${enc.name}」中阵亡`);
+      if (!state.achievements['first_blood']) unlockAch('first_blood');
+    } else {
+      sfx('fail');
+      logEvent(`❌ ${c.name} 在「${enc.name}」中失败（${total} vs DC ${enc.dc}），受到 ${dmg} 点伤害`);
+    }
+  }
+
+  // 宝藏额外铜币
+  if (enc.gold && success) {
+    const g = rng(10, 40);
+    state.gold += g;
+    result.gold = g;
+  }
+  if (state.gold >= 200) unlockAch('rich');
+
+  // 若第一个房间通过，检查里程碑
+  if (state.roomIndex + 1 >= 5) unlockAch('deep');
+
+  state.lastResult = result;
+  state.phase = PHASE.RESULT;
+  render();
+}
+
+function continueJourney() {
+  // 检查是否有角色可以升级
+  const levelable = state.party.filter(c => !c.dead && c.level === 0 && c.xp >= 10);
+  if (levelable.length > 0) {
+    state.pendingLevelUps = levelable;
+    state.phase = PHASE.LEVELUP;
+    sfx('levelup');
+    logEvent(`✨ ${levelable[0].name} 达到 10 点经验值，可以选择职业晋升`);
+    render();
+    return;
+  }
+
+  state.roomIndex++;
+  if (state.roomIndex >= ENCOUNTERS.length) {
+    state.phase = PHASE.VICTORY;
+    unlockAch('conqueror');
+    logEvent('👑 击败骸骨巫妖，征服地牢！');
+    render();
+    return;
+  }
+
+  // 队伍是否全灭
+  if (state.party.every(c => c.dead)) {
+    state.phase = PHASE.GAMEOVER;
+    unlockAch('wipe');
+    logEvent('⚰️ 全军覆没');
+    render();
+    return;
+  }
+
+  state.phase = PHASE.EXPLORE;
+  state.selectedId = null;
+  logEvent(`➡️ 进入房间 ${state.roomIndex + 1}：${ENCOUNTERS[state.roomIndex].name}`);
+  render();
+}
+
+function chooseClass(clsKey) {
+  const c = state.pendingLevelUps[0];
+  if (!c) return;
+  const cls = CLASSES[clsKey];
+  if (!cls) return;
+
+  c.level = 1;
+  c.cls = clsKey;
+
+  // 生命值：保留 0 级的 1d4，再加职业生命骰
+  const hpGain = Math.max(1, rnd(cls.hpDie) + M.sta(c));
+  const augurHp = (c.luckAugur && c.luckAugur.key === 'hp') ? c.luckMod : 0;
+  c.maxHp += hpGain + augurHp;
+  c.hp = c.maxHp;
+
+  sfx('levelup');
+  unlockAch('survivor');
+  logEvent(`🎖️ ${c.name} 晋升为 1 级 ${cls.name}，生命值提升至 ${c.maxHp}`);
+  toast(`🎖️ ${c.name} 晋升为 1 级 ${cls.name}！`);
+
+  state.pendingLevelUps.shift();
+
+  if (state.pendingLevelUps.length > 0) {
+    render();
+    return;
+  }
+
+  // 继续旅程
+  state.roomIndex++;
+  if (state.roomIndex >= ENCOUNTERS.length) {
+    state.phase = PHASE.VICTORY;
+    unlockAch('conqueror');
+    render();
+    return;
+  }
+  if (state.party.every(x => x.dead)) {
+    state.phase = PHASE.GAMEOVER;
+    unlockAch('wipe');
+    render();
+    return;
+  }
+  state.phase = PHASE.EXPLORE;
+  state.selectedId = null;
+  render();
+}
+
+function restartGame() {
+  state.phase = PHASE.TITLE;
+  state.party = [];
+  state.gold = 0;
+  state.roomIndex = 0;
+  state.selectedId = null;
+  state.lastResult = null;
+  state.pendingLevelUps = [];
+  state.history = [];
+  state.achievements = {};
+  render();
+}
+
+/* =========================================================
+   模态框系统
+   ========================================================= */
+function openModal(title, bodyHtml, footHtml, opts = {}) {
+  const layer = $('#modalLayer');
+  layer.innerHTML = `
+    <div class="modal panel">
+      <div class="modal-head">
+        <span>${title}</span>
+        ${opts.closable !== false ? '<button data-modal="close">✕</button>' : ''}
+      </div>
+      <div class="modal-body">${bodyHtml}</div>
+      ${footHtml ? `<div class="modal-foot">${footHtml}</div>` : ''}
+    </div>`;
+  layer.classList.add('show');
+  return layer;
+}
+function closeModal() {
+  const layer = $('#modalLayer');
+  layer.classList.remove('show');
+  layer.innerHTML = '';
+}
+
+/* ---------------- 说明文档 ---------------- */
+function openHelp(fromStart = false) {
+  const body = `
+    <h3>🎯 游戏目标</h3>
+    <p>带领你的冒险者队伍穿越 <b>10 个房间</b> 的地牢，抵达最深处并击败 <b>骸骨巫妖</b>。
+    只要还有 <b>一名队员存活</b> 并走完全程，就算通关。</p>
+    <p class="em">⚠️ 请注意：你的角色起初都是 0 级农夫，脆弱得可笑。很多人会死——这是设计的一部分。</p>
+
+    <h3>👀 看懂画面</h3>
+    <ul>
+      <li><b>顶部信息列</b>（画面最上方深色横条）：从左到右依次显示
+        <span class="hl">💰 铜币</span>（你的财富）、
+        <span class="hl">🏛️ 房间</span>（当前进度 / 共 10 间）、
+        <span class="hl">👥 人数</span>（还活着的队员数）。</li>
+      <li><b>遭遇卡</b>（画面中央的羊皮纸大卡片）：显示当前房间的标题、插画、故事描述，
+        以及下方的 <span class="hl">🎯 挑战</span> —— 告诉你需要什么属性的检定、难度 DC 是多少、能拿多少经验。</li>
+      <li><b>队伍列</b>（遭遇卡下方的横向卡片条）：每张卡片是一名队员，显示姓名、职业、
+        <span class="hl">红色生命条</span>、六项属性、等级与经验值。卡片可以左右滑动查看。</li>
+      <li><b>行动按钮</b>（队伍列下方的大按钮）：确认你的行动。</li>
+      <li><b>底部导航列</b>（画面最下方固定一排）：说明、存档、读档、历史、成就、音效开关。</li>
+    </ul>
+
+    <h3>🕹️ 操作步骤</h3>
+    <ul>
+      <li><b>1. 生成队伍 ➔</b> 点击「开始冒险」，系统会为你随机生成 <b>4 名 0 级角色</b>。</li>
+      <li><b>2. 进入地牢 ➔</b> 点击「进入地牢」开始第一个房间。</li>
+      <li><b>3. 选择队员 ➔</b> 点击队伍列中的某张角色卡选中他（卡片会亮起金色边框）。</li>
+      <li><b>4. 掷骰判定 ➔</b> 点击「攻击 / 尝试」按钮。系统会掷 <b>1d20 + 属性修正值</b>，
+        结果 ≥ 难度 DC 即成功。</li>
+      <li><b>5. 结算 ➔</b> 成功会获得经验值（✨ XP）与可能的铜币；失败会受到伤害（💔 HP）。</li>
+      <li><b>6. 继续前进 ➔</b> 点击「继续前进」进入下一个房间。</li>
+      <li><b>7. 晋升 ➔</b> 当某名队员累计达到 <b>10 点经验值</b>，他会自动触发晋升，
+        此时你可以为他选择一个职业（战士 / 盗贼 / 牧师 / 法师等），并变成 1 级。</li>
+    </ul>
+
+    <h3>📊 属性与修正值</h3>
+    <p>每名角色有六项属性（力量、敏捷、耐力、个性、智力、幸运），数值为 3–18。
+    每项属性都有一个 <b>修正值</b>，会加到相关的掷骰上。数值越高越好：</p>
+    <ul>
+      <li><b>3</b> → −3　<b>4–5</b> → −2　<b>6–8</b> → −1</li>
+      <li><b>9–12</b> → 0　<b>13–15</b> → +1　<b>16–17</b> → +2　<b>18</b> → +3</li>
+    </ul>
+    <p class="em">💡 小诀窍：面对「力量检定」时选力量高的队员；面对「敏捷检定」时选敏捷高的队员。</p>
+
+    <h3>🍀 幸运预兆</h3>
+    <p>每名角色在创建时会随机获得一个 <b>幸运预兆</b>（例如「第七子：法术检定」）。
+    当你进行与之匹配的掷骰时，会额外获得角色的幸运修正值加成。角色卡上的说明会告诉你具体内容。</p>
+
+    <h3>⚡ 特殊机制</h3>
+    <ul>
+      <li><b>自然 20 / 自然 1：</b>掷出 20 必定成功，掷出 1 必定失败——与原作核心机制一致。</li>
+      <li><b>0 级漏斗：</b>0 级角色只有 1d4 点生命值，一击就可能丧命。这正是「漏斗」的意义：
+        只有活下来的角色才值得被记住。</li>
+      <li><b>阵亡：</b>生命值降到 0 的队员会被标记为「阵亡」，无法再被选择。若全队阵亡，游戏结束。</li>
+      <li><b>晋升保留生命：</b>晋升到 1 级时，角色会保留 0 级时的生命值，并额外获得职业生命骰。</li>
+      <li><b>存档 / 读档：</b>随时可以保存进度。存档保存在浏览器本地，关掉网页也不会丢失。</li>
+    </ul>
+
+    <h3>🎮 胜利条件</h3>
+    <p>走完 <b>全部 10 个房间</b>，并在最终房间击败首领，即可通关。祝你好运——你会需要它的。</p>
+  `;
+  const foot = fromStart
+    ? `<button class="btn gold" data-modal="startgame">我准备好了，开始游戏</button>`
+    : `<button class="btn" data-modal="close">关闭</button>`;
+  openModal('📖 游戏说明', body, foot, { closable: !fromStart });
+}
+
+/* ---------------- 历史 ---------------- */
+function openHistory() {
+  const items = state.history.length
+    ? state.history.map(h => `<div class="tl-item"><span class="tt">${h.t}</span>${h.text}</div>`).join('')
+    : '<p style="color:#8a7050">还没有任何记录。开始冒险吧！</p>';
+  openModal('📜 冒险历史', `<div class="timeline">${items}</div>`,
+    `<button class="btn small" data-modal="close">关闭</button>`);
+}
+
+/* ---------------- 成就 ---------------- */
+function openAchievements() {
+  const body = Object.entries(ACHIEVEMENTS).map(([k, v]) => {
+    const un = !!state.achievements[k];
+    return `<div class="ach-item ${un ? 'unlocked' : ''}">
+      <div class="ach-ico">${v.ico}</div>
+      <div>
+        <div class="ach-name">${v.name}</div>
+        <div class="ach-desc">${v.desc}</div>
+      </div>
+    </div>`;
+  }).join('');
+  const unlocked = Object.keys(state.achievements).length;
+  openModal('🏆 成就', `<p style="margin-bottom:10px;color:#6a5030">已解锁 ${unlocked} / ${Object.keys(ACHIEVEMENTS).length}</p>${body}`,
+    `<button class="btn small" data-modal="close">关闭</button>`);
+}
+
+/* ---------------- 存档 / 读档 ---------------- */
+const SAVE_KEY = 'dcc_save_v1';
+
+function saveGame() {
+  if (state.phase === PHASE.TITLE) {
+    toast('⚠️ 还没有开始游戏，无法存档');
+    return;
+  }
+  try {
+    const data = {
+      phase: state.phase,
+      party: state.party,
+      gold: state.gold,
+      roomIndex: state.roomIndex,
+      selectedId: state.selectedId,
+      lastResult: state.lastResult,
+      pendingLevelUps: state.pendingLevelUps,
+      history: state.history,
+      achievements: state.achievements,
+      soundOn: state.soundOn,
+      ts: Date.now()
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    toast('💾 进度已保存');
+    logEvent('💾 保存进度');
+  } catch (e) {
+    toast('⚠️ 存档失败：浏览器存储空间不足');
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) { toast('⚠️ 没有找到存档'); return; }
+    const d = JSON.parse(raw);
+    state.party = d.party || [];
+    state.gold = d.gold || 0;
+    state.roomIndex = d.roomIndex || 0;
+    state.selectedId = d.selectedId || null;
+    state.lastResult = d.lastResult || null;
+    state.pendingLevelUps = d.pendingLevelUps || [];
+    state.history = d.history || [];
+    state.achievements = d.achievements || {};
+    state.soundOn = d.soundOn !== false;
+    state.phase = d.phase || PHASE.EXPLORE;
+    if (state.phase === PHASE.RESULT) state.phase = PHASE.EXPLORE;
+    updateSoundBtn();
+    toast('📂 读档成功');
+    render();
+  } catch (e) {
+    toast('⚠️ 读档失败：存档文件损坏');
+  }
+}
+
+/* ---------------- 音效开关 ---------------- */
+function updateSoundBtn() {
+  const btn = $('#soundBtn');
+  if (!btn) return;
+  btn.querySelector('.ico').textContent = state.soundOn ? '🔊' : '🔇';
+  btn.classList.toggle('on', state.soundOn);
+  btn.querySelector('span:last-child').textContent = state.soundOn ? '音效' : '静音';
+}
+
+/* =========================================================
+   事件绑定
+   ========================================================= */
+$('#stage').addEventListener('click', e => {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+
+  // 打字机：点击描述立即完成
+  const descEl = e.target.closest('#encDesc');
+  if (descEl && descEl.dataset.typing === '1') {
+    clearInterval(typeTimer); typeTimer = null;
+    descEl.textContent = descEl.dataset.full || '';
+    descEl.dataset.typing = '0';
+    return;
+  }
+
+  const act = el.dataset.action;
+  sfx('click');
+  switch (act) {
+    case 'start':
+      openHelp(true);
+      break;
+    case 'reroll':
+      rollParty();
+      logEvent('🎲 重新生成队伍');
+      render();
+      break;
+    case 'enter':
+      enterDungeon();
+      break;
+    case 'select':
+      selectChar(parseInt(el.dataset.id, 10));
+      break;
+    case 'act':
+      doAction();
+      break;
+    case 'continue':
+      continueJourney();
+      break;
+    case 'chooseclass':
+      chooseClass(el.dataset.cls);
+      break;
+    case 'restart':
+      restartGame();
+      break;
+  }
+});
+
+// 底部导航
+$('#bottomnav').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  sfx('click');
+  const nav = btn.dataset.nav;
+  switch (nav) {
+    case 'help': openHelp(false); break;
+    case 'save': saveGame(); break;
+    case 'load': loadGame(); break;
+    case 'history': openHistory(); break;
+    case 'achievements': openAchievements(); break;
+    case 'sound':
+      state.soundOn = !state.soundOn;
+      updateSoundBtn();
+      if (state.soundOn) sfx('click');
+      break;
+  }
+});
+
+// 模态框事件
+$('#modalLayer').addEventListener('click', e => {
+  const el = e.target.closest('[data-modal]');
+  if (!el) {
+    if (e.target.id === 'modalLayer' && $('#modalLayer').querySelector('[data-modal="close"]')) closeModal();
+    return;
+  }
+  sfx('click');
+  const a = el.dataset.modal;
+  if (a === 'close') closeModal();
+  else if (a === 'startgame') {
+    closeModal();
+    startGame();
+  }
+});
+
+// 键盘快捷键
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const layer = $('#modalLayer');
+    if (layer.classList.contains('show') && layer.querySelector('[data-modal="close"]')) closeModal();
+  }
+});
+
+/* =========================================================
+   打字机启动（每次渲染后）
+   ========================================================= */
+const _origRender = render;
+render = function () {
+  _origRender();
+  const desc = $('#encDesc');
+  if (desc) {
+    const enc = ENCOUNTERS[state.roomIndex];
+    if (enc) typewriter(desc, enc.desc);
+  }
+};
+
+/* =========================================================
+   启动
+   ========================================================= */
+updateSoundBtn();
+render();
+</script>
+</body>
+</html>
