@@ -1,0 +1,3612 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0d0b08">
+<title>灰星巫師 — 孤狼世界</title>
+<style>
+:root{
+  --ink:#e8dcc4; --gold:#c9a84c; --gold2:#e8c96a;
+  --bg:#0a0805; --panel:#17130d; --panel2:#211a11;
+  --border:#3d3426; --danger:#c0392b; --hp:#b03a2e;
+  --wp:#3d7ec0; --cs:#a8863e; --ok:#4a9d5f;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:#0a0805;
+  color:var(--ink);
+  font-family:"Noto Serif TC","Songti TC","Georgia",serif;
+  font-size:15px;line-height:1.75;
+  overflow:hidden;
+  -webkit-user-select:none;user-select:none;
+}
+#vignette{
+  position:fixed;inset:0;pointer-events:none;z-index:5;
+  background:radial-gradient(ellipse at 50% 40%,transparent 30%,rgba(0,0,0,.55) 85%,rgba(0,0,0,.9) 100%);
+}
+#grain{
+  position:fixed;inset:0;pointer-events:none;z-index:4;opacity:.06;
+  background-image:radial-gradient(#fff 1px,transparent 1px),radial-gradient(#fff 1px,transparent 1px);
+  background-size:3px 3px,7px 7px;background-position:0 0,1px 2px;
+  mix-blend-mode:overlay;
+}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;z-index:6}
+
+/* ===== HEADER ===== */
+header{
+  flex:0 0 auto;padding:8px 10px 6px;
+  background:linear-gradient(180deg,rgba(28,22,14,.98),rgba(18,14,9,.92));
+  border-bottom:1px solid var(--border);
+  box-shadow:0 2px 12px rgba(0,0,0,.7);
+}
+.statrow{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.statrow::-webkit-scrollbar{display:none}
+.stat{
+  flex:1 1 0;min-width:74px;
+  background:var(--panel2);border:1px solid var(--border);border-radius:6px;
+  padding:3px 7px;display:flex;flex-direction:column;align-items:flex-start;
+  position:relative;overflow:hidden;
+}
+.stat .lbl{font-size:9px;letter-spacing:.1em;opacity:.75;line-height:1.2}
+.stat .val{font-size:15px;font-weight:700;line-height:1.25;font-family:"Georgia",serif}
+.stat.hp .val{color:#e37a6b}
+.stat.wp .val{color:#7fb6ea}
+.stat.cs .val{color:var(--gold2)}
+.stat.nb .val{color:#9ad7a5}
+.stat.fd .val{color:#d9c08a}
+.stat .bar{position:absolute;left:0;bottom:0;height:2px;background:currentColor;opacity:.55;transition:width .35s}
+
+/* ===== MAIN ===== */
+main{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:14px 14px 6px;-webkit-overflow-scrolling:touch}
+.storywrap{max-width:760px;margin:0 auto}
+.secthead{
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;
+  font-size:10px;letter-spacing:.28em;color:var(--gold);opacity:.8;
+}
+.secthead::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+#story{
+  font-size:15.5px;line-height:1.95;white-space:pre-wrap;word-break:break-word;
+  color:#e6dac2;min-height:60px;
+  text-shadow:0 1px 0 rgba(0,0,0,.6);
+  cursor:pointer;
+}
+#story .em{color:var(--gold2);font-weight:700}
+#story .dmg{color:#e37a6b;font-weight:700}
+#story .gain{color:#8fd4a0;font-weight:700}
+
+/* choices */
+#choices{margin-top:18px;display:flex;flex-direction:column;gap:9px}
+.btn{
+  display:block;width:100%;text-align:left;
+  background:linear-gradient(180deg,#241d13,#1a150e);
+  color:#eadfc7;border:1px solid var(--border);
+  border-radius:7px;padding:11px 14px;font-size:14.5px;font-family:inherit;
+  line-height:1.5;cursor:pointer;transition:all .15s ease;
+  position:relative;
+}
+.btn:hover{border-color:var(--gold);background:linear-gradient(180deg,#2e2517,#231b11);transform:translateX(2px)}
+.btn:active{transform:scale(.985);background:#332915}
+.btn::before{
+  content:"▸";color:var(--gold);margin-right:8px;opacity:.85;font-size:12px;
+}
+.btn.special{border-color:var(--gold);color:var(--gold2)}
+.btn.special::before{content:"✦"}
+.btn.danger{border-color:#5c2b23}
+.btn.danger::before{content:"☠";color:#c0392b}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+
+/* ===== BOTTOM NAV ===== */
+nav.bottom{
+  flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);
+  background:rgba(20,15,9,.98);border-top:1px solid var(--border);
+  padding:4px 2px calc(4px + env(safe-area-inset-bottom));
+  box-shadow:0 -2px 14px rgba(0,0,0,.8);
+}
+nav.bottom button{
+  background:none;border:none;color:#a8987a;font-family:inherit;
+  font-size:10px;padding:6px 2px;display:flex;flex-direction:column;
+  align-items:center;gap:2px;cursor:pointer;transition:color .15s;
+  border-radius:6px;
+}
+nav.bottom button .ico{font-size:17px;line-height:1}
+nav.bottom button:hover,nav.bottom button:active{color:var(--gold2);background:rgba(201,168,76,.08)}
+
+/* ===== MODAL ===== */
+.modal{
+  position:fixed;inset:0;z-index:50;display:none;
+  background:rgba(0,0,0,.78);backdrop-filter:blur(3px);
+  padding:16px;overflow-y:auto;
+}
+.modal.open{display:flex;align-items:flex-start;justify-content:center;animation:fadein .2s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.modalbox{
+  background:linear-gradient(170deg,#1d1810,#13100a);
+  border:1px solid var(--border);border-radius:10px;
+  max-width:680px;width:100%;margin:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.9),inset 0 0 60px rgba(201,168,76,.03);
+  max-height:none;
+}
+.modalbox h2{
+  margin:0;padding:14px 18px;font-size:15px;letter-spacing:.12em;
+  color:var(--gold2);border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.modalbox h2 .x{
+  cursor:pointer;font-size:20px;opacity:.6;padding:0 4px;line-height:1;
+}
+.modalbox h2 .x:hover{opacity:1;color:#e37a6b}
+.modalbody{padding:16px 18px 20px;font-size:14px;line-height:1.85;max-height:70vh;overflow-y:auto}
+.modalbody h3{color:var(--gold);font-size:13.5px;letter-spacing:.08em;margin:16px 0 6px;border-left:3px solid var(--gold);padding-left:8px}
+.modalbody h3:first-child{margin-top:0}
+.modalbody p{margin:7px 0}
+.modalbody ul{margin:6px 0;padding-left:20px}
+.modalbody li{margin:3px 0}
+.modalbody code{background:#2a2318;padding:1px 5px;border-radius:3px;color:var(--gold2);font-size:12.5px}
+.modalbody .tip{background:rgba(201,168,76,.08);border-left:3px solid var(--gold);padding:9px 12px;border-radius:0 6px 6px 0;margin:10px 0;font-size:13px}
+.modalfoot{padding:0 18px 18px}
+.bigbtn{
+  width:100%;padding:13px;border-radius:8px;cursor:pointer;
+  background:linear-gradient(180deg,#3a2f1a,#241c10);
+  border:1px solid var(--gold);color:var(--gold2);
+  font-family:inherit;font-size:14.5px;letter-spacing:.08em;
+  transition:all .18s;
+}
+.bigbtn:hover{background:linear-gradient(180deg,#4a3b20,#2e2414);box-shadow:0 0 18px rgba(201,168,76,.3)}
+.bigbtn:active{transform:scale(.98)}
+.bigbtn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+
+/* ===== TOAST ===== */
+#toast{
+  position:fixed;left:50%;bottom:78px;transform:translateX(-50%) translateY(20px);
+  background:rgba(30,22,12,.97);border:1px solid var(--gold);color:var(--gold2);
+  padding:10px 18px;border-radius:24px;font-size:13px;z-index:80;
+  opacity:0;pointer-events:none;transition:all .3s;max-width:88vw;text-align:center;
+  box-shadow:0 6px 24px rgba(0,0,0,.8);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===== COMBAT ===== */
+#combatpanel{max-width:760px;margin:0 auto}
+.cbx{
+  background:linear-gradient(170deg,#1e1710,#15100a);
+  border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;
+}
+.cbx h3{margin:0 0 10px;font-size:12px;letter-spacing:.2em;color:var(--gold);font-weight:400}
+.enemyrow{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
+.enemyrow .en{color:#e37a6b;font-weight:700;font-size:15px}
+.hpline{height:7px;background:#2a1f16;border-radius:4px;overflow:hidden;margin-top:8px}
+.hpline i{display:block;height:100%;background:linear-gradient(90deg,#c0392b,#e37a6b);transition:width .4s}
+.combatstat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;font-size:11px}
+.combatstat div{background:#241c12;border:1px solid var(--border);border-radius:6px;padding:6px 3px}
+.combatstat b{display:block;font-size:16px;color:var(--gold2);font-family:Georgia,serif}
+.combatstat .r{color:#e8c96a}
+.spendrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.spendrow button{
+  flex:1 1 60px;padding:10px 4px;border-radius:7px;cursor:pointer;
+  background:#2a2216;border:1px solid var(--border);color:#e0d4b8;
+  font-family:inherit;font-size:13px;transition:all .15s;
+}
+.spendrow button:hover:not(:disabled){border-color:var(--gold);background:#362b1a}
+.spendrow button:disabled{opacity:.3;cursor:not-allowed}
+.logbox{
+  background:#100c07;border:1px solid var(--border);border-radius:7px;
+  padding:10px 12px;max-height:150px;overflow-y:auto;font-size:12.5px;line-height:1.7;
+  margin-top:10px;
+}
+.logbox div{margin:2px 0;opacity:.9}
+.logbox .lg-p{color:#e37a6b}
+.logbox .lg-e{color:#8fd4a0}
+.logbox .lg-n{color:#a8987a}
+.diceroll{
+  font-size:38px;text-align:center;color:var(--gold2);font-family:Georgia,serif;
+  margin:6px 0;animation:pop .35s;
+}
+@keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+
+/* ===== SETUP ===== */
+.setup{max-width:760px;margin:0 auto}
+.picker{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.pick{
+  flex:1 1 130px;background:#201a10;border:1px solid var(--border);
+  border-radius:8px;padding:10px;cursor:pointer;transition:all .15s;
+  font-size:13px;line-height:1.5;
+}
+.pick:hover{border-color:#6b5a33;background:#2a2215}
+.pick.sel{border-color:var(--gold);background:#332a17;box-shadow:0 0 14px rgba(201,168,76,.25)}
+.pick b{display:block;color:var(--gold2);font-size:13.5px;margin-bottom:3px}
+.pick small{opacity:.72;font-size:11px;line-height:1.45;display:block}
+.pick.locked{opacity:.35;pointer-events:none}
+
+/* scrollbars */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#12100a}
+::-webkit-scrollbar-thumb{background:#3d3426;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#5c4d33}
+
+/* fade transition */
+.fadeout{animation:fout .18s forwards}
+@keyframes fout{to{opacity:0}}
+.fadein{animation:fin .28s}
+@keyframes fin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+@media(max-width:420px){
+  #story{font-size:14.5px}
+  .stat{min-width:64px;padding:2px 5px}
+  .stat .val{font-size:14px}
+}
+</style>
+</head>
+<body>
+<div id="grain"></div>
+<div id="vignette"></div>
+<div id="app">
+  <header>
+    <div class="statrow" id="statrow"></div>
+  </header>
+  <main id="main"><div class="storywrap" id="stage"></div></main>
+  <nav class="bottom">
+    <button data-m="help"><span class="ico">📖</span>說明</button>
+    <button data-m="sheet"><span class="ico">📜</span>行動表</button>
+    <button data-m="history"><span class="ico">🕯️</span>歷程</button>
+    <button data-m="save"><span class="ico">💾</span>存檔</button>
+    <button data-m="menu"><span class="ico">⚙️</span>選單</button>
+  </nav>
+</div>
+
+<div class="modal" id="modal"><div class="modalbox">
+  <h2><span id="mtitle"></span><span class="x" id="mclose">×</span></h2>
+  <div class="modalbody" id="mbody"></div>
+  <div class="modalfoot" id="mfoot"></div>
+</div></div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   灰星巫師 — 單一 HTML 互動冒險
+   ============================================================ */
+"use strict";
+
+/* ---------- 工具 ---------- */
+const $ = s => document.querySelector(s);
+const rand = () => Math.floor(Math.random()*10);
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------- 音效（Web Audio 合成） ---------- */
+const Sfx = (()=>{
+  let ctx=null, on=true;
+  function ac(){ if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)(); return ctx; }
+  function tone(freq,dur,type,vol,slide){
+    if(!on) return;
+    try{
+      const c=ac(), o=c.createOscillator(), g=c.createGain();
+      o.type=type||'sine'; o.frequency.value=freq;
+      if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(40,slide), c.currentTime+dur);
+      g.gain.setValueAtTime(vol||.06, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(.0001, c.currentTime+dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(); o.stop(c.currentTime+dur+.02);
+    }catch(e){}
+  }
+  return {
+    click(){ tone(520,.06,'triangle',.05,420); },
+    hover(){ tone(700,.03,'sine',.02); },
+    hit(){ tone(160,.14,'sawtooth',.07,70); },
+    hurt(){ tone(110,.22,'square',.06,60); },
+    win(){ tone(523,.1,'sine',.06); setTimeout(()=>tone(659,.1,'sine',.06),90); setTimeout(()=>tone(784,.18,'sine',.06),180); },
+    lose(){ tone(300,.2,'sawtooth',.06,120); setTimeout(()=>tone(200,.35,'sawtooth',.05,80),160); },
+    dice(){ tone(900,.04,'square',.03,600); },
+    toggle(v){ on=v; },
+    isOn(){ return on; }
+  };
+})();
+
+/* ---------- 成就 ---------- */
+const ACHIEVEMENTS = {
+  first_step:  {n:"初出茅廬", d:"踏上洛恩島以外的土地"},
+  first_blood: {n:"初試鋒芒", d:"贏得第一場戰鬥"},
+  mage:        {n:"五芒之選", d:"完成魔法能力選擇"},
+  rich:        {n:"囊中有玉", d:"累積 50 枚諾布爾"},
+  survivor:    {n:"九死一生", d:"在一場戰鬥中耐力剩 3 點以下仍獲勝"},
+  death_1:     {n:"歸於塵土", d:"第一次迎來死亡結局"},
+  end_fail:    {n:"使命未竟", d:"抵達一個失敗結局"},
+  end_open:    {n:"故事待續", d:"抵達未收錄的章節"},
+  explorer:    {n:"博覽群章", d:"造訪 30 個不同章節"},
+  deep:        {n:"深入險境", d:"造訪 60 個不同章節"}
+};
+
+/* ============================================================
+   戰鬥結果表
+   ============================================================ */
+const CR_COLS = [
+  {max:-11,label:"-11 或更低"}, {max:-9,label:"-10 ~ -9"},
+  {max:-7,label:"-8 ~ -7"},     {max:-5,label:"-6 ~ -5"},
+  {max:-3,label:"-4 ~ -3"},     {max:-1,label:"-2 ~ -1"},
+  {max:0,label:"0"},            {max:2,label:"+1 ~ +2"},
+  {max:4,label:"+3 ~ +4"},      {max:6,label:"+5 ~ +6"},
+  {max:8,label:"+7 ~ +8"},      {max:10,label:"+9 ~ +10"},
+  {max:999,label:"+11 或更高"}
+];
+function crIndex(r){ for(let i=0;i<CR_COLS.length;i++) if(r<=CR_COLS[i].max) return i; return 12; }
+
+/* 玩家耐力損失（列＝戰鬥比率分組，列內 13 格） */
+const PDMG = [
+ [8,8,7,6,5,4,3,2,1,0,0,0,0],
+ [8,8,7,6,5,4,3,2,1,0,0,0,0],
+ [9,9,8,7,6,5,4,3,2,1,0,0,0],
+ [9,9,8,7,6,5,4,3,2,1,0,0,0],
+ [10,10,9,8,7,6,5,4,3,2,1,0,0],
+ [10,10,9,8,7,6,5,4,3,2,1,0,0],
+ [11,11,10,9,8,7,6,5,4,3,2,1,0],
+ [11,11,10,9,8,7,6,5,4,3,2,1,0],
+ [12,12,11,10,9,8,7,6,5,4,3,2,1],
+ [12,12,11,10,9,8,7,6,5,4,3,2,1]
+];
+/* 敵人耐力損失 */
+const EDMG = [
+ [0,0,0,0,0,0,0,0,0,1,2,3,4],
+ [0,0,0,0,0,0,0,0,0,1,2,3,4],
+ [0,0,0,0,0,0,0,0,1,2,3,4,5],
+ [0,0,0,0,0,0,0,0,1,2,3,4,5],
+ [0,0,0,0,0,0,0,1,2,3,4,5,6],
+ [0,0,0,0,0,0,0,1,2,3,4,5,6],
+ [0,0,0,0,0,0,1,2,3,4,5,6,7],
+ [0,0,0,0,0,0,1,2,3,4,5,6,7],
+ [0,0,0,0,0,1,2,3,4,5,6,7,8],
+ [0,0,0,0,0,1,2,3,4,5,6,7,8]
+];
+
+/* ============================================================
+   遊戲狀態
+   ============================================================ */
+const SPELLS = {
+  "巫術":    "將意念化為魔法能量，可造護盾、移動物體。消耗意志力較多。",
+  "魅惑":    "迷惑或誘騙生物，在他人腦中製造幻覺。",
+  "元素操控":"祈求風火土水精靈協助，效果不確定。",
+  "煉金術":  "調配藥劑、改變物質性質。不消耗意志力，需要草藥袋。",
+  "預言":    "冥想預知未來，面臨抉擇時能得到正確指引。",
+  "心靈占卜":"觸摸物品讀取過去景象，常以謎語呈現。",
+  "招魂":    "與靈界溝通，需繪製魔法五角星。"
+};
+
+const GIFTS = {
+  dagger:  {n:"寶石匕首", d:"戰鬥中使用時戰鬥能力 +1（特殊物品）"},
+  talisman:{n:"魔法護身符", d:"意志力總值 +2（特殊物品）"},
+  laumspur:{n:"勞姆斯普爾藥劑瓶", d:"戰鬥後飲用可恢復 4 點耐力，僅一次（背包物品）"}
+};
+
+let G = null;
+
+function newState(){
+  return {
+    cs:0, wp:0, end:0, maxEnd:0, startWp:0,
+    spells:[], gift:null,
+    weapons:["巫師法杖"],
+    backpack:[],    // {name, note}
+    special:[],
+    nobles:0,
+    meals:4,
+    herbPouch:[],   // 煉金術用
+    hasHerbPouch:false,
+    current:1,
+    visited:{},
+    history:[],
+    achievements:{},
+    flags:{},
+    combat:null,
+    phase:"intro",
+    log:[]
+  };
+}
+
+/* ---------- 存檔 ---------- */
+const SAVE_KEY = "greystar_save_v1";
+const ACH_KEY  = "greystar_ach_v1";
+
+function saveGame(silent){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify(G));
+    if(!silent) toast("💾 進度已儲存");
+    return true;
+  }catch(e){ toast("⚠️ 儲存失敗（瀏覽器儲存空間不足）"); return false; }
+}
+function loadGame(){
+  try{
+    const s = localStorage.getItem(SAVE_KEY);
+    if(!s){ toast("沒有找到存檔"); return false; }
+    G = JSON.parse(s);
+    // 補齊欄位
+    G.visited = G.visited||{}; G.history=G.history||[]; G.achievements=G.achievements||{};
+    G.flags = G.flags||{}; G.log=G.log||[];
+    hideModal();
+    if(G.phase==="combat" && G.combat) renderCombat();
+    else if(G.phase==="story") renderSection(G.current,false);
+    else if(G.phase==="ending") renderEnding(G.endInfo);
+    else { startIntro(); }
+    toast("📖 存檔已載入");
+    return true;
+  }catch(e){ toast("⚠️ 讀取失敗"); return false; }
+}
+function hasSave(){ return !!localStorage.getItem(SAVE_KEY); }
+
+function unlockAch(key){
+  if(!G) return;
+  if(G.achievements[key]) return;
+  const a = ACHIEVEMENTS[key];
+  if(!a) return;
+  G.achievements[key] = Date.now();
+  try{
+    const all = JSON.parse(localStorage.getItem(ACH_KEY)||"{}");
+    all[key] = Date.now();
+    localStorage.setItem(ACH_KEY, JSON.stringify(all));
+  }catch(e){}
+  toast("🏆 解鎖成就：「"+a.n+"」");
+}
+
+/* ---------- Toast ---------- */
+let toastT=null;
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove("show"), 2600);
+}
+
+/* ============================================================
+   道具 / 法術輔助
+   ============================================================ */
+function hasItem(st,name){
+  if(name==="卡齊姆之石") return st.backpack.some(i=>i.name.includes("卡齊姆"));
+  if(name==="救贖者徽章") return st.special.some(i=>i.includes("救贖者"));
+  if(name==="粉色液體瓶") return st.backpack.some(i=>i.name.includes("粉色液體"));
+  if(name==="火炬") return st.backpack.some(i=>i.name.includes("火炬"));
+  if(name==="火絨盒") return st.backpack.some(i=>i.name.includes("火絨盒"));
+  if(name==="一卷繩子") return st.backpack.some(i=>i.name.includes("繩"));
+  if(name==="亞巴里藥膏") return st.backpack.some(i=>i.name.includes("亞巴里"));
+  if(name==="卡拉塞納蘑菇") return st.backpack.some(i=>i.name.includes("卡拉塞納"));
+  if(name==="獄卒的鑰匙") return st.special.some(i=>i.includes("獄卒的鑰匙"));
+  if(name==="簡納智者的銀色護身符") return st.special.some(i=>i.includes("銀色護身符"));
+  if(name==="寶石匕首") return st.weapons.some(w=>w.includes("寶石匕首"));
+  if(name==="勞姆斯普爾") return st.backpack.some(i=>i.name.includes("勞姆斯普爾"));
+  return st.backpack.some(i=>i.name.includes(name)) || st.special.some(i=>i.includes(name));
+}
+function hasSpell(st,name){ return st.spells.includes(name); }
+
+function addItem(st,name,note){
+  st.backpack.push({name, note:note||""});
+}
+function addSpecial(st,name){
+  if(!st.special.includes(name)) st.special.push(name);
+}
+function addWeapon(st,name){
+  if(!st.weapons.includes(name)) st.weapons.push(name);
+}
+function removeItem(st,name){
+  const i = st.backpack.findIndex(x=>x.name.includes(name));
+  if(i>=0) st.backpack.splice(i,1);
+}
+function backpackCount(st){ return st.backpack.length + st.meals; }
+function backpackFull(st){ return backpackCount(st) >= 8; }
+
+function eat(st,n,penalty){
+  if(st.meals >= n){ st.meals -= n; return true; }
+  st.meals = 0;
+  dmgEnd(st,penalty);
+  return false;
+}
+function dmgEnd(st,n){ st.end = Math.max(0, st.end - n); }
+function healEnd(st,n){ st.end = Math.min(st.maxEnd, st.end + n); }
+function dmgWp(st,n){ st.wp -= n; }
+function healWp(st,n){ st.wp += n; }
+
+/* ============================================================
+   章節資料
+   ============================================================ */
+const CH = {};
+
+/* --- 序章 --- */
+CH[1] = {t:
+`這是一個陰冷的清晨，也是你在洛恩島的最後一天。你懷著忐忑的心情，走進神聖的阿米達神廟，接受夏安提導師們的無聲祝福。他們環繞在你周圍，低頭冥想。
+
+儀式終於結束，你的老友兼導師邁泰亞走上前來，緊緊握住你的肩膀。你凝視著他閃爍的眼眸，在其中看到了自己的倒影——夏安提族人的瞳孔像鏡面一樣能反射影像。
+
+「灰星，」他說道，平靜的臉上綻放出溫暖的笑容，「是時候離開了。你將遠行，前路危機四伏。不必恐懼，但也不可掉以輕心。儘管你帶著夏安提的教誨與祝福，手握巫師法杖的力量，但隱秘與謹慎才是你的盟友。勿讓勇氣戰勝智慧。現在就出發吧，去尋找被稱為『勞拉失落部落』的昆迪族人。你是我們意志的執行者，是我們希望的承載者。」
+
+你一言不發地轉身離開神廟，直到抵達海邊才回頭——那裡停著一艘帆船正等候著你。你輕輕嘆息，向度過青春歲月的島嶼告別，然後將小船推入「幻海」冰冷的海水中。你跳上船，揚起風帆，向西航行，朝著遙遠的沙達基帝國大陸進發。`,
+  c:[
+    {l:"使用「元素操控」魔法助力航行", to:202, sp:"元素操控"},
+    {l:"不使用魔法，依靠風帆前行", to:168}
+  ]
+};
+
+CH[202] = {t:
+`你進入冥想，向風之精靈低聲祈願。片刻之後，海面上湧起一股看不見的力量，推動船帆向前疾馳。浪花拍打船舷，幻海在你腳下翻湧。
+
+一次施法消耗了你 1 點意志力。精靈的回應比你想像中更猛烈——船身劇烈顛簸，你不得不緊緊抓住船舷。
+
+三天之後，海平線上浮現出沙達基帝國的海岸線。`,
+  e:s=>{ dmgWp(s,1); },
+  c:[{l:"繼續航向海岸", to:140}]
+};
+
+CH[168] = {t:
+`你張開風帆，任憑幻海的海風把你推向西方。沒有魔法相助，旅程漫長而單調。白天你看著海鳥盤旋，夜裡則在星光下打盹。
+
+整整五天之後，你終於望見了沙達基帝國的海岸。`,
+  c:[{l:"繼續航向海岸", to:140}]
+};
+
+CH[140] = {t:
+`太陽開始西沉。你朝著西方望去，遠遠看到一小群漁船。繼續前行，你看到的漁船越來越多，偶爾還能看到更大的海船。
+
+接著，你心中一陣狂喜——遠處的海岸線輪廓映入眼簾，港口裡停滿了數百艘漁船和帆船。在夕陽的橙色光芒中，城市的穹頂和尖塔高高聳立，彷彿在向天空發出挑戰。
+
+這裡就是蘇恩港，你有生以來見到的第一座城市。`,
+  c:[
+    {l:"在天黑前直接進入港口", to:112},
+    {l:"等到天黑再行動", to:280}
+  ]
+};
+
+CH[280] = {t:
+`你在港口外的小島後方下錨，等待夜幕降臨。星空之下，你反覆演練著夏安提導師們傳授的隱匿咒語。
+
+當夜色完全籠罩港口時，你收起風帆，划槳靠近碼頭。深夜的港口安靜得多，只有幾個醉漢和守夜的漁夫。
+
+你悄悄靠岸，把船繫好，走進了蘇恩港的夜色之中。`,
+  c:[{l:"潛入城中", to:100}]
+};
+
+CH[112] = {t:
+`你朝著港口駛去，靠近石頭碼頭時，站起身來收帆。你此刻的身影十分引人注目：頭髮在風中飄揚，身後是夕陽的紅光，將你的影子投射在「幻海」淺淺的海水中。
+
+港口十分繁忙，人群來來往往。水手和漁夫們沿著碼頭排開，忙著卸貨，想在天黑前完成工作。你注意到碼頭遠處有一陣騷動，等你靠近時，那裡已經聚集了一小群人，你能聽到他們興奮的交談聲。
+
+人群越聚越多，很明顯，你成了他們關注的焦點。你聽到零星的交談聲：「是古老者，是來自『幻海』另一邊的古老者……」「看到了嗎？肯定是夏安提人來了……」「我親眼看到的，他從東邊來，從容得很！」
+
+人們伸出手想和你打招呼，還有人拼命想觸摸你的長袍，人群推推搡搡，越來越多的人擠過來，想一睹你的模樣。「只有神才能橫渡『幻海』。救救我們吧，大人！」人群開始大喊，「消滅邪惡的沙達基人！推翻巫王！」
+
+你能感覺到人群的情緒越來越狂熱，令你沮喪的是，你被幾個人舉到了肩膀上，朝著兩名手持利劍、正朝你衝來的士兵走去。
+
+「大人，消滅那些沙達基戰士！」有人喊道。`,
+  c:[
+    {l:"依群眾所願，正面迎戰沙達基戰士", to:84},
+    {l:"施展「魅惑」逃離人群", to:56, sp:"魅惑"},
+    {l:"不靠魔法逃離人群", to:28}
+  ]
+};
+
+/* --- 第2～5章 --- */
+CH[2] = {t:
+`你沿著小路向南行進，穿過這片區域的農田與稻田。小路緊緊沿著阿贊河延伸，河道蜿蜒曲折，通向宏偉的阿扎加德峽谷——這是一個佈滿坑窪的巨大峽谷，矗立著風化的石灰岩柱。為了不暴露行蹤，你避開了河邊散落的農舍。
+
+你連續行走了兩天，期間必須消耗 2 份食物，否則將損失 6 點耐力。方方正正的稻田越來越少，最終被一片平坦卻貧瘠的荒原——「荒野之地」所取代，這裡荒無人煙。當晚，你在一小片露出地面的岩層背風處紮營。`,
+  e:s=>{ if(s.meals>=2) s.meals-=2; else { s.meals=0; dmgEnd(s,6); } },
+  c:[{l:"繼續前行", to:24}]
+};
+
+CH[24] = {t:
+`你不安地睡去，夢中滿是詭異的景象。午夜時分，你突然驚醒，看到塔妮絲正蹲在即將熄滅的篝火旁，篝火散發著昏暗的黃色光芒。`,
+  c:[
+    {l:"過去查看", to:10},
+    {l:"假裝還在睡覺", to:33}
+  ]
+};
+
+CH[10] = {t:
+`你站起身，朝塔妮絲走去。她抬起頭，臉上滿是驚訝的神情。
+
+「灰星，」她喘著氣說，「我……我實在忍不住。對不起……」`,
+  c:[
+    {l:"（擁有卡齊姆之石）質問她", to:51, item:"卡齊姆之石"},
+    {l:"詢問她發生什麼事", to:90}
+  ]
+};
+
+CH[33] = {t:
+`塔妮絲正對著篝火輕聲說著話：「不，主人，我不會……我不能……」她蜷縮在漸漸熄滅的篝火旁，身影顯得格外瘦小，顯然正處於極大的痛苦之中。或許是她的良心在譴責她？`,
+  c:[
+    {l:"過去查看", to:10},
+    {l:"讓塔妮絲獨自靜一靜", to:69}
+  ]
+};
+
+CH[69] = {t:
+`你再次陷入沉睡，而這一次，你永遠不會醒來了。一個黑暗而恐怖的東西從火中跳出來，奪走了你的生命與靈魂。
+
+你的使命失敗了，你的冒險就此結束。`,
+  end:{type:"fail", title:"永眠", desc:"黑暗從火焰中躍出，奪走了你的生命與靈魂。"}
+};
+
+CH[51] = {t:
+`你低頭一看，發現卡齊姆之石落在了火裡——塔妮絲趁你睡覺時，從你的背包裡偷走了它。你凝視著石頭，看到瑪格麗憔悴的臉正從石頭裡盯著你。「現在，我終於抓住你了，你這個小傻瓜。」她嘶嘶地說道。
+
+火焰的光芒變得愈發強烈，隨後突然迸發出新的火焰。`,
+  e:s=>{ removeItem(s,"卡齊姆"); },
+  c:[{l:"繼續", to:102}]
+};
+
+CH[102] = {t:
+`火焰中突然迸發出一道耀眼的光芒，似乎直接鑽進了你的腦海。你痛苦地叫喊起來，感覺一部分意識被撕裂了——你損失 2 點意志力。
+
+你頭暈目眩地向後退去，瑪格麗的身影漸漸消失，取而代之的是一團盤踞在火焰中心的、密不透風的黑暗。你看到兩個空洞的眼窩和一張大張的嘴巴——這個黑色陰影朝你撲了過來。`,
+  e:s=>dmgWp(s,2),
+  c:[{l:"面對它", to:149}]
+};
+
+CH[90] = {t:
+`篝火突然迸發出耀眼的火焰，高高地竄向空中。在刺眼的火光中，瑪格麗的身影顯現出來，她用一種奇怪而粗啞的語言念著咒語。
+
+「灰星，小心！」塔妮絲喊道。`,
+  c:[
+    {l:"施展「巫術」為自己製造魔法護盾", to:139, sp:"巫術"},
+    {l:"攻擊火焰上方那個瑪格麗的幻象", to:123}
+  ]
+};
+
+CH[139] = {t:
+`你集中精神，消耗 2 點意志力，在身體周圍形成了一道閃爍的能量場。火焰中心瑪格麗的身影消失了，取而代之的是一個更加邪惡的景象——一團盤踞在火焰中的密不透風的黑暗陰影。你看到兩個空洞的眼窩和一張大張的嘴巴，這個陰影生物朝你撲了過來。`,
+  e:s=>dmgWp(s,2),
+  c:[{l:"迎戰", to:149}]
+};
+
+CH[123] = {t:
+`幸運的是，你還帶著法杖。你消耗 1 點意志力，朝瑪格麗揮舞法杖——但法杖卻徑直穿過了她的身體。她只是一個由意念形成的幻象。瑪格麗發出刺耳的笑聲，開始念誦咒語：
+
+「蒙迪·克萊薩——索爾蒂·瑪格麗，
+沙薩拉克·神道，戈杜斯·尚多……」
+
+瑪格麗的幻象消失了，取而代之的是一團盤踞在熊熊火焰中心的邪惡陰影——那是一團密不透風的黑色。你看到兩個空洞的眼窩和一张大張的嘴巴，這個陰影生物朝你撲了過來。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"迎戰", to:149}]
+};
+
+CH[149] = {t:
+`「是克萊薩！」塔妮絲尖叫道，「是噬魂者！」
+
+你必須與克萊薩戰鬥到底。每一輪戰鬥，你的意志力減少 1 點、耐力減少 2 點（若你曾用「巫術」製造護盾，則耐力只減 1 點）。`,
+  e:s=>{},
+  combat:{
+    name:"克萊薩（噬魂者）", cs:25, end:30,
+    perRound:s=>{ dmgWp(s,1); dmgEnd(s, s.flags.sorceryShield?1:2); },
+    winTo:165
+  },
+  c:[]
+};
+
+CH[165] = {t:
+`克萊薩發出最後一聲尖嘯，化作一縷黑煙消散在夜空中。塔妮絲癱坐在地上，大口喘著氣。
+
+「你……你做到了。」她顫聲說道，「從來沒有人能從噬魂者手中活下來。」
+
+天邊泛起魚肚白。你們收拾行裝，繼續踏上旅途。`,
+  c:[{l:"繼續前進", to:15}]
+};
+
+CH[15] = {t:
+`你遠遠地離開了禪思山，再次渡過蘇尼河，沿著蜿蜒的河道穿過茂密的森林。塔妮絲仍在召喚小型獵物，這一幕依舊讓你感到不安。山帶領你穿過森林，但這次沒有遇到沙達基巡邏隊。
+
+這段行程中你無需使用任何魔法能力，耐力與意志力可恢復至當前點數的一半。`,
+  e:s=>{ healWp(s,Math.ceil(Math.max(0,s.wp)/2)); healEnd(s,Math.ceil(s.end/2)); },
+  c:[{l:"繼續", to:218}]
+};
+
+CH[218] = {t:
+`你們沿著蘇尼河繼續前進。河水在石間低語，兩岸的樹影越來越濃。山指著前方：「再走半天，就會到阿扎加德峽谷的入口了。」`,
+  c:[{l:"繼續前行", to:2}]
+};
+
+/* --- 第3章 --- */
+CH[3] = {t:
+`你離開道路，穿過越來越茂密的樹林走了一小段路後，發現了一片小小的空地，空地被一棵巨大的阿拉伯膠樹的枝葉遮蔽著。
+
+你決定在這裡休息。你感到飢餓，必須吃 1 份食物，否則將損失 3 點耐力；若還有剩餘食物，需給塔妮絲和山各 2 份。
+
+你沒有毯子，也不敢生火，生怕暴露藏身之處。幸運的是，今晚天氣溫暖。山和塔妮絲堅持讓你先睡覺，他們輪流放哨。你苦笑著指出，這還是他們第一次在某件事上達成一致。`,
+  e:s=>{ if(s.meals>=1) s.meals-=1; else dmgEnd(s,3); if(s.meals>=4){ s.meals-=4; } else { s.meals=0; } },
+  c:[
+    {l:"接受他們的提議，先睡", to:85},
+    {l:"自己來值第一班崗", to:275}
+  ]
+};
+
+CH[85] = {t:
+`第二天早上，你醒來時感覺神清氣爽，一夜好眠讓你恢復了 1 點意志力和 1 點耐力。塔妮絲和山已經起床，正期待地等著你來帶路。`,
+  e:s=>{ healWp(s,1); healEnd(s,1); },
+  c:[{l:"繼續", to:18}]
+};
+
+CH[275] = {t:
+`你堅持由自己來守第一班崗。山和塔妮絲很快便沉沉睡去。夜深時，你聽到了樹叢中細微的聲響，但你屏息凝神，確認只是夜行動物後才鬆了口氣。
+
+你叫醒山換班，自己睡了幾個小時。第二天醒來時，你恢復了 1 點意志力。`,
+  e:s=>{ healWp(s,1); },
+  c:[{l:"繼續", to:18}]
+};
+
+CH[18] = {t:
+`你的新同伴們似乎十分信任你的領導能力——不過，當你承認自己也不太清楚該往哪裡走時，他們的信任略微動搖了幾分。你向他們解釋，你的使命是尋找勞拉失落部落，並提議讓山來帶路。
+
+「反正我也無處可去，」塔妮絲說，「瑪格麗是個殘忍的主子，我很樂意幫助任何反抗巫王及其爪牙統治的人。」
+
+「我也一樣，」山接著說，「但我們該往哪走呢？我們必須盡快動身，沙達基人肯定正在搜捕我們。」
+
+你們幾人陷入了沉思。最後，你問他們是否有什麼建議。山建議向南前往阿扎南，他認為那裡最有可能是失落部落的棲息地，並主動提出為你帶路。
+
+「可要是你判斷錯了，」塔妮絲反駁道，「我們不僅白跑一趟，還會陷入極大的危險之中。我們需要指引。往北邊再走三天路程，住著一位名叫簡納的智者隱士，人們稱他『無主之僕』。我可以帶你去找他。」`,
+  c:[
+    {l:"（擁有救贖者徽章與粉色液體瓶）", to:264, item:"救贖者徽章"},
+    {l:"採納山的建議，向南前往阿扎南", to:190},
+    {l:"尋求簡納智者的建議", to:134}
+  ]
+};
+
+CH[134] = {t:
+`「塔妮絲，你說得對，」你說，「我們需要建議。但這個簡納是誰？我們能相信他嗎？」
+
+「他對沙達基人沒有好感——很多年前，沙達基人因為害怕他的智慧，弄瞎了他的眼睛，愚蠢地以為這樣就能阻止他預見未來。他不偏袒任何一方，可以相信他。我們必須向北前往禪思山，跟我來。」`,
+  c:[{l:"前往禪思山", to:58}]
+};
+
+CH[58] = {t:
+`三天來，你一直向北前往禪思山。這段時間裡，你的意志力恢復了 3 點，耐力恢復了 6 點。茂密的森林為你提供了良好的掩護，你輕鬆避開了偶爾出現的沙達基巡邏隊。
+
+你們沒有攜帶食物，但塔妮絲總能為大家找到吃的。她對動物有著不可思議的掌控力，能把小鳥從樹上召喚下來，把兔子從洞穴裡引出來。在將這些被迷惑的動物召喚到身邊後，她會面無表情地擰斷牠們的脖子。
+
+終於，你們抵達了森林邊緣，這裡與禪思山相鄰。你們發現蘇尼河岸邊長著幾叢野生的勞姆斯普爾。
+
+你們找到一處淺灘渡過蘇尼河，然後停下腳步，凝視著前方肅穆的群山。「我們必須進山，才能找到簡納的洞穴。」塔妮絲說。
+
+突然，山大喊起來：「敵人來了！看——納金來了！」他指向天空。
+
+你抬頭一看，只見一群長著灰色皮膚、黑色蝙蝠翅膀的猿狀生物正快速朝你們飛來。「別害怕。」塔妮絲說著，向前走去。
+
+「可是灰星，」山說，「這些怪物是巫王沙薩拉克的奴隸。我們被背叛了。」
+
+納金沿著山脈低空俯衝而來。`,
+  e:s=>{ healWp(s,3); healEnd(s,6); },
+  c:[
+    {l:"攻擊納金", to:101},
+    {l:"等牠們飛得更近一些", to:126}
+  ]
+};
+
+CH[101] = {t:
+`第一隻納金即將飛到你面前時，你釋放出巫師法杖的力量，擊斃了一隻尖叫著的納金，其餘的納金四散飛開——這次攻擊消耗了你 2 點意志力。
+
+「不！」塔妮絲尖叫著，跑進了荒蕪的山裡。納金重新聚集起來，在你周圍盤旋。牠們發出瘋狂的叫喊聲，第一隻納金朝你發起了攻擊。
+
+總共有九隻納金，牠們會一隻接一隻地發起攻擊。若你有其他武器，可把武器遞給山，這樣你的戰鬥能力會增加 2 點（記得從行動表中刪除這把武器）。`,
+  e:s=>dmgWp(s,2),
+  combat:{
+    name:"納金（九隻連戰）", cs:9, end:88,
+    csBonus:0, maxRounds:5,
+    specialMulti:true,
+    winTo:130
+  },
+  c:[]
+};
+
+CH[126] = {t:
+`納金落到地上，將你們團團圍住。牠們的首領走上前來，一邊嘰嘰喳喳地叫著，一邊指向前方的群山。「牠們想帶我們去找簡納，」塔妮絲說，「簡納是牠們的主人。」
+
+「灰星，我覺得不對勁，」山說，「眾所周知，這些怪物是巫王和沙達基軍隊的間諜和信使。這個簡納肯定是敵人的手下。」`,
+  c:[
+    {l:"跟著納金走", to:161},
+    {l:"離開禪思山", to:106}
+  ]
+};
+
+CH[161] = {t:
+`那些一蹦一跳、拍打著翅膀的納金帶領你們進入了荒蕪的山區。牠們在一處隱蔽的洞口停下，發出輕柔的叫聲。
+
+洞裡傳來一個蒼老的聲音：「進來吧，孩子。我已經等你們很久了。」`,
+  c:[{l:"進入洞穴", to:130}]
+};
+
+CH[130] = {t:
+`你開始感到疲憊。突然，塔妮絲帶著一個身材乾癟的老人回來了，老人正用一種奇怪的語言憤怒地咒罵著。在老人的命令下，納金停止了攻擊，紛紛飛向空中，迅速消失在遠方。
+
+「蠢貨！」老人咒罵著，跪倒在一隻死去的納金屍體旁，「我的孩子們，我的眼睛和耳朵啊。」他痛苦地呻吟著，「牠們對你們沒有惡意，我派牠們來是為了迎接你們。」
+
+「簡納，」塔妮絲懇求道，「他們不知道，他們不明白。」
+
+「你為什麼把他們帶到這裡來，塔妮絲？」這個失明的老人問道。
+
+「我們在尋找勞拉失落部落。」你謙卑地說。
+
+「那你們是在自尋死路，」簡納回答，「去阿扎南的路充滿危險。現在就離開吧，你們不受歡迎。」`,
+  c:[{l:"離開禪思山", to:106}]
+};
+
+CH[106] = {t:
+`你離開簡納和禪思山。塔妮絲一言不發，顯然在為你之前的行為生氣。你們沿著原路返回蘇尼河，再次渡過河去。走了大約半小時後，三名沙達基戰士突然從森林裡衝了出來——你們遭到了伏擊！`,
+  c:[{l:"迎戰", to:117}]
+};
+
+CH[117] = {t:
+`沙達基人已經追蹤了你一整天，正急於一戰。他們發出作戰口號，眼珠發白，朝你衝來。第一個沙達基人瘋狂地徑直衝向你的法杖，你輕鬆地解決了他，消耗 1 點意志力。
+
+剩下的兩名沙達基人比他們死去的同伴謹慎得多，他們圍著你轉圈，發出咆哮聲，還用劍尖刺向你。你無法躲避，必須與他們戰鬥到底。`,
+  e:s=>dmgWp(s,1),
+  combat:{name:"沙達基戰士 ×2", cs:15, end:25, winTo:164},
+  c:[]
+};
+
+CH[164] = {t:
+`兩名沙達基戰士倒在血泊之中。你喘著氣，收起法杖。
+
+「我們得快點離開這裡，」山說，「他們的同伴很快就會發現。」
+
+你們迅速離開現場，繼續向南前進。`,
+  c:[{l:"繼續旅程", to:2}]
+};
+
+/* --- 第4～9章（洞穴與螳螂） --- */
+CH[4] = {t:
+`你借助法杖支撐，縱身跳上那棵枯樹。費力地爬到樹頂後，伸手抓住了一棵巨型阿扎伍德樹粗壯的樹枝。每一次呼吸，胸口都會傳來陣陣刺痛，潮濕腐臭的空氣黏在喉嚨兩側，十分難受。
+
+你緩慢而痛苦地爬上這棵高大的樹，與此同時，成群的昆蟲正朝著你瘋狂地爬來，牠們的螯鉗咔咔作響，一副狂怒的模樣。
+
+你強忍著受傷腿部傳來的劇烈疼痛，抬頭一看，卻驚恐地發現，一排洞穴螳螂不知何時已經爬到了你頭頂上方的樹枝上。身後的昆蟲即將追上來，情急之下，你沿著最近的一根樹枝爬去。樹枝越來越細，你越往前爬，樹枝在你體重的作用下晃動得就越厲害。
+
+你回頭望去，只見一排昆蟲正沿著樹枝朝你爬來，已然無路可逃。你用盡最後一絲意志力，消耗了所有剩餘的意志力點數，試圖將樹枝上的洞穴螳螂清除掉。`,
+  e:s=>{ s.wp=0; },
+  c:[{l:"最後一搏", to:350}]
+};
+
+CH[5] = {t:
+`你從法杖中發射出一道能量束，對準威脅山的那株植物。灼熱的藍色火焰瞬間就將其燒毀，但這次攻擊消耗了你 2 點意志力。
+
+突然，你察覺到藤蔓正在纏繞你的雙腿。你摔倒在地，一根卷鬚纏住了你的喉嚨，把你往另一株亞庫植物的毒刺方向拖拽。你正被慢慢勒死，必須損失 3 點耐力。`,
+  e:s=>{ dmgWp(s,2); dmgEnd(s,3); },
+  c:[{l:"繼續", to:42}]
+};
+
+CH[42] = {t:
+`此刻，越來越多的藤蔓纏繞住你的身體。山大喊著，急忙斬斷纏繞在你脖子和手臂上的藤蔓，但他深知這場抗爭或許是徒勞的——亞庫植物的毒刺離你的臉僅有幾英寸遠，你們倆都被困在一張不斷收緊的藤蔓網中。
+
+更讓你絕望的是，你不小心弄丟了巫師法杖，只能眼睜睜地看著它滾到遠處，觸手可及卻又無法拿到。你必須在短短幾秒內做出生死抉擇。`,
+  c:[
+    {l:"（擁有寶石匕首）用寶石匕首攻擊亞庫植物", to:216, item:"寶石匕首"},
+    {l:"用其他武器攻擊亞庫植物的深紅色核心", to:262},
+    {l:"讓山用他的劍刺入亞庫植物", to:119}
+  ]
+};
+
+CH[119] = {t:
+`山毫不猶豫地服從了你的命令。他將劍舉過頭頂，大喊一聲，猛地將劍刺入亞庫植物中。纏繞著你的藤蔓顫抖了一下，收緊片刻後，突然枯萎了——亞庫植物在痛苦中扭動著，你們倆都獲得了自由。
+
+在這場搏鬥中，你損失 2 點耐力。
+
+山救了你的命，你忍著肋骨瘀傷的疼痛，向他道謝。`,
+  e:s=>dmgEnd(s,2),
+  c:[{l:"繼續", to:128}]
+};
+
+CH[216] = {t:
+`你拔出腰間那把鑲嵌寶石的匕首——夏安提導師贈予的禮物。你狠狠刺入亞庫植物深紅色的核心，汁液噴濺而出，藤蔓痙攣著鬆開。你損失 2 點耐力，但重獲自由。`,
+  e:s=>dmgEnd(s,2),
+  c:[{l:"繼續", to:128}]
+};
+
+CH[262] = {t:
+`你揮舞著另一件武器，猛砍亞庫植物的核心。汁液四濺，藤蔓痙攣著鬆開，你趁機滾出危險區域。你損失 3 點耐力。`,
+  e:s=>dmgEnd(s,3),
+  c:[{l:"繼續", to:128}]
+};
+
+CH[128] = {t:
+`你和山蜷縮在一起，周圍全是扭動的藤蔓——不過，此刻這些藤蔓似乎暫時沒有攻擊你們的打算。「要是有園丁來打理一下這個花園就好了……」山低聲說。
+
+無論如何，你都必須穿過這些致命的亞庫植物，牠們已經把你困住了。「我們需要找點東西，暫時轉移牠們的注意力。」你若有所思地說。
+
+「別看著我！」山瞪大了眼睛，回答道。
+
+儘管處境絕望，你還是忍不住笑了。「當然不會，」你回答，「不過，或許我們還有別的辦法……」`,
+  c:[
+    {l:"施展「元素操控」脫困", to:181, sp:"元素操控"},
+    {l:"（擁有魅惑與卡拉塞納蘑菇）用幻象脫困", to:206, sp:"魅惑", item:"卡拉塞納蘑菇"},
+    {l:"強行突圍", to:12}
+  ]
+};
+
+CH[12] = {t:
+`你消耗了 3 點意志力，才得以從亞庫植物燃燒後的殘骸中開闢出一條道路。很快，你徹底擺脫了牠們的糾纏。在漸漸暗下來的光線中，你終於望見了阿扎卡瓦長城。`,
+  e:s=>dmgWp(s,3),
+  c:[{l:"繼續", to:325}]
+};
+
+CH[181] = {t:
+`你閉上眼睛，向元素精靈祈求幫助。大地震動，一股熱流從腳底湧上——火焰沿著地面蔓延，將亞庫植物燒成一條焦黑的通道。
+
+你消耗 2 點意志力。你和山從火焰的縫隙中衝了過去。`,
+  e:s=>dmgWp(s,2),
+  c:[{l:"繼續", to:325}]
+};
+
+CH[206] = {t:
+`你取出卡拉塞納蘑菇，讓山將它碾碎灑在藤蔓上，同時施展魅惑法術，讓亞庫植物「以為」自己已經抓住了獵物。藤蔓紛紛捲向那團蘑菇碎屑，你們趁機溜走。
+
+消耗 1 點意志力。`,
+  e:s=>{ dmgWp(s,1); removeItem(s,"卡拉塞納"); },
+  c:[{l:"繼續", to:325}]
+};
+
+CH[6] = {t:
+`你奮力向「龍牙」的深處行進。烈日炙烤著你們的頭頂，在抵達峽谷另一端、望見阿扎卡瓦長城之前，你因中暑損失了 4 點耐力。
+
+傍晚的光線中，你敬畏地凝視著這座高聳的懸崖——它像一道巨大的岩石幕布，從東向西延伸，一眼望不到盡頭。
+
+你加快腳步，急切地想趕在夜幕降臨前抵達阿扎南。`,
+  e:s=>dmgEnd(s,4),
+  c:[{l:"繼續", to:325}]
+};
+
+CH[325] = {t:
+`夕陽的餘暉灑在高聳的阿扎卡瓦長城上，這道石牆如巨幕般橫亙天際。你站在長城腳下，仰望那幾乎無法攀爬的岩壁。
+
+「阿扎南就在長城另一邊，」山說，「但我們得先找到上去的路。」`,
+  c:[
+    {l:"沿著長城底部尋找攀爬路徑", to:118},
+    {l:"繼續向西探索", to:113}
+  ]
+};
+
+CH[113] = {t:
+`你沿著洞穴向上攀爬，懸崖壁逐漸變得陡峭而光滑，很快，你就找不到下一個抓手了——最近的岩縫就在你搆不到的地方。你疲憊不堪，幾乎沒有力氣繼續爬了。`,
+  c:[
+    {l:"伸手去搆那道岩縫", to:138},
+    {l:"接受無法爬上長城的事實", to:188}
+  ]
+};
+
+CH[138] = {t:
+`你拼命伸手去搆那個抓手，腳卻突然打滑，身體從懸崖壁上摔了下去。你朝著地面墜落，胃裡翻江倒海，心跳加速——但這一切都很快就結束了。你的身體重重地撞在石頭地面上，摔得粉碎，當場死亡。
+
+你的生命與使命，就此終結。`,
+  end:{type:"fail", title:"墜落", desc:"你從阿扎卡瓦長城的懸崖上墜落，粉身碎骨。"}
+};
+
+CH[188] = {t:
+`你頹然坐倒在長城腳下。這道石牆高得難以置信，你無法攀爬。
+
+你在長城底部的碎石地帶徘徊了許久，最後找到一條被藤蔓遮掩的裂縫。`,
+  c:[{l:"進入裂縫", to:118}]
+};
+
+CH[118] = {t:
+`你站在高聳的懸崖腳下，抬頭仰望。懸崖壁光滑而陡峭，似乎根本無法攀爬。神無湖上方的霧氣盤旋在下方，你沿著阿扎卡瓦長城底部的碎石地行走，尋找著攀爬的路徑。你的頭開始發沉，損失 1 點耐力。
+
+突然，你看到頭頂幾英尺高的懸崖壁上有一道裂縫——那是一個小小的壁龕，剛好能容納一個人。`,
+  e:s=>dmgEnd(s,1),
+  c:[
+    {l:"查看懸崖上的裂縫", to:268},
+    {l:"返回神無瀑布與神無湖周邊", to:293}
+  ]
+};
+
+CH[268] = {t:
+`你擠進那道裂縫，發現裡面是一條狹窄的通道。通道向上延伸，盡頭透出微光。
+
+你艱難地爬行著，手臂和膝蓋都被粗糙的岩石磨破。終於，你從另一端鑽出來，發現自己身處阿扎卡瓦長城頂端的平台。
+
+遠方，阿扎南的雲霧森林在霧中若隱若現。`,
+  c:[{l:"進入阿扎南", to:8}]
+};
+
+CH[293] = {t:
+`你回到神無湖周邊。湖水散發著惡臭，詭異的黃色湖水蒸發的蒸氣濃稠而黏膩，讓你感到肺部發緊，呼吸困難。
+
+你看到一具被啃得乾乾淨淨的骸骨——完全不知道這是怎麼回事，因為周圍看不到任何生物的蹤跡。你的頭開始發沉，視線也變得模糊，損失 1 點耐力。`,
+  e:s=>dmgEnd(s,1),
+  c:[
+    {l:"繼續探索神無湖", to:68},
+    {l:"爬上淺盆地的斜坡，查看長城底部", to:118}
+  ]
+};
+
+CH[68] = {t:
+`神無湖的湖水散發著惡臭，這詭異的黃色湖水蒸發的蒸氣濃稠而黏膩，讓你感到肺部發緊，呼吸困難。
+
+你遇到了一具你不認識的生物殘骸，骨頭已經被剔得乾乾淨淨。你的頭開始發沉，視線也變得模糊，損失 1 點耐力。`,
+  e:s=>dmgEnd(s,1),
+  c:[
+    {l:"繼續探索神無湖", to:293},
+    {l:"爬上淺盆地的斜坡", to:118}
+  ]
+};
+
+CH[7] = {t:
+`你得知這個女孩名叫塔妮絲，她是一名初學巫術的新手，侍奉著瑪格麗——她的保護者兼監護人。塔妮絲十分美麗，有著一頭凌亂的深色長髮和一雙野性的綠色眼眸。
+
+「他們說你是個巫師，還質疑過卡齊姆之石的測真能力。」她好奇地說道。
+
+「當然了。」你略帶自誇地回答。
+
+「這可太糟糕了，」她搖著頭說，「瑪格麗會折磨你的。沙達基人的手段可殘忍了。今晚，你就會被帶到『暗黑室』，那裡會讓你經歷巨大的痛苦與恐懼。」
+
+「那我必須逃離這裡。」你驚恐地說，「你能幫我嗎？」
+
+塔妮絲凝視著你，臉上滿是恐懼的神情：「不行……不行……太危險了……我不能……我不敢！」她從裙兜裡掏出一朵乾花，將花瓣碾成粉末，撒進了你的食物裡。「這能在你受苦之前給你增強點體力。」她聲音顫抖地解釋道，「我只能幫你這麼多了。」
+
+她猛地站起身：「對不起……」話未說完，便轉身消失了。`,
+  c:[{l:"繼續", to:270}]
+};
+
+CH[270] = {t:
+`你吃下摻了花瓣粉末的食物，只覺得一股暖流湧遍全身。不久之後，你恢復了 2 點耐力。`,
+  e:s=>healEnd(s,2),
+  c:[{l:"等待", to:172}]
+};
+
+CH[8] = {t:
+`你爬進了一個狹小洞穴的遮蔽處，這個洞穴小得幾乎只能容納你一個人。你立刻注意到，洞穴深處有一條向上延伸的小隧道。神無湖的幽靈般霧氣縈繞在洞穴地面上，昏暗地照亮了粗糙的洞頂和洞壁。
+
+你感到疲憊不堪，急需休息。`,
+  c:[
+    {l:"在這裡睡覺", to:14},
+    {l:"進入那條隧道", to:19}
+  ]
+};
+
+CH[14] = {t:
+`這是一場你永遠不會醒來的睡眠。有毒的霧氣在你熟睡時將你吞噬，這個洞穴成了你的墳墓，你的屍體永遠不會被人發現。
+
+你的使命失敗了。`,
+  end:{type:"fail", title:"毒霧之眠", desc:"有毒的霧氣在你熟睡時將你吞噬。"}
+};
+
+CH[19] = {t:
+`隧道十分狹窄，你不得不手腳並用地爬行。隧道緩緩向上傾斜，越往裡爬，你的身體就被兩側光滑的石壁夾得越緊，在這令人窒息的黑暗中，你感覺自己隨時都會窒息。終於，你如釋重負地爬到了隧道盡頭，掙扎著鑽了出去，大口喘著氣，渾身是汗。
+
+這裡依舊一片漆黑，但你已經能夠站起來了，並且能感覺到身處一個類似洞穴的空間裡。`,
+  c:[
+    {l:"（有火炬與火絨盒）點燃火炬查看", to:35, item:"火炬"},
+    {l:"消耗 1 點意志力，讓法杖發光", to:46},
+    {l:"既不用火炬也不用魔法，繼續前進", to:59}
+  ]
+};
+
+CH[35] = {t:
+`火炬的光芒照亮了周圍，你看到這是一個狹窄的洞穴，洞壁十分光滑——它既不像是天然形成的洞穴，也不像是人類開鑿的。地面上散落著枯葉、細枝、幾根骨頭和厚厚的陳年灰塵。洞穴深處還有一條隧道，比你剛爬出來的那條略寬一些。一陣涼風從隧道裡吹出來，吹散了洞穴裡發霉的空氣。
+
+你已經睏得站都站不穩了，索性不再顧慮，決定在這裡休息——這個洞穴看起來已經荒廢了很久。你熄滅光源，躺下來睡著了。`,
+  c:[{l:"繼續", to:59}]
+};
+
+CH[46] = {t:
+`你消耗 1 點意志力，讓巫師法杖的杖尖發出光芒。詭異的光線在洞穴的牆壁和洞頂上投下搖曳的影子，你發現這個洞穴是空的。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"繼續", to:35}]
+};
+
+CH[59] = {t:
+`你感到飢餓，必須現在吃 1 份食物，否則將損失 3 點耐力。隨後，你躺下來，很快就陷入了沉睡。這一夜平安無事，充足的休息讓你恢復了 1 點意志力和 2 點耐力。接著，一陣奇怪的聲音把你吵醒了。`,
+  e:s=>{ if(s.meals>=1) s.meals-=1; else dmgEnd(s,3); healWp(s,1); healEnd(s,2); },
+  c:[{l:"查看", to:65}]
+};
+
+CH[65] = {t:
+`你能聽到一陣窸窸窣窣的爬行聲，還有重物被拖在地上的聲音。你急忙站起身，藉著從你爬進來的那條隧道透進來的微弱光線，你看到洞穴的另一面牆還有一條隧道——聲音就是從那裡傳來的。
+
+你衝到牆邊，把身體緊貼在隧道入口處，希望能出其不意地對付來者。然而，出乎意料的是，幾秒鐘後，一隻至少三英尺長的巨型昆蟲拖著一具爬行動物的屍體，費力地爬進了洞穴。牠專注於自己的「工作」，沒有注意到蓄勢待發的你。`,
+  c:[
+    {l:"（塗抹了亞巴里藥膏）", to:72, item:"亞巴里藥膏"},
+    {l:"靜觀其變", to:83}
+  ]
+};
+
+CH[72] = {t:
+`那隻昆蟲沒有察覺到你的存在，你一動不動地站著，看著牠繼續拖著爬行動物的屍體穿過房間。最終，牠從另一條隧道的狹窄入口爬了進去，你鬆了一口氣。你抓住這個機會，爬進了兩條隧道中更寬的那條，進入了另一條傾斜的隧道。`,
+  c:[{l:"繼續", to:22}]
+};
+
+CH[83] = {t:
+`那隻昆蟲停下腳步，抬起頭，觸角在空中揮舞著，四處探查。突然，牠那雙多面眼睛鎖定了你——沒等你反應過來，牠就從頭部中央的空心角裡噴射出一股棕色液體。你急忙向旁邊躲閃，液體沒有擊中你，落在了地上。你低頭一看，發現地面上的石頭正在被液體腐蝕。昆蟲張開螯鉗般的嘴巴，扔下爬行動物的屍體，然後沿著原路爬了回去。`,
+  c:[
+    {l:"在牠逃走前用法杖攻擊", to:91},
+    {l:"追上去", to:98}
+  ]
+};
+
+CH[91] = {t:
+`你用法杖朝這隻昆蟲毫無防護的臀部砸去，牠的腿一蜷，倒在了地上。你消耗 1 點意志力，殺死了這隻昆蟲。
+
+仔細觀察後，你發現這是一隻洞穴螳螂。洞穴螳螂像螞蟻一樣，在地下群居生活，牠們會用體內儲存的強效酸液溶解岩石，在岩石中挖掘巢穴。你已經進入了螳螂的巢穴——儘管裡面危機四伏，但你備受鼓舞：只要能穿過螳螂巢穴迷宮般的隧道，就能抵達阿扎卡瓦長城上方的地面，進入阿扎南。`,
+  e:s=>dmgWp(s,1),
+  c:[
+    {l:"在黑暗中前進", to:122},
+    {l:"點亮光源", to:141}
+  ]
+};
+
+CH[122] = {t:
+`你小心翼翼地走進黑暗中，用手摸著牆壁，沿著隧道前進。幾分鐘後，隧道到了盡頭。你在黑暗中盲目地踉蹌了幾步，右腿突然被一雙螯鉗緊緊抓住，傳來一陣劇痛。你被拖到地上，被一個你永遠看不見的敵人無聲地吞噬了。
+
+你的生命與使命，就此終結。`,
+  end:{type:"fail", title:"黑暗中的死亡", desc:"你在黑暗中驚動了巢穴中的螳螂，被無聲吞噬。"}
+};
+
+CH[141] = {t:
+`傾斜的隧道盡頭是一個出口。你穿過出口，發現了一條更寬的隧道，分別向左右兩邊彎曲延伸。你正站在原地，猶豫著該選哪條路，突然聽到了巨大的昆蟲腿部摩擦地面的聲音。
+
+一隻體型龐大的士兵螳螂正從隧道右側朝你衝來，螯鉗咔咔作響，巨大的前肢在空中胡亂抓撓。`,
+  c:[{l:"迎戰", to:197}]
+};
+
+CH[197] = {t:
+`士兵螳螂擋在面前，巨大的複眼中映出你的身影。牠發出一聲刺耳的嘶鳴，朝你撲來。
+
+你必須擊敗牠才能繼續前進。`,
+  combat:{name:"士兵螳螂", cs:16, end:20, winTo:146},
+  c:[]
+};
+
+CH[146] = {t:
+`你站在一片寬闊空地的中央，四周環繞著高大的阿扎伍德樹和茂密的灌木叢。你環顧空地，發現地面上有好幾個洞口——毫無疑問，這些都是通往類似你剛剛逃離的那種豎井的入口。
+
+成百上千隻洞穴螳螂像潮水一樣從這些洞口湧出來，朝你衝來。突然，你身邊一個豎井的入口處，出現了一對揮舞的觸角。`,
+  c:[
+    {l:"用法杖向腳邊的豎井發射能量束", to:158},
+    {l:"衝進灌木叢", to:232}
+  ]
+};
+
+CH[158] = {t:
+`你向豎井下方發射能量束，消耗 1 點意志力。豎井封閉的空間將能量束轉化成一團火球，衝進下方的隧道。很快，豎井就被昆蟲燒焦的屍體堵住了。
+
+你一瘸一拐地鑽進盤根錯節的灌木叢中，受傷的腿讓你每走一步都痛苦不堪。茂密的樹葉和巨大的阿扎伍德樹樹根阻礙了你的腳步，你只能蹣跚前行。而洞穴螳螂並未放棄追捕，正以驚人的速度在森林深處蔓延。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"繼續", to:232}]
+};
+
+CH:232 = {t:
+`你在灌木叢中拼命奔跑，樹枝刮破了你的臉頰和手臂。不知跑了多久，身後的嘶鳴聲終於漸漸遠去。
+
+你癱倒在一棵巨大的阿扎伍德樹下，大口喘著氣。眼前，阿扎南的雲霧森林在暮色中若隱若現。`,
+  c:[{l:"進入阿扎南", to:8}]
+};
+
+CH[9] = {t:
+`你勇敢地擊退了那些士兵螳螂，但很快，整窩螳螂都向你湧來。短短幾分鐘內，牠們就將你的血肉撕咬得只剩白骨。
+
+你的生命與使命，就此悲慘地終結。`,
+  end:{type:"fail", title:"萬蟻噬身", desc:"整窩螳螂將你撕咬得只剩白骨。"}
+};
+
+/* --- 第10～17章（蘇恩港系列） --- */
+CH[11] = {t:
+`趁沙達基人還沒靠近，你從法杖中釋放出一道力量光束，當場擊斃了其中一人。這次攻擊消耗了你 1 點意志力。剩下的那名戰士向後退去，起初你以為他只是嚇破了膽，但隨後你便沮喪地發現，更多沙達基人正從後方趕來，他們手持十字弩，箭尖徑直對準了你。
+
+「投降，否則就死。」其中一個沙達基人喊道。`,
+  e:s=>dmgWp(s,1),
+  c:[
+    {l:"投降", to:300},
+    {l:"發起攻擊", to:66},
+    {l:"轉身逃跑", to:20}
+  ]
+};
+
+CH[20] = {t:
+`你為自己這個愚蠢的決定後悔不已，但為時已晚。沙達基戰士們可不會顧忌「不背後傷人」的道義，你的身體很快就被十字弩箭刺穿，當場死亡。
+
+你的生命與使命，就此終結。`,
+  end:{type:"fail", title:"背後之箭", desc:"你轉身逃跑，被沙達基十字弩手射殺。"}
+};
+
+CH[66] = {t:
+`你還沒來得及舉起法杖，一支十字弩箭就從你耳邊飛過，射中了那個沙達基戰士的脖子。他臉上帶著驚訝的表情，倒了下來。
+
+就在第一個十字弩手重新裝箭時，另一個十字弩手朝你射出一箭。箭狠狠地刺入你的肩膀，你損失 3 點耐力。你消耗 1 點意志力，用法杖向那個弩手發射了一道能量束，他當場斃命。
+
+此時，第一個十字弩手已經重新裝好了箭，你很清楚，自己很難再躲過一箭。
+
+你向沙達基人投降，寄希望於他們能手下留情——但顯然，他們並沒有這種美德。`,
+  e:s=>{ dmgEnd(s,3); dmgWp(s,1); },
+  c:[{l:"繼續", to:311}]
+};
+
+CH[311] = {t:
+`沙達基士兵粗暴地將你反綁，推著你穿過蘇恩港的街道。路人紛紛避讓，沒有人敢多看一眼。
+
+你們來到一座陰森的建築前——沙達基的審訊所。鐵門在你身後重重關上。`,
+  c:[{l:"被押入地牢", to:172}]
+};
+
+CH[172] = {t:
+`你被關在一間陰暗的牢房裡。牆上滲著水，空氣中瀰漫著霉味與腐臭。
+
+不一會兒，一個衣衫襤褸的商人被推了進來——正是山。他看見你，先是驚訝，然後苦笑：「看來我們都落到同樣的下場了。」
+
+你們必須設法逃出去。你開始盤算自己擁有的魔法能力。`,
+  c:[
+    {l:"施展「巫術」破門", to:109, sp:"巫術"},
+    {l:"施展「魅惑」欺騙獄卒", to:124, sp:"魅惑"},
+    {l:"施展「煉金術」調配酸性藥劑破壞鎖", to:151, sp:"煉金術"},
+    {l:"施展「招魂」與死者溝通", to:95, sp:"招魂"}
+  ]
+};
+
+CH[109] = {t:
+`你花了很長時間做準備，在牢房裡來回踱步，山在一旁看著，一臉困惑。當你感覺自己進入了合適的精神狀態後，將注意力集中在門上。
+
+起初，你的意志力量似乎沒什麼效果，於是你逐漸加大了法術的強度。當門開始發出嘎吱聲、厚重的木頭開始變形時，你已經消耗了 2 點意志力。你再加把勁，又消耗 3 點意志力，木頭發出斷裂聲，但鎖芯還是沒被破壞。你做了最後一次努力，消耗 4 點意志力，終於用能量將門鎖劈成了碎片。門轟然倒地。
+
+這次施法總共消耗了你 4 點意志力，長時間的精神緊張還讓你損失 1 點耐力！
+
+你和山衝到樓梯頂端，跑進走廊。很快，你就聽到右邊走廊深處有人在大喊——你聽出那是獄卒的聲音，還聽到了他鑰匙的叮噹聲。`,
+  e:s=>{ dmgWp(s,9); dmgEnd(s,1); },
+  c:[
+    {l:"迎戰獄卒", to:243},
+    {l:"朝相反方向逃跑", to:333}
+  ]
+};
+
+CH[124] = {t:
+`你決定用「魅惑」能力逃跑。你構思好計劃，進入深度冥想狀態，在腦海中編織出一個複雜的幻象。
+
+「著火了！著火了！」你一邊大喊，一邊砸著牢門。山奇怪地看著你——周圍根本沒有煙的痕跡。「獄卒，快開門！不然整個地方都要被燒毀了！」
+
+在你的鼓勵下，山很快也加入了這場偽裝，開始瘋狂地四處亂跑、大喊大叫，還用力砸門。
+
+沒過多久，獄卒一瘸一拐地沿著走廊走了過來，停在你們的牢房外。「我好像聞到煙味了。」他說。在他眼中，地牢中央正燃起熊熊大火，濃煙從門底下冒出來——他完全被你的幻象騙了。他叮叮噹噹地翻找著鑰匙，很快就打開了鎖。門被猛地推開，你和山衝上樓梯，跑進走廊。
+
+使用這次「魅惑」能力消耗了你 2 點意志力。`,
+  e:s=>dmgWp(s,2),
+  c:[
+    {l:"趁獄卒背對你時突襲他", to:243},
+    {l:"朝右邊跑", to:23},
+    {l:"沿走廊朝左邊跑", to:333}
+  ]
+};
+
+CH[151] = {t:
+`煉金術士應該能調配出一種酸性藥劑，足以摧毀牢房門的金属鎖，但你需要以下材料才能完成配方：
+
+埃澤蘭酸藥劑
+1 份硫磺
+1 份硝石
+1 份埃澤蘭水晶
+隔水加熱混合。`,
+  c:[
+    {l:"（材料齊全）調配藥劑", to:297, item:"硫磺"},
+    {l:"放棄這個方法", to:172}
+  ]
+};
+
+CH[297] = {t:
+`你從草藥袋中取出硫磺、硝石與埃澤蘭水晶，用空藥瓶隔水加熱。一股刺鼻的氣味瀰漫開來。
+
+你將調好的藥劑倒在鎖上，金屬發出嘶嘶聲，冒出白煙。不一會兒，鎖芯便被腐蝕殆盡。
+
+你和山推開門，衝進走廊。`,
+  e:s=>{ removeItem(s,"硫磺"); removeItem(s,"硝石"); },
+  c:[
+    {l:"朝左邊的樓梯跑去", to:137},
+    {l:"朝右邊的樓梯跑去", to:212}
+  ]
+};
+
+CH[95] = {t:
+`你和山一起研究地牢的門，一邊透過鑰匙孔觀察，一邊商量對策。
+
+牢房角落躺著一具老夏安提祭司的屍體——他似乎在昨夜死去。你想起「招魂」的能力，或許能從他那裡得到幫助。`,
+  c:[
+    {l:"對老祭司施展「招魂」", to:87, sp:"招魂"},
+    {l:"改用其他方法", to:172}
+  ]
+};
+
+CH[87] = {t:
+`你用粉筆在地上繪出魔法五角星，站入其中，念出《亡靈之歌》中晦澀的咒語。
+
+老祭司的鬼魂嘆息著說：「好了。從我的遺體上取下護身符吧，它能保護你免受邪惡亡靈的傷害。」你從死去祭司的脖子上取下那枚用銀鏈掛著的護身符，戴在了自己脖子上。
+
+周圍一片寂靜，牢房裡漸漸變得寒冷起來。你聽到遠處傳來呻吟聲，接著是令人毛骨悚然的哀嚎——聲音越來越響，越來越尖。亡靈們前來復仇了。
+
+使用「招魂」能力消耗了你 2 點意志力。一陣狂風席捲了牢房，門突然被撞開。你轉身抓住山的胳膊。
+
+「快，」你低聲說，「跟我來。」你跑出門，進入外面的走廊。陰影般的靈體從牆壁和地面中鑽出來，四處飛舞。你轉向右邊，看到了獄卒那具面目全非的屍體——他僵硬的手裡還攥著一把小匕首。`,
+  e:s=>{ dmgWp(s,2); addSpecial(s,"老祭司的銀色護身符"); addWeapon(s,"匕首"); },
+  c:[
+    {l:"拿走獄卒的鑰匙，釋放這一層的其他囚犯", to:125},
+    {l:"立刻走左邊的樓梯", to:137},
+    {l:"走右邊的樓梯", to:212}
+  ]
+};
+
+CH[125] = {t:
+`你抓起死去獄卒的鑰匙，沿著走廊奔跑，盡快打開每一扇牢門。牢門一扇接一扇地被打開，囚犯們湧進走廊，四散奔逃。`,
+  e:s=>addSpecial(s,"獄卒的鑰匙"),
+  c:[
+    {l:"走左邊的樓梯", to:137},
+    {l:"走右邊的樓梯", to:212},
+    {l:"進入走廊盡頭的一條狹窄通道", to:333}
+  ]
+};
+
+CH[243] = {t:
+`你轉身迎向獄卒。這個肥胖的男人揮舞著一把生鏽的短劍，但顯然不是你的對手。
+
+獄卒：戰鬥能力 12，耐力 18`,
+  combat:{name:"獄卒", cs:12, end:18, winTo:37},
+  c:[]
+};
+
+CH[37] = {t:
+`你快速搜查了屍體，發現了獄卒的鑰匙和 3 枚諾布爾。你可以保留這些物品，若願意，也可以拿走他的匕首。`,
+  e:s=>{ addSpecial(s,"獄卒的鑰匙"); s.nobles+=3; addWeapon(s,"匕首"); },
+  c:[{l:"繼續", to:137}]
+};
+
+CH[333] = {t:
+`你沿著走廊狂奔，最終來到一扇通往地面的小門。你推開門，冷冽的夜風撲面而來。
+
+你自由了。`,
+  c:[{l:"離開此地", to:195}]
+};
+
+CH[212] = {t:
+`你沿著右邊的樓梯往上跑，一路撞開幾扇門，最後衝進了一間儲藏室。裡面堆滿了雜物，但你找到了一個通往外面的窗戶。
+
+你翻窗而出，落在一條小巷中。`,
+  c:[{l:"離開小巷", to:195}]
+};
+
+CH[137] = {t:
+`你和商人山緊隨其後，衝上樓梯，來到一個小平台。平台有兩個出口：左邊的出口被一扇沉重的木門擋住，右邊則是一個通往狹窄走廊的開放式拱門。遠處傳來尖叫聲和石塊墜落的聲音，腳下的地面也在顫抖。「走哪條路？」山問道。`,
+  c:[
+    {l:"使用「預言」判斷正確方向", to:92, sp:"預言"},
+    {l:"走左邊的出口", to:142},
+    {l:"走右邊的出口", to:163}
+  ]
+};
+
+CH[142] = {t:
+`你用力推那扇沉重的木門，卻失望地發現門被鎖上了。`,
+  c:[
+    {l:"（有獄卒的鑰匙）用鑰匙開門", to:286, item:"獄卒的鑰匙"},
+    {l:"施展「巫術」開門", to:159, sp:"巫術"},
+    {l:"施展「煉金術」開門", to:170, sp:"煉金術"},
+    {l:"走右邊的拱門", to:163}
+  ]
+};
+
+CH[159] = {t:
+`你的「巫術」能力應該能炸開這扇門，但需要消耗大量意志力才能破壞鎖芯。你無法確定這個咒語到底需要多少意志力，而且一旦開始施法，就必須堅持到最後。`,
+  c:[
+    {l:"仍使用「巫術」開門", to:114, sp:"巫術"},
+    {l:"改用「煉金術」開門", to:170, sp:"煉金術"},
+    {l:"從右邊的開放式拱門離開", to:163}
+  ]
+};
+
+CH[114] = {t:
+`你集中精神，將「巫術」的魔法能量投向門。起初沒有反應，但最終，在消耗 2 點意志力後，鎖芯斷裂，門開了。
+
+你走到平台的另一邊，那裡有通往左右兩邊的樓梯。`,
+  e:s=>dmgWp(s,2),
+  c:[
+    {l:"使用「預言」判斷方向", to:92, sp:"預言"},
+    {l:"走左邊的樓梯", to:80},
+    {l:"走右邊的樓梯", to:45}
+  ]
+};
+
+CH[170] = {t:
+`你用煉金術配製出一種能腐蝕金屬的溶劑，塗在鎖上。金屬發出嘶嘶聲，鎖很快就鬆脫了。
+
+門開了。你走到平台的另一邊，那裡有通往左右兩邊的樓梯。`,
+  c:[
+    {l:"走左邊的樓梯", to:80},
+    {l:"走右邊的樓梯", to:45}
+  ]
+};
+
+CH[286] = {t:
+`你掏出獄卒的鑰匙，插入鎖孔。沉重的木門應聲而開。
+
+門後是一間堆滿雜物的儲藏室，你穿過儲藏室，找到一條通往地面的樓梯。`,
+  c:[{l:"離開", to:195}]
+};
+
+CH[163] = {t:
+`你穿過右邊的拱門，走進一條狹窄的走廊。走廊兩側是石壁，頭頂懸掛著搖曳的火把。
+
+你走了沒多遠，前方出現了一個岔路。`,
+  c:[
+    {l:"走左邊", to:60},
+    {l:"走右邊", to:45}
+  ]
+};
+
+CH[60] = {t:
+`你沒有停下喘氣，繼續爬上另一組樓梯。你能聽到山在身後氣喘吁吁地跟著。`,
+  c:[
+    {l:"走右邊的樓梯", to:45},
+    {l:"走左邊的樓梯", to:80}
+  ]
+};
+
+CH[45] = {t:
+`你爬上一小段樓梯，樓梯頂端有一扇緊閉的木門。你能聽到門後傳來模糊的交談聲和斷斷續續的笑聲。`,
+  c:[
+    {l:"打開門", to:312},
+    {l:"返回，選擇另一段樓梯", to:80}
+  ]
+};
+
+CH[312] = {t:
+`你推開門，走進一間煙霧繚繞的房間。裡面似乎是一間酒館的後室，幾個人圍坐在桌旁。
+
+他們抬起頭看著你，其中一人站起身：「你是誰？」`,
+  c:[
+    {l:"謊稱自己是商人", to:195},
+    {l:"直接詢問勞拉失落部落", to:82}
+  ]
+};
+
+CH[80] = {t:
+`你和山一起跑到樓梯頂端，頭頂上有一扇活板門。你推開活板門，走進一個圓形房間，房間裡有兩個出口。從對面那扇門的門縫裡，你能看到微弱的黃色光線。`,
+  c:[
+    {l:"打開這扇門", to:25},
+    {l:"從另一個出口離開", to:41}
+  ]
+};
+
+CH[25] = {t:
+`你認出了這個小小的前廳——當初瑪格麗就是在這裡用卡齊姆之石對你進行測真測試的。那個散發著恐怖光芒的球體，此刻正放在空房間中央的一張小桌子上，微微發光。`,
+  c:[
+    {l:"拿走卡齊姆之石", to:77},
+    {l:"立刻離開前廳", to:129}
+  ]
+};
+
+CH[77] = {t:
+`你抓起卡齊姆之石，推開前廳的門。圓形房間裡站著的，正是瑪格麗手下的那個年輕女孩——塔妮絲。
+
+「灰星，」她說，「我終於找到你了。」
+
+「小心點，」山警告道，「她是沙達基人的奴隸，不能相信她。」`,
+  e:s=>addItem(s,"卡齊姆之石","散發恐怖光芒的球體"),
+  c:[
+    {l:"攻擊這個年輕女孩", to:67},
+    {l:"質問她", to:147}
+  ]
+};
+
+CH[129] = {t:
+`你任由那可怕的卡齊姆之石留在原地，推開前廳的門。圓形房間裡站著的，正是瑪格麗手下的那個年輕女孩——塔妮絲。
+
+「灰星，」她說，「我終於找到你了。」
+
+「小心點，」山警告道，「她是沙達基人的奴隸，不能相信她。」`,
+  c:[
+    {l:"攻擊這個年輕女孩", to:67},
+    {l:"質問她", to:147}
+  ]
+};
+
+CH[67] = {t:
+`你朝她衝過去，她卻苦澀地笑了：「蠢貨，你這是自尋死路。」
+
+你還沒來得及追上她，她就從出口溜走了。你想跟上去，房間裡卻突然湧進了大批沙達基戰士——他們從活板門和塔妮絲逃走的出口蜂擁而入，人數多得讓你無法抵抗。
+
+你聽到的最後一句話，是瑪格麗在戰士們的保護下，下令處死你的聲音。
+
+你失敗了，你的生命與使命就此終結。`,
+  end:{type:"fail", title:"寡不敵眾", desc:"你攻擊了塔妮絲，反被沙達基戰士圍殺。"}
+};
+
+CH[147] = {t:
+`「塔妮絲，」你說，「你侍奉瑪格麗，到底想做什麼？」
+
+「我知道你的法杖藏在哪裡，」她回答，「如果你帶我一起走，我可以帶你去找法杖，還能幫你逃跑。快點決定，這裡太危險了，我們沒多少時間了。」你聽到沙達基衛兵的腳步聲從樓下傳來，還有瑪格麗憤怒的聲音。`,
+  c:[
+    {l:"同意塔妮絲的請求", to:221},
+    {l:"無視她的話", to:63}
+  ]
+};
+
+CH[63] = {t:
+`「蠢貨！」她嘶嘶地罵道，「你這是自尋死路，我可不想親眼看著你送死。」
+
+她轉身離開了圓形房間，與此同時，大批沙達基戰士湧進了房間。你寡不敵眾，出口也被堵住了。沒有法杖的你，根本無法抵抗殘忍的沙達基人——他們毫不留情地將你當場砍倒。
+
+你的生命與使命，就此終結。`,
+  end:{type:"fail", title:"刀下亡魂", desc:"你無視了塔妮絲的警告，被沙達基戰士砍倒。"}
+};
+
+CH[221] = {t:
+`「好，我跟妳走。」你說。
+
+塔妮絲露出如釋重負的笑容，快步領著你和山穿過一條隱蔽的通道。通道盡頭是一間儲藏室，你的巫師法杖正靜靜地靠在牆角。
+
+你一把抓起法杖，熟悉的觸感讓你安心不少。
+
+「從這裡可以通往城外，」塔妮絲說，「但動作要快。」
+
+你們三人鑽進狹窄的地道，身後傳來瑪格麗憤怒的咆哮聲。`,
+  e:s=>{ if(!s.weapons.includes("巫師法杖")) s.weapons.push("巫師法杖"); },
+  c:[{l:"逃出地牢", to:195}]
+};
+
+CH[195] = {t:
+`你衝出地道，迎面而來的是蘇恩港夜晚涼爽的海風。碼頭的燈火在遠處閃爍，你終於擺脫了追兵。
+
+塔妮絲和山跟在你身後，大口喘著氣。
+
+「接下來該怎麼辦？」塔妮絲問。`,
+  c:[
+    {l:"前往笑月客棧打聽消息", to:82},
+    {l:"在港口附近探索", to:100}
+  ]
+};
+
+CH[82] = {t:
+`你小心翼翼地推開門，走進一個煙霧繚繞的房間。客棧裡充斥著人們爭論的聲音、醉漢的叫喊聲和女服務員的笑聲。顧客形形色色：商人、水手、漁夫和各種各樣的旅行者在這裡摩肩接踵。`,
+  c:[
+    {l:"沒有錢買酒，直接找位子坐下", to:105},
+    {l:"在吧台買一杯酒", to:339}
+  ]
+};
+
+CH[339] = {t:
+`你走到吧台前，掏出幾枚諾布爾，買了一杯麥酒。酒保是個獨眼的老水手，他一邊擦著杯子一邊打量你。
+
+「外鄉人？」他問，「來蘇恩港做什麼？」
+
+你含糊地帶過，把話題引向勞拉失落部落。老水手的眼神閃爍了一下。`,
+  e:s=>{ if(s.nobles>=1) s.nobles-=1; else toast("你身無分文，酒保擺了擺手示意算了"); },
+  c:[{l:"繼續詢問", to:105}]
+};
+
+CH[105] = {t:
+`你看到一個空座位，坐了下來。桌子旁還坐著三個人，其中或許有人能幫你找到勞拉失落部落的下落。你在心裡盤算著，該和誰搭話。
+
+桌子旁坐著一個紋身水手、一個醉酒商人，還有一個戴著兜帽的人。`,
+  c:[
+    {l:"使用「預言」判斷誰最可信", to:313, sp:"預言"},
+    {l:"和正在打鼾的紋身水手說話", to:79},
+    {l:"和穿著華麗長袍的醉酒商人說話", to:131},
+    {l:"和角落裡穿黑色兜帽斗篷的人說話", to:209}
+  ]
+};
+
+CH[313] = {t:
+`你凝神觀察，預言的能力告訴你：那個戴兜帽的人身上有魔法氣息，值得一談；醉酒的商人知道很多傳聞，但嘴巴不牢靠。
+
+使用這次能力消耗了你 1 點意志力。`,
+  e:s=>dmgWp(s,1),
+  c:[
+    {l:"和醉酒商人說話", to:131},
+    {l:"和兜帽人說話", to:209}
+  ]
+};
+
+CH[79] = {t:
+`你輕輕搖了搖那個水手的肩膀：「抱歉，先生，您還好嗎？」
+
+水手睜開惺忪的眼睛，皺著眉頭看著你：「誰啊？」
+
+沒等你再說一句話，這個憤怒的水手就跳了起來，朝你胡亂揮了一拳，還打翻了桌子，麥酒灑得滿地都是。
+
+你被打倒在地，摔了出去，損失 1 點耐力。你暈乎乎地感覺有人抓住你的衣領，把你推出了門。你跌跌撞撞地摔進了外面的集市廣場。`,
+  e:s=>dmgEnd(s,1),
+  c:[{l:"進入集市廣場", to:157}]
+};
+
+CH[131] = {t:
+`你和那個紅臉商人攀談起來。他名叫山·李，是個商人，熟悉沙達基帝國的各個地方，也去過許多遙遠的陌生國度。你小心翼翼地把話題引到勞拉失落部落上。
+
+「啊，」這個醉酒的商人饒有興致地開始說道，「你是說那個傳說吧？嗯，關於他們的故事有很多，我在旅行中幾乎都聽過。在遙遠的北方、『末地』的自由王國，還有這裡的沙達基帝國，我都沒聽過任何關於勞拉人的消息。不過，有一個故事聽起來似乎是真的——那是我在埃爾齊安城和德西的魔法師做生意時聽到的。據說，勞拉失落部落流亡到了遙遠南方的雲霧森林，那個危險的地方叫阿扎南。不過，也有人說他們去了舒里山脈的森林裡。」
+
+商人開始大聲講述他聽到的關於勞拉人的故事，聲音大得驚人。你注意到很多人都轉過身來盯著你們，還竊竊私語。沒等你讓他小聲點，一隻手就抓住了你的肩膀——你和商人被四名高大的沙達基衛兵逮捕了。`,
+  c:[{l:"被押走", to:300}]
+};
+
+CH[300] = {t:
+`沙達基衛兵將你和山押送到一座陰暗的建築前。厚重的鐵門在你身後關上，發出沉悶的巨響。
+
+你們被推搡著走下石階，關進了一間潮濕的牢房。`,
+  c:[{l:"被關入地牢", to:172}]
+};
+
+CH[209] = {t:
+`你走到角落，在那個戴兜帽的人對面坐下。
+
+「你在找人，」那人低聲說，聲音沙啞，「勞拉的失落部落。」
+
+你驚訝地看著他。他掀開兜帽，露出一張佈滿疤痕的臉。「我是昆迪人，」他說，「最後的幾個之一。如果你想找到我的族人，你必須先證明你的誠意。」`,
+  c:[
+    {l:"表明自己是灰星，接受考驗", to:195},
+    {l:"謹慎地詢問細節", to:100}
+  ]
+};
+
+CH[157] = {t:
+`你站在集市廣場上，這裡熱鬧非凡，充滿了生機。數百個攤販在火炬的光芒下叫賣商品。你在廣場上閒逛，看著各個攤位和待售的商品。`,
+  c:[
+    {l:"使用「煉金術」辨識藥材", to:183, sp:"煉金術"},
+    {l:"繼續觀察四周", to:26}
+  ]
+};
+
+CH[183] = {t:
+`你仔細辨認著攤位上的藥材，發現其中一個攤販正在出售稀有的卡拉塞納蘑菇和亞巴里藥膏。你用幾枚諾布爾換了一些。`,
+  e:s=>{ if(s.nobles>=10){ s.nobles-=10; addItem(s,"卡拉塞納蘑菇","用於魅惑幻象"); addItem(s,"亞巴里藥膏","塗抹後可避開昆蟲"); } },
+  c:[{l:"繼續", to:26}]
+};
+
+CH[26] = {t:
+`你回頭瞥了一眼，發現一個面容像黃鼠狼一樣的小個子男人，正在搖曳的火炬光影中躲躲閃閃。你被人跟蹤了。`,
+  c:[
+    {l:"裝作什麼都沒發現", to:97},
+    {l:"當面質問那個黃鼠狼臉男人", to:166},
+    {l:"離開集市廣場逃跑", to:241}
+  ]
+};
+
+CH[166] = {t:
+`你大步走向那個黃鼠狼臉男人。「你在跟蹤我？」
+
+他的臉瞬間變白，轉身就跑。你想追上去，但人群阻擋了你的去路。
+
+你只能繼續前進。`,
+  c:[{l:"繼續", to:195}]
+};
+
+CH[97] = {t:
+`你繼續穿過集市廣場，注意到那個跟蹤你的人停下來，和兩名沙達基戰士交談——他正激動地指著你的方向，比劃著什麼。`,
+  c:[
+    {l:"逃離集市廣場", to:241},
+    {l:"試著在人群中隱藏自己", to:89}
+  ]
+};
+
+CH[89] = {t:
+`無論你怎麼努力，都甩不掉那個跟蹤你的人。很快，他就和兩名沙達基戰士匯合了。你別無選擇，只能逃跑。`,
+  c:[{l:"逃跑", to:241}]
+};
+
+CH[241] = {t:
+`你在狹窄的街道中拼命奔跑，轉過一個又一個街角。最終，你甩掉了身後的追兵，氣喘吁吁地靠在牆上。
+
+夜風拂過，你望向遠方——阿扎南的雲霧森林在夜色中若隱若現。`,
+  c:[{l:"繼續旅程", to:195}]
+};
+
+CH[53] = {t:
+`你不想再引起漁夫的懷疑，因此無法進入冥想狀態以預知未來。於是你試著用感官去判斷漁夫的真實身份。那個獨眼男人完全沒察覺到你的意圖，還在繼續和你討價還價，想壓低船的價格。
+
+你感知到這個獨眼男人並無惡意。他是港口的看守，同時也是個小騙子——在港口周圍遊蕩，監視走私者和可疑商人的非法活動，然後強迫他們花錢買通自己。他給你的船價只有實際價值的一半。不過，你的「預言」能力告訴你，不久後你可能會需要錢，而這或許是你獲取錢財的唯一機會。於是你任由他壓低價格，把船賣給了他。
+
+使用這次魔法能力消耗了你 1 點意志力。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"繼續", to:16}]
+};
+
+CH[16] = {t:
+`當你同意以 20 枚諾布爾這個低廉的價格出售時，老人立刻面露喜色。他遞給你 20 塊玉石，你將它們放進了長袍口袋裡。
+
+你試圖從他口中套取一些信息，詢問關於勞拉失落部落的傳說，但他卻不願多談，眼神閃躲，還不安地來回挪動著腳，顯然是急於離開。
+
+「去那邊街道盡頭的『笑月客棧』試試吧，」他最後咕噥著說，「在那兒能聽到不少旅人閒聊。」
+
+順著他指的方向，你看到一條昏暗狹窄的街道，從港口區域延伸出去。當你轉過身準備再問些什麼時，卻發現老人已經不見了——他消失在了夜色中。`,
+  e:s=>{ s.nobles += 20; },
+  c:[
+    {l:"走進那條狹窄的街道", to:200},
+    {l:"在港口周邊探索", to:100}
+  ]
+};
+
+CH[200] = {t:
+`你走進狹窄的街道，兩側是高聳的倉庫建築。遠處傳來笑月客棧的招牌在風中搖晃的聲響。
+
+你推門走了進去。`,
+  c:[{l:"進入客棧", to:82}]
+};
+
+CH[100] = {t:
+`你在港口周邊徘徊了好一會兒，發現的都是關門的建築，以及在陰影中進進出出、搬運著神秘貨物的可疑人物。
+
+你看到兩名士兵在碼頭巡邏，他們的頭髮除了頭頂中間一綹長髮外，其餘部分都剃光了。他們穿著黑色搪瓷鋼盔甲，上面裝飾著金色圖案，腰間挎著鋒利的彎刀——他們是沙達基戰士，正朝你大喊，讓你站在原地別動。`,
+  c:[
+    {l:"逃跑", to:40},
+    {l:"服從沙達基人的命令", to:121}
+  ]
+};
+
+CH[121] = {t:
+`兩名沙達基戰士站在你面前。「你在這裡鬼鬼祟祟地幹什麼？」其中一個人用手指戳著你的胸口，質問道。
+
+你慌忙找藉口，卻注意到沙達基人的眼睛是全白的——沒有瞳孔。你試圖說服這兩名士兵，稱自己是當地的漁夫，但他們對你的說法與外表深表懷疑，當場逮捕了你。`,
+  c:[
+    {l:"反抗逮捕，攻擊沙達基人", to:265},
+    {l:"不想此時暴露自己的能力與使命", to:300}
+  ]
+};
+
+CH[265] = {t:
+`你猛地舉起法杖，釋放出一道能量束。一名戰士當場倒下，另一名則嘶吼著撲來。
+
+沙達基戰士：戰鬥能力 16，耐力 20`,
+  combat:{name:"沙達基戰士", cs:16, end:20, winTo:195},
+  c:[]
+};
+
+CH[40] = {t:
+`你從港口跑開，沿著狹窄的街道狂奔，像一隻受驚的野獸一樣，在門廊和陰影之間穿梭。街道兩旁是高聳的倉庫建築，你只能聽到自己的腳步聲。
+
+沒跑多遠，你就來到了一個十字路口：左右兩邊是小巷，狹窄的街道則繼續向前延伸。`,
+  c:[
+    {l:"使用「預言」判斷哪條路安全", to:64, sp:"預言"},
+    {l:"拐進左邊的小巷", to:223},
+    {l:"拐進右邊的小巷", to:76},
+    {l:"沿著狹窄的街道繼續向前", to:195}
+  ]
+};
+
+CH[64] = {t:
+`你的意識探入近未來，「預言」能力告訴你，兩條小巷裡都潛藏著危險。你必須沿著狹窄的街道繼續前進，才能避開危險。
+
+使用這次魔法能力消耗了你 1 點意志力。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"沿著街道繼續前進", to:195}]
+};
+
+CH[223] = {t:
+`你拐進左邊的小巷，沒走多遠就遇到了一堵死牆。你正準備轉身，卻聽到身後傳來腳步聲。`,
+  c:[{l:"快速返回", to:195}]
+};
+
+CH[76] = {t:
+`突然，一把刀架在了你的喉嚨上。你立刻舉起法杖，釋放出一道能量束（消耗 1 點意志力），差一點擊中那個兇殘的劫匪。
+
+劫匪嚇得驚呼一聲，轉身就往小巷深處跑。你意識到待在這裡很危險，於是轉身往回走，看著他跑進那條狹窄的街道，拐了個彎就不見了。你順著他的腳步聲追了一會兒，但很快就聽不到聲音了。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"繼續", to:195}]
+};
+
+CH[34] = {t:
+`小巷裡空無一人。你凝視著昏暗的陰影，小心翼翼地走進了黑暗中。突然，有人從背後抓住了你，一把刀架在了你的喉嚨上。
+
+「轉過身來，」一個聲音惡狠狠地低聲說道，「慢慢轉，不然我就割破你的喉嚨。然後把錢交出來。」
+
+你緩緩轉過身，面對著這個衣衫襤褸的小偷。`,
+  c:[
+    {l:"沒有錢，或不願交出來", to:76},
+    {l:"願意交出錢", to:133}
+  ]
+};
+
+CH[133] = {t:
+`你順從地交出錢袋。那個劫匪假惺惺地鞠了一躬，露出邪惡的笑容：「現在，該讓你安靜下來了，先生。」他猛地朝你撲來——這個劫匪想殺了你，你必須戰鬥。
+
+劫匪：戰鬥能力 10，耐力 12`,
+  combat:{name:"劫匪", cs:10, end:12, winTo:71, canFleeAfter:2, fleeTo:27},
+  c:[]
+};
+
+CH[71] = {t:
+`小偷的屍體倒在你腳邊。你搜查了他的身體，找回了自己的錢，還額外發現了 10 枚諾布爾，這些你都可以留下。你也可以拿走小偷的匕首。
+
+你離開小巷，回到了那條狹窄的街道。`,
+  e:s=>{ s.nobles += 10; addWeapon(s,"匕首"); },
+  c:[{l:"繼續", to:195}]
+};
+
+CH[27] = {t:
+`你的法杖仍閃爍著狂暴的能量，照亮了小巷。你轉身，拼盡全力朝著那條狹窄的街道跑去。`,
+  c:[{l:"繼續", to:195}]
+};
+
+/* --- 第28～32章（人群/奎庫/納金） --- */
+CH[28] = {t:
+`你以一個流暢的動作，迅速站到了抬著你的人的肩膀上。人群先是發出一陣熱烈的歡呼，隨後又陷入了沉默——因為你縱身一躍，跳進了身後擁擠的人群中。人們的身體緩衝了你的墜落，你毫髮無傷地迅速爬起身來。
+
+你聽到人群中傳來清晰的痛苦呼喊聲——兩名沙達基戰士正揮刀劈開擋在他們和你之間的人牆，朝著你衝來。`,
+  c:[
+    {l:"回去幫助那些被你拋下的人", to:308},
+    {l:"趁亂逃跑", to:336}
+  ]
+};
+
+CH[308] = {t:
+`你轉身衝回人群，舉起法杖釋放出一道能量束，擊倒了一名沙達基戰士。
+
+人群爆發出歡呼，另一名戰士則朝你撲來。`,
+  e:s=>dmgWp(s,1),
+  combat:{name:"沙達基戰士", cs:16, end:20, winTo:127},
+  c:[]
+};
+
+CH[336] = {t:
+`你趁亂鑽進人群中，擠過一條又一條小巷。當你終於停下來時，已經遠離了港口區域。
+
+你靠在一堵牆上，大口喘著氣。`,
+  c:[{l:"繼續", to:195}]
+};
+
+CH[127] = {t:
+`那個沙達基戰士倒在地上，興奮的人群發出歡呼聲，將你奉為英雄。一陣新的聲音隨著港口的風傳來，人群的喧鬧漸漸平息——你聽到了馬蹄聲和車輪滾動的轟鳴聲。人群中掀起一陣恐慌。「是死亡之輪！」有人大喊道。
+
+三輛由揮舞著鞭子的沙達基人駕駛的戰車，轟隆隆地衝進了港口。戰車車輪的輪轂上伸出刀刃，當沙達基人衝進人群時，刀刃像鐮刀一樣砍倒了所有擋路的人。
+
+混亂中，你看到一個機會——可以逃進一條黑暗狹窄的街道。`,
+  c:[
+    {l:"朝主入口跑去", to:50},
+    {l:"跑進那條狹窄的街道", to:40}
+  ]
+};
+
+CH[50] = {t:
+`你還沒來得及靠近港口正門，沙達基人的戰車就轟隆隆地衝進了港口區域。人群驚恐地四散奔逃，但根本躲不開戰車車輪上旋轉的刀刃。你驚恐地看著沙達基人殘忍地屠殺蘇恩民眾。
+
+突然，一輛戰車猛地轉向，朝你疾馳而來。你聽到車伕瘋狂的笑聲，當戰車靠近時，你發現他的眼睛竟然沒有瞳孔。
+
+戰車即將衝到你面前，你只有幾秒鐘的時間採取行動。`,
+  c:[
+    {l:"衝進右邊那條狹窄的街道", to:40},
+    {l:"原地反擊", to:155}
+  ]
+};
+
+CH[155] = {t:
+`這是一個勇敢卻徒勞的舉動。你向沙達基戰車車伕釋放出一道巨大的死亡光束，而就在此時，馬匹也衝到了你面前，將你踩在腳下，你的每一根骨頭都被碾碎，當場死亡。
+
+你的使命失敗了。`,
+  end:{type:"fail", title:"車輪之下", desc:"你被沙達基戰車的車輪碾碎。"}
+};
+
+CH[56] = {t:
+`你被人群舉在頭頂，閉上眼睛，努力集中精神。周圍的嘈雜與混亂讓你很難集中注意力構建幻象，在幻象完成前，你必須損失 2 點意志力。更讓你恐懼的是，你看到那兩名沙達基戰士已經開始在人群中砍出一條血路，朝你衝來。`,
+  e:s=>dmgWp(s,2),
+  c:[
+    {l:"繼續施展「魅惑」法術", to:251},
+    {l:"中斷冥想，去幫助手無寸鐵的人群", to:84}
+  ]
+};
+
+CH[251] = {t:
+`你咬緊牙關，繼續編織幻象。終於，法術完成了——人群中突然出現了數十個「灰星」的幻影，朝四面八方逃散。
+
+沙達基戰士愣在原地，不知所措。你趁機從人群頭頂躍下，鑽進了一條小巷。`,
+  c:[{l:"逃走", to:195}]
+};
+
+CH[84] = {t:
+`情急之下，你舉起巫師法杖，釋放出一道噼啪作響的能量束——能量束越過人群的頭頂，擊中了最近的那名沙達基戰士的心臟。你的心緒混亂不堪，由於無法集中精神，這次攻擊消耗了 3 點意志力。
+
+那名沙達基戰士痛苦地尖叫著倒在地上，胸口的傷口處冒出藍色的煙霧。人群興奮地歡呼著，一擁而上，撲向剩下的那名沙達基戰士。`,
+  e:s=>dmgWp(s,3),
+  c:[
+    {l:"趁機跳到地上逃跑", to:196},
+    {l:"解決掉剩下的那名沙達基戰士", to:224}
+  ]
+};
+
+CH[196] = {t:
+`你從人群頭頂跳下，順勢滾入一條小巷。身後傳來人群的歡呼聲和沙達基戰士的怒吼，但你沒有回頭。
+
+你沿著小巷快步離開，消失在夜色中。`,
+  c:[{l:"繼續", to:195}]
+};
+
+CH[224] = {t:
+`你舉起法杖，對準剩下的那名沙達基戰士。他正瘋狂地揮舞著武器，試圖抵擋湧上來的人群。
+
+你釋放出一道能量束，結束了他的生命。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"繼續", to:195}]
+};
+
+CH[32] = {t:
+`你熟練地揮舞著法杖，在那隻生物從頭頂飛過時，成功擋住了牠致命的觸碰。你看著那隻奎庫向高空飛去，在空中盤旋了一圈，準備發起下一次攻擊。
+
+突然，奎庫朝著山俯衝下來。`,
+  c:[
+    {l:"嘗試對奎庫進行遠程攻擊", to:107},
+    {l:"保護山，抵禦這次攻擊", to:57}
+  ]
+};
+
+CH[57] = {t:
+`山本能地撲倒在地，一隻手顫抖地舉著劍，另一隻手捂著臉，從指縫間緊張地看著奎庫朝自己衝來。
+
+你消耗 2 點意志力，用法杖在奎庫的一隻翅膀上燒出一個洞，奎庫痛苦地尖叫起來。這隻受傷的生物失去了平衡，猛地向左轉彎，撞在了地上。`,
+  e:s=>dmgWp(s,2),
+  c:[
+    {l:"趁機解決掉這隻奎庫", to:307},
+    {l:"繼續逃跑", to:182}
+  ]
+};
+
+CH[107] = {t:
+`山嚇得僵在原地，一隻手顫抖地舉著劍，另一隻手捂著臉，從指縫間緊張地看著奎庫朝自己衝來。
+
+你消耗 2 點意志力，用法杖在奎庫的一隻翅膀上燒出一個洞，奎庫痛苦地尖叫起來。這隻受傷的生物失去了平衡，猛地向左轉彎，撞在了地上。`,
+  e:s=>dmgWp(s,2),
+  c:[
+    {l:"趁機解決掉這隻奎庫", to:307},
+    {l:"繼續逃跑", to:182}
+  ]
+};
+
+CH[307] = {t:
+`你衝上前去，用法杖狠狠砸向那隻掙扎的奎庫。牠發出最後一聲刺耳的尖叫，再也不動了。
+
+山從地上爬起來，臉色蒼白。「謝了，」他喘著氣說，「我欠你一條命。」`,
+  c:[{l:"繼續前進", to:335}]
+};
+
+CH[182] = {t:
+`你和山拼命奔跑。身後的奎庫發出憤怒的呱呱叫聲，但最終還是放棄了追趕。
+
+你們氣喘吁吁地停下來，發現前方就是阿扎卡瓦長城的腳下。`,
+  c:[{l:"繼續", to:335}]
+};
+
+CH[335] = {t:
+`你們繞過危險的峽谷，繼續朝阿扎卡瓦長城前進。
+
+遠方，長城如一道灰色的巨幕橫亙在大地之上。`,
+  c:[{l:"繼續前進", to:118}]
+};
+
+CH[44] = {t:
+`你重重一擊，將奎庫的頭顱劈成了兩半。牠發出一聲淒厲的尖叫，向後倒去，抽搐了幾下後便一動不動了。但這場勝利毫無意義——奎庫的屍體正好落在了倒在地上的山身上。`,
+  c:[
+    {l:"移開奎庫的屍體", to:317},
+    {l:"繼續趕路，繞過危險的峽谷", to:335}
+  ]
+};
+
+CH[317] = {t:
+`你費力地推開奎庫的屍體。山咳嗽著爬起來，臉色發青，但還活著。
+
+「我發誓，」他喘著氣說，「這輩子再也不碰這種東西了。」`,
+  c:[{l:"繼續前進", to:335}]
+};
+
+CH[49] = {t:
+`你深吸幾口氣，朝著峽谷衝去。你縱身一躍，從懸崖邊緣跳了出去，在空中劃出一道弧線，越過了深不見底的峽谷。你的四肢胡亂揮舞著，拼命伸手去搆對岸，身體開始向下墜落。`,
+  c:[{l:"跳躍！（擲骰判定）", action:"jump"}]
+};
+
+CH[274] = {t:
+`你的手指擦過對岸的岩石邊緣，卻沒能抓住。
+
+你朝著深谷墜落，耳邊只剩下風的呼嘯聲。
+
+你的生命與使命，就此終結。`,
+  end:{type:"fail", title:"墜入深谷", desc:"你沒能跳過峽谷，墜入了深淵。"}
+};
+
+CH[210] = {t:
+`你的手指牢牢抓住了對岸的岩石邊緣，雙臂用力，把自己拉了上來。
+
+你趴在峽谷邊緣，大口喘著氣。山在對岸歡呼起來。`,
+  c:[{l:"等待山過來", to:74}]
+};
+
+CH[74] = {t:
+`你朝對面的山大喊，鼓勵他過來。山緊張地盯著懸崖邊緣下方的深谷，搖了搖頭：「我做不到，我肯定跳不過去。」
+
+你說服他把背包扔過來，減輕負重，但他還是沒有勇氣跳過來。`,
+  c:[
+    {l:"（有一卷繩子）用繩子幫他", to:194, item:"一卷繩子"},
+    {l:"沒有繩子，只能另想辦法", to:219}
+  ]
+};
+
+CH[194] = {t:
+`你從背包裡取出一卷繩子，把一端綁在岩石上，將另一端拋給山。
+
+山抓住繩子，深吸一口氣，縱身躍過了峽谷。他落地時踉蹌了一下，但穩住了。`,
+  e:s=>removeItem(s,"繩"),
+  c:[{l:"繼續前進", to:335}]
+};
+
+CH[219] = {t:
+`山在對岸徘徊了許久，最後搖了搖頭：「我過不去。你先走吧，我會想辦法繞過去。」
+
+你知道這只是安慰的話。你們在峽谷兩岸對望了一會兒，最後你點了點頭。`,
+  c:[{l:"繼續前進", to:335}]
+};
+
+CH[148] = {t:
+`你瞇著眼睛，在昏暗的光線下看到一隻長著蹼狀爪子的手出現在峽谷邊緣。山難以置信地呻吟著——那隻受傷的奎庫竟然掙扎著爬上了崎嶇的平原。牠拖著痛苦的身軀，頑強地朝你們移動，彷彿擁有不死之身。
+
+你拉起山，指向南方：「看，我們快到神無湖了，再加把勁。」你拖著山站起來，在平原上蹣跚前行，速度慢得令人痛苦。而那隻奎庫則在身後緊追不捨，一點點拉近距離。
+
+你沮喪地發現，前方的路被一道深達六英尺的峽谷擋住了。那隻怪物離你們已經不遠了，你知道根本沒時間繞過去。阿扎卡瓦長城近在眼前，卻又彷彿遠在天邊。`,
+  c:[
+    {l:"跳過峽谷", to:49},
+    {l:"原地迎戰奎庫", to:233}
+  ]
+};
+
+CH[233] = {t:
+`你轉過身，舉起法杖，面對著那隻傷痕累累卻依然兇猛的奎庫。
+
+奎庫：戰鬥能力 14，耐力 16`,
+  combat:{name:"受傷的奎庫", cs:14, end:16, winTo:335},
+  c:[]
+};
+
+CH[61] = {t:
+`你突然抬頭一看，第一次注意到附近的石灰岩柱頂端棲息著幾個矮胖的身影。「是奎庫，」山小聲說，「我還以為牠們只是傳說呢。」
+
+奎庫用那雙圓鼓鼓的眼睛一眨不眨地盯著你們。牠們像巨型蟾蜍一樣，斑駁的綠色皮膚上佈滿了隆起的疙瘩和疣子，蒼白的喉嚨像氣泡一樣鼓起來，發出低沉的呱呱叫聲。`,
+  c:[
+    {l:"悄悄從奎庫身邊溜走", to:186},
+    {l:"攻擊離你最近那根石柱上的奎庫", to:111},
+    {l:"逃跑", to:86}
+  ]
+};
+
+CH[186] = {t:
+`你和山壓低身體，小心翼翼地從奎庫下方溜過。幸運的是，那些生物只是打了個呵欠，繼續曬太陽。
+
+你們安全地離開了這片區域。`,
+  c:[{l:"繼續", to:335}]
+};
+
+CH[111] = {t:
+`你瞄準石柱頂端，釋放出一道能量束。奎庫發出一聲長長的、吱吱的痛苦尖叫，但還是活了下來——這次攻擊消耗了你 2 點意志力。牠受傷的翅膀上流出血黑色的血液。
+
+「牠的皮比盔甲還硬，竟然能扛住這一擊。」你驚訝地說。
+
+你感到不安，轉身就跑，山已經先跑起來了。`,
+  e:s=>dmgWp(s,2),
+  c:[{l:"逃跑", to:266}]
+};
+
+CH[86] = {t:
+`你抓住山的胳膊，拉著他一起小跑起來。不幸的是，你突然的動作引起了奎庫的注意，一陣響亮而急促的呱呱叫聲在傍晚的空氣中迴盪。
+
+阿扎卡瓦長城還有好幾英里遠，你祈禱自己能跑過奎庫。`,
+  c:[{l:"繼續奔跑", to:266}]
+};
+
+CH[266] = {t:
+`你們拼命奔跑，奎庫在後方緊追不捨。就在你們快要支撐不住的時候，前方的地形變得崎嶇，奎庫似乎不願意進入這片區域，盤旋了幾圈後放棄了追擊。
+
+你們癱坐在地上，大口喘著氣。`,
+  c:[{l:"繼續", to:335}]
+};
+
+CH[136] = {t:
+`你腳步輕盈，小心翼翼地向前移動，眼睛警惕地掃視著四周，尋找可能隱藏在岩石後面、隨時準備突襲的敵人。
+
+山明顯在發抖，伸手想去拔劍，但你示意他不要動——生怕劍出鞘的聲音會驚動某種危險的生物。儘管你什麼都沒看到，但那奇怪的呱呱叫聲一直沒有停止，反而越來越頻繁，在周圍迴盪。`,
+  c:[
+    {l:"使用「預言」查明威脅來源", to:345, sp:"預言"},
+    {l:"繼續前進", to:61}
+  ]
+};
+
+CH[345] = {t:
+`你閉上眼睛，讓意識延伸出去。「預言」的能力告訴你：那些呱呱聲是奎庫發出的，牠們棲息在石灰岩柱頂端，目前並沒有攻擊的意圖。
+
+使用這次能力消耗了你 1 點意志力。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"繼續前進", to:61}]
+};
+
+/* --- 第39～58章（白山騎士系列） --- */
+CH[39] = {t:
+`山帶領著你們，沿著森林邊緣一條被踩出來的小路前行。突然，他停下腳步，側著頭，專注地聽著什麼。「怎麼了？」你小聲問道。
+
+「我聽到前面有喊聲，你聽！」遠處，你隱約能聽到憤怒的叫喊聲和金屬碰撞的鏗鏘聲。你小心翼翼地向前爬行，透過茂密的灌木叢向外望去。
+
+六名身著紅藍相間長袍的武裝騎士，正與二十名沙達基戰士交戰。騎士們在保護一輛停在寬闊石橋中央、滿載貨物的馬車。馬車上坐著一個沒有武器、衣著華麗的男人，他驚恐地看著這場戰鬥。儘管騎士們劍術高超（從地上躺著的許多沙達基人的屍體就能看出），但他們寡不敵眾，幾乎沒有可能守住這座橋。
+
+「他們撐不了多久了。」你低聲說。
+
+「但這些可不是普通的士兵，」山反駁道，「你看他們盾牌上的圖案——一座山，山頂有兩顆星星。這是杜雷諾爾王國的王室徽章。他們是『白山騎士』，杜雷諾爾的戰士領主，杜雷諾爾是遙遠北方的一個自由王國。」
+
+若你想沿著阿贊河繼續向南行進，就必須設法繞過這場戰鬥，不能被沙達基人發現。`,
+  c:[
+    {l:"幫助白山騎士", to:55},
+    {l:"繞過戰鬥，穿過道路", to:208}
+  ]
+};
+
+CH[208] = {t:
+`你帶著山和塔妮絲悄悄繞過戰場，從橋下游的淺灘涉水而過。
+
+當你們抵達對岸時，橋上的戰鬥仍在繼續。你回頭望了一眼，心中有些愧疚。`,
+  c:[{l:"繼續南行", to:2}]
+};
+
+CH[55] = {t:
+`你靜靜地等待著，思考著最佳行動方案。一隊五人的沙達基戰士手持十字弩，沿著道路朝你走來，他們在離你只有幾碼遠的地方停下，開始裝箭。如果他們向橋上勇敢的騎士們射箭，騎士們將毫無招架之力。`,
+  c:[
+    {l:"使用「魅惑」幫助陷入困境的騎士", to:70, sp:"魅惑"},
+    {l:"用巫師法杖對十字弩手進行遠程攻擊", to:81},
+    {l:"突襲十字弩手", to:99}
+  ]
+};
+
+CH[70] = {t:
+`你集中精神進入冥想狀態，編織出一道魅惑幻象，試圖影響橋上戰鬥的沙達基戰士的心智。突然，負責指揮的沙達基軍官轉過身，看到了那些十字弩手，氣得滿臉通紅。他大喊一聲命令，十名戰士立刻轉身，朝十字弩手衝去——十字弩手們對此一臉茫然。你成功製造了幻象，讓沙達基人誤以為那些十字弩手是白山騎士。
+
+使用這次「魅惑」能力消耗了你 2 點意志力。
+
+沙達基戰士們發出一聲嗜血的吶喊，朝十字弩手們撲去。十字弩手們立刻射出一排箭，殺死了五名自己的同胞。隨後，十字弩手們扔掉武器，沿著道路逃跑，其餘憤怒的沙達基戰士在後面緊追不捨。`,
+  e:s=>dmgWp(s,2),
+  c:[
+    {l:"從藏身之處向橋上剩餘的沙達基戰士發起遠程攻擊", to:88},
+    {l:"衝進戰場戰鬥", to:156}
+  ]
+};
+
+CH[81] = {t:
+`你仔細瞄準，向沙達基十字弩手的後背發射了一道白色閃電，當場擊斃兩人，消耗 2 點意志力。
+
+剩下的三名十字弩手一臉茫然和困惑，顯然被這突如其來的攻擊嚇住了。山再也按捺不住，沒等你阻止，就跳了起來，揮舞著劍，發出一聲響亮的吶喊，朝剩下的十字弩手衝了過去。他離十字弩手太近了，你不敢再發起遠程攻擊，生怕傷到他。`,
+  e:s=>dmgWp(s,2),
+  c:[
+    {l:"跟上去保護山", to:99},
+    {l:"任由山自生自滅", to:145}
+  ]
+};
+
+CH[145] = {t:
+`看到那個怒氣沖沖的商人漲紅著臉、用變了調的聲音怪叫著朝自己衝來，十字弩手們臉上露出了驚訝的表情。山笨拙地揮舞著劍，發起一連串古怪的攻擊，卻連一個目標都沒擊中。`,
+  c:[
+    {l:"從藏身之處向橋上的戰士發起遠程攻擊", to:132},
+    {l:"幫助山", to:99},
+    {l:"衝向橋上的沙達基戰士", to:169}
+  ]
+};
+
+CH[132] = {t:
+`你用法杖瞄準橋的方向，與此同時，塔妮絲站起身，助跑幾步，跳到一個十字弩手的背上，在他即將射出瞄準山的箭時，打亂了他的瞄準。她像職業殺手一樣熟練，用刀割斷了那個十字弩手的喉嚨。
+
+與此同時，你釋放出一道噼啪作響的能量束，擊中了站在橋邊的一名沙達基戰士，消耗 2 點意志力。`,
+  e:s=>dmgWp(s,2),
+  c:[{l:"繼續", to:203}]
+};
+
+CH[203] = {t:
+`橋上的沙達基戰士陷入混亂，白山騎士趁機發起猛攻，佔據了上風。你帶著山衝上橋，加入戰鬥。
+
+沙達基人節節敗退，最終潰散而逃。`,
+  c:[{l:"與騎士們會合", to:189}]
+};
+
+CH[169] = {t:
+`你衝向橋上的沙達基戰士，法杖在空中劃出一道弧線。`,
+  e:s=>dmgWp(s,1),
+  combat:{name:"沙達基戰士群", cs:24, end:30, winTo:189},
+  c:[]
+};
+
+CH[99] = {t:
+`你一躍而起，朝毫無防備的十字弩手們的後背衝去，法杖揮舞著，噴射出魔法火焰。山也試圖做出同樣勇猛的動作，笨拙地揮舞著劍，但效果遠不如你。
+
+沒等十字弩手們發射弓箭，你就衝到了他們面前。由於突襲的優勢，你的戰鬥能力增加 2 點；再加上山在一旁協助，戰鬥能力再增加 2 點。你必須與這些十字弩手戰鬥到底，將他們視為一個整體敵人。`,
+  combat:{name:"沙達基十字弩手", cs:25, end:32, csBonus:4, winTo:88,
+    winChoices:[
+      {l:"從遠程攻擊橋上的沙達基人", to:88},
+      {l:"衝向沙達基人", to:94}
+    ]},
+  c:[]
+};
+
+CH[88] = {t:
+`你發射出一道力量光束，擊中了橋上的沙達基戰士，擊斃一人，消耗 2 點意志力。沙達基人陷入混亂，白山騎士趁機發起進攻，佔據了上風。
+
+由於戰鬥距離較遠，你需要消耗大量意志力才能有效攻擊，你意識到，只有靠近沙達基人，才能提高攻擊效果。此時從後方發起攻擊，幾乎肯定能扭轉戰局。你衝出灌木叢，發出一聲可怕的吶喊，衝進了戰場。山氣喘吁吁地跟在你身後，笨拙地揮舞著劍。橋上的騎士們看到你，發出熱烈的歡呼，沙達基人的抵抗開始動搖，一步步向後退去。`,
+  e:s=>{ dmgWp(s,2); dmgWp(s,1); },
+  c:[{l:"繼續", to:189}]
+};
+
+CH[94] = {t:
+`你高舉法杖，杖尖噴射著魔法火焰，毫不猶豫地朝沙達基人衝去。山跟在你身後，努力追趕。
+
+沙達基戰士們被這突如其來的後方襲擊打亂了陣腳。白山騎士趁機發起猛攻，佔據了上風，還大聲歡呼著為你鼓勁。你揮舞著巫師法杖，奮力向四周攻擊，消耗 1 點意志力，擊倒了離你最近的沙達基戰士。山也出人意料地擊倒了另一個敵人。
+
+這時，塔妮絲拿著一把上好箭的十字弩重新出現。她冷靜地瞄準沙達基軍官，一箭射穿了他的脖子——軍官倒在地上，死了。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"繼續", to:215}]
+};
+
+CH[156] = {t:
+`你和塔妮絲、山一起望向橋上的戰鬥。白山騎士已經殺死了許多沙達基戰士，但這一次，他們似乎快要戰敗了。
+
+「我們必須去幫他們。」你說。你朝著橋走去，打算從後方攻擊沙達基人。塔妮絲不知去向，於是你帶著山，準備發起衝鋒。`,
+  c:[
+    {l:"攻擊負責指揮的沙達基軍官", to:215},
+    {l:"攻擊沙達基的主力部隊", to:120}
+  ]
+};
+
+CH[215] = {t:
+`你朝沙達基軍官衝去，法杖噴射著火焰。軍官大吃一驚，慌忙拔出彎刀。
+
+沙達基軍官：戰鬥能力 18，耐力 22`,
+  e:s=>dmgWp(s,1),
+  combat:{name:"沙達基軍官", cs:18, end:22, winTo:189},
+  c:[]
+};
+
+CH[120] = {t:
+`你衝進混戰的士兵群中，消耗 1 點意志力，打倒了两名沙達基戰士。山也幸運地繳了另一名沙達基人的械。
+
+你的攻擊打亂了沙達基戰士的陣型，但你仍被四名負責殿後的沙達基人包圍著。你必須與他們戰鬥到底，將他們視為一個整體敵人。戰鬥期間，山會協助你，你的戰鬥能力增加 3 點。`,
+  e:s=>dmgWp(s,1),
+  combat:{name:"沙達基殿後部隊", cs:25, end:30, csBonus:3, maxRounds:3, winTo:189},
+  c:[]
+};
+
+CH[189] = {t:
+`戰鬥結束了。白山騎士們圍攏過來，為首的騎士摘下頭盔，向你深深一鞠躬。
+
+「我是杜雷諾爾的白山騎士隊長，」他說，「你救了我們，也救了這批貨物。請接受我們的感謝。」他遞給你一小袋諾布爾，「願你的旅途平安。」
+
+塔妮絲和山站在你身後，臉上都帶著笑容。`,
+  e:s=>{ s.nobles += 15; },
+  c:[{l:"繼續南行", to:2}]
+};
+
+CH[70] = CH[70];
+
+/* --- 剩餘章節（補充） --- */
+CH[13] = {t:
+`森林就在不遠處，且夜色正濃。幸運的是，沒人發現你。你一頭扎進森林邊緣的灌木叢中，一動不動地躺著，看著沙達基人的戰車以極快的速度轟隆隆地駛過。戰車車輪輪轂上的鋒利刀刃閃閃發光，戰車駛過你藏身之處時，距離近得十分危險。
+
+戰車過去後，你屏住呼吸等了好幾分鐘，它並沒有返回。`,
+  c:[{l:"繼續", to:75}]
+};
+
+CH[75] = {t:
+`你們沿著道路進入森林。「這條路上白天很熱鬧，」山告訴你，「很多商人和貿易商會走這條路去蘇恩港。如果我們想找地方藏起來休息，就必須離開道路，深入森林，這樣才安全。」
+
+「這個『小販』說得對。」塔妮絲高傲地瞪著山，用眼神挑釁他。
+
+山氣得臉都紫了。`,
+  c:[{l:"繼續", to:3}]
+};
+
+CH[21] = {t:
+`你沿著道路前行，令山感到驚訝的是，路上竟然空無一人。「真是奇怪，」他困惑地說，「這條路上平時滿是商人。」
+
+走了三個小時後，你看到路邊停著一輛馬車。一小群人圍坐在一小片樹林旁的篝火邊。「你們在這兒等著，」山說，「我去跟這些商人打聽下前面路段的情況。」
+
+沒過多久，他就回來了，手裡還拿著一把短劍，笑得合不攏嘴：「太值了！只花了 5 枚諾布爾，這把劍至少值 20 枚。總能跟傻瓜做成划算的買賣。」
+
+「別光顧著說劍，」塔妮絲不耐煩地問，「道路為什麼會空著？」
+
+「沙達基人正在搜捕我們，」他回答，「在抓到我們之前，他們會一直封鎖道路和橋樑。這些商人被困在了這裡，只好臨時紮營。」
+
+「我們現在必須躲進樹林裡走，」你擔憂地說。隨後，你們進入樹林，小心翼翼地繼續趕路。`,
+  e:s=>{ if(s.nobles>=5){ s.nobles-=5; addWeapon(s,"短劍"); } },
+  c:[{l:"繼續", to:39}]
+};
+
+CH[23] = {t:
+`你盡量放輕腳步，向右轉去，山緊緊跟在你身後。走廊的盡頭有兩段樓梯，都通向上方。`,
+  c:[
+    {l:"使用「預言」判斷方向", to:92, sp:"預言"},
+    {l:"走左邊的樓梯", to:137},
+    {l:"走右邊的樓梯", to:321}
+  ]
+};
+
+CH[92] = {t:
+`你的「預言」能力警告你，必須走左邊。使用這次能力消耗了你 1 點意志力。
+
+現在，請返回你之前記下的章節，繼續冒險。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"繼續", to:137}]
+};
+
+CH[321] = {t:
+`你走上右邊的樓梯。樓梯盤旋向上，你能聽到上方傳來模糊的聲音。
+
+最終，你來到一條走廊。`,
+  c:[{l:"繼續前進", to:41}]
+};
+
+CH[41] = {t:
+`你沿著一條蜿蜒的長廊奔跑，走廊兩側有許多門，但你不知道該打開哪一扇。抬頭向前望去，你不由得打了個寒顫——走廊的盡頭，有一個人正朝你走來，手裡揮舞著一根長長的法杖。
+
+那個人影越來越近，你終於看清了他的臉——是瑪格麗。`,
+  combat:{name:"瑪格麗", cs:20, end:24, winTo:195},
+  c:[]
+};
+
+CH[349] = {t:
+`你與瑪格麗展開了激烈的對決。她的法杖噴射出黑色的火焰，你則以夏安提的魔法回應。
+
+最終，你擊敗了她。瑪格麗化為一縷黑煙消散在空氣中。`,
+  c:[{l:"繼續", to:195}]
+};
+
+CH[48] = {t:
+`橋的跨度很大，你在橋上設置魔法護盾消耗了 3 點意志力。巨大的精神消耗讓你疲憊不堪，雙腿一軟，倒在地上，意識模糊。塔妮絲和山把你扶起來，半拖半抱地將你帶到了森林的遮蔽處。`,
+  e:s=>dmgWp(s,3),
+  c:[{l:"繼續", to:75}]
+};
+
+CH[31] = {t:
+`你感到疲憊不堪，疲憊地閉上眼睛，祈求元素精靈的幫助。你的咒語念完後，起初似乎沒有任何效果。隨後，你聽到了水流奔湧的聲音：不遠處的河面上，湧起了一道巨大的波浪。波浪泛著白色的泡沫，像一隻伸出的手一樣，在橋的上方不斷升高。這隻「水做的手」緊握成巨大的拳頭，猛地砸向橋面，將橋像火柴棍一樣砸得粉碎。波浪同時也將你們三人淋得渾身濕透，並將斷橋沖到了下游。
+
+「好強大的力量！」塔妮絲驚嘆道，眼中閃爍著孩子般的喜悅與崇拜。
+
+這次施法消耗了你 1 點意志力。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"繼續", to:75}]
+};
+
+CH[47] = {t:
+`你抬頭一看，發現隧道通向一個幾乎垂直的豎井，刺眼的陽光讓你睜不開眼睛。你氣喘吁吁地咒罵著，縱身一躍，抓住了豎井土牆中伸出的一根粗壯植物根莖，開始向上攀爬。這個狹窄的豎井僅容一人通過，攀爬過程既艱難又緩慢。爬到一半時，你突然驚呼一聲——你被卡在了一個狹窄的瓶頸處，動彈不得。
+
+第一批憤怒的士兵螳螂已經鑽進了豎井，牠們伸出長長的前肢，抓向你胡亂揮舞的雙腿。一股灼燒般的劇痛瞬間席捲了你的右腿——一股酸液噴射出來，將你的小腿腐蝕得露出了白骨。你損失 8 點耐力。
+
+你絕望地大喊一聲，用力擠過縫隙，終於掙脫了束縛。受傷的腿已經麻木，阻礙著你的攀爬，但你憑藉超人的毅力，最終爬到了豎井頂端。你終於抵達了地面，發現自己身處一片寬闊的空地，四周環繞著高大的樹木和茂密的綠色植被。`,
+  e:s=>dmgEnd(s,8),
+  c:[{l:"繼續", to:146}]
+};
+
+CH[96] = {t:
+`你的反應極快，瞬間就救了自己一命。你釋放出一道能量束，消耗 2 點意志力，將那隻生物的頭炸得粉碎。腿部的傷口讓你損失 2 點耐力，你痛苦地爬起來，一瘸一拐地逃離身後蜂擁而至的致命昆蟲。你看到前方有一個從上方通向隧道的豎井，抬頭望去，能看到光線——終於有通往地面的路了！
+
+你用顫抖的手指緊緊抓住豎井光滑的側壁，奮力向上攀爬。這個狹窄的豎井僅容一人通過，攀爬過程十分艱難。爬到一半時，你突然驚呼一聲——你被卡在了一個狹窄的瓶頸處，動彈不得。
+
+第一批憤怒的士兵螳螂已經鑽進了豎井，牠們伸出長長的前肢，抓向你胡亂揮舞的雙腿。一股灼燒般的劇痛瞬間席捲了你的右腿——一股酸液噴射出來，將你的小腿腐蝕得露出了白骨。你損失 8 點耐力。
+
+你絕望地大喊一聲，用力擠過縫隙，終於掙脫了束縛。受傷的腿已經麻木，阻礙著你的攀爬，但你憑藉超人的毅力，最終爬到了豎井頂端。你終於抵達了地面，發現自己身處一片寬闊的空地，四周環繞著高大的樹木和茂密的綠色植被。`,
+  e:s=>{ dmgWp(s,2); dmgEnd(s,2); dmgEnd(s,8); },
+  c:[{l:"繼續", to:146}]
+};
+
+CH[154] = {t:
+`你強忍著傷口的疼痛，而那隻兇猛的洞穴螳螂正朝你撲來，帶倒鉤的爪子渴望著撕裂你脆弱的身軀。
+
+洞穴螳螂：戰鬥能力 15，耐力 18`,
+  combat:{name:"洞穴螳螂", cs:15, end:18, winTo:103, canFleeAfter:1, fleeTo:4},
+  c:[]
+};
+
+CH[103] = {t:
+`儘管你擊敗了那隻洞穴螳螂，但剩下的大批致命昆蟲還是將你團團圍住，當場將你撕成了碎片。
+
+你的生命與使命，就此終結。`,
+  end:{type:"fail", title:"萬蟲噬咬", desc:"你擊敗了一隻螳螂，卻被更多的昆蟲淹沒。"}
+};
+
+CH[108] = {t:
+`火炬的光芒再次照亮了你的周圍。隧道的天花板很低，你不得不彎腰行走，十分不舒服。走到隧道盡頭，出口變得寬闊起來，你能稍微直起身子，繼續前進。`,
+  c:[{l:"繼續", to:135}]
+};
+
+CH[115] = {t:
+`你消耗 1 點意志力，讓法杖發出光芒。這束光會一直亮著，無需額外消耗意志力。
+
+你繼續沿著隧道前進，由於天花板很低，不得不彎腰行走。終於，隧道稍微變寬了一些——你走到了隧道盡頭。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"繼續", to:135}]
+};
+
+CH[135] = {t:
+`你驚恐地發現，隧道出口處有一隻比之前那隻更大的昆蟲——你已經進入了洞穴螳螂的巢穴。洞穴螳螂像螞蟻一樣在地下群居，牠們用體內儲存的強效酸液溶解岩石，在岩石中挖掘巢穴。只要能穿過這個巢穴的迷宮，就能抵達阿扎卡瓦長城上方的地面，進入阿扎南。但首先，你必須對付擋在面前的這隻昆蟲——牠是一隻士兵螳螂，螯鉗咔咔作響，巨大的前肢揮舞著，顯然不打算讓你過去。`,
+  c:[{l:"迎戰", to:197}]
+};
+
+CH[98] = {t:
+`你跟在那隻昆蟲後面，但牠很快就消失在了你的視線中。隧道緩緩向上彎曲，不久後，你再次陷入了黑暗。你停下腳步，不再奔跑。`,
+  c:[
+    {l:"（有火炬與火絨盒）點燃火炬", to:108, item:"火炬"},
+    {l:"消耗 1 點意志力讓法杖發光", to:115},
+    {l:"在黑暗中繼續前進", to:122}
+  ]
+};
+
+CH[22] = {t:
+`你沿著彎曲的隧道向上跑去，但沒跑多遠就被迫停了下來——低矮的隧道內一片漆黑，你甚至連伸到眼前的手都看不見。`,
+  c:[
+    {l:"在黑暗中繼續前進", to:122},
+    {l:"點亮光源", to:334}
+  ]
+};
+
+CH[334] = {t:
+`你點亮光源，柔和的光芒驅散了隧道中的黑暗。
+
+隧道繼續向上延伸。`,
+  c:[{l:"繼續", to:135}]
+};
+
+CH[73] = {t:
+`你用小瓶裡剩下的液體燒毀了門鎖，現在你已經沒有埃澤蘭酸了，必須扔掉這個被污染的小瓶。
+
+鎖被燒毀後，你小心翼翼地推開門，發現門後是另一個平台。你走上平台，看到兩條通往左右兩邊的樓梯。`,
+  c:[
+    {l:"使用「預言」判斷方向", to:92, sp:"預言"},
+    {l:"走左邊的樓梯", to:80},
+    {l:"走右邊的樓梯", to:45}
+  ]
+};
+
+CH[292] = {t:
+`你沿著洞穴壁攀爬，小心翼翼地在濕滑的岩石間尋找落腳點。
+
+突然，一塊岩石鬆動，你整個人向下滑落，手指拼命抓撓著岩壁。`,
+  c:[{l:"繼續", to:113}]
+};
+
+CH[138] = CH[138];
+
+CH[303] = {t:
+`你深吸一口氣，跳向對岸。`,
+  c:[{l:"繼續", to:49}]
+};
+
+/* --- 第62～99章（地牢線補充） --- */
+CH[62] = {t:
+`你心情沉重地迎接黎明的到來——老夏安提祭司已經死在了他簡陋的床鋪上。過了一會兒，那個給你們送食物的年輕女孩出現了。「來，吃吧。」她說著，把另一碗米飯從地牢門的鐵柵欄間塞了進來。
+
+「那個老祭司，」你指著他的屍體說，「他死了。」
+
+女孩瞥了一眼老祭司：「我會告訴瑪格麗的。或許她想在他的靈魂還沒離開身體的時候，把靈魂偷走。」她若無其事地說，「他真是個愚蠢的祭司，死有餘辜。不過，或許我的女主人能讓他派上些用場。」
+
+你和山驚訝地看著她，對她這種冷漠的語氣，以及如此輕描淡寫地談論一個人靈魂的痛苦感到震驚。而她卻毫不在意，臉上帶著天真無邪的表情，似乎沒意識到自己說的話有多駭人。`,
+  c:[
+    {l:"試著和這個女孩交談", to:7},
+    {l:"不想交談", to:36}
+  ]
+};
+
+CH[36] = {t:
+`「我叫塔妮絲。」女孩自報家門，「你叫什麼名字？」你告訴了她你的名字，仍對她那副冷漠的神情感到驚訝。
+
+「我正在跟隨瑪格麗學習巫術。」她接著說，「她說你是個巫師，是真的嗎？」
+
+「當然是真的。」你略帶自誇地回答。不知為何，你就是想給這個有著一頭凌亂黑髮、一雙敏銳綠眸的美麗姑娘留下深刻印象。
+
+「這可太糟糕了，」她說，「瑪格麗會把你當成巫王的敵人，折磨你的。她會把你帶到『暗黑室』去。」
+
+「那我必須逃走。」你脫口而出，「你能幫我嗎？」
+
+「我早就夢想著離開這裡了。」她若有所思地說，「或許你可以帶我一起走？」
+
+「當然……當然可以。」你急切地回答，希望她能幫你。她停頓了一下，臉上露出茫然的表情，隨後突然怒氣沖沖地喊道：「可就憑你一個毛頭小子，再加上一個胖子，根本逃不出去！」說完，她爆發出一陣少女般的笑聲，得意洋洋地揚長而去，只留下滿心失望的你。
+
+「她肯定是來嘲諷我們的。」山說，「這些沙達基人真是太惡毒了！」你吃完食物，開始思考如何才能逃出去。`,
+  c:[
+    {l:"睡覺養精蓄銳", to:201},
+    {l:"不想睡覺，繼續想辦法", to:144}
+  ]
+};
+
+CH[201] = {t:
+`你躺下來，試著入睡。山在角落裡打著呼嚕。
+
+第二天早上，你醒來時恢復了 1 點意志力和 2 點耐力。`,
+  e:s=>{ healWp(s,1); healEnd(s,2); },
+  c:[{l:"繼續", to:144}]
+};
+
+CH[144] = {t:
+`一整天，你都在思考該用哪項魔法能力幫助自己逃跑。夜幕降臨時，你終於準備好做出決定。`,
+  c:[{l:"做出決定", to:172}]
+};
+
+CH[38] = {t:
+`三天來，你沿著蘇尼河蜿蜒的河道前行，穿過森林的心臟地帶。你們沒有攜帶食物，但塔妮絲總能為大家找到吃的。她對動物有著一種不可思議的掌控力——用一種奇怪的語言召喚那些被迷惑的動物，然後面無表情地擰斷牠們的脖子。
+
+旅途中，你們成功避開了頻繁出現的沙達基巡邏隊，且無需使用任何魔法，因此意志力可恢復 2 點，耐力可恢復 4 點。
+
+你們發現蘇尼河沿岸長著幾叢勞姆斯普爾草藥，決定採摘一些。若你擁有「煉金術」魔法能力，可將其存放在草藥袋中；否則必須在草藥新鮮時服用以恢復 4 點耐力。
+
+正當你採摘勞姆斯普爾時，三名沙達基戰士突然從森林裡衝了出來——你們遭到了伏擊。`,
+  e:s=>{ healWp(s,2); healEnd(s,4); if(hasSpell(s,"煉金術")) addItem(s,"勞姆斯普爾","可恢復4點耐力"); },
+  c:[{l:"迎戰", to:117}]
+};
+
+CH[78] = {t:
+`沙塵暴還在狂怒地肆虐，絲毫沒有減弱的跡象。夜幕降臨，你別無選擇，只能在這裡過夜，希望明天能繼續趕路。你感到飢餓，必須現在吃 1 份食物，否則將損失 3 點耐力。這一夜平安無事，你的意志力恢復了 1 點，耐力恢復了 2 點。
+
+第二天早上，你繼續趕路，沿著阿贊河的河岸，穿過「荒野之地」，進入了阿扎加德峽谷。`,
+  e:s=>{ if(s.meals>=1) s.meals-=1; else dmgEnd(s,3); healWp(s,1); healEnd(s,2); },
+  c:[{l:"繼續", to:29}]
+};
+
+CH[29] = {t:
+`隨著河道逐漸變窄，阿贊河原本清澈的河水變成了渾濁的棕色。河岸附近有許多淺灘，死水潭和沼澤地裡長滿了一叢叢繩索狀的卷鬚——這些卷鬚是一種名為亞庫的大型植物的枝條。亞庫的卷鬚是具有感知能力的藤蔓，牠們會沿著地面蜿蜒著伸向水潭或主河道，因為這片石灰岩峽谷的其他地方都十分乾旱。亞庫植物的中心長著一簇鋒利的尖刺，山提醒你務必遠離這些毒刺。
+
+要想一直靠近河邊行走越來越困難，因為成片的亞庫卷鬚擋住了你的去路。`,
+  c:[
+    {l:"遠離阿贊河，避開河邊難走的地形", to:54},
+    {l:"沿著河邊走，以便直接前往阿扎卡瓦長城", to:104}
+  ]
+};
+
+CH[104] = {t:
+`很快，你就無法避開成片的亞庫藤蔓了，只能小心翼翼地從藤蔓間穿過，與這些致命植物的尖刺核心近在咫尺。
+
+你的腳不小心碰到了一根卷鬚，它立刻活了起來，迅速纏繞住你的腳踝。你失去平衡，摔倒在地。緊接著，你感覺自己被拖向亞庫植物的核心——它離你只有幾碼遠。`,
+  c:[
+    {l:"砍斷纏繞在腳踝上的卷鬚", to:248},
+    {l:"釋放一道能量束，攻擊亞庫植物的核心", to:179}
+  ]
+};
+
+CH[248] = {t:
+`你抽出匕首，用力砍斷纏繞腳踝的卷鬚。斷開的藤蔓痙攣著縮了回去，你連滾帶爬地逃離了危險區域。
+
+你損失 2 點耐力。`,
+  e:s=>dmgEnd(s,2),
+  c:[{l:"繼續", to:5}]
+};
+
+CH[179] = {t:
+`你舉起法杖，朝亞庫植物的核心釋放出一道能量束。
+
+亞庫植物：戰鬥能力 14，耐力 16`,
+  e:s=>dmgWp(s,1),
+  combat:{name:"亞庫植物", cs:14, end:16, winTo:128},
+  c:[]
+};
+
+CH[54] = {t:
+`你向東行進，遠離阿贊河，進入了「龍牙」區域。越遠離河流，石灰岩尖柱的間距就越近，你不得不在尖柱之間繞來繞去，艱難前行。儘管地面上沒有植被，但行進難度絲毫未減——你幾乎走不了二十步直線，就會被一根巨大的、風化的石柱擋住去路。
+
+一個小時後，你在這片密集如迷宮的岩石中迷了路。午後的太陽無情地炙烤著大地，緩緩向西移動。`,
+  c:[
+    {l:"使用「預言」尋找方向", to:278, sp:"預言"},
+    {l:"向左轉", to:184},
+    {l:"向右轉", to:228},
+    {l:"繼續直行", to:238}
+  ]
+};
+
+CH[278] = {t:
+`你閉上眼睛，「預言」能力讓你在腦海中浮現出一條清晰的路線。
+
+使用這次能力消耗了你 1 點意志力。你順利走出了「龍牙」。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"繼續", to:6}]
+};
+
+CH[184] = {t:
+`你向左轉，在石柱間穿行。走了一段時間後，你發現自己又回到了原點。
+
+「我們在繞圈子。」山沮喪地說。
+
+你只好繼續尋找方向。`,
+  c:[{l:"繼續", to:54}]
+};
+
+CH[228] = {t:
+`你向右轉，在石柱間穿行。走著走著，前方的視野開闊起來——你走出了「龍牙」區域。`,
+  c:[{l:"繼續", to:6}]
+};
+
+CH[238] = {t:
+`你繼續直行，石柱越來越密集。最終，你被迫停了下來——前方是一道深不見底的裂谷。
+
+你只好繞道而行。`,
+  c:[{l:"繼續", to:54}]
+};
+
+CH[52] = {t:
+`第二天早上，你醒來時，感到身心俱疲、情緒低落。這段痛苦的經歷讓你在睡夢中損失了 1 點意志力。
+
+「我們必須繼續前進，」山堅持道，「不能讓她的犧牲白費。」
+
+你知道他說得對，於是疲憊地站起身，背上背包，繼續趕路。`,
+  e:s=>dmgWp(s,1),
+  c:[{l:"繼續", to:29}]
+};
+
+CH[152] = {t:
+`你朝著那間木屋走去，它看起來已經被遺棄了。門半開著，窗戶上爬滿了一種名叫奧戈肖的不起眼黃棕色野草——這種草是當地特有的植物。你聽到屋裡傳來一陣窸窸窣窣的聲音。`,
+  c:[
+    {l:"走進木屋", to:252},
+    {l:"出其不意地撞開門衝進去", to:277},
+    {l:"讓山去探查", to:302}
+  ]
+};
+
+CH[252] = {t:
+`你走進木屋，裡面光線昏暗。一個衣衫襤褸的老人躺在角落的草墊上，看起來病得很重。
+
+他睜開眼睛看著你，虛弱地說：「水……」`,
+  c:[
+    {l:"給他水喝", to:160},
+    {l:"不理會他，繼續趕路", to:227}
+  ]
+};
+
+CH[160] = {t:
+`你小心翼翼地將水倒進老人嘴裡。過了一會兒，他的眼神變得清晰起來，臉頰也恢復了些許血色。
+
+「謝謝你，兄弟，」他說，「你真是個好心人。我想報答你的善意，但現在……我需要睡一會兒……就睡一會兒……」
+
+你吃完食物，坐下來陷入沉思。你感到疲憊不堪，很快就睡著了。`,
+  c:[{l:"繼續", to:301}]
+};
+
+CH[301] = {t:
+`第二天早上，你醒來時發現老人已經不見了。草墊上留下一枚銀色的小護身符。
+
+你撿起護身符，收進行囊。`,
+  e:s=>addSpecial(s,"簡納智者的銀色護身符"),
+  c:[{l:"繼續趕路", to:227}]
+};
+
+CH[277] = {t:
+`你猛地撞開門衝進木屋。屋裡空無一人，只有一隻受驚的野貓從窗戶逃了出去。
+
+你環顧四周，發現屋裡積滿了灰塵，顯然已經很久沒人住了。`,
+  c:[{l:"繼續趕路", to:227}]
+};
+
+CH[302] = {t:
+`山小心翼翼地走近木屋，探頭往裡張望。
+
+「裡面有個老人，看起來快不行了。」他回來報告。`,
+  c:[
+    {l:"進屋查看", to:252},
+    {l:"繼續趕路", to:227}
+  ]
+};
+
+CH[227] = {t:
+`你們繼續趕路。荒野之地的陽光炙烤著大地，遠處的阿扎卡瓦長城在熱浪中扭曲變形。
+
+走了幾個小時後，你們遇到了一片綠洲。`,
+  c:[
+    {l:"在綠洲休息", to:78},
+    {l:"繼續趕路", to:29}
+  ]
+};
+
+CH[300] = CH[300];
+
+CH[295] = {t:
+`你繼續前進，穿過荒野之地。`,
+  c:[{l:"繼續", to:29}]
+};
+
+CH[313] = CH[313];
+
+CH[292] = CH[292];
+
+CH[124] = CH[124];
+
+CH[221] = CH[221];
+
+/* --- 死亡 / 結局通用 --- */
+CH[999] = {t:`故事在此結束。`,
+  end:{type:"fail", title:"未知的終點", desc:"你的旅程在此劃下句點。"}
+};
+
+/* ============================================================
+   渲染與流程控制
+   ============================================================ */
+
+function renderStats(){
+  if(!G) return;
+  const hpPct = G.maxEnd? clamp(G.end/G.maxEnd*100,0,100):0;
+  const wpPct = G.startWp? clamp(G.wp/Math.max(G.startWp,1)*100,0,100):0;
+  const csPct = clamp((G.cs-10)/10*100,0,100);
+  const nbPct = clamp(G.nobles/50*100,0,100);
+  const fdPct = clamp(G.meals/4*100,0,100);
+  $("#statrow").innerHTML = `
+    <div class="stat hp"><span class="lbl">❤️ 耐力</span><span class="val">${G.end}/${G.maxEnd}</span><i class="bar" style="width:${hpPct}%;color:#b03a2e"></i></div>
+    <div class="stat wp"><span class="lbl">🔮 意志力</span><span class="val">${G.wp}</span><i class="bar" style="width:${wpPct}%;color:#3d7ec0"></i></div>
+    <div class="stat cs"><span class="lbl">⚔️ 戰鬥能力</span><span class="val">${G.cs}</span><i class="bar" style="width:${csPct}%;color:#a8863e"></i></div>
+    <div class="stat nb"><span class="lbl">💎 諾布爾</span><span class="val">${G.nobles}</span><i class="bar" style="width:${nbPct}%;color:#4a9d5f"></i></div>
+    <div class="stat fd"><span class="lbl">🍖 食物</span><span class="val">${G.meals}</span><i class="bar" style="width:${fdPct}%;color:#d9c08a"></i></div>
+  `;
+}
+
+/* ---- 打字機 ---- */
+let typeTimer=null, typeFull="", typeIdx=0, typeDone=true;
+function typeWrite(text, cb){
+  clearInterval(typeTimer);
+  const el = $("#story");
+  typeFull = text; typeIdx = 0; typeDone = false;
+  el.textContent = "";
+  typeTimer = setInterval(()=>{
+    if(typeIdx >= typeFull.length){
+      clearInterval(typeTimer); typeDone = true; el.textContent = typeFull;
+      if(cb) cb();
+      return;
+    }
+    const step = 2;
+    typeIdx = Math.min(typeFull.length, typeIdx+step);
+    el.textContent = typeFull.slice(0,typeIdx);
+    $("#main").scrollTop = $("#main").scrollHeight;
+  }, 12);
+}
+function finishTyping(){
+  if(typeDone) return;
+  clearInterval(typeTimer);
+  typeDone = true;
+  $("#story").textContent = typeFull;
+}
+
+/* ---- 章節渲染 ---- */
+function renderSection(n, record=true){
+  G.phase = "story";
+  G.current = n;
+  const ch = CH[n];
+
+  if(!ch){
+    renderMissing(n);
+    return;
+  }
+
+  if(record){
+    G.history.push(n);
+    G.visited[n] = (G.visited[n]||0)+1;
+    const vc = Object.keys(G.visited).length;
+    if(vc>=30) unlockAch("explorer");
+    if(vc>=60) unlockAch("deep");
+    if(n===1 && G.visited[1]===1) unlockAch("first_step");
+  }
+
+  // 進入效果
+  if(ch.e && !record) { /* 讀檔時不重複結算 */ }
+  else if(ch.e){ ch.e(G); }
+
+  renderStats();
+
+  // 死亡 / 結局
+  if(ch.end){ 
+    G.phase="ending";
+    G.endInfo = ch.end;
+    if(ch.end.type==="fail"){ unlockAch("end_fail"); }
+    renderEnding(ch.end);
+    return;
+  }
+
+  // 戰鬥
+  if(ch.combat){
+    startCombat(ch.combat, ch);
+    return;
+  }
+
+  // 特殊行動
+  if(ch.c && ch.c.length===1 && ch.c[0].action){
+    renderStoryWithActions(ch);
+    return;
+  }
+
+  renderStory(ch);
+}
+
+function renderStory(ch){
+  const stage = $("#stage");
+  stage.innerHTML = `
+    <div class="storywrap fadein">
+      <div class="secthead">§ ${G.current}</div>
+      <div id="story"></div>
+      <div id="choices"></div>
+    </div>`;
+  typeWrite(ch.t, ()=>{
+    renderChoices(ch.c || []);
+  });
+  $("#story").onclick = ()=>{ finishTyping(); if(typeDone) renderChoices(ch.c||[]); };
+}
+
+function renderStoryWithActions(ch){
+  const stage = $("#stage");
+  stage.innerHTML = `
+    <div class="storywrap fadein">
+      <div class="secthead">§ ${G.current}</div>
+      <div id="story"></div>
+      <div id="choices"></div>
+    </div>`;
+  typeWrite(ch.t, ()=>{
+    const box = $("#choices");
+    box.innerHTML = "";
+    (ch.c||[]).forEach(c=>{
+      const b = document.createElement("button");
+      b.className = "btn special";
+      b.textContent = c.l;
+      b.onclick = ()=>{ Sfx.click(); doAction(c.action); };
+      box.appendChild(b);
+    });
+  });
+  $("#story").onclick = ()=>{ finishTyping(); };
+}
+
+function renderChoices(list){
+  const box = $("#choices");
+  if(!box) return;
+  box.innerHTML = "";
+  list.forEach(c=>{
+    if(c.hidden) return;
+    const b = document.createElement("button");
+    b.className = "btn";
+    // 檢查需求
+    const miss = checkRequirement(c);
+    if(miss){
+      b.classList.add("special");
+      b.textContent = c.l;
+      b.onclick = ()=>{ Sfx.click(); toast(miss); };
+    }else{
+      b.textContent = c.l;
+      b.onclick = ()=>{ Sfx.click(); goto(c.to); };
+    }
+    b.onmouseenter = ()=>Sfx.hover();
+    box.appendChild(b);
+  });
+}
+
+function checkRequirement(c){
+  if(c.sp && !hasSpell(G,c.sp)) return `⚠️ 你需要學會「${c.sp}」魔法能力才能選擇這個選項。`;
+  if(c.item && !hasItem(G,c.item)) return `⚠️ 你需要持有「${c.item}」才能選擇這個選項。`;
+  if(c.req && !c.req(G)) return c.reqMsg || "⚠️ 條件不足。";
+  return null;
+}
+
+function doAction(action){
+  if(action==="jump"){
+    let roll = rand();
+    if(hasItem(G,"簡納智者的銀色護身符")) roll += 1;
+    if(G.wp > 10) roll += 2;
+    toast(`🎲 擲出 ${roll}（含修正）`);
+    Sfx.dice();
+    setTimeout(()=>{
+      if(roll <= 6) goto(274); else goto(210);
+    }, 700);
+  }
+}
+
+function renderMissing(n){
+  G.phase = "story";
+  unlockAch("end_open");
+  const stage = $("#stage");
+  stage.innerHTML = `
+    <div class="storywrap fadein">
+      <div class="secthead">§ ${n}</div>
+      <div id="story"></div>
+      <div id="choices"></div>
+    </div>`;
+  const txt = `【故事在此待續】
+
+你踏上了一條未曾被記載的道路……
+
+（第 ${n} 節的內容未收錄於本次翻譯之中。你的冒險在此暫時劃下句點，但你走過的路已被記錄下來。）`;
+  typeWrite(txt, ()=>{
+    const box = $("#choices");
+    box.innerHTML = "";
+    const b = document.createElement("button");
+    b.className = "btn special";
+    b.textContent = "↩ 返回上一節";
+    b.onclick = ()=>{ Sfx.click(); goBack(); };
+    box.appendChild(b);
+    const b2 = document.createElement("button");
+    b2.className = "btn";
+    b2.textContent = "📖 查看歷程";
+    b2.onclick = ()=>{ Sfx.click(); openHistory(); };
+    box.appendChild(b2);
+  });
+}
+
+function goBack(){
+  if(G.history.length > 1){
+    G.history.pop();
+    const prev = G.history.pop();
+    renderSection(prev, false);
+  } else {
+    renderSection(1, false);
+  }
+}
+
+function goto(n){
+  if(n===undefined || n===null) return;
+  const main = $("#main");
+  main.style.opacity = "0.15";
+  setTimeout(()=>{
+    main.style.transition = "opacity .22s";
+    main.style.opacity = "1";
+    renderSection(n);
+  }, 120);
+}
+
+/* ============================================================
+   戰鬥
+   ============================================================ */
+function startCombat(cfg, chapter){
+  G.phase = "combat";
+  G.combat = {
+    name: cfg.name, cs: cfg.cs, end: cfg.end, endMax: cfg.end,
+    csBonus: cfg.csBonus||0,
+    round: 1,
+    maxRounds: cfg.maxRounds||0,
+    canFleeAfter: cfg.canFleeAfter||0,
+    fleeTo: cfg.fleeTo||null,
+    winTo: cfg.winTo,
+    winChoices: cfg.winChoices||null,
+    perRound: cfg.perRound?true:false,
+    log: []
+  };
+  G.combat._perRoundFn = cfg.perRound||null;
+  renderCombat();
+}
+
+function renderCombat(){
+  const c = G.combat;
+  const stage = $("#stage");
+  const ratio = (G.cs + c.csBonus) - c.cs;
+  const idx = crIndex(ratio);
+
+  stage.innerHTML = `
+    <div id="combatpanel" class="fadein">
+      <div class="cbx">
+        <h3>⚔️ 戰鬥 — 第 ${c.round} 輪</h3>
+        <div class="enemyrow">
+          <span class="en">${c.name}</span>
+          <span>耐力 <b style="color:#e37a6b">${Math.max(0,c.end)}</b> / ${c.endMax}</span>
+        </div>
+        <div class="hpline"><i style="width:${clamp(c.end/c.endMax*100,0,100)}%"></i></div>
+        <div class="combatstat" style="margin-top:12px">
+          <div>你的戰鬥能力<b>${G.cs + c.csBonus}</b></div>
+          <div>敵方戰鬥能力<b>${c.cs}</b></div>
+          <div class="r">戰鬥比率<b>${ratio>0?"+":""}${ratio}</b></div>
+        </div>
+      </div>
+      <div class="cbx">
+        <h3>🔮 消耗意志力（至少 1 點）</h3>
+        <div style="font-size:13px;opacity:.8">目前意志力：<b style="color:#7fb6ea">${G.wp}</b>　敵人傷害倍數＝消耗點數</div>
+        <div class="spendrow" id="spendrow"></div>
+        <div style="font-size:11.5px;opacity:.6;margin-top:8px">
+          ${G.wp>0 ? "消耗越多意志力，敵人受到的傷害倍數越高。" : "⚠️ 意志力已耗盡：法杖僅能作為普通武器使用（戰鬥能力 -6），敵人傷害倍數視為 1。"}
+        </div>
+      </div>
+      <div class="cbx">
+        <h3>📜 戰鬥記錄</h3>
+        <div class="logbox" id="logbox"></div>
+      </div>
+    </div>`;
+  renderSpendButtons();
+  renderCombatLog();
+}
+
+function renderSpendButtons(){
+  const c = G.combat;
+  const row = $("#spendrow");
+  if(!row) return;
+  row.innerHTML = "";
+  if(G.wp <= 0){
+    const b = document.createElement("button");
+    b.textContent = "以普通武器攻擊";
+    b.onclick = ()=>{ Sfx.click(); combatRound(0); };
+    row.appendChild(b);
+    return;
+  }
+  const maxSpend = Math.max(1, Math.min(G.wp, 6));
+  for(let i=1;i<=maxSpend;i++){
+    const b = document.createElement("button");
+    b.textContent = i + " 點";
+    b.onclick = ()=>{ Sfx.click(); combatRound(i); };
+    row.appendChild(b);
+  }
+  // 逃跑
+  if(c.canFleeAfter && c.round > c.canFleeAfter && c.fleeTo){
+    const b = document.createElement("button");
+    b.textContent = "🏃 躲避";
+    b.style.borderColor = "#8a5a2b";
+    b.onclick = ()=>{ Sfx.click(); fleeCombat(); };
+    row.appendChild(b);
+  }
+}
+
+function renderCombatLog(){
+  const lb = $("#logbox");
+  if(!lb) return;
+  lb.innerHTML = G.combat.log.map(l=>`<div class="${l.cls||''}">${l.t}</div>`).join("") || '<div style="opacity:.5">戰鬥尚未開始……</div>';
+  lb.scrollTop = lb.scrollHeight;
+}
+
+function combatRound(spend){
+  const c = G.combat;
+  if(G.phase !== "combat") return;
+
+  let cs = G.cs + c.csBonus;
+  let mult = 1;
+  let usedWp = 0;
+
+  if(G.wp > 0){
+    usedWp = clamp(spend, 1, G.wp);
+    G.wp -= usedWp;
+    mult = usedWp;
+  }else{
+    cs -= 6; // 無意志力，法杖當普通武器
+    mult = 1;
+  }
+
+  const ratio = cs - c.cs;
+  const roll = rand();
+  Sfx.dice();
+
+  const ci = crIndex(ratio);
+  let pdmg = PDMG[roll][ci];
+  let edmg = EDMG[roll][ci] * mult;
+
+  // 寶石匕首加成（若使用）
+  // （已在 G.cs 中體現，若玩家選擇使用寶石匕首則 +1，此處不重複）
+
+  G.end = Math.max(0, G.end - pdmg);
+  c.end = Math.max(0, c.end - edmg);
+
+  c.log.push({t:`第 ${c.round} 輪｜擲骰 ${roll}｜戰鬥比率 ${ratio>0?"+":""}${ratio}｜消耗意志力 ${usedWp}`, cls:"lg-n"});
+  if(pdmg>0) c.log.push({t:`　你受到 ${pdmg} 點傷害。`, cls:"lg-p"});
+  else c.log.push({t:`　你毫髮無傷。`, cls:"lg-p"});
+  if(edmg>0) c.log.push({t:`　敵人受到 ${edmg} 點傷害${mult>1?"（基礎 "+EDMG[roll][ci]+" × "+mult+"）":""}。`, cls:"lg-e"});
+  else c.log.push({t:`　敵人未受傷。`, cls:"lg-e"});
+
+  // 每輪額外效果
+  if(c._perRoundFn){
+    c._perRoundFn(G);
+    c.log.push({t:`　噬魂者啃噬你的靈魂……`, cls:"lg-n"});
+  }
+
+  c.round++;
+  renderStats();
+
+  // 檢查勝負
+  if(G.end <= 0){
+    c.log.push({t:`☠ 你倒下了……`, cls:"lg-p"});
+    renderCombatLog();
+    setTimeout(()=>{
+      G.phase = "ending";
+      G.endInfo = {type:"fail", title:"戰敗", desc:"你在與「"+c.name+"」的戰鬥中力竭倒下。"};
+      unlockAch("end_fail");
+      renderEnding(G.endInfo);
+    }, 900);
+    return;
+  }
+  if(c.end <= 0){
+    c.log.push({t:`✦ 你擊敗了 ${c.name}！`, cls:"lg-e"});
+    renderCombatLog();
+    Sfx.win();
+    unlockAch("first_blood");
+    if(G.end <= 3) unlockAch("survivor");
+    setTimeout(()=>{
+      const wasCombat = G.combat;
+      G.combat = null;
+      G.phase = "story";
+      if(wasCombat.winChoices && wasCombat.winChoices.length){
+        // 顯示戰勝後選項
+        showWinChoices(wasCombat);
+      } else if(wasCombat.winTo){
+        goto(wasCombat.winTo);
+      } else {
+        goto(195);
+      }
+    }, 900);
+    return;
+  }
+  // 回合上限
+  if(c.maxRounds && c.round > c.maxRounds){
+    c.log.push({t:`（已撐過 ${c.maxRounds} 輪……）`, cls:"lg-n"});
+    renderCombatLog();
+    setTimeout(()=>{
+      const wc = G.combat;
+      G.combat = null;
+      G.phase = "story";
+      if(wc.winTo) goto(wc.winTo);
+      else goto(195);
+    }, 800);
+    return;
+  }
+
+  renderCombat();
+}
+
+function fleeCombat(){
+  const c = G.combat;
+  // 逃跑仍要承受一輪傷害
+  const roll = rand();
+  const ratio = (G.cs + c.csBonus) - c.cs;
+  const ci = crIndex(ratio);
+  const pdmg = PDMG[roll][ci];
+  G.end = Math.max(0, G.end - pdmg);
+  toast(`🏃 你設法脫離戰鬥，但仍損失 ${pdmg} 點耐力！`);
+  Sfx.hurt();
+  renderStats();
+  if(G.end <= 0){
+    G.phase="ending";
+    G.endInfo={type:"fail", title:"撤退失敗", desc:"你在逃跑時被追上，力竭倒下。"};
+    unlockAch("end_fail");
+    renderEnding(G.endInfo);
+    return;
+  }
+  const to = c.fleeTo;
+  G.combat = null;
+  G.phase = "story";
+  setTimeout(()=>goto(to), 500);
+}
+
+function showWinChoices(wc){
+  const stage = $("#stage");
+  stage.innerHTML = `
+    <div class="storywrap fadein">
+      <div class="secthead">§ ${G.current}</div>
+      <div id="story"></div>
+      <div id="choices"></div>
+    </div>`;
+  typeWrite(`你擊敗了敵人，暫時得以喘息。接下來呢？`, ()=>{
+    const box = $("#choices");
+    box.innerHTML = "";
+    wc.winChoices.forEach(c=>{
+      const b = document.createElement("button");
+      b.className = "btn";
+      b.textContent = c.l;
+      b.onclick = ()=>{ Sfx.click(); goto(c.to); };
+      box.appendChild(b);
+    });
+  });
+}
+
+/* ============================================================
+   結局
+   ============================================================ */
+function renderEnding(info){
+  G.phase = "ending";
+  const stage = $("#stage");
+  const isFail = info.type === "fail";
+  stage.innerHTML = `
+    <div class="storywrap fadein" style="text-align:center;padding-top:30px">
+      <div style="font-size:46px;margin-bottom:10px;${isFail?'':'filter:drop-shadow(0 0 14px rgba(201,168,76,.7))'}">${isFail?'☠️':'✦'}</div>
+      <h2 style="font-family:Georgia,serif;letter-spacing:.2em;color:${isFail?'#c0392b':'#c9a84c'};font-size:20px;margin:0 0 12px">${info.title}</h2>
+      <p style="opacity:.85;max-width:520px;margin:0 auto 22px;line-height:1.9">${info.desc}</p>
+      <div class="secthead" style="justify-content:center">冒險結束</div>
+      <div style="opacity:.7;font-size:13px;margin-top:14px">
+        共造訪 ${Object.keys(G.visited).length} 個章節
+      </div>
+    </div>`;
+  const box = document.createElement("div");
+  box.style.cssText = "display:flex;flex-direction:column;gap:9px;max-width:340px;margin:24px auto 0";
+  const b1 = document.createElement("button");
+  b1.className = "bigbtn"; b1.textContent = "🔄 重新開始";
+  b1.onclick = ()=>{ Sfx.click(); if(confirm("確定要重新開始嗎？目前進度將不會保留。")) restart(); };
+  const b2 = document.createElement("button");
+  b2.className = "btn"; b2.style.textAlign = "center"; b2.textContent = "🕯️ 查看歷程";
+  b2.onclick = ()=>{ Sfx.click(); openHistory(); };
+  box.appendChild(b1); box.appendChild(b2);
+  stage.querySelector(".storywrap").appendChild(box);
+  if(isFail) Sfx.lose(); else Sfx.win();
+}
+
+function restart(){
+  G = newState();
+  startIntro();
+}
+
+/* ============================================================
+   開場 / 角色創建
+   ============================================================ */
+function startIntro(){
+  G = newState();
+  renderStats();
+  G.phase = "intro";
+  const stage = $("#stage");
+  stage.innerHTML = `
+    <div class="storywrap fadein" style="text-align:center;padding-top:8px">
+      <div style="font-size:11px;letter-spacing:.35em;color:#8a7a5a;margin-bottom:6px">孤狼世界</div>
+      <h1 style="font-family:Georgia,serif;font-size:30px;letter-spacing:.14em;color:#e8c96a;margin:0 0 4px;text-shadow:0 0 24px rgba(201,168,76,.45)">灰 星 巫 師</h1>
+      <div style="font-size:11px;letter-spacing:.2em;color:#8a7a5a;margin-bottom:20px">GREY STAR THE WIZARD</div>
+      <div style="max-width:480px;margin:0 auto;text-align:left;font-size:14px;line-height:1.95;opacity:.9">
+        你從肆虐風暴的中心出現——一個人類小孩，因船難而成為孤兒，是流亡的夏安提巫師們的希望之禮。<br><br>
+        從那個決定命運的夜晚開始，他們就把你當作自己人撫養，教你魔法的奧秘，為史詩般的探索做準備。<br><br>
+        現在時機已到。你必須找到傳說中的月光石，並用它的力量粉碎邪惡的沙達基巫王。<br><br>
+        <span style="color:#c9a84c">但請注意——前方是一段未知的恐怖旅程，每翻一頁都會面臨生存或死亡。</span>
+      </div>
+    </div>`;
+  const box = document.createElement("div");
+  box.style.cssText = "display:flex;flex-direction:column;gap:10px;max-width:340px;margin:28px auto 0";
+  const b1 = document.createElement("button");
+  b1.className = "bigbtn"; b1.textContent = "📖 閱讀遊戲說明";
+  b1.onclick = ()=>{ Sfx.click(); openHelp(true); };
+  const b2 = document.createElement("button");
+  b2.className = "btn"; b2.style.textAlign = "center"; b2.textContent = "🎲 開始創建角色";
+  b2.onclick = ()=>{ Sfx.click(); beginCreation(); };
+  if(hasSave()){
+    const b3 = document.createElement("button");
+    b3.className = "btn"; b3.style.textAlign = "center"; b3.textContent = "💾 載入存檔";
+    b3.onclick = ()=>{ Sfx.click(); loadGame(); };
+    box.appendChild(b3);
+  }
+  box.appendChild(b1);
+  box.appendChild(b2);
+  stage.querySelector(".storywrap").appendChild(box);
+}
+
+/* ---- 角色創建 ---- */
+let creation = null;
+function beginCreation(){
+  creation = {step:0, cs:0, wp:0, end:0, spells:[], gift:null};
+  renderCreationStep();
+}
+
+function rollStat(base, label, icon){
+  const n = rand();
+  return {n, val:n+base, label, icon};
+}
+
+function renderCreationStep(){
+  const stage = $("#stage");
+  if(creation.step === 0){
+    // 屬性
+    stage.innerHTML = `
+      <div class="setup fadein">
+        <div class="secthead">角色創建 · 第一步</div>
+        <h2 style="font-size:17px;color:#e8c96a;margin:0 0 10px">🎲 決定你的天賦</h2>
+        <p style="font-size:13.5px;line-height:1.9;opacity:.88;margin:0 0 16px">
+          夏安提導師為你的使命做了多少準備？請點擊下方按鈕擲骰決定。
+          在《灰星巫師》中，你需要三項數值：戰鬥能力、意志力、耐力。
+        </p>
+        <div id="rollarea"></div>
+      </div>`;
+    renderRollArea();
+  }
+  else if(creation.step === 1){
+    // 法術
+    const list = Object.keys(SPELLS);
+    stage.innerHTML = `
+      <div class="setup fadein">
+        <div class="secthead">角色創建 · 第二步</div>
+        <h2 style="font-size:17px;color:#e8c96a;margin:0 0 10px">✨ 選擇五種次級魔法</h2>
+        <p style="font-size:13.5px;line-height:1.9;opacity:.88;margin:0 0 14px">
+          你的巫師技藝訓練尚未完成。在夏安提族人所說的「次級魔法」中，你僅掌握了其中五種。
+          請從以下七種中選擇 <b style="color:#e8c96a">五種</b>——你能否存活，或許就取決於能否在正確的時機使用合適的魔法能力。
+        </p>
+        <div class="picker" id="spellpicker"></div>
+        <div style="text-align:center;font-size:13px;margin:6px 0 12px;color:#c9a84c" id="spellcount">已選 0 / 5</div>
+        <div id="spellnext"></div>
+      </div>`;
+    renderSpellPicker();
+  }
+  else if(creation.step === 2){
+    // 禮物
+    stage.innerHTML = `
+      <div class="setup fadein">
+        <div class="secthead">角色創建 · 第三步</div>
+        <h2 style="font-size:17px;color:#e8c96a;margin:0 0 10px">🎁 夏安提導師的贈禮</h2>
+        <p style="font-size:13.5px;line-height:1.9;opacity:.88;margin:0 0 14px">
+          在洛恩島的最後一天，夏安提導師們為你準備了以下禮物，助你完成使命。根據夏安提的習俗，你可選擇其中 <b style="color:#e8c96a">一件</b>。
+        </p>
+        <div class="picker" id="giftpicker"></div>
+        <div id="giftnext" style="margin-top:16px"></div>
+      </div>`;
+    renderGiftPicker();
+  }
+  else if(creation.step === 3){
+    // 完成
+    G.cs = creation.cs;
+    G.wp = creation.wp;
+    G.startWp = creation.wp;
+    G.maxEnd = creation.end;
+    G.end = creation.end;
+    G.spells = creation.spells.slice();
+    G.gift = creation.gift;
+    G.phase = "story";
+
+    if(creation.gift === "dagger"){ addWeapon(G,"寶石匕首"); addSpecial(G,"寶石匕首"); }
+    if(creation.gift === "talisman"){ G.wp += 2; G.startWp += 2; addSpecial(G,"魔法護身符"); }
+    if(creation.gift === "laumspur"){ addItem(G,"勞姆斯普爾藥劑瓶","戰鬥後飲用可恢復4點耐力，僅一次"); }
+
+    if(hasSpell(G,"煉金術")){
+      G.hasHerbPouch = true;
+      G.herbPouch = [
+        {name:"空藥瓶", n:2},
+        {name:"硝石", n:1},
+        {name:"硫磺", n:1}
+      ];
+      // 也放入背包以便檢視
+      addItem(G,"空藥瓶 ×2","煉金術材料");
+      addItem(G,"硝石","煉金術材料");
+      addItem(G,"硫磺","煉金術材料");
+    }
+
+    unlockAch("mage");
+    renderStats();
+    saveGame(true);
+    goto(1);
+  }
+}
+
+function renderRollArea(){
+  const ra = $("#rollarea");
+  const done = creation.cs && creation.wp && creation.end;
+  ra.innerHTML = `
+    <div class="picker">
+      <div class="pick ${creation.cs?'sel':''}" id="pick-cs">
+        <b>⚔️ 戰鬥能力</b>
+        <small>${creation.cs ? `隨機數 ${creation.cs-10} ＋ 10 ＝ <b style="color:#e8c96a">${creation.cs}</b>` : "尚未擲骰"}</small>
+      </div>
+      <div class="pick ${creation.wp?'sel':''}" id="pick-wp">
+        <b>🔮 意志力</b>
+        <small>${creation.wp ? `隨機數 ${creation.wp-20} ＋ 20 ＝ <b style="color:#e8c96a">${creation.wp}</b>` : "尚未擲骰"}</small>
+      </div>
+      <div class="pick ${creation.end?'sel':''}" id="pick-end">
+        <b>❤️ 耐力</b>
+        <small>${creation.end ? `隨機數 ${creation.end-20} ＋ 20 ＝ <b style="color:#e8c96a">${creation.end}</b>` : "尚未擲骰"}</small>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="bigbtn" id="rollall" style="flex:1">🎲 擲骰決定三項數值</button>
+    </div>
+    <div style="margin-top:10px;font-size:12.5px;opacity:.7;line-height:1.7">
+      戰鬥能力＝隨機數(0-9)＋10　｜　意志力＝隨機數(0-9)＋20　｜　耐力＝隨機數(0-9)＋20
+    </div>
+    <div id="rollnext" style="margin-top:16px"></div>
+  `;
+  $("#rollall").onclick = ()=>{
+    Sfx.dice();
+    creation.cs = rand()+10;
+    creation.wp = rand()+20;
+    creation.end = rand()+20;
+    renderRollArea();
+    toast("🎲 擲骰完成！");
+  };
+  if(done){
+    $("#rollnext").innerHTML = `<button class="bigbtn" id="tospell">下一步：選擇魔法能力 →</button>`;
+    $("#tospell").onclick = ()=>{ Sfx.click(); creation.step = 1; renderCreationStep(); };
+  }
+}
+
+function renderSpellPicker(){
+  const sp = $("#spellpicker");
+  sp.innerHTML = "";
+  Object.keys(SPELLS).forEach(name=>{
+    const d = document.createElement("div");
+    d.className = "pick" + (creation.spells.includes(name) ? " sel" : "");
+    d.innerHTML = `<b>✦ ${name}</b><small>${SPELLS[name]}</small>`;
+    d.onclick = ()=>{
+      Sfx.click();
+      if(creation.spells.includes(name)){
+        creation.spells = creation.spells.filter(x=>x!==name);
+      }else{
+        if(creation.spells.length >= 5){ toast("⚠️ 你只能選擇五種魔法能力"); return; }
+        creation.spells.push(name);
+      }
+      renderSpellPicker();
+    };
+    sp.appendChild(d);
+  });
+  $("#spellcount").textContent = `已選 ${creation.spells.length} / 5`;
+  if(creation.spells.length === 5){
+    $("#spellnext").innerHTML = `<button class="bigbtn" id="togift">下一步：選擇贈禮 →</button>`;
+    $("#togift").onclick = ()=>{ Sfx.click(); creation.step = 2; renderCreationStep(); };
+  }else{
+    $("#spellnext").innerHTML = "";
+  }
+}
+
+function renderGiftPicker(){
+  const gp = $("#giftpicker");
+  gp.innerHTML = "";
+  Object.keys(GIFTS).forEach(k=>{
+    const g = GIFTS[k];
+    const d = document.createElement("div");
+    d.className = "pick" + (creation.gift === k ? " sel" : "");
+    d.innerHTML = `<b>${k==='dagger'?'🗡️':k==='talisman'?'🧿':'🧪'} ${g.n}</b><small>${g.d}</small>`;
+    d.onclick = ()=>{
+      Sfx.click();
+      creation.gift = k;
+      renderGiftPicker();
+    };
+    gp.appendChild(d);
+  });
+  if(creation.gift){
+    $("#giftnext").innerHTML = `<button class="bigbtn" id="tofinal">完成創建，開始冒險 →</button>`;
+    $("#tofinal").onclick = ()=>{ Sfx.click(); creation.step = 3; renderCreationStep(); };
+  }else{
+    $("#giftnext").innerHTML = "";
+  }
+}
+
+/* ============================================================
+   彈窗 / 說明 / 行動表 / 歷程 / 選單
+   ============================================================ */
+function openModal(title, html, footHtml){
+  $("#mtitle").textContent = title;
+  $("#mbody").innerHTML = html;
+  $("#mfoot").innerHTML = footHtml || "";
+  $("#modal").classList.add("open");
+}
+function hideModal(){ $("#modal").classList.remove("open"); }
+$("#mclose").onclick = hideModal;
+$("#modal").onclick = e=>{ if(e.target.id==="modal") hideModal(); };
+
+document.querySelectorAll("nav.bottom button").forEach(b=>{
+  b.onclick = ()=>{
+    Sfx.click();
+    const m = b.dataset.m;
+    if(m==="help") openHelp(false);
+    if(m==="sheet") openSheet();
+    if(m==="history") openHistory();
+    if(m==="save") openSaveMenu();
+    if(m==="menu") openMenu();
+  };
+});
+
+/* ---------- 說明 ---------- */
+function openHelp(fromIntro){
+  const html = `
+    <h3>🎯 遊戲目標</h3>
+    <p>你扮演「灰星」——一位由夏安提巫師養大的人類巫師。你的使命是找到傳說中的<b>月光石</b>，並用它擊敗邪惡的沙達基巫王。</p>
+    <p>這是一本「選擇你自己的冒險」遊戲書：你每翻到一節，都會讀到一段故事，然後從選項中做出決定。不同的選擇會把你帶到不同的章節（畫面上方的 <code>§ 編號</code> 就是章節號）。</p>
+    <div class="tip">🏆 遊戲沒有單一的「贏」——你的冒險可能成功、可能失敗，也可能在未知的章節暫時中斷。每一個結局都會被記錄下來。</div>
+
+    <h3>👁️ 看懂畫面</h3>
+    <p>請看畫面最上方的五個數值面板：</p>
+    <ul>
+      <li><b>❤️ 耐力</b>：你的生命值。歸零則冒險結束。</li>
+      <li><b>🔮 意志力</b>：施法與法杖能量的來源。歸零後仍可用法杖當普通武器，但戰鬥能力 -6。</li>
+      <li><b>⚔️ 戰鬥能力</b>：戰鬥中與敵人比較的數值，越高越好。</li>
+      <li><b>💎 諾布爾</b>：沙達基帝國的貨幣（小型玉石）。</li>
+      <li><b>🍖 食物</b>：旅程中需要定期進食，沒有食物會扣耐力。</li>
+    </ul>
+    <p>畫面最下方是五個按鈕：<b>📖 說明</b>、<b>📜 行動表</b>、<b>🕯️ 歷程</b>、<b>💾 存檔</b>、<b>⚙️ 選單</b>。</p>
+
+    <h3>🕹️ 操作步驟</h3>
+    <ol>
+      <li><b>創建角色</b>：擲骰決定戰鬥能力、意志力、耐力；選 5 種魔法；選 1 件贈禮。</li>
+      <li><b>閱讀故事</b>：點擊文字區域可跳過打字動畫。</li>
+      <li><b>做出選擇</b>：點擊下方選項按鈕，前往下一節。</li>
+      <li><b>戰鬥</b>：畫面會切換到戰鬥面板，選擇消耗的意志力點數，然後結算。重複直到一方倒下。</li>
+      <li><b>存檔</b>：隨時可存檔，下次從選單讀取。</li>
+    </ol>
+
+    <h3>⚔️ 戰鬥規則</h3>
+    <ul>
+      <li>戰鬥比率 ＝ 你的戰鬥能力 － 敵人的戰鬥能力。</li>
+      <li>每輪你選擇消耗 <b>至少 1 點意志力</b>，然後擲一個 0-9 的隨機數。</li>
+      <li>查「戰鬥結果表」得到：你損失的耐力 與 敵人的基礎耐力損失。</li>
+      <li><b>敵人實際損失 ＝ 基礎損失 × 你消耗的意志力點數</b>。</li>
+      <li>所以消耗越多意志力，敵人受傷越重——但你的意志力也消耗得越快。</li>
+      <li>意志力歸零後，法杖只能當普通武器：戰鬥能力 -6，敵人傷害倍數視為 1。</li>
+      <li>有些戰鬥允許你在撐過一定輪數後「躲避」，但逃跑仍會受到一次傷害。</li>
+    </ul>
+
+    <h3>✨ 特殊機制</h3>
+    <ul>
+      <li><b>魔法能力</b>：有些選項需要特定魔法才能選擇。沒學會時點擊會提示你缺少什麼。</li>
+      <li><b>物品與背包</b>：背包最多 8 件物品（含食物）。特殊物品不佔背包。</li>
+      <li><b>意志力不足時</b>：可用 2 點耐力換 1 點意志力（僅限規則允許的情況）。</li>
+      <li><b>成就系統</b>：解鎖的成就在「選單 → 成就」中查看。</li>
+      <li><b>歷程</b>：側邊欄記錄你走過的每一節，方便回顧。</li>
+      <li><b>智慧提示</b>：點擊需要特定物品／魔法的選項時，會用提示告訴你缺少什麼，而不是直接把按鈕鎖死。</li>
+    </ul>
+  `;
+  const foot = fromIntro
+    ? `<button class="bigbtn" id="helpready">我準備好了，開始遊戲</button>`
+    : `<button class="bigbtn" id="helpclose">關閉說明</button>`;
+  openModal("📖 遊戲說明", html, foot);
+  if(fromIntro){
+    $("#helpready").onclick = ()=>{ Sfx.click(); hideModal(); beginCreation(); };
+  }else{
+    $("#helpclose").onclick = ()=>{ Sfx.click(); hideModal(); };
+  }
+}
+
+/* ---------- 行動表 ---------- */
+function openSheet(){
+  if(!G){ toast("尚未開始遊戲"); return; }
+  const spellList = G.spells.map(s=>`<li><b style="color:#e8c96a">${s}</b>：${SPELLS[s]}</li>`).join("") || "<li>（尚未選擇）</li>";
+  const bp = G.backpack.map(i=>`<li>${i.name}${i.note?` <span style="opacity:.6;font-size:12px">— ${i.note}</span>`:""}</li>`).join("") || "<li>（空）</li>";
+  const sp = G.special.map(i=>`<li>${i}</li>`).join("") || "<li>（空）</li>";
+  const wpns = G.weapons.map(w=>`<li>${w}</li>`).join("") || "<li>（無）</li>";
+  const herb = G.hasHerbPouch
+    ? `<h3>🌿 草藥袋（${G.herbPouch.reduce((a,b)=>a+b.n,0)} 件）</h3><ul>${G.herbPouch.map(h=>`<li>${h.name} × ${h.n}</li>`).join("")||"<li>（空）</li>"}</ul>`
+    : "";
+  const html = `
+    <h3>📊 核心數值</h3>
+    <ul>
+      <li>❤️ 耐力：<b>${G.end} / ${G.maxEnd}</b></li>
+      <li>🔮 意志力：<b>${G.wp}</b>（初始 ${G.startWp}）</li>
+      <li>⚔️ 戰鬥能力：<b>${G.cs}</b></li>
+      <li>💎 諾布爾：<b>${G.nobles}</b></li>
+      <li>🍖 食物：<b>${G.meals}</b> 份</li>
+    </ul>
+    <h3>🗡️ 武器（最多 2 件）</h3>
+    <ul>${wpns}</ul>
+    <h3>🎒 背包（${backpackCount(G)} / 8）</h3>
+    <ul>${bp}</ul>
+    <h3>✨ 特殊物品</h3>
+    <ul>${sp}</ul>
+    <h3>🔮 魔法能力</h3>
+    <ul>${spellList}</ul>
+    ${herb}
+    <div class="tip">📌 目前所在章節：<b>§ ${G.current}</b></div>
+  `;
+  openModal("📜 行動表", html, `<button class="bigbtn" onclick="document.getElementById('modal').classList.remove('open')">關閉</button>`);
+}
+
+/* ---------- 歷程 ---------- */
+function openHistory(){
+  if(!G){ toast("尚未開始遊戲"); return; }
+  const items = G.history.slice().reverse().map((n,i)=>{
+    const first = G.history.indexOf(n) === G.history.lastIndexOf(n);
+    return `<li>§ ${n}${first?'':'（重複造訪）'}</li>`;
+  }).join("") || "<li>（尚無紀錄）</li>";
+  const html = `
+    <h3>🕯️ 冒險歷程</h3>
+    <p style="opacity:.75;font-size:13px">你走過的章節（由新到舊）：</p>
+    <ul style="columns:2;column-gap:20px">${items}</ul>
+    <h3>🏆 成就</h3>
+    <ul>${Object.keys(ACHIEVEMENTS).map(k=>{
+      const got = G.achievements[k] || (JSON.parse(localStorage.getItem(ACH_KEY)||"{}")[k]);
+      return `<li style="opacity:${got?1:.4}">${got?'🏅':'🔒'} <b>${ACHIEVEMENTS[k].n}</b> — ${ACHIEVEMENTS[k].d}</li>`;
+    }).join("")}</ul>
+    <div class="tip">共造訪 <b>${Object.keys(G.visited).length}</b> 個不同章節。</div>
+  `;
+  openModal("🕯️ 歷程與成就", html, `<button class="bigbtn" onclick="document.getElementById('modal').classList.remove('open')">關閉</button>`);
+}
+
+/* ---------- 存檔 ---------- */
+function openSaveMenu(){
+  if(!G){ toast("尚未開始遊戲"); return; }
+  const html = `
+    <h3>💾 儲存與讀取</h3>
+    <p>存檔會保存在你的瀏覽器本機儲存空間中，關閉頁面後仍可讀取。</p>
+    <div class="tip">目前章節：<b>§ ${G.current}</b>　｜　進度：${G.history.length} 步</div>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:14px">
+      <button class="bigbtn" id="doSave">💾 儲存目前進度</button>
+      <button class="bigbtn" id="doLoad" ${hasSave()?'':'disabled'}>📂 載入存檔${hasSave()?'':'（無存檔）'}</button>
+      <button class="bigbtn" id="doDel" style="border-color:#5c2b23;color:#c0392b" ${hasSave()?'':'disabled'}>🗑️ 刪除存檔</button>
+    </div>
+  `;
+  openModal("💾 存檔", html);
+  const s = $("#doSave"); if(s) s.onclick = ()=>{ Sfx.click(); saveGame(false); hideModal(); };
+  const l = $("#doLoad"); if(l) l.onclick = ()=>{ Sfx.click(); loadGame(); };
+  const d = $("#doDel"); if(d) d.onclick = ()=>{ Sfx.click(); localStorage.removeItem(SAVE_KEY); toast("🗑️ 存檔已刪除"); hideModal(); };
+}
+
+/* ---------- 選單 ---------- */
+function openMenu(){
+  const html = `
+    <h3>⚙️ 設定與選單</h3>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:12px">
+      <button class="bigbtn" id="mSound">🔊 音效：${Sfx.isOn()?'開啟':'關閉'}</button>
+      <button class="bigbtn" id="mHelp">📖 遊戲說明</button>
+      <button class="bigbtn" id="mRestart" style="border-color:#5c2b23;color:#c0392b">🔄 重新開始</button>
+    </div>
+    <div class="tip" style="margin-top:16px">💡 提示：本遊戲為單機互動冒險，所有進度僅保存在你的裝置上。</div>
+  `;
+  openModal("⚙️ 選單", html);
+  $("#mSound").onclick = ()=>{ Sfx.toggle(!Sfx.isOn()); openMenu(); };
+  $("#mHelp").onclick = ()=>{ hideModal(); openHelp(false); };
+  $("#mRestart").onclick = ()=>{ if(confirm("確定要重新開始嗎？")){ hideModal(); restart(); } };
+}
+
+/* ============================================================
+   初始化
+   ============================================================ */
+window.addEventListener("load", ()=>{
+  startIntro();
+  // 自動存檔（每 20 秒）
+  setInterval(()=>{
+    if(G && (G.phase==="story"||G.phase==="combat")) saveGame(true);
+  }, 20000);
+});
+
+// 防止行動裝置雙擊縮放
+let lastTouch = 0;
+document.addEventListener("touchend", e=>{
+  const now = Date.now();
+  if(now - lastTouch < 300) e.preventDefault();
+  lastTouch = now;
+}, {passive:false});
+
+</script>
+</body>
+</html>
