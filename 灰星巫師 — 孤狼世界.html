@@ -199,11 +199,6 @@ nav.bottom button:hover,nav.bottom button:active{color:var(--gold2);background:r
 .logbox .lg-p{color:#e37a6b}
 .logbox .lg-e{color:#8fd4a0}
 .logbox .lg-n{color:#a8987a}
-.diceroll{
-  font-size:38px;text-align:center;color:var(--gold2);font-family:Georgia,serif;
-  margin:6px 0;animation:pop .35s;
-}
-@keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1)}}
 
 /* ===== SETUP ===== */
 .setup{max-width:760px;margin:0 auto}
@@ -228,7 +223,7 @@ nav.bottom button:hover,nav.bottom button:active{color:var(--gold2);background:r
 /* fade transition */
 .fadeout{animation:fout .18s forwards}
 @keyframes fout{to{opacity:0}}
-.fadein{animation:fin .28s}
+.fadein{animation:fin .28s forwards}
 @keyframes fin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 @media(max-width:420px){
@@ -277,11 +272,12 @@ const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 /* ---------- 音效（Web Audio 合成） ---------- */
 const Sfx = (()=>{
   let ctx=null, on=true;
-  function ac(){ if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)(); return ctx; }
+  function ac(){ try { if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)(); return ctx; } catch(e) { return null; } }
   function tone(freq,dur,type,vol,slide){
     if(!on) return;
     try{
-      const c=ac(), o=c.createOscillator(), g=c.createGain();
+      const c=ac(); if(!c) return;
+      const o=c.createOscillator(), g=c.createGain();
       o.type=type||'sine'; o.frequency.value=freq;
       if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(40,slide), c.currentTime+dur);
       g.gain.setValueAtTime(vol||.06, c.currentTime);
@@ -331,7 +327,7 @@ const CR_COLS = [
 ];
 function crIndex(r){ for(let i=0;i<CR_COLS.length;i++) if(r<=CR_COLS[i].max) return i; return 12; }
 
-/* 玩家耐力損失（列＝戰鬥比率分組，列內 13 格） */
+/* 玩家耐力損失 */
 const PDMG = [
  [8,8,7,6,5,4,3,2,1,0,0,0,0],
  [8,8,7,6,5,4,3,2,1,0,0,0,0],
@@ -417,7 +413,6 @@ function loadGame(){
     const s = localStorage.getItem(SAVE_KEY);
     if(!s){ toast("沒有找到存檔"); return false; }
     G = JSON.parse(s);
-    // 補齊欄位
     G.visited = G.visited||{}; G.history=G.history||[]; G.achievements=G.achievements||{};
     G.flags = G.flags||{}; G.log=G.log||[];
     hideModal();
@@ -429,7 +424,7 @@ function loadGame(){
     return true;
   }catch(e){ toast("⚠️ 讀取失敗"); return false; }
 }
-function hasSave(){ return !!localStorage.getItem(SAVE_KEY); }
+function hasSave(){ try { return !!localStorage.getItem(SAVE_KEY); } catch(e){ return false; } }
 
 function unlockAch(key){
   if(!G) return;
@@ -448,7 +443,8 @@ function unlockAch(key){
 /* ---------- Toast ---------- */
 let toastT=null;
 function toast(msg){
-  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  const t=$("#toast"); if(!t) return;
+  t.textContent=msg; t.classList.add("show");
   clearTimeout(toastT);
   toastT=setTimeout(()=>t.classList.remove("show"), 2600);
 }
@@ -647,7 +643,7 @@ CH[90] = {t:
 
 CH[139] = {t:
 `你集中精神，消耗 2 點意志力，在身體周圍形成了一道閃爍的能量場。火焰中心瑪格麗的身影消失了，取而代之的是一個更加邪惡的景象——一團盤踞在火焰中的密不透風的黑暗陰影。你看到兩個空洞的眼窩和一張大張的嘴巴，這個陰影生物朝你撲了過來。`,
-  e:s=>dmgWp(s,2),
+  e:s=>{ dmgWp(s,2); s.flags.sorceryShield = true; },
   c:[{l:"迎戰", to:149}]
 };
 
@@ -856,6 +852,13 @@ CH[4] = {t:
   c:[{l:"最後一搏", to:350}]
 };
 
+CH[350] = {t:
+`你耗盡了所有意志力，法杖閃爍著微弱的光芒。你拼命揮舞，將最近的幾隻螳螂打落，但更多的螳螂湧了上來。
+
+你腳下的樹枝發出斷裂的聲響。`,
+  c:[{l:"繼續", to:103}]
+};
+
 CH[5] = {t:
 `你從法杖中發射出一道能量束，對準威脅山的那株植物。灼熱的藍色火焰瞬間就將其燒毀，但這次攻擊消耗了你 2 點意志力。
 
@@ -1019,7 +1022,7 @@ CH[68] = {t:
 };
 
 CH[7] = {t:
-`你得知這個女孩名叫塔妮絲，她是一名初學巫術的新手，侍奉著瑪格麗——她的保護者兼監護人。塔妮絲十分美麗，有著一頭凌亂的深色長髮和一雙野性的綠色眼眸。
+`你得知這個女孩名叫塔妮絲，她是一名初學巫術的新手，侍奉著瑪格麗——她的保護者兼監護人。塔妮絲十分美麗，有著一頭凌亂的深色長髮和一双野性的綠色眼眸。
 
 「他們說你是個巫師，還質疑過卡齊姆之石的測真能力。」她好奇地說道。
 
@@ -1162,7 +1165,7 @@ CH[158] = {t:
   c:[{l:"繼續", to:232}]
 };
 
-CH:232 = {t:
+CH[232] = {t:
 `你在灌木叢中拼命奔跑，樹枝刮破了你的臉頰和手臂。不知跑了多久，身後的嘶鳴聲終於漸漸遠去。
 
 你癱倒在一棵巨大的阿扎伍德樹下，大口喘著氣。眼前，阿扎南的雲霧森林在暮色中若隱若現。`,
@@ -1234,7 +1237,7 @@ CH[109] = {t:
 
 起初，你的意志力量似乎沒什麼效果，於是你逐漸加大了法術的強度。當門開始發出嘎吱聲、厚重的木頭開始變形時，你已經消耗了 2 點意志力。你再加把勁，又消耗 3 點意志力，木頭發出斷裂聲，但鎖芯還是沒被破壞。你做了最後一次努力，消耗 4 點意志力，終於用能量將門鎖劈成了碎片。門轟然倒地。
 
-這次施法總共消耗了你 4 點意志力，長時間的精神緊張還讓你損失 1 點耐力！
+這次施法總共消耗了你 9 點意志力，長時間的精神緊張還讓你損失 1 點耐力！
 
 你和山衝到樓梯頂端，跑進走廊。很快，你就聽到右邊走廊深處有人在大喊——你聽出那是獄卒的聲音，還聽到了他鑰匙的叮噹聲。`,
   e:s=>{ dmgWp(s,9); dmgEnd(s,1); },
@@ -1263,7 +1266,7 @@ CH[124] = {t:
 };
 
 CH[151] = {t:
-`煉金術士應該能調配出一種酸性藥劑，足以摧毀牢房門的金属鎖，但你需要以下材料才能完成配方：
+`煉金術士應該能調配出一種酸性藥劑，足以摧毀牢房門的金屬鎖，但你需要以下材料才能完成配方：
 
 埃澤蘭酸藥劑
 1 份硫磺
@@ -2256,8 +2259,6 @@ CH[189] = {t:
   c:[{l:"繼續南行", to:2}]
 };
 
-CH[70] = CH[70];
-
 /* --- 剩餘章節（補充） --- */
 CH[13] = {t:
 `森林就在不遠處，且夜色正濃。幸運的是，沒人發現你。你一頭扎進森林邊緣的灌木叢中，一動不動地躺著，看著沙達基人的戰車以極快的速度轟隆隆地駛過。戰車車輪輪轂上的鋒利刀刃閃閃發光，戰車駛過你藏身之處時，距離近得十分危險。
@@ -2442,8 +2443,6 @@ CH[292] = {t:
 突然，一塊岩石鬆動，你整個人向下滑落，手指拼命抓撓著岩壁。`,
   c:[{l:"繼續", to:113}]
 };
-
-CH[138] = CH[138];
 
 CH[303] = {t:
 `你深吸一口氣，跳向對岸。`,
@@ -2671,38 +2670,22 @@ CH[227] = {t:
   ]
 };
 
-CH[300] = CH[300];
-
-CH[295] = {t:
-`你繼續前進，穿過荒野之地。`,
-  c:[{l:"繼續", to:29}]
-};
-
-CH[313] = CH[313];
-
-CH[292] = CH[292];
-
-CH[124] = CH[124];
-
-CH[221] = CH[221];
-
-/* --- 死亡 / 結局通用 --- */
-CH[999] = {t:`故事在此結束。`,
-  end:{type:"fail", title:"未知的終點", desc:"你的旅程在此劃下句點。"}
-};
-
 /* ============================================================
    渲染與流程控制
    ============================================================ */
 
 function renderStats(){
   if(!G) return;
+  const statrow = $("#statrow");
+  if(!statrow) return;
+  
   const hpPct = G.maxEnd? clamp(G.end/G.maxEnd*100,0,100):0;
   const wpPct = G.startWp? clamp(G.wp/Math.max(G.startWp,1)*100,0,100):0;
   const csPct = clamp((G.cs-10)/10*100,0,100);
   const nbPct = clamp(G.nobles/50*100,0,100);
   const fdPct = clamp(G.meals/4*100,0,100);
-  $("#statrow").innerHTML = `
+  
+  statrow.innerHTML = `
     <div class="stat hp"><span class="lbl">❤️ 耐力</span><span class="val">${G.end}/${G.maxEnd}</span><i class="bar" style="width:${hpPct}%;color:#b03a2e"></i></div>
     <div class="stat wp"><span class="lbl">🔮 意志力</span><span class="val">${G.wp}</span><i class="bar" style="width:${wpPct}%;color:#3d7ec0"></i></div>
     <div class="stat cs"><span class="lbl">⚔️ 戰鬥能力</span><span class="val">${G.cs}</span><i class="bar" style="width:${csPct}%;color:#a8863e"></i></div>
@@ -2716,6 +2699,7 @@ let typeTimer=null, typeFull="", typeIdx=0, typeDone=true;
 function typeWrite(text, cb){
   clearInterval(typeTimer);
   const el = $("#story");
+  if(!el) return;
   typeFull = text; typeIdx = 0; typeDone = false;
   el.textContent = "";
   typeTimer = setInterval(()=>{
@@ -2727,14 +2711,16 @@ function typeWrite(text, cb){
     const step = 2;
     typeIdx = Math.min(typeFull.length, typeIdx+step);
     el.textContent = typeFull.slice(0,typeIdx);
-    $("#main").scrollTop = $("#main").scrollHeight;
+    const main = $("#main");
+    if(main) main.scrollTop = main.scrollHeight;
   }, 12);
 }
 function finishTyping(){
   if(typeDone) return;
   clearInterval(typeTimer);
   typeDone = true;
-  $("#story").textContent = typeFull;
+  const el = $("#story");
+  if(el) el.textContent = typeFull;
 }
 
 /* ---- 章節渲染 ---- */
@@ -2789,6 +2775,7 @@ function renderSection(n, record=true){
 
 function renderStory(ch){
   const stage = $("#stage");
+  if(!stage) return;
   stage.innerHTML = `
     <div class="storywrap fadein">
       <div class="secthead">§ ${G.current}</div>
@@ -2803,6 +2790,7 @@ function renderStory(ch){
 
 function renderStoryWithActions(ch){
   const stage = $("#stage");
+  if(!stage) return;
   stage.innerHTML = `
     <div class="storywrap fadein">
       <div class="secthead">§ ${G.current}</div>
@@ -2811,6 +2799,7 @@ function renderStoryWithActions(ch){
     </div>`;
   typeWrite(ch.t, ()=>{
     const box = $("#choices");
+    if(!box) return;
     box.innerHTML = "";
     (ch.c||[]).forEach(c=>{
       const b = document.createElement("button");
@@ -2870,6 +2859,7 @@ function renderMissing(n){
   G.phase = "story";
   unlockAch("end_open");
   const stage = $("#stage");
+  if(!stage) return;
   stage.innerHTML = `
     <div class="storywrap fadein">
       <div class="secthead">§ ${n}</div>
@@ -2883,6 +2873,7 @@ function renderMissing(n){
 （第 ${n} 節的內容未收錄於本次翻譯之中。你的冒險在此暫時劃下句點，但你走過的路已被記錄下來。）`;
   typeWrite(txt, ()=>{
     const box = $("#choices");
+    if(!box) return;
     box.innerHTML = "";
     const b = document.createElement("button");
     b.className = "btn special";
@@ -2910,6 +2901,7 @@ function goBack(){
 function goto(n){
   if(n===undefined || n===null) return;
   const main = $("#main");
+  if(!main) return;
   main.style.opacity = "0.15";
   setTimeout(()=>{
     main.style.transition = "opacity .22s";
@@ -2942,8 +2934,8 @@ function startCombat(cfg, chapter){
 function renderCombat(){
   const c = G.combat;
   const stage = $("#stage");
+  if(!stage || !c) return;
   const ratio = (G.cs + c.csBonus) - c.cs;
-  const idx = crIndex(ratio);
 
   stage.innerHTML = `
     <div id="combatpanel" class="fadein">
@@ -2980,7 +2972,7 @@ function renderCombat(){
 function renderSpendButtons(){
   const c = G.combat;
   const row = $("#spendrow");
-  if(!row) return;
+  if(!row || !c) return;
   row.innerHTML = "";
   if(G.wp <= 0){
     const b = document.createElement("button");
@@ -3015,7 +3007,7 @@ function renderCombatLog(){
 
 function combatRound(spend){
   const c = G.combat;
-  if(G.phase !== "combat") return;
+  if(G.phase !== "combat" || !c) return;
 
   let cs = G.cs + c.csBonus;
   let mult = 1;
@@ -3037,9 +3029,6 @@ function combatRound(spend){
   const ci = crIndex(ratio);
   let pdmg = PDMG[roll][ci];
   let edmg = EDMG[roll][ci] * mult;
-
-  // 寶石匕首加成（若使用）
-  // （已在 G.cs 中體現，若玩家選擇使用寶石匕首則 +1，此處不重複）
 
   G.end = Math.max(0, G.end - pdmg);
   c.end = Math.max(0, c.end - edmg);
@@ -3082,7 +3071,6 @@ function combatRound(spend){
       G.combat = null;
       G.phase = "story";
       if(wasCombat.winChoices && wasCombat.winChoices.length){
-        // 顯示戰勝後選項
         showWinChoices(wasCombat);
       } else if(wasCombat.winTo){
         goto(wasCombat.winTo);
@@ -3111,7 +3099,7 @@ function combatRound(spend){
 
 function fleeCombat(){
   const c = G.combat;
-  // 逃跑仍要承受一輪傷害
+  if(!c) return;
   const roll = rand();
   const ratio = (G.cs + c.csBonus) - c.cs;
   const ci = crIndex(ratio);
@@ -3135,6 +3123,7 @@ function fleeCombat(){
 
 function showWinChoices(wc){
   const stage = $("#stage");
+  if(!stage) return;
   stage.innerHTML = `
     <div class="storywrap fadein">
       <div class="secthead">§ ${G.current}</div>
@@ -3143,6 +3132,7 @@ function showWinChoices(wc){
     </div>`;
   typeWrite(`你擊敗了敵人，暫時得以喘息。接下來呢？`, ()=>{
     const box = $("#choices");
+    if(!box) return;
     box.innerHTML = "";
     wc.winChoices.forEach(c=>{
       const b = document.createElement("button");
@@ -3160,6 +3150,7 @@ function showWinChoices(wc){
 function renderEnding(info){
   G.phase = "ending";
   const stage = $("#stage");
+  if(!stage) return;
   const isFail = info.type === "fail";
   stage.innerHTML = `
     <div class="storywrap fadein" style="text-align:center;padding-top:30px">
@@ -3180,7 +3171,8 @@ function renderEnding(info){
   b2.className = "btn"; b2.style.textAlign = "center"; b2.textContent = "🕯️ 查看歷程";
   b2.onclick = ()=>{ Sfx.click(); openHistory(); };
   box.appendChild(b1); box.appendChild(b2);
-  stage.querySelector(".storywrap").appendChild(box);
+  const sw = stage.querySelector(".storywrap");
+  if(sw) sw.appendChild(box);
   if(isFail) Sfx.lose(); else Sfx.win();
 }
 
@@ -3197,6 +3189,8 @@ function startIntro(){
   renderStats();
   G.phase = "intro";
   const stage = $("#stage");
+  if(!stage) return;
+  
   stage.innerHTML = `
     <div class="storywrap fadein" style="text-align:center;padding-top:8px">
       <div style="font-size:11px;letter-spacing:.35em;color:#8a7a5a;margin-bottom:6px">孤狼世界</div>
@@ -3206,7 +3200,7 @@ function startIntro(){
         你從肆虐風暴的中心出現——一個人類小孩，因船難而成為孤兒，是流亡的夏安提巫師們的希望之禮。<br><br>
         從那個決定命運的夜晚開始，他們就把你當作自己人撫養，教你魔法的奧秘，為史詩般的探索做準備。<br><br>
         現在時機已到。你必須找到傳說中的月光石，並用它的力量粉碎邪惡的沙達基巫王。<br><br>
-        <span style="color:#c9a84c">但請注意——前方是一段未知的恐怖旅程，每翻一頁都會面臨生存或死亡。</span>
+        <span style="color:#c9a84c">但請注意——前方是一段未知的恐怖旅程，每翻一頁都會面臨生存或死亡的抉擇。</span>
       </div>
     </div>`;
   const box = document.createElement("div");
@@ -3217,6 +3211,7 @@ function startIntro(){
   const b2 = document.createElement("button");
   b2.className = "btn"; b2.style.textAlign = "center"; b2.textContent = "🎲 開始創建角色";
   b2.onclick = ()=>{ Sfx.click(); beginCreation(); };
+  
   if(hasSave()){
     const b3 = document.createElement("button");
     b3.className = "btn"; b3.style.textAlign = "center"; b3.textContent = "💾 載入存檔";
@@ -3225,7 +3220,8 @@ function startIntro(){
   }
   box.appendChild(b1);
   box.appendChild(b2);
-  stage.querySelector(".storywrap").appendChild(box);
+  const sw = stage.querySelector(".storywrap");
+  if(sw) sw.appendChild(box);
 }
 
 /* ---- 角色創建 ---- */
@@ -3235,15 +3231,11 @@ function beginCreation(){
   renderCreationStep();
 }
 
-function rollStat(base, label, icon){
-  const n = rand();
-  return {n, val:n+base, label, icon};
-}
-
 function renderCreationStep(){
   const stage = $("#stage");
+  if(!stage) return;
+  
   if(creation.step === 0){
-    // 屬性
     stage.innerHTML = `
       <div class="setup fadein">
         <div class="secthead">角色創建 · 第一步</div>
@@ -3257,8 +3249,6 @@ function renderCreationStep(){
     renderRollArea();
   }
   else if(creation.step === 1){
-    // 法術
-    const list = Object.keys(SPELLS);
     stage.innerHTML = `
       <div class="setup fadein">
         <div class="secthead">角色創建 · 第二步</div>
@@ -3274,7 +3264,6 @@ function renderCreationStep(){
     renderSpellPicker();
   }
   else if(creation.step === 2){
-    // 禮物
     stage.innerHTML = `
       <div class="setup fadein">
         <div class="secthead">角色創建 · 第三步</div>
@@ -3288,7 +3277,6 @@ function renderCreationStep(){
     renderGiftPicker();
   }
   else if(creation.step === 3){
-    // 完成
     G.cs = creation.cs;
     G.wp = creation.wp;
     G.startWp = creation.wp;
@@ -3309,7 +3297,6 @@ function renderCreationStep(){
         {name:"硝石", n:1},
         {name:"硫磺", n:1}
       ];
-      // 也放入背包以便檢視
       addItem(G,"空藥瓶 ×2","煉金術材料");
       addItem(G,"硝石","煉金術材料");
       addItem(G,"硫磺","煉金術材料");
@@ -3324,6 +3311,7 @@ function renderCreationStep(){
 
 function renderRollArea(){
   const ra = $("#rollarea");
+  if(!ra) return;
   const done = creation.cs && creation.wp && creation.end;
   ra.innerHTML = `
     <div class="picker">
@@ -3348,7 +3336,8 @@ function renderRollArea(){
     </div>
     <div id="rollnext" style="margin-top:16px"></div>
   `;
-  $("#rollall").onclick = ()=>{
+  const rollBtn = $("#rollall");
+  if(rollBtn) rollBtn.onclick = ()=>{
     Sfx.dice();
     creation.cs = rand()+10;
     creation.wp = rand()+20;
@@ -3357,13 +3346,18 @@ function renderRollArea(){
     toast("🎲 擲骰完成！");
   };
   if(done){
-    $("#rollnext").innerHTML = `<button class="bigbtn" id="tospell">下一步：選擇魔法能力 →</button>`;
-    $("#tospell").onclick = ()=>{ Sfx.click(); creation.step = 1; renderCreationStep(); };
+    const rn = $("#rollnext");
+    if(rn) {
+      rn.innerHTML = `<button class="bigbtn" id="tospell">下一步：選擇魔法能力 →</button>`;
+      const ts = $("#tospell");
+      if(ts) ts.onclick = ()=>{ Sfx.click(); creation.step = 1; renderCreationStep(); };
+    }
   }
 }
 
 function renderSpellPicker(){
   const sp = $("#spellpicker");
+  if(!sp) return;
   sp.innerHTML = "";
   Object.keys(SPELLS).forEach(name=>{
     const d = document.createElement("div");
@@ -3381,17 +3375,23 @@ function renderSpellPicker(){
     };
     sp.appendChild(d);
   });
-  $("#spellcount").textContent = `已選 ${creation.spells.length} / 5`;
-  if(creation.spells.length === 5){
-    $("#spellnext").innerHTML = `<button class="bigbtn" id="togift">下一步：選擇贈禮 →</button>`;
-    $("#togift").onclick = ()=>{ Sfx.click(); creation.step = 2; renderCreationStep(); };
-  }else{
-    $("#spellnext").innerHTML = "";
+  const sc = $("#spellcount");
+  if(sc) sc.textContent = `已選 ${creation.spells.length} / 5`;
+  const sn = $("#spellnext");
+  if(sn) {
+    if(creation.spells.length === 5){
+      sn.innerHTML = `<button class="bigbtn" id="togift">下一步：選擇贈禮 →</button>`;
+      const tg = $("#togift");
+      if(tg) tg.onclick = ()=>{ Sfx.click(); creation.step = 2; renderCreationStep(); };
+    } else {
+      sn.innerHTML = "";
+    }
   }
 }
 
 function renderGiftPicker(){
   const gp = $("#giftpicker");
+  if(!gp) return;
   gp.innerHTML = "";
   Object.keys(GIFTS).forEach(k=>{
     const g = GIFTS[k];
@@ -3405,11 +3405,15 @@ function renderGiftPicker(){
     };
     gp.appendChild(d);
   });
-  if(creation.gift){
-    $("#giftnext").innerHTML = `<button class="bigbtn" id="tofinal">完成創建，開始冒險 →</button>`;
-    $("#tofinal").onclick = ()=>{ Sfx.click(); creation.step = 3; renderCreationStep(); };
-  }else{
-    $("#giftnext").innerHTML = "";
+  const gn = $("#giftnext");
+  if(gn) {
+    if(creation.gift){
+      gn.innerHTML = `<button class="bigbtn" id="tofinal">完成創建，開始冒險 →</button>`;
+      const tf = $("#tofinal");
+      if(tf) tf.onclick = ()=>{ Sfx.click(); creation.step = 3; renderCreationStep(); };
+    } else {
+      gn.innerHTML = "";
+    }
   }
 }
 
@@ -3417,14 +3421,16 @@ function renderGiftPicker(){
    彈窗 / 說明 / 行動表 / 歷程 / 選單
    ============================================================ */
 function openModal(title, html, footHtml){
-  $("#mtitle").textContent = title;
-  $("#mbody").innerHTML = html;
-  $("#mfoot").innerHTML = footHtml || "";
-  $("#modal").classList.add("open");
+  const mt = $("#mtitle"), mb = $("#mbody"), mf = $("#mfoot"), modal = $("#modal");
+  if(!modal) return;
+  if(mt) mt.textContent = title;
+  if(mb) mb.innerHTML = html;
+  if(mf) mf.innerHTML = footHtml || "";
+  modal.classList.add("open");
 }
-function hideModal(){ $("#modal").classList.remove("open"); }
-$("#mclose").onclick = hideModal;
-$("#modal").onclick = e=>{ if(e.target.id==="modal") hideModal(); };
+function hideModal(){ const m = $("#modal"); if(m) m.classList.remove("open"); }
+const mclose = $("#mclose"); if(mclose) mclose.onclick = hideModal;
+const modalEl = $("#modal"); if(modalEl) modalEl.onclick = e=>{ if(e.target.id==="modal") hideModal(); };
 
 document.querySelectorAll("nav.bottom button").forEach(b=>{
   b.onclick = ()=>{
@@ -3492,9 +3498,11 @@ function openHelp(fromIntro){
     : `<button class="bigbtn" id="helpclose">關閉說明</button>`;
   openModal("📖 遊戲說明", html, foot);
   if(fromIntro){
-    $("#helpready").onclick = ()=>{ Sfx.click(); hideModal(); beginCreation(); };
+    const hr = $("#helpready");
+    if(hr) hr.onclick = ()=>{ Sfx.click(); hideModal(); beginCreation(); };
   }else{
-    $("#helpclose").onclick = ()=>{ Sfx.click(); hideModal(); };
+    const hc = $("#helpclose");
+    if(hc) hc.onclick = ()=>{ Sfx.click(); hideModal(); };
   }
 }
 
@@ -3583,17 +3591,16 @@ function openMenu(){
     <div class="tip" style="margin-top:16px">💡 提示：本遊戲為單機互動冒險，所有進度僅保存在你的裝置上。</div>
   `;
   openModal("⚙️ 選單", html);
-  $("#mSound").onclick = ()=>{ Sfx.toggle(!Sfx.isOn()); openMenu(); };
-  $("#mHelp").onclick = ()=>{ hideModal(); openHelp(false); };
-  $("#mRestart").onclick = ()=>{ if(confirm("確定要重新開始嗎？")){ hideModal(); restart(); } };
+  const ms = $("#mSound"); if(ms) ms.onclick = ()=>{ Sfx.toggle(!Sfx.isOn()); openMenu(); };
+  const mh = $("#mHelp"); if(mh) mh.onclick = ()=>{ hideModal(); openHelp(false); };
+  const mr = $("#mRestart"); if(mr) mr.onclick = ()=>{ if(confirm("確定要重新開始嗎？")){ hideModal(); restart(); } };
 }
 
 /* ============================================================
    初始化
    ============================================================ */
-window.addEventListener("load", ()=>{
+document.addEventListener('DOMContentLoaded', () => {
   startIntro();
-  // 自動存檔（每 20 秒）
   setInterval(()=>{
     if(G && (G.phase==="story"||G.phase==="combat")) saveGame(true);
   }, 20000);
